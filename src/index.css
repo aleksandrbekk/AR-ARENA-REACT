@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ar-black: #0a0a0a;
+  --color-ar-dark: #141414;
+  --color-ar-gold: #FFD700;
+  --color-ar-orange: #FFA500;
+  --color-ar-green: #38EF7D;
+  --color-ar-red: #FF4757;
+  --color-ar-purple: #764BA2;
+}
+
+/* Safe area insets for iOS notch and home indicator */
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  background-color: #0a0a0a;
+  color: white;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  /* Prevent bounce scrolling on iOS */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
