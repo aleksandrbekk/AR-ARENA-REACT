@@ -13,10 +13,13 @@ export function TapBull({ skinFile, onTap, children }: TapBullProps) {
 
   // Состояние для анимации тапа
   const [isTapped, setIsTapped] = useState(false)
+  const [isGlowing, setIsGlowing] = useState(false)
 
   const handleTapAnimation = () => {
     setIsTapped(true)
+    setIsGlowing(true)
     setTimeout(() => setIsTapped(false), 100)
+    setTimeout(() => setIsGlowing(false), 300)
     onTap?.()
   }
 
@@ -48,7 +51,7 @@ export function TapBull({ skinFile, onTap, children }: TapBullProps) {
           className={`
             relative z-10 w-64 max-w-[70%]
             transition-transform duration-100 ease-out
-            ${isTapped ? 'scale-90' : 'scale-100'}
+            ${isTapped ? 'scale-95' : 'scale-100'}
           `}
           onError={(e) => {
             // Fallback на Bull1.png если картинка не загрузилась
@@ -60,12 +63,13 @@ export function TapBull({ skinFile, onTap, children }: TapBullProps) {
           draggable={false}
         />
 
-        {/* Glow ПОД ногами — двигается вместе с быком */}
+        {/* Glow ПОД ногами с динамической яркостью */}
         <div
-          className="-mt-6 w-36 h-10 rounded-full pointer-events-none"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-16 rounded-full pointer-events-none transition-all duration-300"
           style={{
-            background: 'radial-gradient(ellipse, rgba(255,215,0,0.5) 0%, rgba(255,165,0,0.3) 30%, transparent 70%)',
-            filter: 'blur(12px)',
+            background: `radial-gradient(ellipse, rgba(255,215,0,${isGlowing ? 0.7 : 0.3}) 0%, rgba(255,165,0,${isGlowing ? 0.4 : 0.15}) 40%, transparent 70%)`,
+            filter: `blur(${isGlowing ? '15px' : '12px'})`,
+            transform: `scale(${isGlowing ? 1.2 : 1})`
           }}
         />
       </div>

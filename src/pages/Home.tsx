@@ -38,7 +38,7 @@ export function Home() {
   const handleTap = async () => {
     // Haptic feedback
     if (window.Telegram?.WebApp?.HapticFeedback) {
-      window.Telegram.WebApp.HapticFeedback.impactOccurred('light')
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
     }
 
     // Проверяем условия для тапа
