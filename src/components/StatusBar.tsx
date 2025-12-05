@@ -14,14 +14,14 @@ export function StatusBar({ level, xp, xpToNext, energy, energyMax }: StatusBarP
 
       {/* Плашка 1: Level + XP */}
       <div
-        className="flex-1 flex items-center gap-2 px-3 py-2 rounded-full"
+        className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-2xl"
         style={{
           background: 'linear-gradient(135deg, rgba(20,20,20,0.9) 0%, rgba(10,10,10,0.95) 100%)',
           border: '1px solid rgba(255,215,0,0.2)'
         }}
       >
         <div
-          className="px-2 py-0.5 rounded-full text-xs font-bold"
+          className="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold"
           style={{
             background: 'linear-gradient(135deg, #FFD700, #FFA500)',
             color: '#000'
@@ -41,17 +41,16 @@ export function StatusBar({ level, xp, xpToNext, energy, energyMax }: StatusBarP
         <span className="text-xs text-white/50">{xp}/{xpToNext}</span>
       </div>
 
-      {/* Плашка 2: Energy */}
+      {/* Плашка 2: Energy — ТАКАЯ ЖЕ высота */}
       <div
-        className="flex items-center gap-2 px-3 py-2 rounded-full"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl"
         style={{
           background: 'linear-gradient(135deg, rgba(20,20,20,0.9) 0%, rgba(10,10,10,0.95) 100%)',
           border: '1px solid rgba(255,215,0,0.2)'
         }}
       >
-        <img src="/icons/energi2.png" className="w-4 h-4" alt="" />
-        <span className="text-sm font-bold text-white">{energy}</span>
-        <span className="text-xs text-white/40">/{energyMax}</span>
+        <img src="/icons/energi2.png" className="w-5 h-5" alt="" />
+        <span className="text-sm font-bold text-white">{energy}/{energyMax}</span>
       </div>
 
     </div>
