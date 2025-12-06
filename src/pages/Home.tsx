@@ -2,6 +2,7 @@ import { Layout } from '../components/layout/Layout'
 import { Header } from '../components/Header'
 import { BalanceDisplay } from '../components/BalanceDisplay'
 import { StatusBar } from '../components/StatusBar'
+import { SkinBonuses } from '../components/SkinBonuses'
 import { TapBull } from '../components/TapBull'
 import { SideButtons } from '../components/SideButtons'
 import { FloatingNumber } from '../components/FloatingNumber'
@@ -9,11 +10,15 @@ import { Particles } from '../components/Particles'
 import { useAuth } from '../hooks/useAuth'
 import { useTap } from '../hooks/useTap'
 import { useEnergy } from '../hooks/useEnergy'
+import { useSkins } from '../hooks/useSkins'
 import { useCallback, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export function Home() {
   const { telegramUser, gameState, isLoading, error, updateGameState } = useAuth()
   const { tap, isProcessing } = useTap(telegramUser?.id?.toString() || '')
+  const { activeSkin } = useSkins()
+  const navigate = useNavigate()
 
   // Состояние для плавающих чисел
   const [floatingNumbers, setFloatingNumbers] = useState<Array<{
@@ -36,11 +41,6 @@ export function Home() {
 
   // Обработчик тапа на быка
   const handleTap = async () => {
-    // Haptic feedback
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
-    }
-
     // Проверяем условия для тапа
     if (!telegramUser || !gameState || gameState.energy <= 0 || isProcessing || isLoading) {
       console.log('Tap blocked:', {
@@ -135,19 +135,22 @@ export function Home() {
           <BalanceDisplay balance={gameState.balance_bul} />
         </div>
 
+        {/* SkinBonuses - бонусы активного персонажа */}
+        <SkinBonuses activeSkin={activeSkin} />
+
         {/* TapBull - основной компонент тапа */}
         <TapBull
           skinFile={gameState.active_skin || 'Bull1.png'}
           onTap={handleTap}
         >
-          <SideButtons />
+          <SideButtons
+            onSkinsClick={() => navigate('/skins')}
+            onFarmClick={() => navigate('/farm')}
+          />
         </TapBull>
 
-        {/* StatusBar внизу, над навигацией */}
+        {/* StatusBar внизу, над навигацией - только энергия */}
         <StatusBar
-          level={gameState.level}
-          xp={gameState.xp}
-          xpToNext={gameState.xp_to_next}
           energy={gameState.energy}
           energyMax={gameState.energy_max}
         />
@@ -165,3 +168,4 @@ export function Home() {
     </Layout>
   )
 }
+

@@ -1,49 +1,147 @@
-// Telegram WebApp types
+// Telegram WebApp
 export interface TelegramUser {
-  id: number
-  first_name: string
-  last_name?: string
-  username?: string
-  language_code?: string
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  language_code?: string;
 }
 
 export interface TelegramWebApp {
-  initData: string
+  initData: string;
   initDataUnsafe: {
-    user?: TelegramUser
-  }
-  version: string
-  platform: string
-  colorScheme: 'light' | 'dark'
-  isExpanded: boolean
-  viewportHeight: number
-  viewportStableHeight: number
-  ready: () => void
-  expand: () => void
-  close: () => void
-  requestFullscreen?: () => void
-  setHeaderColor: (color: string) => void
+    user?: TelegramUser;
+    query_id?: string;
+    auth_date?: number;
+    hash?: string;
+  };
+  version: string;
+  platform: string;
+  colorScheme: 'light' | 'dark';
+  themeParams: {
+    bg_color?: string;
+    text_color?: string;
+    hint_color?: string;
+    link_color?: string;
+    button_color?: string;
+    button_text_color?: string;
+  };
+  isExpanded: boolean;
+  viewportHeight: number;
+  viewportStableHeight: number;
+  headerColor: string;
+  backgroundColor: string;
+  BackButton: {
+    isVisible: boolean;
+    onClick: (callback: () => void) => void;
+    offClick: (callback: () => void) => void;
+    show: () => void;
+    hide: () => void;
+  };
+  MainButton: {
+    text: string;
+    color: string;
+    textColor: string;
+    isVisible: boolean;
+    isActive: boolean;
+    isProgressVisible: boolean;
+    setText: (text: string) => void;
+    onClick: (callback: () => void) => void;
+    offClick: (callback: () => void) => void;
+    show: () => void;
+    hide: () => void;
+    enable: () => void;
+    disable: () => void;
+    showProgress: (leaveActive: boolean) => void;
+    hideProgress: () => void;
+    setParams: (params: {
+      text?: string;
+      color?: string;
+      text_color?: string;
+      is_active?: boolean;
+      is_visible?: boolean;
+    }) => void;
+  };
+  HapticFeedback: {
+    impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
+    notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
+    selectionChanged: () => void;
+  };
+  ready: () => void;
+  expand: () => void;
+  close: () => void;
+  requestFullscreen: () => void;
+  exitFullscreen: () => void;
+  setHeaderColor: (color: string) => void;
+  setBackgroundColor: (color: string) => void;
 }
 
-// User types
-export interface User {
-  id: string
-  telegram_id: number
-  username: string
-  first_name: string
-  balance_coins: number
-  balance_tickets: number
-  energy: number
-  max_energy: number
-  level: number
-  created_at: string
+// Состояние игры (ответ от get_bull_game_state)
+export interface GameState {
+  balance_bul: number;
+  balance_ar: number;
+  energy: number;
+  energy_max: number;
+  level: number;
+  xp: number;
+  xp_to_next: number;
+  active_skin: string;
+  last_energy_update: string;
 }
 
-// Station types
-export interface Station {
+// Результат тапа (ответ от process_bull_tap)
+export interface TapResult {
+  success: boolean;
+  message: string;
+  balance_bul: number;
+  energy: number;
+  level: number;
+  xp: number;
+  xp_to_next: number;
+  bul_earned: number;
+  xp_earned: number;
+  leveled_up: boolean;
+}
+
+// Результат восстановления энергии
+export interface EnergyResult {
+  energy: number;
+  energy_max: number;
+  energy_restored: number;
+  last_energy_update: string;
+}
+
+// Полный стейт пользователя в приложении
+export interface UserState {
+  telegramUser: TelegramUser | null;
+  gameState: GameState | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+// Редкость скинов
+export type SkinRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+
+// Скин из таблицы skins
+export interface Skin {
   id: number
   name: string
-  description: string
-  reward_coins: number
-  is_completed: boolean
+  file: string
+  rarity: SkinRarity
+  price_bul: number
+  price_ar: number
+  level_req: number
+  refs_req: number
+  tap_bonus: number
+  regen_bonus: number
+  farm_bonus: number
+  description: string | null
+}
+
+// Купленный скин пользователя из таблицы user_skins
+export interface UserSkin {
+  skin_id: number
+  is_equipped: boolean
+  purchased_at: string
 }
