@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSkins } from '../hooks/useSkins';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { SkinCard } from '../components/skins/SkinCard';
+import { RARITY_CONFIG, type RarityType } from '../config/rarityConfig';
 
 const RARITY_GRADIENTS = {
   default: 'linear-gradient(to bottom, #4a4a4a, #1a1a1a)',
@@ -21,18 +23,9 @@ const RARITY_LABELS: Record<string, string> = {
   legendary: 'Легендарный',
 };
 
-const RARITY_COLORS: Record<string, string> = {
-  default: '#808080',
-  common: '#808080',
-  uncommon: '#4ADE80',
-  rare: '#3B82F6',
-  epic: '#A855F7',
-  legendary: '#FFD700',
-};
-
 export default function SkinsPage() {
   const { telegramUser, gameState } = useAuth();
-  const { skins, activeSkin, loading, isOwned, isEquipped, reload } = useSkins();
+  const { skins, activeSkin, isOwned, isEquipped, reload } = useSkins();
   const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
   const [buying, setBuying] = useState(false);
   const [equipping, setEquipping] = useState(false);
@@ -72,7 +65,6 @@ export default function SkinsPage() {
     if (!selectedSkinId || !owned || equipped || !telegramUser) return;
     setEquipping(true);
     try {
-      // Получаем user_id
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id')
@@ -81,13 +73,11 @@ export default function SkinsPage() {
 
       if (userError || !userData) throw userError;
 
-      // Снимаем все скины
       await supabase
         .from('user_skins')
         .update({ is_equipped: false })
         .eq('user_id', userData.id);
 
-      // Экипируем выбранный
       await supabase
         .from('user_skins')
         .update({ is_equipped: true })
@@ -103,12 +93,13 @@ export default function SkinsPage() {
   };
 
   const gradient = RARITY_GRADIENTS[selectedSkin?.rarity || 'default'];
+  const rarityStyles = RARITY_CONFIG[selectedSkin?.rarity as RarityType] || RARITY_CONFIG.default;
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col overflow-hidden">
       {/* ПОДИУМ - БЕЗ padding сверху, градиент от края экрана */}
       <div
-        className="relative w-full flex-shrink-0 flex flex-col items-center justify-center"
+        className="relative w-full flex-shrink-0 flex flex-col items-center justify-center overflow-hidden"
         style={{
           background: gradient,
           height: '40vh',
@@ -117,33 +108,45 @@ export default function SkinsPage() {
         {/* Кнопка закрыть поверх градиента */}
         <button
           onClick={() => window.history.back()}
-          className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm text-white"
+          className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors"
         >
           ✕
         </button>
 
-        {/* Большой бык с подиумом */}
-        <div className="flex-1 flex flex-col items-center justify-end pt-12 pb-8">
+        {/* Большой бык с подиумом и аурой */}
+        <div className="flex-1 flex flex-col items-center justify-end pt-12 pb-8 relative">
+          {/* АУРА за персонажем */}
+          <div
+            className="absolute -z-10 rounded-full blur-3xl transition-all duration-500"
+            style={{
+              width: '300px',
+              height: '300px',
+              background: rarityStyles.auraColor,
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
+          />
+
           {/* Бык */}
           <img
             src={selectedSkin?.file ? `/icons/skins/${selectedSkin.file}` : '/bull.png'}
             alt={selectedSkin?.name}
-            className="max-h-[24vh] object-contain relative z-10"
+            className="max-h-[24vh] object-contain relative z-10 transition-all duration-300"
             style={{ marginBottom: '-20px' }}
           />
+
           {/* Золотой подиум */}
           <div
-            className="relative"
+            className="relative transition-all duration-300"
             style={{
               width: '200px',
               height: '30px',
               background: 'linear-gradient(to bottom, #FFD700, #B8860B)',
               borderRadius: '50%',
               boxShadow: '0 0 30px rgba(255, 215, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3)',
-              position: 'relative',
             }}
           >
-            {/* Горизонтальные линии для 3D эффекта */}
             <div
               style={{
                 position: 'absolute',
@@ -170,81 +173,48 @@ export default function SkinsPage() {
         </div>
 
         {/* Имя и рарность */}
-        <div className="px-4 pb-4 w-full flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-white">
+        <div className="px-4 pb-4 w-full flex items-center justify-between z-10">
+          <h2 className={`text-2xl font-bold ${rarityStyles.text}`}>
             {selectedSkin?.name || 'Базовый'}
           </h2>
-          <span className="text-sm text-white/80 bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full">
+          <span className={`text-sm ${rarityStyles.text} bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full border ${rarityStyles.border}`}>
             {RARITY_LABELS[selectedSkin?.rarity || 'default']}
           </span>
         </div>
       </div>
 
       {/* ГРИД СКИНОВ - скроллится */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-28">
         <div className="grid grid-cols-3 gap-3">
-          {skins.map((skin) => {
-            const skinOwned = isOwned(skin.id);
-            const skinEquipped = isEquipped(skin.id);
-            const rarityColor = RARITY_COLORS[skin.rarity] || RARITY_COLORS.default;
-            const isSelected = selectedSkinId === skin.id;
-
-            return (
-              <button
-                key={skin.id}
-                onClick={() => setSelectedSkinId(skin.id)}
-                className={`
-                  relative aspect-square rounded-lg overflow-hidden
-                  bg-[#1a1a1a] p-2 transition-all
-                  ${!skinOwned ? 'opacity-50' : ''}
-                `}
-                style={{
-                  border: isSelected ? `3px solid ${rarityColor}` : `2px solid ${rarityColor}`,
-                  boxShadow: isSelected
-                    ? `0 0 20px ${rarityColor}80, 0 0 10px ${rarityColor}60`
-                    : `0 0 10px ${rarityColor}80`
-                }}
-                disabled={loading}
-              >
-                <img
-                  src={`/icons/skins/${skin.file}`}
-                  alt={skin.name}
-                  className="w-full h-full object-contain"
-                />
-                {skinEquipped && (
-                  <div className="absolute top-1 left-1 w-5 h-5 bg-[#FFD700] rounded-full flex items-center justify-center text-[10px]">
-                    ✓
-                  </div>
-                )}
-                {!skinOwned && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="text-xs text-white font-bold">
-                      {skin.price_bul?.toLocaleString()}
-                    </span>
-                  </div>
-                )}
-              </button>
-            );
-          })}
+          {skins.map((skin) => (
+            <SkinCard
+              key={skin.id}
+              skin={skin}
+              isActive={selectedSkinId === skin.id}
+              isOwned={isOwned(skin.id)}
+              isEquipped={isEquipped(skin.id)}
+              onClick={() => setSelectedSkinId(skin.id)}
+            />
+          ))}
         </div>
       </div>
 
-      {/* ПЛАШКА ВНИЗУ - фиксирована */}
-      <div className="flex-shrink-0 p-4 bg-[#1a1a1a]/80 backdrop-blur-md border-t border-white/10">
-        <div className="flex items-center justify-between gap-4">
+      {/* STICKY ФУТЕР С КНОПКОЙ - фиксирована внизу */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/80 backdrop-blur-xl border-t border-white/10 z-30">
+        <div className="flex items-center justify-between gap-4 max-w-screen-sm mx-auto">
           {/* Статы или цена */}
           <div className="flex-1">
             {owned ? (
               <div className="flex gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-white/60">Клик:</span>
-                  <span className="text-sm font-bold text-[#FFD700]">
+                  <span className={`text-sm font-bold ${rarityStyles.text}`}>
                     +{selectedSkin?.tap_bonus || 0}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-white/60">Фарм:</span>
-                  <span className="text-sm font-bold text-[#FFD700]">
+                  <span className={`text-sm font-bold ${rarityStyles.text}`}>
                     +{selectedSkin?.farm_bonus || 0}
                   </span>
                 </div>
@@ -259,17 +229,16 @@ export default function SkinsPage() {
             )}
           </div>
 
-          {/* Кнопка */}
+          {/* Кнопка с градиентом по редкости */}
           {owned ? (
             <button
               onClick={handleEquip}
               disabled={equipped || equipping}
               className={`
-                px-6 py-3 rounded-lg font-bold text-sm
-                ${
-                  equipped
-                    ? 'bg-gray-600 text-white/50 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black'
+                px-6 py-3 rounded-xl font-bold text-sm transition-all
+                ${equipped
+                  ? 'bg-gray-600 text-white/50 cursor-not-allowed'
+                  : `${rarityStyles.buttonGradient} text-white shadow-lg hover:scale-105`
                 }
               `}
             >
@@ -279,9 +248,19 @@ export default function SkinsPage() {
             <button
               onClick={handleBuy}
               disabled={buying || (gameState ? gameState.balance_bul < (selectedSkin?.price_bul || 0) : false)}
-              className="px-6 py-3 rounded-lg font-bold text-sm bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`
+                px-6 py-3 rounded-xl font-bold text-sm transition-all
+                ${rarityStyles.buttonGradient} text-white shadow-lg
+                hover:scale-105 active:scale-95
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+              `}
             >
-              Купить
+              <div className="flex items-center gap-2">
+                <span>{buying ? 'Покупка...' : 'Купить'}</span>
+                {!buying && (
+                  <img src="/icons/coin.svg" alt="BUL" className="w-5 h-5" />
+                )}
+              </div>
             </button>
           )}
         </div>
