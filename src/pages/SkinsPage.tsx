@@ -122,13 +122,51 @@ export default function SkinsPage() {
           ✕
         </button>
 
-        {/* Большой бык */}
-        <div className="flex-1 flex items-center justify-center pt-12">
+        {/* Большой бык с подиумом */}
+        <div className="flex-1 flex flex-col items-center justify-end pt-12 pb-8">
+          {/* Бык */}
           <img
             src={selectedSkin?.file ? `/icons/skins/${selectedSkin.file}` : '/bull.png'}
             alt={selectedSkin?.name}
-            className="max-h-[28vh] object-contain"
+            className="max-h-[24vh] object-contain relative z-10"
+            style={{ marginBottom: '-20px' }}
           />
+          {/* Золотой подиум */}
+          <div
+            className="relative"
+            style={{
+              width: '200px',
+              height: '30px',
+              background: 'linear-gradient(to bottom, #FFD700, #B8860B)',
+              borderRadius: '50%',
+              boxShadow: '0 0 30px rgba(255, 215, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
+            }}
+          >
+            {/* Горизонтальные линии для 3D эффекта */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '40%',
+                left: '10%',
+                right: '10%',
+                height: '1px',
+                background: 'rgba(255, 255, 255, 0.3)',
+                borderRadius: '50%',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                top: '60%',
+                left: '15%',
+                right: '15%',
+                height: '1px',
+                background: 'rgba(0, 0, 0, 0.3)',
+                borderRadius: '50%',
+              }}
+            />
+          </div>
         </div>
 
         {/* Имя и рарность */}
