@@ -1,5 +1,6 @@
 import { RARITY_CONFIG, type RarityType } from '../../config/rarityConfig';
 import type { Skin } from '../../types';
+import { CurrencyIcon } from '../CurrencyIcon';
 
 interface SkinCardProps {
   skin: Skin;
@@ -62,7 +63,7 @@ export function SkinCard({ skin, isActive, isOwned, isEquipped, onClick }: SkinC
       {/* Цена с иконкой валюты */}
       {!isOwned && (
         <div className="flex items-center justify-center gap-1 text-xs text-white/70">
-          <img src="/icons/BUL.png" alt="BUL" className="w-4 h-4 object-contain" />
+          <CurrencyIcon type="BUL" className="w-4 h-4" />
           <span>{skin.price_bul.toLocaleString()}</span>
         </div>
       )}

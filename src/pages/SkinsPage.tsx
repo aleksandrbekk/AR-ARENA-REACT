@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { SkinCard } from '../components/skins/SkinCard';
 import { RARITY_CONFIG, type RarityType } from '../config/rarityConfig';
+import { CurrencyIcon } from '../components/CurrencyIcon';
 
 const RARITY_GRADIENTS = {
   default: 'linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%)',
@@ -104,75 +105,26 @@ export default function SkinsPage() {
           ✕
         </button>
 
-        {/* Большой бык с подиумом и аурой */}
-        <div className="flex-1 flex flex-col items-center justify-end pt-12 pb-8 relative">
-          {/* МОЩНАЯ АУРА за персонажем */}
+        {/* Большой бык с Backlight Aura */}
+        <div className="flex-1 flex items-center justify-center relative">
+          {/* BACKLIGHT AURA: Свечение позади персонажа */}
           <div
-            className={`absolute -z-10 rounded-full transition-all duration-500 ${rarityStyles.auraGlow}`}
-            style={{
-              width: '400px',
-              height: '400px',
-              background: rarityStyles.auraColor,
-              top: '40%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-            }}
-          />
-          {/* Дополнительный слой свечения */}
-          <div
-            className="absolute -z-10 rounded-full blur-[120px] opacity-60 transition-all duration-500"
-            style={{
-              width: '500px',
-              height: '500px',
-              background: rarityStyles.auraColor,
-              top: '40%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-            }}
+            className={`
+              absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+              w-[280px] h-[280px] rounded-full
+              opacity-60 -z-10
+              transition-all duration-500
+              ${rarityStyles.auraColor}
+              ${rarityStyles.auraGlow}
+            `}
           />
 
-          {/* Бык */}
+          {/* ПЕРСОНАЖ: Четкий, с тенью */}
           <img
             src={selectedSkin?.file ? `/icons/skins/${selectedSkin.file}` : '/bull.png'}
             alt={selectedSkin?.name}
-            className="max-h-[24vh] object-contain relative z-10 transition-all duration-300"
-            style={{ marginBottom: '-20px' }}
+            className="relative z-10 max-h-[28vh] object-contain drop-shadow-2xl transition-all duration-300"
           />
-
-          {/* Золотой подиум */}
-          <div
-            className="relative transition-all duration-300"
-            style={{
-              width: '200px',
-              height: '30px',
-              background: 'linear-gradient(to bottom, #FFD700, #B8860B)',
-              borderRadius: '50%',
-              boxShadow: '0 0 30px rgba(255, 215, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3)',
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                top: '40%',
-                left: '10%',
-                right: '10%',
-                height: '1px',
-                background: 'rgba(255, 255, 255, 0.3)',
-                borderRadius: '50%',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                top: '60%',
-                left: '15%',
-                right: '15%',
-                height: '1px',
-                background: 'rgba(0, 0, 0, 0.3)',
-                borderRadius: '50%',
-              }}
-            />
-          </div>
         </div>
 
         {/* Имя скина */}
@@ -221,7 +173,7 @@ export default function SkinsPage() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <img src="/icons/BUL.png" alt="BUL" className="w-6 h-6 object-contain" />
+                <CurrencyIcon type="BUL" className="w-6 h-6" />
                 <span className="text-xl font-bold text-white">
                   {selectedSkin?.price_bul?.toLocaleString() || 0}
                 </span>
@@ -258,7 +210,7 @@ export default function SkinsPage() {
               <div className="flex items-center gap-2">
                 <span>{buying ? 'Покупка...' : 'Купить'}</span>
                 {!buying && (
-                  <img src="/icons/BUL.png" alt="BUL" className="w-5 h-5 object-contain" />
+                  <CurrencyIcon type="BUL" className="w-5 h-5" />
                 )}
               </div>
             </button>
