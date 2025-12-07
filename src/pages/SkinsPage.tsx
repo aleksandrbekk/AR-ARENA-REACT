@@ -106,14 +106,26 @@ export default function SkinsPage() {
 
         {/* Большой бык с подиумом и аурой */}
         <div className="flex-1 flex flex-col items-center justify-end pt-12 pb-8 relative">
-          {/* АУРА за персонажем */}
+          {/* МОЩНАЯ АУРА за персонажем */}
           <div
-            className="absolute -z-10 rounded-full blur-3xl transition-all duration-500"
+            className={`absolute -z-10 rounded-full transition-all duration-500 ${rarityStyles.auraGlow}`}
             style={{
-              width: '300px',
-              height: '300px',
+              width: '400px',
+              height: '400px',
               background: rarityStyles.auraColor,
-              top: '50%',
+              top: '40%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
+          />
+          {/* Дополнительный слой свечения */}
+          <div
+            className="absolute -z-10 rounded-full blur-[120px] opacity-60 transition-all duration-500"
+            style={{
+              width: '500px',
+              height: '500px',
+              background: rarityStyles.auraColor,
+              top: '40%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
             }}
@@ -209,7 +221,7 @@ export default function SkinsPage() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <img src="/icons/coin.svg" alt="BUL" className="w-6 h-6" />
+                <img src="/icons/BUL.png" alt="BUL" className="w-6 h-6 object-contain" />
                 <span className="text-xl font-bold text-white">
                   {selectedSkin?.price_bul?.toLocaleString() || 0}
                 </span>
@@ -246,7 +258,7 @@ export default function SkinsPage() {
               <div className="flex items-center gap-2">
                 <span>{buying ? 'Покупка...' : 'Купить'}</span>
                 {!buying && (
-                  <img src="/icons/coin.svg" alt="BUL" className="w-5 h-5" />
+                  <img src="/icons/BUL.png" alt="BUL" className="w-5 h-5 object-contain" />
                 )}
               </div>
             </button>
