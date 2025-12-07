@@ -6,21 +6,12 @@ import { SkinCard } from '../components/skins/SkinCard';
 import { RARITY_CONFIG, type RarityType } from '../config/rarityConfig';
 
 const RARITY_GRADIENTS = {
-  default: 'linear-gradient(to bottom, #4a4a4a, #1a1a1a)',
-  common: 'linear-gradient(to bottom, #5a5a5a, #2a2a2a)',
-  uncommon: 'linear-gradient(to bottom, #2d5a3d, #1a2e1f)',
-  rare: 'linear-gradient(to bottom, #2d4a6a, #1a2a3f)',
-  epic: 'linear-gradient(to bottom, #5a2d6a, #2f1a3f)',
-  legendary: 'linear-gradient(to bottom, #6a5a2d, #3f351a)',
-};
-
-const RARITY_LABELS: Record<string, string> = {
-  default: 'Обычный',
-  common: 'Частый',
-  uncommon: 'Необычный',
-  rare: 'Редкий',
-  epic: 'Эпический',
-  legendary: 'Легендарный',
+  default: 'linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+  common: 'linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 50%, #1a1a1a 100%)',
+  uncommon: 'linear-gradient(135deg, #10b981 0%, #059669 30%, #047857 70%, #0a0a0a 100%)',
+  rare: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 30%, #1d4ed8 70%, #0a0a0a 100%)',
+  epic: 'linear-gradient(135deg, #a855f7 0%, #9333ea 30%, #7e22ce 70%, #0a0a0a 100%)',
+  legendary: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 20%, #d97706 40%, #ea580c 70%, #0a0a0a 100%)',
 };
 
 export default function SkinsPage() {
@@ -172,14 +163,11 @@ export default function SkinsPage() {
           </div>
         </div>
 
-        {/* Имя и рарность */}
-        <div className="px-4 pb-4 w-full flex items-center justify-between z-10">
-          <h2 className={`text-2xl font-bold ${rarityStyles.text}`}>
+        {/* Имя скина */}
+        <div className="px-4 pb-4 w-full flex items-center justify-center z-10">
+          <h2 className={`text-3xl font-bold ${rarityStyles.text} drop-shadow-lg`}>
             {selectedSkin?.name || 'Базовый'}
           </h2>
-          <span className={`text-sm ${rarityStyles.text} bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full border ${rarityStyles.border}`}>
-            {RARITY_LABELS[selectedSkin?.rarity || 'default']}
-          </span>
         </div>
       </div>
 
