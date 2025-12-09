@@ -1,11 +1,11 @@
 // Lava.top Webhook Handler для зачисления AR после оплаты
-const fetch = require('node-fetch');
+// Native fetch (Node.js 18+, Vercel runtime supports it)
 
 const WEBHOOK_SECRET = 'ararena-webhook-secret-2024';
 const SUPABASE_URL = 'https://syxjkircmiwpnpagznay.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM0MjExMjgsImV4cCI6MjA0ODk5NzEyOH0.r4bFGLJNmrANgRl9uQx7lQYfbKrYZ7sVlN0nKH8uPAQ';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -159,4 +159,4 @@ module.exports = async (req, res) => {
     console.error('Webhook error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-};
+}
