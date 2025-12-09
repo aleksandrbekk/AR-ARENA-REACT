@@ -62,6 +62,8 @@ export default async function handler(req, res) {
           }
         );
         const users = await userResponse.json();
+        console.log('Supabase response status (by telegram_id):', userResponse.status);
+        console.log('Supabase users result (by telegram_id):', JSON.stringify(users));
         if (users && users.length > 0) {
           userId = users[0].id;
         }
@@ -79,6 +81,8 @@ export default async function handler(req, res) {
           }
         );
         const users = await userResponse.json();
+        console.log('Supabase response status (by email):', userResponse.status);
+        console.log('Supabase users result (by email):', JSON.stringify(users));
         if (users && users.length > 0) {
           userId = users[0].id;
         }
