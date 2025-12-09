@@ -89,19 +89,19 @@ export default async function handler(req, res) {
       // Расчёт AR (1 RUB = 1 AR, можно изменить формулу)
       const arAmount = Math.floor(amount);
 
-      // Зачисление AR
+      // Зачисление AR через RPC функцию
       const updateResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`,
+        `${SUPABASE_URL}/rest/v1/rpc/add_ar_balance`,
         {
-          method: 'PATCH',
+          method: 'POST',
           headers: {
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            ar_balance: `ar_balance + ${arAmount}`
+            p_user_id: userId,
+            p_amount: arAmount
           })
         }
       );
@@ -110,6 +110,8 @@ export default async function handler(req, res) {
         console.error('Failed to update balance:', await updateResponse.text());
         return res.status(500).json({ error: 'Failed to update balance' });
       }
+
+      const newBalance = await updateResponse.json();
 
       // Запись транзакции
       const transactionResponse = await fetch(
