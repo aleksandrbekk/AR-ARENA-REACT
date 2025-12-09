@@ -1,5 +1,7 @@
+import { Gift } from 'lucide-react'
+
 interface ButtonConfig {
-  icon: string
+  icon: string | React.ElementType
   label: string
   onClick: () => void
 }
@@ -7,17 +9,17 @@ interface ButtonConfig {
 interface SideButtonsProps {
   onFriendsClick?: () => void
   onTasksClick?: () => void
-  onBoostsClick?: () => void
   onSkinsClick?: () => void
   onFarmClick?: () => void
+  onGiveawaysClick?: () => void
 }
 
 export function SideButtons({
   onFriendsClick,
   onTasksClick,
-  onBoostsClick,
   onSkinsClick,
   onFarmClick,
+  onGiveawaysClick,
 }: SideButtonsProps) {
   // Левая колонка
   const leftButtons: ButtonConfig[] = [
@@ -36,9 +38,9 @@ export function SideButtons({
   // Правая колонка
   const rightButtons: ButtonConfig[] = [
     {
-      icon: '/icons/boosts.png',
-      label: 'Бусты',
-      onClick: onBoostsClick || (() => console.log('Boosts clicked')),
+      icon: Gift,
+      label: 'Розыгрыши',
+      onClick: onGiveawaysClick || (() => console.log('Giveaways clicked')),
     },
     {
       icon: '/icons/SKIN2.png',
@@ -64,11 +66,15 @@ export function SideButtons({
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
-              <img
-                src={button.icon}
-                alt={button.label}
-                className="w-6 h-6 object-contain drop-shadow-md"
-              />
+              {typeof button.icon === 'string' ? (
+                <img
+                  src={button.icon}
+                  alt={button.label}
+                  className="w-6 h-6 object-contain drop-shadow-md"
+                />
+              ) : (
+                <button.icon className="w-6 h-6 text-[#FFD700] drop-shadow-md" />
+              )}
             </div>
             <span className="text-[10px] font-bold text-white/80 drop-shadow-md">{button.label}</span>
           </button>
@@ -85,11 +91,15 @@ export function SideButtons({
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
-              <img
-                src={button.icon}
-                alt={button.label}
-                className="w-6 h-6 object-contain drop-shadow-md"
-              />
+              {typeof button.icon === 'string' ? (
+                <img
+                  src={button.icon}
+                  alt={button.label}
+                  className="w-6 h-6 object-contain drop-shadow-md"
+                />
+              ) : (
+                <button.icon className="w-6 h-6 text-[#FFD700] drop-shadow-md" />
+              )}
             </div>
             <span className="text-[10px] font-bold text-white/80 drop-shadow-md">{button.label}</span>
           </button>

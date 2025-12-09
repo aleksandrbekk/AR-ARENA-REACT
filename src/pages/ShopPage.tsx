@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Layout } from '../components/layout/Layout'
-import { ArrowLeft } from 'lucide-react'
 
 interface ARPackage {
   id: string
