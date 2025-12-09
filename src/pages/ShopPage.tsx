@@ -63,7 +63,7 @@ export function ShopPage() {
         amount: pkg.price
       })
 
-      const response = await fetch('/api/lava-create-invoice', {
+      const response = await fetch('/api/lava-invoice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
