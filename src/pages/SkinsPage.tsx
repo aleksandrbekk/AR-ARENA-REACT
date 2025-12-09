@@ -183,15 +183,15 @@ export default function SkinsPage() {
     <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col overflow-hidden">
       {/* ПОДИУМ */}
       <motion.div
-        className="relative w-full flex-shrink-0 flex flex-col items-center overflow-hidden"
+        className="relative w-full flex-shrink-0 flex flex-col items-center overflow-hidden pt-[60px]"
         animate={{ background: gradient }}
         transition={{ duration: 0.6 }}
-        style={{ height: '50vh', paddingTop: 'var(--safe-area-top)' }}
+        style={{ height: '50vh' }}
       >
         <Particles color={getParticleColor(selectedSkin?.rarity || 'default')} />
 
         {/* 1. ИМЯ СКИНА (Сверху) */}
-        <div className="w-full flex flex-col items-center justify-center z-10 mt-4 mb-2">
+        <div className="w-full flex flex-col items-center justify-center z-10 mb-2">
           <motion.h2
             key={selectedSkin?.name}
             initial={{ opacity: 0, y: -10 }}
