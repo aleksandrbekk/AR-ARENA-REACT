@@ -22,12 +22,26 @@ export function ShopPage() {
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp
+
+      // Скрываем кнопку настроек/закрыть
+      if (tg.SettingsButton) {
+        tg.SettingsButton.hide()
+      }
+
+      // Показываем BackButton
       tg.BackButton.show()
-      tg.BackButton.onClick(() => navigate('/'))
+
+      const handleBack = () => navigate('/')
+      tg.BackButton.onClick(handleBack)
 
       return () => {
         tg.BackButton.hide()
-        tg.BackButton.offClick(() => navigate('/'))
+        tg.BackButton.offClick(handleBack)
+
+        // Восстанавливаем кнопку настроек если нужно
+        if (tg.SettingsButton) {
+          tg.SettingsButton.show()
+        }
       }
     }
   }, [navigate])
