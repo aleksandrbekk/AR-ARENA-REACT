@@ -17,11 +17,19 @@ export function ShopPage() {
   const [loading, setLoading] = useState<string | null>(null)
 
   const buyAR = async (pkg: ARPackage) => {
-    if (!telegramUser) return
+    if (!telegramUser) {
+      alert('❌ Ошибка: нет данных пользователя')
+      return
+    }
 
     setLoading(pkg.id)
 
     try {
+      console.log('🔄 Создаю счёт:', {
+        telegramId: telegramUser.id,
+        amount: pkg.price
+      })
+
       const response = await fetch('https://ararena.pro/api/lava-create-invoice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,15 +41,35 @@ export function ShopPage() {
         })
       })
 
-      const data = await response.json()
+      console.log('📡 Response status:', response.status)
 
-      if (data.paymentUrl) {
-        window.Telegram?.WebApp?.openLink(data.paymentUrl)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ API error:', response.status, errorText)
+        alert(`Ошибка ${response.status}: ${errorText}`)
+        return
+      }
+
+      const data = await response.json()
+      console.log('✅ API response:', data)
+
+      if (data.ok && data.paymentUrl) {
+        console.log('🔗 Opening payment URL:', data.paymentUrl)
+
+        // Открываем ссылку через Telegram WebApp API
+        if (window.Telegram?.WebApp?.openLink) {
+          window.Telegram.WebApp.openLink(data.paymentUrl)
+        } else {
+          // Фоллбэк для теста в браузере
+          window.open(data.paymentUrl, '_blank')
+        }
       } else {
-        console.error('No payment URL received:', data)
+        console.error('❌ No payment URL in response:', data)
+        alert(`Ошибка: ${data.error || 'Не получена ссылка на оплату'}`)
       }
     } catch (error) {
-      console.error('Error creating invoice:', error)
+      console.error('❌ Network error:', error)
+      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(null)
     }

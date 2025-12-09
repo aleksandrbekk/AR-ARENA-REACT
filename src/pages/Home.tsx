@@ -2,7 +2,6 @@ import { Layout } from '../components/layout/Layout'
 import { Header } from '../components/Header'
 import { BalanceDisplay } from '../components/BalanceDisplay'
 import { StatusBar } from '../components/StatusBar'
-import { SkinBonuses } from '../components/SkinBonuses'
 import { TapBull } from '../components/TapBull'
 import { SideButtons } from '../components/SideButtons'
 import { FloatingNumber } from '../components/FloatingNumber'
@@ -141,9 +140,6 @@ export function Home() {
           <BalanceDisplay balance={gameState.balance_bul} />
         </div>
 
-        {/* SkinBonuses - бонусы активного персонажа */}
-        <SkinBonuses activeSkin={activeSkin} />
-
         {/* TapBull - основной компонент тапа */}
         <TapBull
           skinFile={gameState.active_skin || 'Bull1.png'}
@@ -155,10 +151,11 @@ export function Home() {
           />
         </TapBull>
 
-        {/* StatusBar внизу, над навигацией - только энергия */}
+        {/* StatusBar внизу - Энергия + Статы */}
         <StatusBar
           energy={gameState.energy}
           energyMax={gameState.energy_max}
+          activeSkin={activeSkin}
         />
       </div>
 

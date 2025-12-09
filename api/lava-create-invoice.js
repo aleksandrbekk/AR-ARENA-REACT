@@ -1,11 +1,11 @@
 // Lava.top Invoice Creation для покупки AR
-const fetch = require('node-fetch');
+// Native fetch (Node.js 18+, Vercel runtime supports it)
 
 const LAVA_API_KEY = 'OZiQUDFJAz5eunrbUrUjA2ToAYjCgXWqaxzK7ibQA23uk3VoR6ijcGEO9Y9lfPjM';
 const LAVA_OFFER_ID = '836adba6-5365-40f6-a646-aef9621f3af4';
 const LAVA_API_URL = 'https://gate.lava.top/api/v2/invoice';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -88,4 +88,4 @@ module.exports = async (req, res) => {
       message: error.message
     });
   }
-};
+}

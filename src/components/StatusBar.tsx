@@ -10,44 +10,56 @@ interface StatusBarProps {
 export function StatusBar({ energy, energyMax, activeSkin }: StatusBarProps) {
   return (
     <div className="px-4 pb-6 flex justify-center">
-      {/* Unified Stats Panel - Like SkinsPage Podium */}
-      <div className="flex items-center gap-6 px-6 py-3 rounded-full bg-black/20 backdrop-blur-sm border border-white/5">
+      {/* Unified Stats Panel - Compact */}
+      <div className="flex items-center gap-4 px-4 py-2 rounded-full bg-black/20 backdrop-blur-sm border border-white/5">
         {/* Energy */}
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-yellow-400" fill="currentColor" />
-          <span className="text-sm font-bold text-white">
-            {energy}<span className="text-white/40 text-xs">/{energyMax}</span>
-          </span>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" />
+            <span className="text-xs font-bold text-white">
+              {energy}<span className="text-white/40 text-[10px]">/{energyMax}</span>
+            </span>
+          </div>
+          <span className="text-[8px] text-white/40 uppercase tracking-wider">Энергия</span>
         </div>
 
-        <div className="w-px h-4 bg-white/10" />
+        <div className="w-px h-8 bg-white/10" />
 
         {/* Tap Bonus */}
-        <div className="flex items-center gap-2">
-          <Zap className={`w-4 h-4 ${activeSkin?.tap_bonus ? "text-yellow-400" : "text-white/20"}`} fill={activeSkin?.tap_bonus ? "currentColor" : "none"} />
-          <span className={`text-sm font-bold ${activeSkin?.tap_bonus ? "text-white" : "text-white/30"}`}>
-            +{activeSkin?.tap_bonus || 0}
-          </span>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <Zap className={`w-3.5 h-3.5 ${activeSkin?.tap_bonus ? "text-yellow-400" : "text-white/20"}`} fill={activeSkin?.tap_bonus ? "currentColor" : "none"} />
+            <span className={`text-xs font-bold ${activeSkin?.tap_bonus ? "text-white" : "text-white/30"}`}>
+              +{activeSkin?.tap_bonus || 0}
+            </span>
+          </div>
+          <span className="text-[8px] text-white/40 uppercase tracking-wider">Тап</span>
         </div>
 
-        <div className="w-px h-4 bg-white/10" />
+        <div className="w-px h-8 bg-white/10" />
 
         {/* Farm Bonus */}
-        <div className="flex items-center gap-2">
-          <Pickaxe className={`w-4 h-4 ${activeSkin?.farm_bonus ? "text-green-400" : "text-white/20"}`} />
-          <span className={`text-sm font-bold ${activeSkin?.farm_bonus ? "text-white" : "text-white/30"}`}>
-            +{activeSkin?.farm_bonus || 0}
-          </span>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <Pickaxe className={`w-3.5 h-3.5 ${activeSkin?.farm_bonus ? "text-green-400" : "text-white/20"}`} />
+            <span className={`text-xs font-bold ${activeSkin?.farm_bonus ? "text-white" : "text-white/30"}`}>
+              +{activeSkin?.farm_bonus || 0}
+            </span>
+          </div>
+          <span className="text-[8px] text-white/40 uppercase tracking-wider">Ферма</span>
         </div>
 
-        <div className="w-px h-4 bg-white/10" />
+        <div className="w-px h-8 bg-white/10" />
 
         {/* Regen Bonus */}
-        <div className="flex items-center gap-2">
-          <Battery className={`w-4 h-4 ${activeSkin?.regen_bonus ? "text-blue-400" : "text-white/20"}`} />
-          <span className={`text-sm font-bold ${activeSkin?.regen_bonus ? "text-white" : "text-white/30"}`}>
-            +{activeSkin?.regen_bonus || 0}
-          </span>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <Battery className={`w-3.5 h-3.5 ${activeSkin?.regen_bonus ? "text-blue-400" : "text-white/20"}`} />
+            <span className={`text-xs font-bold ${activeSkin?.regen_bonus ? "text-white" : "text-white/30"}`}>
+              +{activeSkin?.regen_bonus || 0}
+            </span>
+          </div>
+          <span className="text-[8px] text-white/40 uppercase tracking-wider">Реген</span>
         </div>
       </div>
     </div>
