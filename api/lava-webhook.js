@@ -19,21 +19,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Проверка API ключа
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== WEBHOOK_SECRET) {
-    console.log('Unauthorized webhook attempt:', apiKey);
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
   try {
-    const { type, payload } = req.body;
+    // Логирование полного тела запроса
+    console.log('Webhook received:', JSON.stringify(req.body));
 
-    console.log('Webhook received:', { type, payload });
+    const { eventType, buyer, amount, contractId, clientUtm, currency: reqCurrency } = req.body;
 
     // Обрабатываем только успешные платежи
-    if (type === 'payment.success') {
-      const { email, contractId, amount, currency, clientUTM } = payload;
+    if (eventType === 'payment.success') {
+      const email = buyer?.email;
+      const currency = reqCurrency || 'RUB';
+      const clientUTM = clientUtm;
 
       // Попытка извлечь telegram_id из clientUTM
       // Формат: telegram_id=123456789 или другой
