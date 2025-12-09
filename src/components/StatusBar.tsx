@@ -8,6 +8,9 @@ interface StatusBarProps {
 }
 
 export function StatusBar({ energy, energyMax, activeSkin }: StatusBarProps) {
+  // Calculate total tap power: base (1) + skin bonus
+  const totalTap = 1 + (activeSkin?.tap_bonus || 0)
+
   return (
     <div className="px-4 pb-6 flex justify-center">
       {/* Unified Stats Panel - Compact */}
@@ -15,7 +18,7 @@ export function StatusBar({ energy, energyMax, activeSkin }: StatusBarProps) {
         {/* Energy */}
         <div className="flex flex-col items-center gap-0.5">
           <div className="flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" />
+            <Battery className="w-3.5 h-3.5 text-yellow-400" />
             <span className="text-xs font-bold text-white">
               {energy}<span className="text-white/40 text-[10px]">/{energyMax}</span>
             </span>
@@ -25,12 +28,12 @@ export function StatusBar({ energy, energyMax, activeSkin }: StatusBarProps) {
 
         <div className="w-px h-8 bg-white/10" />
 
-        {/* Tap Bonus */}
+        {/* Tap Power (total) */}
         <div className="flex flex-col items-center gap-0.5">
           <div className="flex items-center gap-1.5">
-            <Zap className={`w-3.5 h-3.5 ${activeSkin?.tap_bonus ? "text-yellow-400" : "text-white/20"}`} fill={activeSkin?.tap_bonus ? "currentColor" : "none"} />
-            <span className={`text-xs font-bold ${activeSkin?.tap_bonus ? "text-white" : "text-white/30"}`}>
-              +{activeSkin?.tap_bonus || 0}
+            <Zap className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" />
+            <span className="text-xs font-bold text-white">
+              +{totalTap}
             </span>
           </div>
           <span className="text-[8px] text-white/40 uppercase tracking-wider">Тап</span>
