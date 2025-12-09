@@ -3,7 +3,7 @@
 
 const WEBHOOK_SECRET = 'ararena-webhook-secret-2024';
 const SUPABASE_URL = 'https://syxjkircmiwpnpagznay.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM0MjExMjgsImV4cCI6MjA0ODk5NzEyOH0.r4bFGLJNmrANgRl9uQx7lQYfbKrYZ7sVlN0nKH8uPAQ';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
 
 export default async function handler(req, res) {
   // CORS headers
