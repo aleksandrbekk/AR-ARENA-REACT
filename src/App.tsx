@@ -7,6 +7,7 @@ import { ProfilePage } from './pages/ProfilePage'
 import { FarmPage } from './pages/FarmPage'
 import { GiveawaysPage } from './pages/GiveawaysPage'
 import { GiveawayDetailsPage } from './pages/GiveawayDetailsPage'
+import { LiveArenaPage } from './pages/LiveArenaPage'
 import { AdminPage } from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
 
@@ -38,6 +39,7 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/giveaways" element={<GiveawaysPage />} />
         <Route path="/giveaway/:id" element={<GiveawayDetailsPage />} />
+        <Route path="/live-arena/:id" element={<LiveArenaPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/payment-success" element={<PaymentSuccessPage />} />
       </Routes>
