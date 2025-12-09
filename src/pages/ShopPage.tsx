@@ -30,7 +30,7 @@ export function ShopPage() {
         amount: pkg.price
       })
 
-      const response = await fetch('https://ararena.pro/api/lava-create-invoice', {
+      const response = await fetch('/api/lava-create-invoice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
