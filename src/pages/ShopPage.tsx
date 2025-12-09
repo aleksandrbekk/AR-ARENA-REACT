@@ -8,10 +8,41 @@ interface ARPackage {
   amount: number
   price: number
   popular?: boolean
+  offerId: string
 }
 
 const AR_PACKAGES: ARPackage[] = [
-  { id: 'ar_100', amount: 100, price: 100, popular: true }
+  {
+    id: 'test_drive',
+    amount: 100,
+    price: 100,
+    popular: true,
+    offerId: 'bfb09100-385e-4e36-932a-682032e54381' // ТЕСТ-ДРАЙВ
+  },
+  {
+    id: 'start',
+    amount: 500,
+    price: 500,
+    offerId: '8bc3a2ef-e5f1-412a-a356-e8aaf1a7fd06' // СТАРТ
+  },
+  {
+    id: 'advanced',
+    amount: 1000,
+    price: 1000,
+    offerId: '7b79ce70-e816-4db7-a031-3b8976df9376' // ПРОДВИНУТЫЙ
+  },
+  {
+    id: 'expert',
+    amount: 2500,
+    price: 2500,
+    offerId: 'ace5ec7e-371e-473c-80f5-cfe4374a4574' // ЭКСПЕРТ
+  },
+  {
+    id: 'master',
+    amount: 5000,
+    price: 5000,
+    offerId: '4f758f9b-71ff-47e5-99ff-5244ba9bd80e' // МАСТЕР
+  }
 ]
 
 export function ShopPage() {
@@ -39,7 +70,8 @@ export function ShopPage() {
           telegramId: telegramUser.id,
           email: `${telegramUser.id}@ararena.pro`,
           amount: pkg.price,
-          currency: 'RUB'
+          currency: 'RUB',
+          offerId: pkg.offerId
         })
       })
 
