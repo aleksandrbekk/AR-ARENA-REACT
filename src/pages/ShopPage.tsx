@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Layout } from '../components/layout/Layout'
+import { useNavigate } from 'react-router-dom'
 
 interface ARPackage {
   id: string
@@ -45,8 +46,23 @@ const AR_PACKAGES: ARPackage[] = [
 ]
 
 export function ShopPage() {
+  const navigate = useNavigate()
   const { gameState, telegramUser } = useAuth()
   const [loading, setLoading] = useState<string | null>(null)
+
+  // Настройка Telegram Back Button
+  useEffect(() => {
+    if (window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp
+      tg.BackButton.show()
+      tg.BackButton.onClick(() => navigate('/'))
+
+      return () => {
+        tg.BackButton.hide()
+        tg.BackButton.offClick(() => navigate('/'))
+      }
+    }
+  }, [navigate])
 
   const buyAR = async (pkg: ARPackage) => {
     if (!telegramUser) {
