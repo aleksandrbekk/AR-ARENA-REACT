@@ -122,22 +122,16 @@ export function GiveawayManager() {
 
     setLoading(true)
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-giveaway-result`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({ giveaway_id: giveawayId })
-        }
-      )
+      const { data, error } = await supabase.rpc('generate_giveaway_result', {
+        p_giveaway_id: giveawayId
+      })
 
-      const data = await response.json()
+      if (error) {
+        throw new Error(error.message)
+      }
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Ошибка генерации')
+      if (!data?.success) {
+        throw new Error(data?.error || 'Ошибка генерации')
       }
 
       alert(`✅ Розыгрыш завершён!\n\nУчастников: ${data.total_participants}\nБилетов: ${data.total_tickets}\n\n🏆 Победители определены!`)
