@@ -115,6 +115,40 @@ export function GiveawayManager() {
     return labels[status] || status
   }
 
+  const handleGenerateResults = async (giveawayId: number) => {
+    if (!confirm('⚠️ ВНИМАНИЕ!\n\nЭто действие НЕОБРАТИМО.\nБудут определены победители и розыгрыш будет завершён.\n\nПродолжить?')) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-giveaway-result`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ giveaway_id: giveawayId })
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Ошибка генерации')
+      }
+
+      alert(`✅ Розыгрыш завершён!\n\nУчастников: ${data.total_participants}\nБилетов: ${data.total_tickets}\n\n🏆 Победители определены!`)
+      await fetchGiveaways()
+    } catch (error: any) {
+      alert('❌ Ошибка: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (mode === 'list') {
     return (
       <div className="p-6 bg-zinc-900 min-h-screen text-white">
@@ -130,32 +164,43 @@ export function GiveawayManager() {
 
         <div className="grid gap-4">
           {giveaways.map(g => (
-            <div key={g.id} className="p-4 bg-zinc-800/50 border border-white/10 rounded-xl flex justify-between items-center">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 text-xs rounded-full ${
-                    g.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                    g.status === 'completed' ? 'bg-blue-500/20 text-blue-400' :
-                    'bg-gray-500/20 text-gray-400'
-                  }`}>
-                    {getStatusLabel(g.status)}
-                  </span>
-                  <h3 className="font-bold">{g.title}</h3>
+            <div key={g.id} className="p-4 bg-zinc-800/50 border border-white/10 rounded-xl">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+                      g.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                      g.status === 'completed' ? 'bg-blue-500/20 text-blue-400' :
+                      'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {getStatusLabel(g.status)}
+                    </span>
+                    <h3 className="font-bold">{g.title}</h3>
+                  </div>
+                  <p className="text-sm text-white/50">{g.subtitle}</p>
+                  <div className="text-xs text-white/30 mt-1 flex gap-4">
+                    <span>ID: {g.id}</span>
+                    <span>Конец: {new Date(g.end_date).toLocaleDateString('ru-RU')}</span>
+                    <span>Джекпот: {g.jackpot_current_amount}</span>
+                  </div>
                 </div>
-                <p className="text-sm text-white/50">{g.subtitle}</p>
-                <div className="text-xs text-white/30 mt-1 flex gap-4">
-                  <span>ID: {g.id}</span>
-                  <span>Конец: {new Date(g.end_date).toLocaleDateString('ru-RU')}</span>
-                  <span>Джекпот: {g.jackpot_current_amount}</span>
+                <div className="flex gap-2">
+                  {g.status === 'active' && (
+                    <button 
+                      onClick={() => handleGenerateResults(g.id)}
+                      disabled={loading}
+                      className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs font-medium flex items-center gap-1"
+                    >
+                      🛑 STOP & GENERATE
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => handleEdit(g)}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <Edit size={18} className="text-blue-400" />
+                  </button>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => handleEdit(g)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <Edit size={18} className="text-blue-400" />
-                </button>
               </div>
             </div>
           ))}
