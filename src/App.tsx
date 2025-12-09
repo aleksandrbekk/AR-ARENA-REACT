@@ -5,7 +5,8 @@ import SkinsPage from './pages/SkinsPage'
 import { ShopPage } from './pages/ShopPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { FarmPage } from './pages/FarmPage'
-import { GiveawayPage } from './pages/GiveawayPage'
+import { GiveawaysPage } from './pages/GiveawaysPage'
+import { GiveawayDetailsPage } from './pages/GiveawayDetailsPage'
 import { AdminPage } from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
 
@@ -35,7 +36,8 @@ function App() {
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/farm" element={<FarmPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/giveaways" element={<GiveawayPage />} />
+        <Route path="/giveaways" element={<GiveawaysPage />} />
+        <Route path="/giveaway/:id" element={<GiveawayDetailsPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/payment-success" element={<PaymentSuccessPage />} />
       </Routes>
@@ -44,3 +46,4 @@ function App() {
 }
 
 export default App
+
