@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { useNavigate } from 'react-router-dom'
+import { Layout } from '../components/layout/Layout'
 import { ArrowLeft } from 'lucide-react'
 
 interface ARPackage {
@@ -15,7 +15,6 @@ const AR_PACKAGES: ARPackage[] = [
 ]
 
 export function ShopPage() {
-  const navigate = useNavigate()
   const { gameState, telegramUser } = useAuth()
   const [loading, setLoading] = useState<string | null>(null)
 
@@ -79,17 +78,12 @@ export function ShopPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-[60px] pb-8 px-4">
-      {/* Header с кнопкой назад */}
-      <div className="flex items-center justify-between mb-6 px-2">
-        {/* Кнопка назад */}
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-medium">Назад</span>
-        </button>
+    <Layout>
+      <div className="min-h-screen bg-[#0a0a0a] text-white pt-[60px] pb-8 px-4">
+        {/* Header с кнопкой назад */}
+        <div className="flex items-center justify-between mb-6 px-2">
+          {/* Кнопка назад - убрал, navbar справится */}
+          <div></div>
 
         {/* Баланс AR */}
         <div className="flex items-center gap-2 bg-black/40 backdrop-blur-lg border border-white/10 rounded-full px-4 py-2">
@@ -189,5 +183,6 @@ export function ShopPage() {
         </div>
       </div>
     </div>
+    </Layout>
   )
 }
