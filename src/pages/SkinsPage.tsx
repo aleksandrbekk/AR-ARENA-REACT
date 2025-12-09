@@ -194,7 +194,7 @@ export default function SkinsPage() {
         <Particles color={getParticleColor(selectedSkin?.rarity || 'default')} />
 
         {/* 1. ИМЯ СКИНА (Сверху) */}
-        <div className="w-full flex flex-col items-center justify-center z-10 mb-2">
+        <div className="w-full flex flex-col items-center justify-center z-10 mt-8">
           <motion.h2
             key={selectedSkin?.name}
             initial={{ opacity: 0, y: -10 }}
