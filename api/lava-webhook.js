@@ -153,6 +153,34 @@ export default async function handler(req, res) {
         contractId
       });
 
+      // Отправка уведомления в Telegram
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (botToken && telegramId) {
+        const message = `✅ Оплата прошла!\n\n💎 Зачислено: ${arAmount} AR\n💰 Новый баланс: ${newBalance} AR`;
+
+        const keyboard = {
+          inline_keyboard: [[
+            { text: '🎮 Открыть AR ARENA', web_app: { url: 'https://ararena.pro' } }
+          ]]
+        };
+
+        try {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: telegramId,
+              text: message,
+              parse_mode: 'HTML',
+              reply_markup: keyboard
+            })
+          });
+          console.log('Telegram notification sent to:', telegramId);
+        } catch (tgError) {
+          console.error('Telegram notification failed:', tgError);
+        }
+      }
+
       return res.status(200).json({
         ok: true,
         userId,
