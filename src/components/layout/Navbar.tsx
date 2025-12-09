@@ -1,15 +1,28 @@
-import { Home, ShoppingBag, User } from 'lucide-react'
+import { Home, ShoppingBag, User, Shield } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
+
+const ADMIN_ID = 190202791
 
 export function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { telegramUser } = useAuth()
 
-  const navItems = [
+  // Debug: проверяем ID пользователя
+  console.log('Navbar: telegramUser =', telegramUser, 'isAdmin =', telegramUser?.id === ADMIN_ID)
+
+  const isAdmin = telegramUser?.id === ADMIN_ID
+
+  const baseNavItems = [
     { icon: Home, label: 'Home', path: '/' },
     { icon: ShoppingBag, label: 'Shop', path: '/shop' },
     { icon: User, label: 'Profile', path: '/profile' },
   ]
+
+  const navItems = isAdmin 
+    ? [...baseNavItems, { icon: Shield, label: 'Admin', path: '/admin' }]
+    : baseNavItems
 
   return (
     <nav className="fixed bottom-6 left-6 right-6 z-50">
@@ -44,3 +57,4 @@ export function Navbar() {
     </nav>
   )
 }
+
