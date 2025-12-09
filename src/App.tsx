@@ -5,6 +5,7 @@ import SkinsPage from './pages/SkinsPage'
 import { ShopPage } from './pages/ShopPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { FarmPage } from './pages/FarmPage'
+import { GiveawayPage } from './pages/GiveawayPage'
 
 function App() {
   useEffect(() => {
@@ -32,6 +33,7 @@ function App() {
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/farm" element={<FarmPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/giveaways" element={<GiveawayPage />} />
       </Routes>
     </BrowserRouter>
   )
