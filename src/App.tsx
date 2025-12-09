@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Home } from './pages/Home'
-import { ShopPage } from './pages/ShopPage'
 import SkinsPage from './pages/SkinsPage'
+import { ShopPage } from './pages/ShopPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { FarmPage } from './pages/FarmPage'
 
@@ -28,8 +28,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/shop" element={<ShopPage />} />
         <Route path="/skins" element={<SkinsPage />} />
+        <Route path="/shop" element={<ShopPage />} />
         <Route path="/farm" element={<FarmPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
