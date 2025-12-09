@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Timer, Ticket, Trophy } from 'lucide-react'
 import type { Giveaway } from '../types'
-import { CurrencyIcon } from './CurrencyIcon'
 
 interface GiveawayCardProps {
   giveaway: Giveaway
@@ -15,18 +14,25 @@ export function GiveawayCard({ giveaway, onBuy, userTickets }: GiveawayCardProps
   const [isBuying, setIsBuying] = useState(false)
 
   useEffect(() => {
+    if (!giveaway?.end_date) return
+
     const calculateTimeLeft = () => {
-      const difference = +new Date(giveaway.end_date) - +new Date()
-      
-      if (difference > 0) {
-        const days = Math.floor(difference / (1000 * 60 * 60 * 24))
-        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24)
-        const minutes = Math.floor((difference / 1000 / 60) % 60)
-        const seconds = Math.floor((difference / 1000) % 60)
+      try {
+        const difference = +new Date(giveaway.end_date) - +new Date()
         
-        return `${days}d ${hours}h ${minutes}m ${seconds}s`
+        if (difference > 0) {
+          const days = Math.floor(difference / (1000 * 60 * 60 * 24))
+          const hours = Math.floor((difference / (1000 * 60 * 60)) % 24)
+          const minutes = Math.floor((difference / 1000 / 60) % 60)
+          const seconds = Math.floor((difference / 1000) % 60)
+          
+          return `${days}d ${hours}h ${minutes}m ${seconds}s`
+        }
+        return 'Ended'
+      } catch (e) {
+        console.error('Error calculating time', e)
+        return 'Error'
       }
-      return 'Ended'
     }
 
     const timer = setInterval(() => {
@@ -39,7 +45,7 @@ export function GiveawayCard({ giveaway, onBuy, userTickets }: GiveawayCardProps
   }, [giveaway.end_date])
 
   const handleBuyClick = async () => {
-    const countStr = window.prompt(`Сколько билетов купить? Цена: ${giveaway.price} ${giveaway.currency.toUpperCase()}`, '1')
+    const countStr = window.prompt(`Сколько билетов купить? Цена: ${giveaway.price} ${giveaway.currency?.toUpperCase()}`, '1')
     if (!countStr) return
 
     const count = parseInt(countStr)
@@ -58,6 +64,8 @@ export function GiveawayCard({ giveaway, onBuy, userTickets }: GiveawayCardProps
       setIsBuying(false)
     }
   }
+
+  if (!giveaway) return null
 
   return (
     <motion.div
@@ -91,8 +99,12 @@ export function GiveawayCard({ giveaway, onBuy, userTickets }: GiveawayCardProps
           <Trophy className="w-3 h-3" /> Jackpot
         </span>
         <div className="text-3xl font-black text-white drop-shadow-[0_0_10px_rgba(255,215,0,0.3)] flex items-center gap-2">
-          <CurrencyIcon type={giveaway.currency === 'ar' ? 'AR' : 'BUL'} className="w-6 h-6" />
-          {giveaway.jackpot_current_amount.toLocaleString()}
+          <img 
+            src={giveaway.currency === 'ar' ? '/icons/arcoin.png' : '/icons/BUL.png'} 
+            alt={giveaway.currency}
+            className="w-6 h-6 object-contain"
+          />
+          {giveaway.jackpot_current_amount?.toLocaleString() || 0}
         </div>
       </div>
 
@@ -104,7 +116,7 @@ export function GiveawayCard({ giveaway, onBuy, userTickets }: GiveawayCardProps
         </div>
         <div className="flex items-center gap-1">
           <span>Цена билета:</span>
-          <span className="text-white font-bold">{giveaway.price} {giveaway.currency.toUpperCase()}</span>
+          <span className="text-white font-bold">{giveaway.price} {giveaway.currency?.toUpperCase()}</span>
         </div>
       </div>
 

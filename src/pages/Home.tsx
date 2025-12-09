@@ -148,6 +148,7 @@ export function Home() {
           <SideButtons
             onSkinsClick={() => navigate('/skins')}
             onFarmClick={() => navigate('/farm')}
+            onGiveawaysClick={() => navigate('/giveaways')}
           />
         </TapBull>
 
