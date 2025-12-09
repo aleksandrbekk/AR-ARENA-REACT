@@ -31,15 +31,22 @@ export default async function handler(req, res) {
       const currency = reqCurrency || 'RUB';
       const clientUTM = clientUtm;
 
-      // Попытка извлечь telegram_id из clientUTM
-      // Формат: telegram_id=123456789 или другой
+      // Парсим telegram_id из email (формат: 123456789@ararena.pro)
       let telegramId = null;
-      if (clientUTM) {
+      if (email && email.includes('@ararena.pro')) {
+        telegramId = email.split('@')[0];
+        console.log('Parsed telegram_id from email:', telegramId);
+      }
+
+      // Fallback — из clientUTM
+      if (!telegramId && clientUTM) {
         const match = clientUTM.match(/telegram_id=(\d+)/);
         if (match) {
           telegramId = match[1];
         }
       }
+
+      console.log('Final telegramId:', telegramId);
 
       // Если telegram_id не найден, ищем по email
       let userId = null;
