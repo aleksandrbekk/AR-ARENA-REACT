@@ -55,39 +55,43 @@ export function SideButtons({
   return (
     <div className="absolute inset-0 pointer-events-none z-50">
       {/* Левая колонка */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 pointer-events-auto">
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-6 pointer-events-auto">
         {leftButtons.map((button) => (
           <button
             key={button.label}
             onClick={button.onClick}
-            className="flex flex-col items-center gap-1 transition-transform active:scale-90"
+            className="flex flex-col items-center gap-1 group"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <img
-              src={button.icon}
-              alt={button.label}
-              className="w-10 h-10 object-contain drop-shadow-lg"
-            />
-            <span className="text-xs text-white/70">{button.label}</span>
+            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
+              <img
+                src={button.icon}
+                alt={button.label}
+                className="w-6 h-6 object-contain drop-shadow-md"
+              />
+            </div>
+            <span className="text-[10px] font-bold text-white/80 drop-shadow-md">{button.label}</span>
           </button>
         ))}
       </div>
 
       {/* Правая колонка */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 pointer-events-auto">
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-6 pointer-events-auto">
         {rightButtons.map((button) => (
           <button
             key={button.label}
             onClick={button.onClick}
-            className="flex flex-col items-center gap-1 transition-transform active:scale-90"
+            className="flex flex-col items-center gap-1 group"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <img
-              src={button.icon}
-              alt={button.label}
-              className="w-10 h-10 object-contain drop-shadow-lg"
-            />
-            <span className="text-xs text-white/70">{button.label}</span>
+            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
+              <img
+                src={button.icon}
+                alt={button.label}
+                className="w-6 h-6 object-contain drop-shadow-md"
+              />
+            </div>
+            <span className="text-[10px] font-bold text-white/80 drop-shadow-md">{button.label}</span>
           </button>
         ))}
       </div>

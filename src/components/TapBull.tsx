@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 
 interface TapBullProps {
   skinFile: string // например "Bull1.png" или "bull_boss.png"
@@ -43,25 +44,31 @@ export function TapBull({ skinFile, onTap, children }: TapBullProps) {
           }}
         />
 
-        {/* Бык */}
-        <img
-          src={skinPath}
-          alt="Bull"
-          loading="eager"
-          className={`
-            relative z-10 w-64 max-w-[70%]
-            transition-transform duration-100 ease-out
-            ${isTapped ? 'scale-95' : 'scale-100'}
-          `}
-          onError={(e) => {
-            // Fallback на Bull1.png если картинка не загрузилась
-            const target = e.target as HTMLImageElement
-            if (target.src !== fallbackPath) {
-              target.src = fallbackPath
-            }
-          }}
-          draggable={false}
-        />
+        {/* Бык с анимацией дыхания */}
+        <motion.div
+          animate={{ scale: [1, 1.02, 1] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="relative z-10 w-64 max-w-[70%]"
+        >
+          <img
+            src={skinPath}
+            alt="Bull"
+            loading="eager"
+            className={`
+              w-full h-full
+              transition-transform duration-100 ease-out
+              ${isTapped ? 'scale-95' : 'scale-100'}
+            `}
+            onError={(e) => {
+              // Fallback на Bull1.png если картинка не загрузилась
+              const target = e.target as HTMLImageElement
+              if (target.src !== fallbackPath) {
+                target.src = fallbackPath
+              }
+            }}
+            draggable={false}
+          />
+        </motion.div>
 
         {/* Glow ПОД ногами с динамической яркостью */}
         <div

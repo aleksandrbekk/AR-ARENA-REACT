@@ -12,36 +12,36 @@ export function Header({ photoUrl, firstName, balanceAr }: HeaderProps) {
   const firstLetter = firstName.charAt(0).toUpperCase()
 
   return (
-    <div className="w-full flex justify-between items-center px-4 py-2 pt-14">
-      {/* Левая часть: Аватар + Имя */}
-      <div className="flex items-center gap-2">
+    <div className="w-full flex justify-between items-center px-4 pt-12 pb-2">
+      {/* Левая часть: Аватар + Имя (Pill Style) */}
+      <div className="flex items-center gap-2 bg-black/20 backdrop-blur-lg border border-white/5 rounded-full p-1 pr-4 shadow-lg">
         {/* Аватар */}
         {photoUrl ? (
           <img
             src={photoUrl}
             alt={firstName}
-            className="w-10 h-10 rounded-full border-2 border-[#FFD700] object-cover"
+            className="w-8 h-8 rounded-full border border-white/20 object-cover"
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#FFD700] to-[#FFA500] flex items-center justify-center text-black font-bold">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#FFD700] to-[#FFA500] flex items-center justify-center text-black font-bold text-xs">
             {firstLetter}
           </div>
         )}
         
         {/* Имя пользователя */}
-        <span className="text-white font-medium text-base">
+        <span className="text-white/90 font-medium text-sm">
           {firstName}
         </span>
       </div>
 
-      {/* Правая часть: Иконка AR + Баланс */}
-      <div className="flex items-center gap-1">
+      {/* Правая часть: Иконка AR + Баланс (Pill Style) */}
+      <div className="flex items-center gap-2 bg-black/20 backdrop-blur-lg border border-white/5 rounded-full px-3 py-1.5 shadow-lg">
         <img
           src="/icons/arcoin.png"
           alt="AR"
-          className="w-6 h-6 object-contain"
+          className="w-5 h-5 object-contain"
         />
-        <span className="text-[#FFD700] font-bold">
+        <span className="text-[#FFD700] font-bold text-sm">
           {formattedBalance}
         </span>
       </div>
