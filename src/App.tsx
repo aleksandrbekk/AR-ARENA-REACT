@@ -6,6 +6,7 @@ import { ShopPage } from './pages/ShopPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { FarmPage } from './pages/FarmPage'
 import { GiveawayPage } from './pages/GiveawayPage'
+import { AdminPage } from './pages/AdminPage'
 
 function App() {
   useEffect(() => {
@@ -34,6 +35,7 @@ function App() {
         <Route path="/farm" element={<FarmPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/giveaways" element={<GiveawayPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </BrowserRouter>
   )

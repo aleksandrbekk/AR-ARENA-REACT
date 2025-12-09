@@ -157,7 +157,21 @@ export interface Giveaway {
   currency: 'ar' | 'bul'
   jackpot_current_amount: number
   end_date: string
-  status: 'active' | 'completed' | 'cancelled'
+  status: 'active' | 'completed' | 'cancelled' | 'draft'
   image_url: string | null
   winner_id: number | null
+  
+  // New Admin Fields
+  type?: 'money' | 'course'
+  start_date?: string
+  draw_date?: string
+  prizes?: {
+    place: number
+    amount: number
+    percentage: number
+  }[]
+  requirements?: {
+    telegram_channel_id?: string
+    min_friends?: number
+  }
 }
