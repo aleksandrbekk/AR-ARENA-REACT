@@ -1,3 +1,5 @@
+import { Zap } from 'lucide-react'
+
 interface StatusBarProps {
   energy: number
   energyMax: number
@@ -5,18 +7,11 @@ interface StatusBarProps {
 
 export function StatusBar({ energy, energyMax }: StatusBarProps) {
   return (
-    <div className="px-4 pb-2 flex justify-center">
-      {/* Energy Bar */}
-      <div
-        className="flex items-center gap-2 px-4 h-12 rounded-2xl"
-        style={{
-          background: 'linear-gradient(135deg, rgba(20,20,20,0.9) 0%, rgba(10,10,10,0.95) 100%)',
-          border: '1px solid rgba(255,215,0,0.2)'
-        }}
-      >
-        <img src="/icons/energi2.png" className="w-6 h-6" alt="" />
-        <span className="text-base font-bold text-white">
-          {energy} <span className="text-white/40">/ {energyMax}</span>
+    <div className="px-4 pb-6 flex justify-center">
+      <div className="flex items-center gap-2 px-4 py-1.5 bg-black/20 backdrop-blur-md border border-white/5 rounded-full shadow-lg">
+        <Zap className="w-4 h-4 text-yellow-400" fill="currentColor" />
+        <span className="text-sm font-bold text-white">
+          {energy} <span className="text-white/30">/ {energyMax}</span>
         </span>
       </div>
     </div>

@@ -75,6 +75,7 @@ export interface TelegramWebApp {
   exitFullscreen: () => void;
   setHeaderColor: (color: string) => void;
   setBackgroundColor: (color: string) => void;
+  openLink: (url: string) => void;
 }
 
 // Состояние игры (ответ от get_bull_game_state)
@@ -129,6 +130,7 @@ export interface Skin {
   name: string
   file: string
   rarity: SkinRarity
+  skin_type: 'bul' | 'ar'
   price_bul: number
   price_ar: number
   level_req: number

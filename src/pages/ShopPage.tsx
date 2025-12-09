@@ -1,217 +1,151 @@
 import { useState } from 'react'
-import { Layout } from '../components/layout/Layout'
-import { SkinCard } from '../components/SkinCard'
-import { useSkins } from '../hooks/useSkins'
 import { useAuth } from '../hooks/useAuth'
-import { supabase } from '../lib/supabase'
-import type { SkinRarity } from '../types'
 
-type RarityFilter = 'all' | SkinRarity
-
-const FILTER_LABELS: Record<RarityFilter, string> = {
-  all: 'Все',
-  common: 'Обычные',
-  uncommon: 'Необычные',
-  rare: 'Редкие',
-  epic: 'Эпические',
-  legendary: 'Легендарные'
+interface ARPackage {
+  id: string
+  amount: number
+  price: number
+  popular?: boolean
 }
 
+const AR_PACKAGES: ARPackage[] = [
+  { id: 'ar_100', amount: 100, price: 100, popular: true }
+]
+
 export function ShopPage() {
-  const { telegramUser, gameState, refetch } = useAuth()
-  const { skins, isOwned, isEquipped, reload } = useSkins()
-  const [filter, setFilter] = useState<RarityFilter>('all')
-  const [isProcessing, setIsProcessing] = useState(false)
+  const { gameState, telegramUser } = useAuth()
+  const [loading, setLoading] = useState<string | null>(null)
 
-  // Фильтрация скинов
-  const filteredSkins = filter === 'all'
-    ? skins
-    : skins.filter(skin => skin.rarity === filter)
+  const buyAR = async (pkg: ARPackage) => {
+    if (!telegramUser) return
 
-  // Покупка скина
-  const handleBuy = async (skinId: number) => {
-    if (!telegramUser || isProcessing) return
-
-    setIsProcessing(true)
+    setLoading(pkg.id)
 
     try {
-      const { data, error } = await supabase.rpc('buy_skin', {
-        p_telegram_id: telegramUser.id.toString(),
-        p_skin_id: skinId
+      const response = await fetch('https://ararena.pro/api/lava-create-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegramId: telegramUser.id,
+          email: `${telegramUser.id}@ararena.pro`,
+          amount: pkg.price,
+          currency: 'RUB'
+        })
       })
 
-      if (error) {
-        console.error('RPC error:', error)
-        alert('Ошибка при покупке скина')
-        return
+      const data = await response.json()
+
+      if (data.paymentUrl) {
+        window.Telegram?.WebApp?.openLink(data.paymentUrl)
+      } else {
+        console.error('No payment URL received:', data)
       }
-
-      const result = data as {
-        success: boolean
-        error?: string
-        required_level?: number
-        user_level?: number
-        required?: number
-        available?: number
-      }
-
-      if (!result.success) {
-        // Обработка ошибок
-        switch (result.error) {
-          case 'INSUFFICIENT_BUL':
-            alert(`Недостаточно BUL!\nНужно: ${result.required}\nУ вас: ${result.available}`)
-            break
-          case 'LEVEL_TOO_LOW':
-            alert(`Недостаточно уровня!\nНужен: ${result.required_level}\nУ вас: ${result.user_level}`)
-            break
-          case 'ALREADY_OWNED':
-            alert('Вы уже купили этот скин!')
-            break
-          case 'SKIN_NOT_FOUND':
-            alert('Скин не найден')
-            break
-          default:
-            alert('Ошибка при покупке скина')
-        }
-        return
-      }
-
-      // Успех!
-      console.log('✅ Скин куплен успешно!')
-
-      // Обновляем данные
-      await Promise.all([refetch(), reload()])
-
-      alert('🎉 Скин успешно куплен!')
-
-    } catch (err) {
-      console.error('Error buying skin:', err)
-      alert('Произошла ошибка при покупке')
+    } catch (error) {
+      console.error('Error creating invoice:', error)
     } finally {
-      setIsProcessing(false)
+      setLoading(null)
     }
-  }
-
-  // Экипировка скина
-  const handleEquip = async (skinId: number) => {
-    if (!telegramUser || isProcessing) return
-
-    setIsProcessing(true)
-
-    try {
-      const { data, error } = await supabase.rpc('equip_skin', {
-        p_telegram_id: telegramUser.id.toString(),
-        p_skin_id: skinId
-      })
-
-      if (error) {
-        console.error('RPC error:', error)
-        alert('Ошибка при экипировке скина')
-        return
-      }
-
-      const result = data as {
-        success: boolean
-        error?: string
-      }
-
-      if (!result.success) {
-        if (result.error === 'SKIN_NOT_OWNED') {
-          alert('Сначала купите этот скин!')
-        } else {
-          alert('Ошибка при экипировке скина')
-        }
-        return
-      }
-
-      // Успех!
-      console.log('✅ Скин экипирован успешно!')
-
-      // Обновляем данные
-      await Promise.all([refetch(), reload()])
-
-      alert('✓ Скин экипирован!')
-
-    } catch (err) {
-      console.error('Error equipping skin:', err)
-      alert('Произошла ошибка при экипировке')
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  if (!gameState) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-white text-xl">Loading...</div>
-        </div>
-      </Layout>
-    )
   }
 
   return (
-    <Layout>
-      <div className="flex flex-col h-full">
-
-        {/* Шапка с балансом */}
-        <div className="px-4 pt-4 pb-3">
-          <h1 className="text-2xl font-bold text-white mb-3">Магазин скинов</h1>
-
-          {/* Баланс BUL */}
-          <div className="bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-xl p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src="/icons/BUL.png" className="w-8 h-8" alt="BUL" />
-              <span className="text-black font-bold text-lg">{gameState.balance_bul.toLocaleString()}</span>
-            </div>
-            <span className="text-black/60 text-sm font-medium">Ваш баланс</span>
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-[60px] pb-8 px-4">
+      {/* Header с балансом */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-center mb-2">
+          Магазин AR
+        </h1>
+        <div className="flex items-center justify-center gap-2 text-lg">
+          <span className="text-white/60">Твой баланс:</span>
+          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-lg border border-white/10 rounded-full px-4 py-2">
+            <img
+              src="/icons/arcoin.png"
+              alt="AR"
+              className="w-6 h-6 object-contain"
+            />
+            <span className="text-[#FFD700] font-bold">
+              {gameState?.balance_ar.toLocaleString('ru-RU') ?? 0}
+            </span>
           </div>
         </div>
-
-        {/* Фильтры по редкости */}
-        <div className="px-4 pb-3">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-            {(Object.keys(FILTER_LABELS) as RarityFilter[]).map(rarity => (
-              <button
-                key={rarity}
-                onClick={() => setFilter(rarity)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  filter === rarity
-                    ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black'
-                    : 'bg-white/10 text-white/60'
-                }`}
-              >
-                {FILTER_LABELS[rarity]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Грид скинов */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          {filteredSkins.length === 0 ? (
-            <div className="text-center text-white/60 mt-8">
-              Нет скинов в этой категории
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {filteredSkins.map(skin => (
-                <SkinCard
-                  key={skin.id}
-                  skin={skin}
-                  isOwned={isOwned(skin.id)}
-                  isEquipped={isEquipped(skin.id)}
-                  userLevel={gameState.level}
-                  userBul={gameState.balance_bul}
-                  onBuy={handleBuy}
-                  onEquip={handleEquip}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
       </div>
-    </Layout>
+
+      {/* Пакеты AR */}
+      <div className="space-y-4 max-w-md mx-auto">
+        {AR_PACKAGES.map((pkg) => (
+          <div
+            key={pkg.id}
+            className="relative bg-black/40 backdrop-blur-lg border border-white/10 rounded-2xl p-6 shadow-xl"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,165,0,0.05) 100%)',
+              boxShadow: '0 8px 32px 0 rgba(255,215,0,0.2)'
+            }}
+          >
+            {pkg.popular && (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black text-xs font-bold px-4 py-1 rounded-full">
+                Популярное
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mb-4">
+              {/* AR Amount */}
+              <div className="flex items-center gap-3">
+                <img
+                  src="/icons/arcoin.png"
+                  alt="AR"
+                  className="w-12 h-12 object-contain"
+                  style={{
+                    filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.6))'
+                  }}
+                />
+                <div>
+                  <div className="text-2xl font-bold text-[#FFD700]">
+                    {pkg.amount} AR
+                  </div>
+                  <div className="text-sm text-white/60">
+                    Игровая валюта
+                  </div>
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="text-right">
+                <div className="text-3xl font-bold text-white">
+                  {pkg.price} ₽
+                </div>
+              </div>
+            </div>
+
+            {/* Buy Button */}
+            <button
+              onClick={() => buyAR(pkg)}
+              disabled={loading === pkg.id}
+              className="w-full py-3 rounded-xl font-bold text-black text-lg transition-all disabled:opacity-50"
+              style={{
+                background: loading === pkg.id
+                  ? 'linear-gradient(135deg, #999 0%, #666 100%)'
+                  : 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                boxShadow: '0 4px 20px rgba(255,215,0,0.4)'
+              }}
+            >
+              {loading === pkg.id ? 'Загрузка...' : 'Купить'}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Info */}
+      <div className="mt-8 max-w-md mx-auto">
+        <div className="bg-black/20 backdrop-blur-lg border border-white/5 rounded-xl p-4">
+          <h3 className="text-sm font-bold text-[#FFD700] mb-2">
+            Зачем нужен AR?
+          </h3>
+          <ul className="text-sm text-white/70 space-y-1">
+            <li>• Покупай уникальные скины быков</li>
+            <li>• Участвуй в эксклюзивных событиях</li>
+            <li>• Получай преимущества в игре</li>
+          </ul>
+        </div>
+      </div>
+    </div>
   )
 }

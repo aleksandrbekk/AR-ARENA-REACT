@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 
 interface Props {
   value: number
@@ -7,36 +7,24 @@ interface Props {
 }
 
 export function FloatingNumber({ value, id, onComplete }: Props) {
-  const [style, setStyle] = useState({
-    opacity: 1,
-    transform: 'translateY(0)'
-  })
-
-  useEffect(() => {
-    // Запуск анимации
-    requestAnimationFrame(() => {
-      setStyle({
-        opacity: 0,
-        transform: 'translateY(-60px)'
-      })
-    })
-
-    // Удалить после анимации
-    const timer = setTimeout(() => onComplete(id), 600)
-    return () => clearTimeout(timer)
-  }, [id, onComplete])
+  // Случайное смещение по X для естественности
+  const randomX = Math.random() * 80 - 40
 
   return (
-    <div
-      className="absolute left-1/2 -translate-x-1/2 top-1/3 pointer-events-none z-50 text-2xl font-bold"
+    <motion.div
+      initial={{ opacity: 1, y: 0, x: randomX, scale: 0.5 }}
+      animate={{ opacity: 0, y: -150, scale: 1.2 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      onAnimationComplete={() => onComplete(id)}
+      className="absolute left-1/2 top-[40%] pointer-events-none z-50 text-4xl font-black"
       style={{
-        ...style,
-        transition: 'all 0.5s ease-out',
-        color: '#FFD700',
-        textShadow: '0 0 10px rgba(255,215,0,0.7), 0 2px 4px rgba(0,0,0,0.5)'
+        background: 'linear-gradient(to bottom, #FFD700, #FFA500)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
       }}
     >
       +{value}
-    </div>
+    </motion.div>
   )
 }
