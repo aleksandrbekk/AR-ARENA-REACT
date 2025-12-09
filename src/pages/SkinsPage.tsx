@@ -194,7 +194,7 @@ export default function SkinsPage() {
         <Particles color={getParticleColor(selectedSkin?.rarity || 'default')} />
 
         {/* 1. ИМЯ СКИНА (Сверху) */}
-        <div className="w-full flex flex-col items-center justify-center z-10 -mb-2">
+        <div className="w-full flex flex-col items-center justify-center z-10 -mb-2 mt-4">
           <motion.h2
             key={selectedSkin?.name}
             initial={{ opacity: 0, y: -10 }}
@@ -216,7 +216,7 @@ export default function SkinsPage() {
           <motion.div
             className={`
               absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-              w-[280px] h-[280px] rounded-full
+              w-[300px] h-[300px] rounded-full
               opacity-40 blur-[40px] -z-10
               ${rarityStyles.auraColor}
             `}
@@ -235,13 +235,13 @@ export default function SkinsPage() {
             <img
               src={`/icons/skins/${selectedSkin.file}`}
               alt={selectedSkin.name}
-              className="relative z-10 max-h-[200px] w-auto object-contain drop-shadow-2xl"
+              className="relative z-10 max-h-[220px] w-auto object-contain drop-shadow-2xl"
             />
           )}
         </div>
 
         {/* 3. СТАТЫ (Внизу подиума - PREMIUM MINIMALIST) */}
-        <div className="w-full flex justify-center z-20 mb-8">
+        <div className="w-full flex justify-center z-20 mb-4">
           <AnimatePresence mode="wait">
             {selectedSkin && (
               <motion.div
