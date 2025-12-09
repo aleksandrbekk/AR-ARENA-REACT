@@ -143,6 +143,36 @@ export function GiveawayManager() {
     }
   }
 
+  const handleDelete = async (giveawayId: number, title: string) => {
+    if (!confirm(`🗑️ Удалить розыгрыш?\n\n"${title}"\n\nЭто действие удалит розыгрыш и все связанные билеты!`)) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      // Сначала удаляем билеты
+      await supabase
+        .from('giveaway_tickets')
+        .delete()
+        .eq('giveaway_id', giveawayId)
+
+      // Затем удаляем сам розыгрыш
+      const { error } = await supabase
+        .from('giveaways')
+        .delete()
+        .eq('id', giveawayId)
+
+      if (error) throw error
+
+      alert('✅ Розыгрыш удалён!')
+      await fetchGiveaways()
+    } catch (error: any) {
+      alert('❌ Ошибка удаления: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (mode === 'list') {
     return (
       <div className="p-6 bg-zinc-900 min-h-screen text-white">
@@ -191,8 +221,17 @@ export function GiveawayManager() {
                   <button 
                     onClick={() => handleEdit(g)}
                     className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                    title="Редактировать"
                   >
                     <Edit size={18} className="text-blue-400" />
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(g.id, g.title)}
+                    disabled={loading}
+                    className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                    title="Удалить"
+                  >
+                    <Trash size={18} className="text-red-400" />
                   </button>
                 </div>
               </div>
