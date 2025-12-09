@@ -179,6 +179,9 @@ export default function SkinsPage() {
     }
   };
 
+  // Calculate total tap power: base (1) + skin bonus
+  const totalTap = 1 + (selectedSkin?.tap_bonus || 0)
+
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col overflow-hidden">
       {/* ПОДИУМ */}
@@ -191,7 +194,7 @@ export default function SkinsPage() {
         <Particles color={getParticleColor(selectedSkin?.rarity || 'default')} />
 
         {/* 1. ИМЯ СКИНА (Сверху) */}
-        <div className="w-full flex flex-col items-center justify-center z-10 mb-2">
+        <div className="w-full flex flex-col items-center justify-center z-10 -mb-2">
           <motion.h2
             key={selectedSkin?.name}
             initial={{ opacity: 0, y: -10 }}
@@ -248,11 +251,11 @@ export default function SkinsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                {/* Tap */}
+                {/* Tap (total power) */}
                 <div className="flex items-center gap-2">
-                  <Zap className={`w-4 h-4 ${selectedSkin.tap_bonus > 0 ? "text-yellow-400" : "text-white/20"}`} fill={selectedSkin.tap_bonus > 0 ? "currentColor" : "none"} />
-                  <span className={`text-sm font-bold ${selectedSkin.tap_bonus > 0 ? "text-white" : "text-white/30"}`}>
-                    +{selectedSkin.tap_bonus}
+                  <Zap className="w-4 h-4 text-yellow-400" fill="currentColor" />
+                  <span className="text-sm font-bold text-white">
+                    +{totalTap}
                   </span>
                 </div>
 
