@@ -1,5 +1,6 @@
 // Lava.top Invoice Creation для покупки AR
 // Native fetch (Node.js 18+, Vercel runtime supports it)
+// UPDATED: 2025-12-09T12:00 - force cache bust, use offerId from request
 
 const LAVA_API_KEY = 'OZiQUDFJAz5eunrbUrUjA2ToAYjCgXWqaxzK7ibQA23uk3VoR6ijcGEO9Y9lfPjM';
 const LAVA_API_URL = 'https://gate.lava.top/api/v2/invoice';
