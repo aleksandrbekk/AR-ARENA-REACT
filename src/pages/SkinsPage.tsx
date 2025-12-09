@@ -241,7 +241,7 @@ export default function SkinsPage() {
         </div>
 
         {/* 3. СТАТЫ (Внизу подиума - PREMIUM MINIMALIST) */}
-        <div className="w-full flex justify-center z-20 mb-4">
+        <div className="w-full flex justify-center z-20 mb-8">
           <AnimatePresence mode="wait">
             {selectedSkin && (
               <motion.div
