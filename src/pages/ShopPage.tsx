@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 
 interface ARPackage {
   id: string
@@ -17,34 +18,6 @@ export function ShopPage() {
   const navigate = useNavigate()
   const { gameState, telegramUser } = useAuth()
   const [loading, setLoading] = useState<string | null>(null)
-
-  // Настройка Telegram Back Button
-  useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp
-
-      // Скрываем кнопку настроек/закрыть
-      if (tg.SettingsButton) {
-        tg.SettingsButton.hide()
-      }
-
-      // Показываем BackButton
-      tg.BackButton.show()
-
-      const handleBack = () => navigate('/')
-      tg.BackButton.onClick(handleBack)
-
-      return () => {
-        tg.BackButton.hide()
-        tg.BackButton.offClick(handleBack)
-
-        // Восстанавливаем кнопку настроек если нужно
-        if (tg.SettingsButton) {
-          tg.SettingsButton.show()
-        }
-      }
-    }
-  }, [navigate])
 
   const buyAR = async (pkg: ARPackage) => {
     if (!telegramUser) {
@@ -107,24 +80,35 @@ export function ShopPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pt-[60px] pb-8 px-4">
-      {/* Header с балансом */}
+      {/* Header с кнопкой назад */}
+      <div className="flex items-center justify-between mb-6 px-2">
+        {/* Кнопка назад */}
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="font-medium">Назад</span>
+        </button>
+
+        {/* Баланс AR */}
+        <div className="flex items-center gap-2 bg-black/40 backdrop-blur-lg border border-white/10 rounded-full px-4 py-2">
+          <img
+            src="/icons/arcoin.png"
+            alt="AR"
+            className="w-5 h-5 object-contain"
+          />
+          <span className="text-[#FFD700] font-bold text-sm">
+            {gameState?.balance_ar.toLocaleString('ru-RU') ?? 0}
+          </span>
+        </div>
+      </div>
+
+      {/* Заголовок */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-center mb-2">
+        <h1 className="text-2xl font-bold text-center">
           Магазин AR
         </h1>
-        <div className="flex items-center justify-center gap-2 text-lg">
-          <span className="text-white/60">Твой баланс:</span>
-          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-lg border border-white/10 rounded-full px-4 py-2">
-            <img
-              src="/icons/arcoin.png"
-              alt="AR"
-              className="w-6 h-6 object-contain"
-            />
-            <span className="text-[#FFD700] font-bold">
-              {gameState?.balance_ar.toLocaleString('ru-RU') ?? 0}
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* Пакеты AR */}
