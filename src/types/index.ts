@@ -147,3 +147,17 @@ export interface UserSkin {
   is_equipped: boolean
   purchased_at: string
 }
+
+export interface Giveaway {
+  id: number
+  title: string
+  subtitle: string | null
+  description: string | null
+  price: number
+  currency: 'ar' | 'bul'
+  jackpot_current_amount: number
+  end_date: string
+  status: 'active' | 'completed' | 'cancelled'
+  image_url: string | null
+  winner_id: number | null
+}
