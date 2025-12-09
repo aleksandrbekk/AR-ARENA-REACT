@@ -7,6 +7,7 @@ import { ProfilePage } from './pages/ProfilePage'
 import { FarmPage } from './pages/FarmPage'
 import { GiveawayPage } from './pages/GiveawayPage'
 import { AdminPage } from './pages/AdminPage'
+import PaymentSuccessPage from './pages/PaymentSuccessPage'
 
 function App() {
   useEffect(() => {
@@ -36,6 +37,7 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/giveaways" element={<GiveawayPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/payment-success" element={<PaymentSuccessPage />} />
       </Routes>
     </BrowserRouter>
   )

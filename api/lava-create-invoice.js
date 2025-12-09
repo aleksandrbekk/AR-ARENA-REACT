@@ -51,7 +51,8 @@ export default async function handler(req, res) {
         currency,
         buyerLanguage: 'RU',
         amount: parseFloat(amount),
-        clientUTM
+        clientUTM,
+        successUrl: 'https://www.ararena.pro/payment-success'
       })
     });
 
