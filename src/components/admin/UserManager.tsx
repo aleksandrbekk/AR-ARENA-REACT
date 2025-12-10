@@ -155,14 +155,6 @@ export function UserManager() {
     }
   }
 
-  const getUserTicketsCount = async (userId: string): Promise<number> => {
-    const { count } = await supabase
-      .from('giveaway_tickets')
-      .select('*', { count: 'exact', head: true })
-      .eq('telegram_id', userId)
-    return count || 0
-  }
-
   return (
     <div className="p-6 bg-zinc-900 min-h-screen text-white">
       <h2 className="text-2xl font-bold text-[#FFD700] mb-6">Управление пользователями</h2>
