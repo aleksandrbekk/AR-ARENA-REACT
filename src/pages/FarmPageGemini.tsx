@@ -3,6 +3,7 @@ import { Layout } from '../components/layout/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { useSkins } from '../hooks/useSkins'
 import { supabase } from '../lib/supabase'
+import datacenterIcon from '../assets/locations/datacenter.png'
 
 const BASE_INCOME_PER_HOUR = 100 // BUL в час
 const MAX_HOURS = 8 // Максимум накопления
@@ -127,7 +128,7 @@ export function FarmPageGemini() {
                         {/* Placeholder Image Layer */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
                         <img
-                            src="/icons/locations/datacenter.png"
+                            src={datacenterIcon}
                             alt="Location"
                             className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-500"
                         />
