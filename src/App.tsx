@@ -4,7 +4,8 @@ import { Home } from './pages/Home'
 import SkinsPage from './pages/SkinsPage'
 import { ShopPage } from './pages/ShopPage'
 import { ProfilePage } from './pages/ProfilePage'
-import { FarmPageGemini } from './pages/FarmPageGemini'
+import { FarmPage } from './pages/FarmPage'
+// import { FarmPageGemini } from './pages/FarmPageGemini'
 import { GiveawaysPage } from './pages/GiveawaysPage'
 import { GiveawayDetailsPage } from './pages/GiveawayDetailsPage'
 import { LiveArenaPage } from './pages/LiveArenaPage'
@@ -35,7 +36,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/skins" element={<SkinsPage />} />
         <Route path="/shop" element={<ShopPage />} />
-        <Route path="/farm" element={<FarmPageGemini />} />
+        <Route path="/farm" element={<FarmPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/giveaways" element={<GiveawaysPage />} />
         <Route path="/giveaway/:id" element={<GiveawayDetailsPage />} />
