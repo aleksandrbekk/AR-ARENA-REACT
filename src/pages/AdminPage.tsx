@@ -2,23 +2,17 @@ import { useState } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { UsersTab } from '../components/admin/UsersTab'
+import { GiveawaysTab } from '../components/admin/GiveawaysTab'
+import { TransactionsTab } from '../components/admin/TransactionsTab'
+import { SettingsTab } from '../components/admin/SettingsTab'
 
-type AdminTab = 'dashboard' | 'users' | 'giveaways' | 'tasks' | 'settings'
-
-// 🎯 MOCK DATA для Dashboard
-const MOCK_STATS = {
-  totalUsers: 1542,
-  onlineNow: 87,
-  newToday: 23,
-  churnedToday: 5,
-  totalAR: 125000,
-  totalBUL: 3450000
-}
+type AdminTab = 'users' | 'giveaways' | 'transactions' | 'settings'
 
 export function AdminPage() {
   const { telegramUser } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard')
+  const [activeTab, setActiveTab] = useState<AdminTab>('users')
 
   // Проверка admin-only (telegram_id = 190202791)
   const isAdmin = telegramUser?.id === 190202791
@@ -45,10 +39,9 @@ export function AdminPage() {
   }
 
   const tabs: Array<{ id: AdminTab; label: string }> = [
-    { id: 'dashboard', label: 'Dashboard' },
     { id: 'users', label: 'Users' },
     { id: 'giveaways', label: 'Giveaways' },
-    { id: 'tasks', label: 'Tasks' },
+    { id: 'transactions', label: 'Transactions' },
     { id: 'settings', label: 'Settings' }
   ]
 
@@ -103,129 +96,10 @@ export function AdminPage() {
 
         {/* CONTENT */}
         <div className="px-4">
-          {/* Dashboard Tab */}
-          {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              {/* Stat Cards Grid — 2x2 */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Всего юзеров */}
-                <div className="bg-zinc-900/50 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-                  <div className="text-3xl font-bold text-white mb-1">
-                    {MOCK_STATS.totalUsers.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-white/50 uppercase tracking-wide">
-                    Всего юзеров
-                  </div>
-                </div>
-
-                {/* Онлайн */}
-                <div className="bg-zinc-900/50 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-                  <div className="text-3xl font-bold text-white mb-1">
-                    {MOCK_STATS.onlineNow.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-white/50 uppercase tracking-wide">
-                    Онлайн
-                  </div>
-                </div>
-
-                {/* Новых сегодня */}
-                <div className="bg-zinc-900/50 backdrop-blur-md rounded-2xl p-4 border border-green-500/20">
-                  <div className="text-3xl font-bold text-green-500 mb-1">
-                    {MOCK_STATS.newToday.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-white/50 uppercase tracking-wide">
-                    Новых
-                  </div>
-                </div>
-
-                {/* Отвалились */}
-                <div className="bg-zinc-900/50 backdrop-blur-md rounded-2xl p-4 border border-red-500/20">
-                  <div className="text-3xl font-bold text-red-500 mb-1">
-                    {MOCK_STATS.churnedToday.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-white/50 uppercase tracking-wide">
-                    Отвалились
-                  </div>
-                </div>
-              </div>
-
-              {/* AR + BUL в обороте */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gradient-to-br from-[#FFD700]/10 to-[#FFA500]/10 backdrop-blur-md rounded-2xl p-4 border border-yellow-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <img src="/icons/arcoin.png" className="w-6 h-6" alt="AR" />
-                    <span className="text-xs text-white/50 uppercase tracking-wide">
-                      AR в обороте
-                    </span>
-                  </div>
-                  <div className="text-2xl font-bold text-[#FFD700]">
-                    {MOCK_STATS.totalAR.toLocaleString()}
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 backdrop-blur-md rounded-2xl p-4 border border-blue-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <img src="/icons/BUL.png" className="w-6 h-6" alt="BUL" />
-                    <span className="text-xs text-white/50 uppercase tracking-wide">
-                      BUL в обороте
-                    </span>
-                  </div>
-                  <div className="text-2xl font-bold text-blue-400">
-                    {MOCK_STATS.totalBUL.toLocaleString()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Информация */}
-              <div className="bg-zinc-900/30 backdrop-blur-sm rounded-2xl p-4 border border-white/5">
-                <div className="text-white/60 text-sm leading-relaxed">
-                  📊 Раздел Dashboard — статистика в реальном времени.
-                  <br />
-                  Данные обновляются каждые 5 минут.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Users Tab */}
-          {activeTab === 'users' && (
-            <div className="bg-zinc-900/30 backdrop-blur-sm rounded-2xl p-8 border border-white/5 text-center">
-              <div className="text-white/40 text-lg mb-2">👥</div>
-              <div className="text-white/60 text-base">
-                Раздел Users — в разработке
-              </div>
-            </div>
-          )}
-
-          {/* Giveaways Tab */}
-          {activeTab === 'giveaways' && (
-            <div className="bg-zinc-900/30 backdrop-blur-sm rounded-2xl p-8 border border-white/5 text-center">
-              <div className="text-white/40 text-lg mb-2">🎁</div>
-              <div className="text-white/60 text-base">
-                Раздел Giveaways — в разработке
-              </div>
-            </div>
-          )}
-
-          {/* Tasks Tab */}
-          {activeTab === 'tasks' && (
-            <div className="bg-zinc-900/30 backdrop-blur-sm rounded-2xl p-8 border border-white/5 text-center">
-              <div className="text-white/40 text-lg mb-2">✅</div>
-              <div className="text-white/60 text-base">
-                Раздел Tasks — в разработке
-              </div>
-            </div>
-          )}
-
-          {/* Settings Tab */}
-          {activeTab === 'settings' && (
-            <div className="bg-zinc-900/30 backdrop-blur-sm rounded-2xl p-8 border border-white/5 text-center">
-              <div className="text-white/40 text-lg mb-2">⚙️</div>
-              <div className="text-white/60 text-base">
-                Раздел Settings — в разработке
-              </div>
-            </div>
-          )}
+          {activeTab === 'users' && <UsersTab />}
+          {activeTab === 'giveaways' && <GiveawaysTab />}
+          {activeTab === 'transactions' && <TransactionsTab />}
+          {activeTab === 'settings' && <SettingsTab />}
         </div>
       </div>
     </Layout>
