@@ -122,11 +122,11 @@ export function Home() {
     <Layout>
       <Particles />
       {/* Spotlight Effect */}
-      <div 
+      <div
         className="absolute top-0 left-0 right-0 h-[60vh] pointer-events-none z-0"
         style={{ background: 'radial-gradient(circle at 50% -20%, rgba(255,255,255,0.1) 0%, transparent 70%)' }}
       />
-      
+
       <div className="flex flex-col h-full pb-24 relative z-10">
         {/* Header вверху страницы */}
         <Header

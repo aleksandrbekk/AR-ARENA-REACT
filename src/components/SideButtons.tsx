@@ -1,4 +1,4 @@
-import { Gift } from 'lucide-react'
+
 
 interface ButtonConfig {
   icon: string | React.ElementType
@@ -38,7 +38,7 @@ export function SideButtons({
   // Правая колонка
   const rightButtons: ButtonConfig[] = [
     {
-      icon: Gift,
+      icon: '/icons/GIVEAWAY.png',
       label: 'Розыгрыши',
       onClick: onGiveawaysClick || (() => console.log('Giveaways clicked')),
     },
