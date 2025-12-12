@@ -1,89 +1,85 @@
 import { useState, useEffect } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { GiveawayCard } from '../components/giveaways/GiveawayCard'
-import { supabase } from '../lib/supabase'
-import type { Giveaway } from '../types'
-import { Gift, Loader2 } from 'lucide-react'
+import { useGiveaways } from '../hooks/useGiveaways'
+import { Gift, Loader2, AlertCircle } from 'lucide-react'
 
 type TabType = 'active' | 'completed'
 
 export function GiveawaysPage() {
   const [tab, setTab] = useState<TabType>('active')
-  const [giveaways, setGiveaways] = useState<Giveaway[]>([])
-  const [loading, setLoading] = useState(true)
+  const { giveaways, loading, error, getGiveaways } = useGiveaways()
 
   useEffect(() => {
-    fetchGiveaways()
-  }, [tab])
-
-  const fetchGiveaways = async () => {
-    setLoading(true)
-    const statuses = tab === 'active' ? ['active'] : ['completed']
-    
-    const { data } = await supabase
-      .from('giveaways')
-      .select('*')
-      .in('status', statuses)
-      .order('end_date', { ascending: tab === 'active' })
-
-    if (data) setGiveaways(data)
-    setLoading(false)
-  }
+    getGiveaways(tab)
+  }, [tab, getGiveaways])
 
   return (
     <Layout>
-      <div className="min-h-screen bg-[#0a0a0a] pt-[60px] pb-24 px-4">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center">
-            <Gift className="w-5 h-5 text-[#FFD700]" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Розыгрыши</h1>
-        </div>
+      <div className="min-h-screen bg-[#0a0a0a] pt-[60px] pb-24 px-4 relative overflow-hidden">
+        {/* Background Vignette */}
+        <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800/10 via-[#0a0a0a] to-[#0a0a0a]" />
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setTab('active')}
-            className={`flex-1 py-3 rounded-xl font-medium text-sm transition-all ${
-              tab === 'active'
-                ? 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30'
-                : 'bg-white/5 text-white/50 hover:bg-white/10'
-            }`}
-          >
-            Активные
-          </button>
-          <button
-            onClick={() => setTab('completed')}
-            className={`flex-1 py-3 rounded-xl font-medium text-sm transition-all ${
-              tab === 'completed'
-                ? 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30'
-                : 'bg-white/5 text-white/50 hover:bg-white/10'
-            }`}
-          >
-            Завершённые
-          </button>
-        </div>
+        {/* Content Container */}
+        <div className="relative z-10">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center border border-[#FFD700]/10">
+              <Gift className="w-5 h-5 text-[#FFD700]" />
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-wide">Розыгрыши</h1>
+          </div>
 
-        {/* Content */}
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="w-8 h-8 text-[#FFD700] animate-spin" />
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6 p-1 bg-zinc-900/50 backdrop-blur-md rounded-2xl border border-white/5">
+            <button
+              onClick={() => setTab('active')}
+              className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${tab === 'active'
+                  ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
+                  : 'text-white/50 hover:text-white hover:bg-white/5'
+                }`}
+            >
+              Активные
+            </button>
+            <button
+              onClick={() => setTab('completed')}
+              className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${tab === 'completed'
+                  ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
+                  : 'text-white/50 hover:text-white hover:bg-white/5'
+                }`}
+            >
+              Завершённые
+            </button>
           </div>
-        ) : giveaways.length === 0 ? (
-          <div className="text-center py-20">
-            <Gift className="w-12 h-12 text-white/20 mx-auto mb-3" />
-            <p className="text-white/40">
-              {tab === 'active' ? 'Нет активных розыгрышей' : 'Нет завершённых розыгрышей'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {giveaways.map(g => (
-              <GiveawayCard key={g.id} giveaway={g} />
-            ))}
-          </div>
-        )}
+
+          {/* Error State */}
+          {error && (
+            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-500">
+              <AlertCircle className="w-5 h-5" />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          {/* Content */}
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="w-8 h-8 text-[#FFD700] animate-spin" />
+            </div>
+          ) : giveaways.length === 0 ? (
+            <div className="text-center py-20 bg-zinc-900/30 rounded-2xl border border-dashed border-white/10">
+              <Gift className="w-12 h-12 text-white/10 mx-auto mb-3" />
+              <p className="text-white/40">
+                {tab === 'active' ? 'Нет активных розыгрышей' : 'Нет завершённых розыгрышей'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {giveaways.map(g => (
+                <GiveawayCard key={g.id} giveaway={g} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </Layout>
   )
