@@ -127,9 +127,9 @@ export function FarmPageGemini() {
                         {/* Placeholder Image Layer */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
                         <img
-                            src="/icons/FERMA.png"
+                            src="/icons/locations/datacenter.png"
                             alt="Location"
-                            className="absolute inset-0 w-full h-full object-cover opacity-50 grayscale group-hover:grayscale-0 transition-all duration-500"
+                            className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-500"
                         />
 
                         <div className="absolute bottom-4 left-4 z-20 w-full pr-8 flex items-end justify-between">
@@ -181,8 +181,8 @@ export function FarmPageGemini() {
                         onClick={handleClaim}
                         disabled={accumulated === 0 || isClaiming}
                         className={`w-full py-4 rounded-xl font-bold text-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg ${accumulated > 0
-                                ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] shadow-[#FFD700]/20'
-                                : 'bg-zinc-800 text-white/20 cursor-not-allowed'
+                            ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] shadow-[#FFD700]/20'
+                            : 'bg-zinc-800 text-white/20 cursor-not-allowed'
                             }`}
                     >
                         {isClaiming ? 'Сбор...' : `Собрать ${accumulated.toFixed(0)} BUL`}
