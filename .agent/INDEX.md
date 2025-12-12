@@ -58,7 +58,7 @@
 | 🎁 **Giveaways** | 🟡 В работе | 40% | [roadmap/GIVEAWAYS.md](roadmap/GIVEAWAYS.md) |
 | 💳 **Payments** | 🟡 В работе | 70% | [roadmap/PAYMENTS.md](roadmap/PAYMENTS.md) |
 | 👤 **Admin** | 🟡 В работе | 20% | [roadmap/ADMIN.md](roadmap/ADMIN.md) |
-| 🌾 **Farm** | 🔴 Не начато | 0% | [roadmap/FARM.md](roadmap/FARM.md) |
+| 🌾 **Farm** | 🟡 В работе | 40% | [roadmap/FARM.md](roadmap/FARM.md) |
 
 ---
 
@@ -67,6 +67,7 @@
 | Тема | Файл | Описание |
 |------|------|----------|
 | Розыгрыши | [specs/GIVEAWAYS-SPEC.md](specs/GIVEAWAYS-SPEC.md) | Механика билетов, джекпота, auto-clone |
+| Ферма | [specs/FARM-SPEC.md](specs/FARM-SPEC.md) | Пассивный доход, оборудование, лидерборд |
 | Экономика | [specs/ECONOMY-SPEC.md](specs/ECONOMY-SPEC.md) | AR (премиум) и BUL (ферма, тапы) |
 
 ---
