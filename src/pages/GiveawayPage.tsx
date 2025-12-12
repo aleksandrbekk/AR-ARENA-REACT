@@ -6,13 +6,13 @@ import { Particles } from '../components/Particles'
 import { motion } from 'framer-motion'
 
 export function GiveawayPage() {
-  const { giveaways, loading, error, getActiveGiveaways, buyTickets, getMyTickets } = useGiveaways()
+  const { giveaways, loading, error, getGiveaways, buyTickets, getMyTickets } = useGiveaways()
   const [userTickets, setUserTickets] = useState<Record<number, number>>({})
 
   // Загружаем розыгрыши при монтировании
   useEffect(() => {
-    getActiveGiveaways()
-  }, [getActiveGiveaways])
+    getGiveaways()
+  }, [getGiveaways])
 
   // Загружаем билеты пользователя для каждого розыгрыша
   useEffect(() => {
@@ -36,22 +36,22 @@ export function GiveawayPage() {
     const newCount = await getMyTickets(giveawayId)
     setUserTickets(prev => ({ ...prev, [giveawayId]: newCount }))
     // Можно также обновить список розыгрышей, чтобы обновить джекпот, если он меняется сразу
-    getActiveGiveaways()
+    getGiveaways()
   }
 
   return (
     <Layout>
       <div className="min-h-screen bg-[#0a0a0a] pb-24 relative overflow-hidden">
         <Particles />
-        
+
         {/* Header Spotlight */}
-        <div 
+        <div
           className="absolute top-0 left-0 right-0 h-[40vh] pointer-events-none z-0"
           style={{ background: 'radial-gradient(circle at 50% -20%, rgba(255,215,0,0.1) 0%, transparent 70%)' }}
         />
 
         <div className="relative z-10 px-4 pt-8">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl font-black text-white mb-6 text-center uppercase tracking-wider drop-shadow-lg"
