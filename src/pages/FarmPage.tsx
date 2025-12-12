@@ -5,15 +5,15 @@ import { useAuth } from '../hooks/useAuth'
 // 🎯 MOCK DATA — Заглушки для UI preview
 const MOCK_LOCATION = {
   name: 'Общага',
-  image: '/icons/location1.png',
+  image: '/icons/locations/dormitory.png',
   level: 1
 }
 
 const MOCK_LOCATIONS = [
-  { id: 1, slug: 'dorm', name: 'Общага', price: 0, image: '/icons/location1.png', owned: true, active: true },
-  { id: 2, slug: 'basement', name: 'Подвал', price: 5000, image: '/icons/location2.png', owned: true, active: false },
-  { id: 3, slug: 'garage', name: 'Гараж', price: 15000, image: '/icons/location3.png', owned: false, active: false },
-  { id: 4, slug: 'warehouse', name: 'Склад', price: 50000, image: '/icons/location4.png', owned: false, active: false }
+  { id: 1, slug: 'dorm', name: 'Общага', price: 0, image: '/icons/locations/dormitory.png', owned: true, active: true },
+  { id: 2, slug: 'basement', name: 'Подвал', price: 5000, image: '/icons/locations/basement.png', owned: true, active: false },
+  { id: 3, slug: 'garage', name: 'Гараж', price: 15000, image: '/icons/locations/garage.png', owned: false, active: false },
+  { id: 4, slug: 'warehouse', name: 'Склад', price: 50000, image: '/icons/locations/warehouse.png', owned: false, active: false }
 ]
 
 const MOCK_EQUIPMENT = [
@@ -162,7 +162,7 @@ export function FarmPage() {
               src={currentLocation.image}
               alt={currentLocation.name}
               className="w-full h-full object-cover"
-              onError={(e) => { (e.target as HTMLImageElement).src = '/icons/location1.png' }}
+              onError={(e) => { (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png' }}
             />
 
             {/* Change Button */}
@@ -410,7 +410,7 @@ export function FarmPage() {
                     src={loc.image}
                     alt={loc.name}
                     className="w-[60px] h-10 object-cover rounded-lg"
-                    onError={(e) => { (e.target as HTMLImageElement).src = '/icons/location1.png' }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png' }}
                   />
 
                   <div className="flex-1">
