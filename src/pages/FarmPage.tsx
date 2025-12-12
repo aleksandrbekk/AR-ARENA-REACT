@@ -1,273 +1,455 @@
 import { useState, useEffect } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useAuth } from '../hooks/useAuth'
-import { useSkins } from '../hooks/useSkins'
-import { supabase } from '../lib/supabase'
 
-const BASE_INCOME_PER_HOUR = 100 // BUL в час
-const MAX_HOURS = 8 // Максимум накопления
+// 🎯 MOCK DATA — Заглушки для UI preview
+const MOCK_LOCATION = {
+  name: 'Общага',
+  image: '/icons/location1.png',
+  level: 1
+}
+
+const MOCK_LOCATIONS = [
+  { id: 1, slug: 'dorm', name: 'Общага', price: 0, image: '/icons/location1.png', owned: true, active: true },
+  { id: 2, slug: 'basement', name: 'Подвал', price: 5000, image: '/icons/location2.png', owned: true, active: false },
+  { id: 3, slug: 'garage', name: 'Гараж', price: 15000, image: '/icons/location3.png', owned: false, active: false },
+  { id: 4, slug: 'warehouse', name: 'Склад', price: 50000, image: '/icons/location4.png', owned: false, active: false }
+]
+
+const MOCK_EQUIPMENT = [
+  {
+    id: 1,
+    slug: 'miner-v1',
+    name: 'Майнер v1',
+    icon: '/icons/FERMA2.png',
+    income: 50,
+    level: 3,
+    maxLevel: 10,
+    upgradePrice: 2000,
+    owned: true,
+    locationOwned: true
+  },
+  {
+    id: 2,
+    slug: 'cooler',
+    name: 'Кулер RGB',
+    icon: '/icons/FERMA2.png',
+    income: 25,
+    level: 1,
+    maxLevel: 5,
+    upgradePrice: 1000,
+    owned: true,
+    locationOwned: true
+  },
+  {
+    id: 3,
+    slug: 'power-supply',
+    name: 'Блок питания',
+    icon: '/icons/FERMA2.png',
+    income: 100,
+    level: 0,
+    maxLevel: 10,
+    basePrice: 5000,
+    owned: false,
+    locationOwned: true
+  },
+  {
+    id: 4,
+    slug: 'server-rack',
+    name: 'Серверная стойка',
+    icon: '/icons/FERMA2.png',
+    income: 200,
+    level: 0,
+    maxLevel: 15,
+    basePrice: 15000,
+    owned: false,
+    locationOwned: false,
+    locationName: 'Подвал'
+  }
+]
+
+const MOCK_STATS = {
+  incomePerHour: 150,
+  accumulated: 450,
+  maxAccumulated: 600,
+  progressPercent: 75,
+  timeElapsed: '3ч 0м / 4ч'
+}
 
 export function FarmPage() {
-  const { telegramUser, gameState, updateGameState } = useAuth()
-  const { activeSkin } = useSkins()
-  const [lastClaim, setLastClaim] = useState<Date | null>(null)
-  const [accumulated, setAccumulated] = useState(0)
-  const [incomePerHour, setIncomePerHour] = useState(BASE_INCOME_PER_HOUR)
-  const [maxAccumulated, setMaxAccumulated] = useState(BASE_INCOME_PER_HOUR * MAX_HOURS)
-  const [isClaiming, setIsClaiming] = useState(false)
-  const [showCollectAnimation, setShowCollectAnimation] = useState(false)
+  const { gameState } = useAuth()
+  const [currentLocation, setCurrentLocation] = useState(MOCK_LOCATION)
+  const [showLocationModal, setShowLocationModal] = useState(false)
+  const [accumulated, setAccumulated] = useState(MOCK_STATS.accumulated)
+  const [timeDisplay] = useState(MOCK_STATS.timeElapsed)
+  const [progressPercent, setProgressPercent] = useState(MOCK_STATS.progressPercent)
 
-  // Загружаем last_farm_claim из базы
+  // Mock таймер для анимации прогресс-бара
   useEffect(() => {
-    async function loadFarmData() {
-      if (!telegramUser) return
-
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('last_farm_claim')
-          .eq('telegram_id', telegramUser.id.toString())
-          .single()
-
-        // Если колонка не существует или произошла ошибка, используем текущее время
-        if (error) {
-          console.warn('last_farm_claim column does not exist, using current time')
-          setLastClaim(new Date())
-          return
-        }
-
-        const lastClaimDate = data?.last_farm_claim
-          ? new Date(data.last_farm_claim)
-          : new Date() // Если не было сбора, начинаем с текущего момента
-
-        setLastClaim(lastClaimDate)
-      } catch (err) {
-        console.error('Error loading farm data:', err)
-        // Fallback на текущее время
-        setLastClaim(new Date())
-      }
-    }
-
-    loadFarmData()
-  }, [telegramUser])
-
-  // Пересчитываем доход при изменении активного скина
-  useEffect(() => {
-    const farmBonus = activeSkin?.farm_bonus || 0
-    const income = BASE_INCOME_PER_HOUR * (1 + farmBonus / 100)
-    setIncomePerHour(income)
-    setMaxAccumulated(income * MAX_HOURS)
-  }, [activeSkin])
-
-  // Обновляем накопленное каждую секунду
-  useEffect(() => {
-    if (!lastClaim) return
-
     const interval = setInterval(() => {
-      const now = new Date()
-      const hoursPassed = (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60)
-      const hoursCapped = Math.min(hoursPassed, MAX_HOURS)
-      const earned = incomePerHour * hoursCapped
-      setAccumulated(Math.floor(earned))
+      setAccumulated(prev => {
+        const newValue = prev + 0.5
+        return newValue > MOCK_STATS.maxAccumulated ? MOCK_STATS.maxAccumulated : newValue
+      })
+
+      setProgressPercent(() => {
+        const newPercent = (accumulated / MOCK_STATS.maxAccumulated) * 100
+        return Math.min(newPercent, 100)
+      })
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [lastClaim, incomePerHour])
+  }, [accumulated])
 
-  // Форматирование времени
-  const getTimeToFull = () => {
-    if (!lastClaim) return '0ч 0м'
-
-    const now = new Date()
-    const hoursPassed = (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60)
-
-    if (hoursPassed >= MAX_HOURS) return 'Заполнено'
-
-    const hoursLeft = MAX_HOURS - hoursPassed
-    const hours = Math.floor(hoursLeft)
-    const minutes = Math.floor((hoursLeft - hours) * 60)
-
-    return `${hours}ч ${minutes}м`
+  const handleCollect = () => {
+    console.log('🎯 Mock: Собрать награду', accumulated)
+    alert(`Собрано ${Math.floor(accumulated)} BUL (MOCK)`)
+    setAccumulated(0)
+    setProgressPercent(0)
   }
 
-  // Прогресс бар (0-100%)
-  const getProgress = () => {
-    return Math.min((accumulated / maxAccumulated) * 100, 100)
+  const handleChangeLocation = (location: typeof MOCK_LOCATIONS[0]) => {
+    console.log('🎯 Mock: Сменить локацию на', location.name)
+    setCurrentLocation({ name: location.name, image: location.image, level: 1 })
+    setShowLocationModal(false)
   }
 
-  // Сбор награды
-  const handleClaim = async () => {
-    if (!telegramUser || !gameState || accumulated === 0 || isClaiming) return
-
-    setIsClaiming(true)
-    setShowCollectAnimation(true)
-
-    try {
-      // ВРЕМЕННО: Обновляем только баланс (без last_farm_claim)
-      // АНЯ потом добавит RPC функцию для безопасного начисления
-      const newBalance = gameState.balance_bul + accumulated
-      const now = new Date()
-
-      const { error } = await supabase
-        .from('users')
-        .update({
-          balance_bul: newBalance
-        })
-        .eq('telegram_id', telegramUser.id.toString())
-
-      if (error) {
-        console.error('Error claiming farm:', error)
-        alert('Ошибка при сборе награды')
-        return
-      }
-
-      // Обновляем локальное состояние
-      updateGameState({ balance_bul: newBalance })
-      setLastClaim(now)
-      setAccumulated(0)
-
-      // Убираем анимацию через 2 секунды
-      setTimeout(() => setShowCollectAnimation(false), 2000)
-
-      console.log('✅ Farm claimed:', accumulated, 'BUL')
-
-      // Показываем уведомление
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success')
-      }
-    } catch (err) {
-      console.error('Error claiming farm:', err)
-      alert('Произошла ошибка')
-    } finally {
-      setIsClaiming(false)
-    }
+  const handlePurchaseEquipment = (slug: string) => {
+    console.log('🎯 Mock: Купить оборудование', slug)
+    alert(`Покупка ${slug} (MOCK)`)
   }
 
-  if (!gameState || !telegramUser) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-white text-xl">Loading...</div>
-        </div>
-      </Layout>
-    )
+  const handleUpgradeEquipment = (slug: string) => {
+    console.log('🎯 Mock: Улучшить оборудование', slug)
+    alert(`Улучшение ${slug} (MOCK)`)
+  }
+
+  const handlePurchaseLocation = (slug: string) => {
+    console.log('🎯 Mock: Купить локацию', slug)
+    alert(`Покупка локации ${slug} (MOCK)`)
   }
 
   return (
     <Layout>
-      <div className="flex flex-col h-full px-4 pt-16 pb-24 overflow-y-auto">
-        {/* Заголовок */}
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">Ферма BUL</h1>
-          <p className="text-white/60 text-sm">Пассивный доход пока вы не в игре</p>
-        </div>
-
-        {/* Иконка фермы */}
-        <div className="flex justify-center mb-6">
-          <div className="relative">
+      {/* Safe Area Top — 60px для системных кнопок Telegram */}
+      <div
+        className="flex flex-col min-h-screen pb-24 overflow-y-auto"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 60px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 20px)'
+        }}
+      >
+        <div className="px-4">
+          {/* HEADER — Заголовок + Баланс */}
+          <div className="flex items-center justify-between mb-6">
             <img
-              src="/icons/FERMA.png"
-              alt="Ферма"
-              className="w-32 h-32 object-contain"
+              src="/icons/ased1.png"
+              alt="Crypto Farm"
+              className="h-11 w-auto object-contain"
+              style={{ filter: 'drop-shadow(0 0 15px rgba(191, 149, 63, 0.3))' }}
             />
-            {showCollectAnimation && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-[#FFD700] text-2xl font-bold animate-bounce">
-                  +{accumulated} BUL
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Доход в час */}
-        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 mb-4">
-          <div className="flex items-center justify-between">
-            <div className="text-white/60 text-sm">Доход в час</div>
             <div className="flex items-center gap-2">
               <img src="/icons/BUL.png" className="w-6 h-6" alt="BUL" />
               <span className="text-white text-xl font-bold">
-                {incomePerHour.toFixed(0)} BUL/ч
+                {gameState?.balance_bul?.toLocaleString() || 0}
               </span>
             </div>
           </div>
-        </div>
 
-        {/* Бонус от персонажа */}
-        {activeSkin && activeSkin.farm_bonus > 0 && (
-          <div className="bg-gradient-to-r from-[#FFD700]/10 to-[#FFA500]/10 rounded-2xl p-3 border border-[#FFD700]/20 mb-4">
-            <div className="flex items-center justify-between">
-              <span className="text-white/80 text-sm">Бонус персонажа</span>
-              <span className="text-[#FFD700] font-bold">
-                +{activeSkin.farm_bonus}% от {activeSkin.name}
-              </span>
-            </div>
-          </div>
-        )}
+          {/* LOCATION CARD — Карточка текущей локации */}
+          <div className="relative rounded-3xl overflow-hidden h-[200px] mb-6 bg-zinc-900 shadow-2xl">
+            <img
+              src={currentLocation.image}
+              alt={currentLocation.name}
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).src = '/icons/location1.png' }}
+            />
 
-        {/* Накоплено */}
-        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 mb-4">
-          <div className="text-white/60 text-sm mb-3">Накоплено</div>
-
-          {/* Прогресс бар */}
-          <div className="relative w-full h-8 bg-white/10 rounded-full overflow-hidden mb-3">
-            <div
-              className="h-full bg-gradient-to-r from-[#FFD700] to-[#FFA500] transition-all duration-1000 ease-out flex items-center justify-center"
-              style={{ width: `${getProgress()}%` }}
+            {/* Change Button */}
+            <button
+              onClick={() => setShowLocationModal(true)}
+              className="absolute top-4 right-4 bg-zinc-900/60 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white text-sm font-semibold flex items-center gap-2 active:scale-95 transition-transform"
             >
-              {getProgress() > 20 && (
-                <span className="text-black text-sm font-bold">
-                  {accumulated.toLocaleString()} / {maxAccumulated.toFixed(0)}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+              Сменить
+            </button>
+
+            {/* Gradient Overlay + Location Name */}
+            <div
+              className="absolute bottom-0 left-0 w-full h-20 flex items-end p-4 justify-between"
+              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)' }}
+            >
+              <div className="text-white text-xl font-bold">{currentLocation.name}</div>
+              <div className="text-white/60 text-base">Lvl {currentLocation.level}</div>
+            </div>
+          </div>
+
+          {/* STATS PANEL — Панель статистики */}
+          <div
+            className="rounded-3xl p-6 mb-6 border border-white/5"
+            style={{
+              background: `
+                linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)),
+                repeating-linear-gradient(
+                  0deg,
+                  #1c1c1c 0px,
+                  #1c1c1c 1px,
+                  #252525 2px,
+                  #252525 3px
+                )
+              `,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 30px rgba(0,0,0,0.5)'
+            }}
+          >
+            {/* Доход в час + Баланс */}
+            <div className="flex justify-between mb-5">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-zinc-500 font-semibold mb-1.5">
+                  ДОХОД В ЧАС
+                </div>
+                <div
+                  className="text-2xl font-extrabold flex items-center gap-2"
+                  style={{
+                    background: 'linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    textShadow: '0 0 20px rgba(191, 149, 63, 0.3)'
+                  }}
+                >
+                  {MOCK_STATS.incomePerHour} <img src="/icons/BUL.png" className="w-5 h-5" alt="BUL" />
+                </div>
+              </div>
+
+              <div className="text-right">
+                <div className="text-xs uppercase tracking-wide text-zinc-500 font-semibold mb-1.5">
+                  БАЛАНС
+                </div>
+                <div className="text-2xl font-extrabold text-white flex items-center gap-2">
+                  {gameState?.balance_bul?.toLocaleString() || 0} <img src="/icons/BUL.png" className="w-5 h-5" alt="BUL" />
+                </div>
+              </div>
+            </div>
+
+            {/* Progress Container */}
+            <div className="mb-5">
+              <div className="flex justify-between text-sm text-zinc-500 font-semibold mb-2">
+                <span>{timeDisplay}</span>
+                <span
+                  className="text-[#FCF6BA]"
+                  style={{ textShadow: '0 0 10px rgba(191, 149, 63, 0.5)' }}
+                >
+                  +{Math.floor(accumulated).toLocaleString()} BUL
                 </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="h-1.5 bg-black rounded-full overflow-hidden border-b border-white/10">
+                <div
+                  className="h-full transition-all duration-300 ease-out"
+                  style={{
+                    width: `${progressPercent}%`,
+                    background: 'linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
+                    boxShadow: '0 0 15px rgba(191, 149, 63, 0.6)'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* CLAIM BUTTON — Золотой градиент */}
+            <button
+              onClick={handleCollect}
+              disabled={accumulated <= 0}
+              className="w-full h-[60px] rounded-2xl relative overflow-hidden transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: accumulated > 0
+                  ? 'linear-gradient(180deg, #FBF5B7 0%, #BF953F 20%, #B38728 50%, #AA771C 100%)'
+                  : 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%)',
+                boxShadow: accumulated > 0
+                  ? '0 0 25px rgba(191, 149, 63, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -2px 0 rgba(0, 0, 0, 0.2)'
+                  : 'inset 0 1px 0 rgba(255,255,255,0.05)'
+              }}
+            >
+              {/* Glass highlight */}
+              {accumulated > 0 && (
+                <div
+                  className="absolute top-0 left-0 right-0 h-[30px] pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.1) 100%)',
+                    borderRadius: '16px 16px 100% 100% / 12px 12px 10px 10px'
+                  }}
+                />
               )}
-            </div>
+
+              <div className="relative z-10 flex items-center justify-center gap-2 text-lg font-black uppercase tracking-wide">
+                <img src="/icons/BUL.png" className="w-6 h-6" alt="BUL" />
+                <span
+                  className={accumulated > 0 ? 'text-[#3E2723]' : 'text-zinc-600'}
+                  style={accumulated > 0 ? { textShadow: '0 1px 0 rgba(255,255,255,0.4)' } : {}}
+                >
+                  СОБРАТЬ {Math.floor(accumulated).toLocaleString()} BUL
+                </span>
+              </div>
+            </button>
           </div>
 
-          {/* Числа */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src="/icons/BUL.png" className="w-8 h-8" alt="BUL" />
-              <span className="text-white text-2xl font-bold">
-                {accumulated.toLocaleString()}
-              </span>
-            </div>
-            <span className="text-white/40 text-sm">
-              / {maxAccumulated.toFixed(0)} BUL
-            </span>
+          {/* EQUIPMENT SECTION — Оборудование */}
+          <div className="flex items-center gap-2.5 mb-4">
+            <img src="/icons/FERMA2.png" className="w-6 h-6" alt="Equipment" />
+            <span className="text-white text-lg font-bold">Оборудование</span>
           </div>
 
-          {/* Таймер */}
-          <div className="mt-3 text-center">
-            <span className="text-white/60 text-sm">
-              {getProgress() >= 100 ? '✓ Заполнено' : `До заполнения: ${getTimeToFull()}`}
-            </span>
+          {/* Equipment List */}
+          <div className="flex flex-col gap-3 mb-6">
+            {MOCK_EQUIPMENT.map((eq) => (
+              <div
+                key={eq.id}
+                className="bg-zinc-900/50 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 border border-yellow-500/20 transition-all active:scale-[0.98] active:border-yellow-500/60"
+                style={{
+                  background: 'linear-gradient(180deg, #1a1a1a 0%, #111 100%)',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+                  opacity: eq.locationOwned ? 1 : 0.5
+                }}
+              >
+                {/* Icon */}
+                <div className="w-[50px] h-[50px] bg-black rounded-xl border border-white/10 flex items-center justify-center flex-shrink-0">
+                  <img
+                    src={eq.icon}
+                    alt={eq.name}
+                    className="w-8 h-8 object-contain"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/icons/FERMA2.png' }}
+                  />
+                </div>
+
+                {/* Info */}
+                <div className="flex-1">
+                  <div className="text-white text-base font-bold mb-1">
+                    {eq.name}
+                    {eq.owned && (
+                      <span className="text-xs text-zinc-500 ml-1.5">
+                        Lvl {eq.level}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="text-sm text-[#FCF6BA] flex items-center gap-1"
+                    style={{ textShadow: '0 0 5px rgba(191, 149, 63, 0.5)' }}
+                  >
+                    {eq.income.toLocaleString()}
+                    <img src="/icons/BUL.png" className="w-3 h-3" alt="BUL" />
+                    /ч
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <div>
+                  {!eq.locationOwned ? (
+                    <span className="text-xs text-zinc-600">
+                      Снимите {eq.locationName?.toLowerCase()}
+                    </span>
+                  ) : !eq.owned ? (
+                    <button
+                      onClick={() => handlePurchaseEquipment(eq.slug)}
+                      className="bg-transparent border border-[#FFD700] text-[#FFD700] px-4 py-2 rounded-xl font-bold text-sm transition-all active:scale-95 active:bg-[#FFD700]/10"
+                      style={{ boxShadow: '0 0 10px rgba(255, 215, 0, 0.15)' }}
+                    >
+                      {eq.basePrice?.toLocaleString()} BUL
+                    </button>
+                  ) : eq.level < eq.maxLevel ? (
+                    <button
+                      onClick={() => handleUpgradeEquipment(eq.slug)}
+                      className="bg-transparent border border-[#4facfe] text-[#4facfe] px-4 py-2 rounded-xl font-bold text-sm transition-all active:scale-95"
+                    >
+                      {eq.upgradePrice?.toLocaleString()} BUL
+                    </button>
+                  ) : (
+                    <span className="text-xs text-zinc-600 font-bold">MAX</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-
-        {/* Кнопка сбора */}
-        <button
-          onClick={handleClaim}
-          disabled={accumulated === 0 || isClaiming}
-          className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${
-            accumulated === 0 || isClaiming
-              ? 'bg-white/10 text-white/40 cursor-not-allowed'
-              : 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black shadow-lg shadow-[#FFD700]/30 active:scale-95'
-          }`}
-        >
-          {isClaiming ? 'Сбор...' : `Собрать ${accumulated.toLocaleString()} BUL`}
-        </button>
-
-        {/* Информация */}
-        <div className="mt-6 bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-          <h3 className="text-white font-bold mb-2">Как работает ферма?</h3>
-          <ul className="text-white/60 text-sm space-y-1">
-            <li>• Базовый доход: {BASE_INCOME_PER_HOUR} BUL/час</li>
-            <li>• Бонус персонажа увеличивает доход</li>
-            <li>• Максимум накопления: {MAX_HOURS} часов</li>
-            <li>• Собирайте награду регулярно!</li>
-          </ul>
         </div>
       </div>
+
+      {/* LOCATION MODAL — Модалка выбора локации */}
+      {showLocationModal && (
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-end"
+          onClick={() => setShowLocationModal(false)}
+        >
+          <div
+            className="w-full bg-zinc-900 rounded-t-3xl p-6 border-t border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-5">
+              <span className="text-white text-xl font-bold">Локации</span>
+              <button
+                onClick={() => setShowLocationModal(false)}
+                className="text-white text-3xl leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Locations List */}
+            <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
+              {MOCK_LOCATIONS.map((loc) => (
+                <div
+                  key={loc.id}
+                  className={`bg-zinc-800 rounded-2xl p-4 flex items-center gap-4 border transition-all ${
+                    loc.active ? 'border-[#4facfe]' : 'border-yellow-500/20'
+                  }`}
+                  style={{ opacity: loc.owned || loc.id === 1 || MOCK_LOCATIONS[loc.id - 2]?.owned ? 1 : 0.5 }}
+                >
+                  <img
+                    src={loc.image}
+                    alt={loc.name}
+                    className="w-[60px] h-10 object-cover rounded-lg"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/icons/location1.png' }}
+                  />
+
+                  <div className="flex-1">
+                    <div className="text-white text-base font-bold">{loc.name}</div>
+                    <div className="text-zinc-500 text-sm">
+                      {loc.owned ? 'Куплено' : `${loc.price.toLocaleString()} BUL`}
+                    </div>
+                  </div>
+
+                  {/* Action */}
+                  {loc.owned ? (
+                    loc.active ? (
+                      <span className="text-[#4facfe] text-sm font-semibold">Текущая</span>
+                    ) : (
+                      <button
+                        onClick={() => handleChangeLocation(loc)}
+                        className="text-[#4facfe] text-sm font-semibold cursor-pointer"
+                      >
+                        Выбрать
+                      </button>
+                    )
+                  ) : loc.id === 1 || MOCK_LOCATIONS[loc.id - 2]?.owned ? (
+                    <button
+                      onClick={() => handlePurchaseLocation(loc.slug)}
+                      className="text-[#FFD700] text-sm font-semibold cursor-pointer"
+                    >
+                      {loc.price.toLocaleString()} BUL
+                    </button>
+                  ) : (
+                    <span className="text-xs text-zinc-600">
+                      Сначала {MOCK_LOCATIONS[loc.id - 2]?.name}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   )
 }
