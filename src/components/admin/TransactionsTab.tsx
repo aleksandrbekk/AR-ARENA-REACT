@@ -116,7 +116,7 @@ export function TransactionsTab() {
   if (transactions.length === 0 && filter === 'all' && typeFilter === 'all') {
     return (
       <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl p-8 border border-white/5 text-center">
-        <div className="text-white/40 text-lg mb-2">💳</div>
+        <img src="/icons/arcoin.png" alt="Transactions" className="w-10 h-10 mx-auto mb-2 opacity-40" />
         <div className="text-white/60 text-base mb-2">
           Таблица транзакций не найдена
         </div>
@@ -137,31 +137,28 @@ export function TransactionsTab() {
           <div className="flex gap-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                filter === 'all'
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${filter === 'all'
                   ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30'
                   : 'bg-zinc-800 text-white/60 border border-white/10'
-              }`}
+                }`}
             >
               Все
             </button>
             <button
               onClick={() => setFilter('AR')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                filter === 'AR'
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${filter === 'AR'
                   ? 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30'
                   : 'bg-zinc-800 text-white/60 border border-white/10'
-              }`}
+                }`}
             >
               AR
             </button>
             <button
               onClick={() => setFilter('BUL')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                filter === 'BUL'
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${filter === 'BUL'
                   ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30'
                   : 'bg-zinc-800 text-white/60 border border-white/10'
-              }`}
+                }`}
             >
               BUL
             </button>
@@ -176,11 +173,10 @@ export function TransactionsTab() {
               <button
                 key={type}
                 onClick={() => setTypeFilter(type)}
-                className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors whitespace-nowrap ${
-                  typeFilter === type
+                className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors whitespace-nowrap ${typeFilter === type
                     ? 'bg-zinc-700 text-white border border-white/30'
                     : 'bg-zinc-800 text-white/60 border border-white/10'
-                }`}
+                  }`}
               >
                 {type === 'all' ? 'Все' : getTypeLabel(type)}
               </button>

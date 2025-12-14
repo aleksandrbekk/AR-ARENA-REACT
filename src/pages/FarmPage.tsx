@@ -137,20 +137,7 @@ export function FarmPage() {
 
   return (
     <Layout hideNavbar>
-      {/* Кастомная кнопка "← Назад" */}
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed left-4 top-4 z-50 w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-        style={{
-          top: 'calc(env(safe-area-inset-top, 60px) - 40px)'
-        }}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-      </button>
-
-      {/* Safe Area — увеличенный paddingBottom */}
+      {/* Контейнер с safe-area */}
       <div
         className="flex flex-col min-h-screen overflow-y-auto"
         style={{
@@ -158,7 +145,18 @@ export function FarmPage() {
           paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 80px)'
         }}
       >
-        {/* LOCATION CARD — Карточка текущей локации (FULL WIDTH) */}
+        {/* Кастомная кнопка "← Назад" — под safe-area */}
+        <button
+          onClick={() => navigate(-1)}
+          className="ml-4 mt-2 flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span className="text-sm font-semibold">Назад</span>
+        </button>
+
+        {/* LOCATION CARD — FULL WIDTH (БЕЗ отступов) */}
         <div className="relative h-[240px] mb-6 bg-zinc-900 shadow-2xl">
           <img
             src={currentLocation.image}
