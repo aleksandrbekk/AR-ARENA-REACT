@@ -17,8 +17,17 @@ export function AdminPage() {
   // Проверка admin-only (telegram_id = 190202791)
   const isAdmin = telegramUser?.id === 190202791
 
+  // Debug logging
+  console.log('🔍 AdminPage render:', {
+    isLoading,
+    telegramUser,
+    isAdmin,
+    userId: telegramUser?.id
+  })
+
   // Loading state
   if (isLoading) {
+    console.log('⏳ Showing loading screen');
     return (
       <Layout>
         <div
@@ -35,6 +44,7 @@ export function AdminPage() {
 
   // Access denied
   if (!isAdmin) {
+    console.log('⛔ Access denied for user:', telegramUser?.id)
     return (
       <Layout>
         <div
@@ -61,6 +71,8 @@ export function AdminPage() {
     { id: 'transactions', label: 'Transactions' },
     { id: 'settings', label: 'Settings' }
   ]
+
+  console.log('✅ Rendering admin panel for user:', telegramUser?.id)
 
   return (
     <Layout>
