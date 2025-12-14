@@ -10,13 +10,30 @@ import { SettingsTab } from '../components/admin/SettingsTab'
 type AdminTab = 'users' | 'giveaways' | 'transactions' | 'settings'
 
 export function AdminPage() {
-  const { telegramUser } = useAuth()
+  const { telegramUser, isLoading } = useAuth()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<AdminTab>('users')
 
   // Проверка admin-only (telegram_id = 190202791)
   const isAdmin = telegramUser?.id === 190202791
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <Layout>
+        <div
+          className="flex flex-col items-center justify-center min-h-screen px-4"
+          style={{ paddingTop: 'env(safe-area-inset-top, 60px)' }}
+        >
+          <div className="text-white/40 text-lg text-center">
+            Загрузка...
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // Access denied
   if (!isAdmin) {
     return (
       <Layout>
