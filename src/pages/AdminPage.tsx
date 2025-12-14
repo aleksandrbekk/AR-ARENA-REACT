@@ -20,10 +20,10 @@ export function AdminPage() {
   // Access denied
   if (!isLoading && !isAdmin) {
     return (
-      <Layout>
+      <Layout hideNavbar>
         <div
           className="flex flex-col items-center justify-center min-h-screen px-4"
-          style={{ paddingTop: 'env(safe-area-inset-top, 60px)' }}
+          style={{ paddingTop: '80px' }}
         >
           <div className="text-white/40 text-lg text-center font-bold tracking-widest uppercase">
             Доступ запрещён
@@ -43,24 +43,23 @@ export function AdminPage() {
     { id: 'users' as AdminSection, label: 'USERS', icon: '/icons/PARTNERS.png' },
     { id: 'giveaways' as AdminSection, label: 'GIVEAWAYS', icon: '/icons/GIVEAWAY.png' },
     { id: 'transactions' as AdminSection, label: 'FINANCE', icon: '/icons/arcoin.png' },
-    { id: 'settings' as AdminSection, label: 'SETTINGS', icon: '/icons/gears.png' } // Assuming gears.png exists or using placeholder
+    { id: 'settings' as AdminSection, label: 'SETTINGS', icon: '/icons/icons/settings-gear.png' }
   ]
 
   return (
-    <Layout>
+    <Layout hideNavbar>
       <div className="flex flex-col min-h-screen bg-[#0a0a0a]">
-        {/* HEADER - STICKY */}
-        <div
-          className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5"
-          style={{ paddingTop: 'env(safe-area-inset-top, 20px)' }}
-        >
+        {/* HEADER - NOT FIXED, flows with safe-area from Layout */}
+        <div className="sticky top-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/5">
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate('/')}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 active:scale-95 transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white/60 active:scale-95 transition-all"
               >
-                <img src="/icons/kiy.png" alt="Back" className="w-4 h-4 opacity-50 rotate-180" />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
               </button>
               <h1 className="text-white font-bold tracking-wide text-lg flex items-center gap-2">
                 <img src="/icons/admin.png" alt="Admin" className="w-6 h-6" />
@@ -75,22 +74,26 @@ export function AdminPage() {
           </div>
 
           {/* TABS - SCROLLABLE */}
-          <div className="flex overflow-x-auto no-scrollbar px-4 pb-0 items-end gap-6 border-b border-white/5">
+          <div className="flex overflow-x-auto no-scrollbar px-4 pb-0 items-end gap-5 border-b border-white/5">
             {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`pb-3 relative flex items-center gap-2 transition-all ${activeSection === section.id
+                className={`pb-3 relative flex items-center gap-2 transition-all shrink-0 ${activeSection === section.id
                   ? 'text-[#FFD700]'
-                  : 'text-white/40 hover:text-white/60'
+                  : 'text-white/40'
                   }`}
               >
                 <img
                   src={section.icon}
                   alt={section.label}
-                  className={`w-6 h-6 object-contain transition-all ${activeSection === section.id ? 'opacity-100 scale-110 drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]' : 'opacity-40 grayscale'}`}
+                  className={`w-5 h-5 object-contain transition-all ${activeSection === section.id
+                    ? 'opacity-100 drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]'
+                    : 'opacity-40 grayscale'
+                    }`}
                 />
-                <span className={`text-xs font-bold tracking-wider ${activeSection === section.id ? '' : 'font-medium'}`}>
+                <span className={`text-xs tracking-wider ${activeSection === section.id ? 'font-bold' : 'font-medium'
+                  }`}>
                   {section.label}
                 </span>
                 {activeSection === section.id && (
@@ -102,16 +105,13 @@ export function AdminPage() {
         </div>
 
         {/* CONTENT AREA */}
-        <div
-          className="flex-1 px-4 pb-24"
-          style={{ marginTop: 'calc(env(safe-area-inset-top, 20px) + 100px)' }}
-        >
+        <div className="flex-1 px-4 py-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-40">
               <div className="text-[#FFD700] text-sm font-mono animate-pulse">LOADING SYSTEM...</div>
             </div>
           ) : (
-            <div className="animate-fade-in">
+            <div>
               {activeSection === 'users' && <UsersTab />}
               {activeSection === 'giveaways' && <GiveawaysTab />}
               {activeSection === 'transactions' && <TransactionsTab />}
@@ -123,3 +123,4 @@ export function AdminPage() {
     </Layout>
   )
 }
+

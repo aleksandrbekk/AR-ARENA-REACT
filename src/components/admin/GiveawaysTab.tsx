@@ -194,31 +194,28 @@ export function GiveawaysTab() {
       <div className="flex gap-2">
         <button
           onClick={() => setFilter('active')}
-          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-            filter === 'active'
+          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${filter === 'active'
               ? 'bg-green-500/20 text-green-500 border border-green-500/30'
               : 'bg-zinc-800 text-white/60 border border-white/10'
-          }`}
+            }`}
         >
           Активные
         </button>
         <button
           onClick={() => setFilter('completed')}
-          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-            filter === 'completed'
+          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${filter === 'completed'
               ? 'bg-zinc-700/50 text-white border border-white/30'
               : 'bg-zinc-800 text-white/60 border border-white/10'
-          }`}
+            }`}
         >
           Завершённые
         </button>
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-            filter === 'all'
+          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${filter === 'all'
               ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30'
               : 'bg-zinc-800 text-white/60 border border-white/10'
-          }`}
+            }`}
         >
           Все
         </button>
@@ -254,7 +251,7 @@ export function GiveawaysTab() {
                       {getStatusBadge(giveaway.status)}
                       {giveaway.is_recurring && (
                         <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-lg border border-blue-500/30">
-                          🔄 Recurring
+                          Повтор
                         </span>
                       )}
                     </div>

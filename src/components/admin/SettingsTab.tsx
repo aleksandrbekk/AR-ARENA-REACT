@@ -3,7 +3,7 @@ export function SettingsTab() {
     <div className="space-y-6">
       {/* Заглушка */}
       <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl p-8 border border-white/5 text-center">
-        <div className="text-white/40 text-4xl mb-3">⚙️</div>
+        <img src="/icons/icons/settings-gear.png" alt="Settings" className="w-12 h-12 mx-auto mb-3 opacity-40" />
         <div className="text-white text-lg font-bold mb-2">
           Настройки
         </div>

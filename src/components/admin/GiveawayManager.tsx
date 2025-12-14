@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Giveaway } from '../../types'
-import { Plus, Edit, Trash, Save, X, Trophy, Calendar, DollarSign, Users } from 'lucide-react'
+// Icons removed - using text/images per design system rules
 
 export function GiveawayManager() {
   const [mode, setMode] = useState<'list' | 'edit'>('list')
@@ -31,7 +31,7 @@ export function GiveawayManager() {
       .from('giveaways')
       .select('*')
       .order('created_at', { ascending: false })
-    
+
     if (data) setGiveaways(data)
     setLoading(false)
   }
@@ -116,7 +116,7 @@ export function GiveawayManager() {
   }
 
   const handleGenerateResults = async (giveawayId: number) => {
-    if (!confirm('⚠️ ВНИМАНИЕ!\n\nЭто действие НЕОБРАТИМО.\nБудут определены победители и розыгрыш будет завершён.\n\nПродолжить?')) {
+    if (!confirm('ВНИМАНИЕ!\n\nЭто действие НЕОБРАТИМО.\nБудут определены победители и розыгрыш будет завершён.\n\nПродолжить?')) {
       return
     }
 
@@ -134,17 +134,17 @@ export function GiveawayManager() {
         throw new Error(data?.error || 'Ошибка генерации')
       }
 
-      alert(`✅ Розыгрыш завершён!\n\nУчастников: ${data.total_participants}\nБилетов: ${data.total_tickets}\n\n🏆 Победители определены!`)
+      alert(`Розыгрыш завершён!\n\nУчастников: ${data.total_participants}\nБилетов: ${data.total_tickets}\n\nПобедители определены!`)
       await fetchGiveaways()
     } catch (error: any) {
-      alert('❌ Ошибка: ' + error.message)
+      alert('Ошибка: ' + error.message)
     } finally {
       setLoading(false)
     }
   }
 
   const handleDelete = async (giveawayId: number, title: string) => {
-    if (!confirm(`🗑️ Удалить розыгрыш?\n\n"${title}"\n\nЭто действие удалит розыгрыш и все связанные билеты!`)) {
+    if (!confirm(`Удалить розыгрыш?\n\n"${title}"\n\nЭто действие удалит розыгрыш и все связанные билеты!`)) {
       return
     }
 
@@ -164,10 +164,10 @@ export function GiveawayManager() {
 
       if (error) throw error
 
-      alert('✅ Розыгрыш удалён!')
+      alert('Розыгрыш удалён!')
       await fetchGiveaways()
     } catch (error: any) {
-      alert('❌ Ошибка удаления: ' + error.message)
+      alert('Ошибка удаления: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -178,11 +178,11 @@ export function GiveawayManager() {
       <div className="p-6 bg-zinc-900 min-h-screen text-white">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-[#FFD700]">Управление розыгрышами</h2>
-          <button 
+          <button
             onClick={handleCreate}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-lg hover:opacity-90"
           >
-            <Plus size={20} /> Создать
+            + Создать
           </button>
         </div>
 
@@ -192,11 +192,10 @@ export function GiveawayManager() {
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      g.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${g.status === 'active' ? 'bg-green-500/20 text-green-400' :
                       g.status === 'completed' ? 'bg-blue-500/20 text-blue-400' :
-                      'bg-gray-500/20 text-gray-400'
-                    }`}>
+                        'bg-gray-500/20 text-gray-400'
+                      }`}>
                       {getStatusLabel(g.status)}
                     </span>
                     <h3 className="font-bold">{g.title}</h3>
@@ -210,28 +209,28 @@ export function GiveawayManager() {
                 </div>
                 <div className="flex gap-2">
                   {g.status === 'active' && (
-                    <button 
+                    <button
                       onClick={() => handleGenerateResults(g.id)}
                       disabled={loading}
                       className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs font-medium flex items-center gap-1"
                     >
-                      🛑 STOP & GENERATE
+                      STOP & GENERATE
                     </button>
                   )}
-                  <button 
+                  <button
                     onClick={() => handleEdit(g)}
                     className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                     title="Редактировать"
                   >
-                    <Edit size={18} className="text-blue-400" />
+                    <span className="text-blue-400 text-sm">Ред.</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleDelete(g.id, g.title)}
                     disabled={loading}
                     className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                     title="Удалить"
                   >
-                    <Trash size={18} className="text-red-400" />
+                    <span className="text-red-400 text-sm">Удал.</span>
                   </button>
                 </div>
               </div>
@@ -249,21 +248,21 @@ export function GiveawayManager() {
           {editingId ? 'Редактировать розыгрыш' : 'Создать розыгрыш'}
         </h2>
         <button onClick={() => setMode('list')} className="p-2 hover:bg-white/10 rounded-lg">
-          <X size={24} />
+          <span className="text-white/60 text-xl">×</span>
         </button>
       </div>
 
       <div className="space-y-6 max-w-2xl mx-auto">
         {/* Основная информация */}
         <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/5">
-          <h3 className="text-lg font-bold flex items-center gap-2"><Trophy size={18} className="text-[#FFD700]" /> Основная информация</h3>
-          
+          <h3 className="text-lg font-bold flex items-center gap-2"><span className="text-[#FFD700]">*</span> Основная информация</h3>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-white/50 mb-1">Тип</label>
-              <select 
+              <select
                 value={formData.type}
-                onChange={e => setFormData({...formData, type: e.target.value as any})}
+                onChange={e => setFormData({ ...formData, type: e.target.value as any })}
                 className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
               >
                 <option value="money">Деньги</option>
@@ -272,9 +271,9 @@ export function GiveawayManager() {
             </div>
             <div>
               <label className="block text-xs text-white/50 mb-1">Статус</label>
-              <select 
+              <select
                 value={formData.status}
-                onChange={e => setFormData({...formData, status: e.target.value as any})}
+                onChange={e => setFormData({ ...formData, status: e.target.value as any })}
                 className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
               >
                 <option value="draft">Черновик</option>
@@ -287,20 +286,20 @@ export function GiveawayManager() {
 
           <div>
             <label className="block text-xs text-white/50 mb-1">Название</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={formData.title}
-              onChange={e => setFormData({...formData, title: e.target.value})}
+              onChange={e => setFormData({ ...formData, title: e.target.value })}
               className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
             />
           </div>
 
           <div>
             <label className="block text-xs text-white/50 mb-1">Подзаголовок</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={formData.subtitle || ''}
-              onChange={e => setFormData({...formData, subtitle: e.target.value})}
+              onChange={e => setFormData({ ...formData, subtitle: e.target.value })}
               className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
             />
           </div>
@@ -308,18 +307,18 @@ export function GiveawayManager() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-white/50 mb-1">Цена билета</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 value={formData.price}
-                onChange={e => setFormData({...formData, price: Number(e.target.value)})}
+                onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
                 className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
               />
             </div>
             <div>
               <label className="block text-xs text-white/50 mb-1">Валюта</label>
-              <select 
+              <select
                 value={formData.currency}
-                onChange={e => setFormData({...formData, currency: e.target.value as any})}
+                onChange={e => setFormData({ ...formData, currency: e.target.value as any })}
                 className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
               >
                 <option value="ar">AR</option>
@@ -331,24 +330,24 @@ export function GiveawayManager() {
 
         {/* Даты */}
         <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/5">
-          <h3 className="text-lg font-bold flex items-center gap-2"><Calendar size={18} className="text-[#FFD700]" /> Даты</h3>
-          
+          <h3 className="text-lg font-bold flex items-center gap-2"><span className="text-[#FFD700]">Даты</span></h3>
+
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-xs text-white/50 mb-1">Дата окончания</label>
-              <input 
-                type="datetime-local" 
+              <input
+                type="datetime-local"
                 value={formData.end_date ? new Date(formData.end_date).toISOString().slice(0, 16) : ''}
-                onChange={e => setFormData({...formData, end_date: new Date(e.target.value).toISOString()})}
+                onChange={e => setFormData({ ...formData, end_date: new Date(e.target.value).toISOString() })}
                 className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
               />
             </div>
             <div>
               <label className="block text-xs text-white/50 mb-1">Дата розыгрыша</label>
-              <input 
-                type="datetime-local" 
+              <input
+                type="datetime-local"
                 value={formData.draw_date ? new Date(formData.draw_date).toISOString().slice(0, 16) : ''}
-                onChange={e => setFormData({...formData, draw_date: new Date(e.target.value).toISOString()})}
+                onChange={e => setFormData({ ...formData, draw_date: new Date(e.target.value).toISOString() })}
                 className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
               />
             </div>
@@ -358,32 +357,30 @@ export function GiveawayManager() {
         {/* Призы */}
         <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/5">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold flex items-center gap-2"><DollarSign size={18} className="text-[#FFD700]" /> Призы</h3>
+            <h3 className="text-lg font-bold flex items-center gap-2"><span className="text-[#FFD700]">Призы</span></h3>
             <button onClick={addPrize} className="text-xs bg-white/10 px-2 py-1 rounded hover:bg-white/20">Добавить приз</button>
           </div>
-          
+
           <div className="space-y-2">
             {formData.prizes?.map((prize, idx) => (
               <div key={idx} className="flex gap-2 items-center bg-black/40 p-2 rounded-lg">
                 <div className="w-10 text-center font-bold text-white/50">#{prize.place}</div>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   placeholder="Сумма"
                   value={prize.amount}
                   onChange={e => updatePrize(idx, 'amount', Number(e.target.value))}
                   className="w-24 bg-transparent border-b border-white/10 p-1 text-sm text-white"
                 />
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   placeholder="%"
                   value={prize.percentage}
                   onChange={e => updatePrize(idx, 'percentage', Number(e.target.value))}
                   className="w-16 bg-transparent border-b border-white/10 p-1 text-sm text-white"
                 />
                 <span className="text-xs text-white/30">%</span>
-                <button onClick={() => removePrize(idx)} className="ml-auto text-red-400 hover:text-red-300">
-                  <Trash size={14} />
-                </button>
+                <button onClick={() => removePrize(idx)} className="ml-auto text-red-400 hover:text-red-300 text-sm">Удалить</button>
               </div>
             ))}
           </div>
@@ -391,12 +388,12 @@ export function GiveawayManager() {
 
         {/* Требования */}
         <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/5">
-          <h3 className="text-lg font-bold flex items-center gap-2"><Users size={18} className="text-[#FFD700]" /> Требования</h3>
-          
+          <h3 className="text-lg font-bold flex items-center gap-2"><span className="text-[#FFD700]">Требования</span></h3>
+
           <div className="space-y-3">
             <div>
               <label className="flex items-center gap-2 text-sm mb-2">
-                <input 
+                <input
                   type="checkbox"
                   checked={!!formData.requirements?.telegram_channel_id}
                   onChange={e => {
@@ -409,12 +406,12 @@ export function GiveawayManager() {
                 Подписка на Telegram канал
               </label>
               {formData.requirements?.telegram_channel_id !== undefined && (
-                <input 
+                <input
                   type="text"
                   placeholder="ID канала (напр. @ar_arena)"
                   value={formData.requirements.telegram_channel_id}
                   onChange={e => setFormData({
-                    ...formData, 
+                    ...formData,
                     requirements: { ...formData.requirements, telegram_channel_id: e.target.value }
                   })}
                   className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm"
@@ -424,7 +421,7 @@ export function GiveawayManager() {
 
             <div>
               <label className="flex items-center gap-2 text-sm mb-2">
-                <input 
+                <input
                   type="checkbox"
                   checked={!!formData.requirements?.min_friends}
                   onChange={e => {
@@ -437,12 +434,12 @@ export function GiveawayManager() {
                 Минимум друзей
               </label>
               {formData.requirements?.min_friends !== undefined && (
-                <input 
+                <input
                   type="number"
                   placeholder="Количество"
                   value={formData.requirements.min_friends}
                   onChange={e => setFormData({
-                    ...formData, 
+                    ...formData,
                     requirements: { ...formData.requirements, min_friends: Number(e.target.value) }
                   })}
                   className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm"
@@ -453,14 +450,14 @@ export function GiveawayManager() {
         </div>
 
         {/* Кнопка сохранения */}
-        <button 
+        <button
           onClick={handleSave}
           disabled={loading}
           className="w-full py-4 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl shadow-lg hover:opacity-90 flex justify-center items-center gap-2"
         >
-          {loading ? 'Сохранение...' : <><Save size={20} /> Сохранить</>}
+          {loading ? 'Сохранение...' : 'Сохранить'}
         </button>
       </div>
-    </div>
+    </div >
   )
 }
