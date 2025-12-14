@@ -40,10 +40,10 @@ export function AdminPage() {
   }
 
   const sections = [
-    { id: 'users' as AdminSection, label: 'USERS', icon: '👥' },
-    { id: 'giveaways' as AdminSection, label: 'GIVEAWAYS', icon: '🎁' },
-    { id: 'transactions' as AdminSection, label: 'FINANCE', icon: '💰' },
-    { id: 'settings' as AdminSection, label: 'SETTINGS', icon: '⚙️' }
+    { id: 'users' as AdminSection, label: 'USERS', icon: '/icons/PARTNERS.png' },
+    { id: 'giveaways' as AdminSection, label: 'GIVEAWAYS', icon: '/icons/GIVEAWAY.png' },
+    { id: 'transactions' as AdminSection, label: 'FINANCE', icon: '/icons/arcoin.png' },
+    { id: 'settings' as AdminSection, label: 'SETTINGS', icon: '/icons/gears.png' } // Assuming gears.png exists or using placeholder
   ]
 
   return (
@@ -60,11 +60,10 @@ export function AdminPage() {
                 onClick={() => navigate('/')}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 active:scale-95 transition-all"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
+                <img src="/icons/kiy.png" alt="Back" className="w-4 h-4 opacity-50 rotate-180" />
               </button>
               <h1 className="text-white font-bold tracking-wide text-lg flex items-center gap-2">
+                <img src="/icons/admin.png" alt="Admin" className="w-6 h-6" />
                 <span className="text-[#FFD700]">Admin</span> Panel
               </h1>
             </div>
@@ -82,11 +81,15 @@ export function AdminPage() {
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={`pb-3 relative flex items-center gap-2 transition-all ${activeSection === section.id
-                    ? 'text-[#FFD700]'
-                    : 'text-white/40 hover:text-white/60'
+                  ? 'text-[#FFD700]'
+                  : 'text-white/40 hover:text-white/60'
                   }`}
               >
-                <span className="text-lg">{section.icon}</span>
+                <img
+                  src={section.icon}
+                  alt={section.label}
+                  className={`w-6 h-6 object-contain transition-all ${activeSection === section.id ? 'opacity-100 scale-110 drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]' : 'opacity-40 grayscale'}`}
+                />
                 <span className={`text-xs font-bold tracking-wider ${activeSection === section.id ? '' : 'font-medium'}`}>
                   {section.label}
                 </span>
