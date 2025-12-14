@@ -7,12 +7,12 @@ import { GiveawaysTab } from '../components/admin/GiveawaysTab'
 import { TransactionsTab } from '../components/admin/TransactionsTab'
 import { SettingsTab } from '../components/admin/SettingsTab'
 
-type AdminTab = 'users' | 'giveaways' | 'transactions' | 'settings'
+type AdminSection = 'users' | 'giveaways' | 'transactions' | 'settings'
 
 export function AdminPage() {
   const { telegramUser, isLoading } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<AdminTab>('users')
+  const [activeSection, setActiveSection] = useState<AdminSection | null>(null)
 
   // Проверка admin-only (telegram_id = 190202791)
   const isAdmin = telegramUser?.id === 190202791
@@ -65,71 +65,78 @@ export function AdminPage() {
     )
   }
 
-  const tabs: Array<{ id: AdminTab; label: string }> = [
-    { id: 'users', label: 'Users' },
-    { id: 'giveaways', label: 'Giveaways' },
-    { id: 'transactions', label: 'Transactions' },
-    { id: 'settings', label: 'Settings' }
+  const sections = [
+    { id: 'users' as AdminSection, label: 'USERS', icon: '👥' },
+    { id: 'giveaways' as AdminSection, label: 'GIVEAWAYS', icon: '🎁' },
+    { id: 'transactions' as AdminSection, label: 'TRANSACTIONS', icon: '💰' },
+    { id: 'settings' as AdminSection, label: 'SETTINGS', icon: '⚙️' }
   ]
 
   console.log('✅ Rendering admin panel for user:', telegramUser?.id)
 
   return (
     <Layout>
-      {/* Safe Area Top */}
       <div
-        className="flex flex-col min-h-screen pb-24"
+        className="flex flex-col min-h-screen pb-24 px-4"
         style={{
           paddingTop: 'env(safe-area-inset-top, 60px)',
           paddingBottom: 'env(safe-area-inset-bottom, 20px)'
         }}
       >
-        {/* HEADER */}
-        <div className="px-4 mb-6">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-white/60 text-sm active:scale-95 transition-transform"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-              Назад
-            </button>
-            <div className="flex items-center gap-2">
-              <img src="/icons/admin.png" className="w-8 h-8" alt="Admin" />
-              <h1 className="text-white text-xl font-bold">Админ-панель</h1>
+        {/* ГЛАВНЫЙ ЭКРАН — СЕТКА */}
+        {activeSection === null && (
+          <>
+            {/* ЗАГОЛОВОК */}
+            <div className="text-center mb-8">
+              <h1 className="text-white text-2xl font-bold tracking-wide">🔧 АДМИН-ПАНЕЛЬ</h1>
             </div>
-            <div className="w-16" /> {/* Spacer для центрирования */}
-          </div>
-        </div>
 
-        {/* TABS — Горизонтальный скролл */}
-        <div className="px-4 mb-6 overflow-x-auto">
-          <div className="flex gap-2 min-w-max">
-            {tabs.map((tab) => (
+            {/* СЕТКА 2x2 */}
+            <div className="grid grid-cols-2 gap-4 flex-1">
+              {sections.map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className="bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 active:scale-95 transition-transform hover:border-yellow-500/40"
+                >
+                  <div className="text-6xl">{section.icon}</div>
+                  <div className="text-white/80 text-sm font-semibold tracking-wide">
+                    {section.label}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* РАЗДЕЛ — С КНОПКОЙ НАЗАД */}
+        {activeSection !== null && (
+          <>
+            {/* HEADER С КНОПКОЙ НАЗАД */}
+            <div className="flex items-center gap-3 mb-6">
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-zinc-900/50 backdrop-blur-md border border-yellow-500/30 text-[#FFD700] shadow-lg shadow-yellow-500/10'
-                    : 'bg-zinc-900/30 backdrop-blur-sm border border-white/10 text-white/60 active:scale-95'
-                }`}
+                onClick={() => setActiveSection(null)}
+                className="text-gray-400 active:scale-95 transition-transform"
               >
-                {tab.label}
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
               </button>
-            ))}
-          </div>
-        </div>
+              <h2 className="text-white text-xl font-bold tracking-wide">
+                {sections.find(s => s.id === activeSection)?.icon}{' '}
+                {sections.find(s => s.id === activeSection)?.label}
+              </h2>
+            </div>
 
-        {/* CONTENT */}
-        <div className="px-4">
-          {activeTab === 'users' && <UsersTab />}
-          {activeTab === 'giveaways' && <GiveawaysTab />}
-          {activeTab === 'transactions' && <TransactionsTab />}
-          {activeTab === 'settings' && <SettingsTab />}
-        </div>
+            {/* КОНТЕНТ */}
+            <div>
+              {activeSection === 'users' && <UsersTab />}
+              {activeSection === 'giveaways' && <GiveawaysTab />}
+              {activeSection === 'transactions' && <TransactionsTab />}
+              {activeSection === 'settings' && <SettingsTab />}
+            </div>
+          </>
+        )}
       </div>
     </Layout>
   )
