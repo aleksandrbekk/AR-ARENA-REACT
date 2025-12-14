@@ -55,11 +55,28 @@ export function UsersTab() {
   const handleAdjustBalance = async () => {
     if (!selectedUser || !adjustAmount) return
 
-    // TODO: Вызвать RPC функцию admin_adjust_balance
-    // Пока просто закрываем модалку
-    alert(`[MOCK] Начислить ${adjustAmount} ${adjustCurrency} пользователю ${selectedUser.telegram_id}`)
-    setShowModal(false)
-    setAdjustAmount('')
+    try {
+      const { data, error } = await supabase.rpc('admin_adjust_balance', {
+        p_telegram_id: selectedUser.telegram_id,
+        p_currency: adjustCurrency,
+        p_amount: parseFloat(adjustAmount)
+      })
+
+      if (error) throw error
+
+      if (data?.success) {
+        alert(`✅ Успешно начислено ${adjustAmount} ${adjustCurrency}\nНовый баланс: ${data.new_balance}`)
+        setShowModal(false)
+        setAdjustAmount('')
+        // Обновить список пользователей
+        fetchUsers()
+      } else {
+        alert(`❌ Ошибка: ${data?.error || 'Unknown error'}`)
+      }
+    } catch (err: any) {
+      console.error('Error adjusting balance:', err)
+      alert(`❌ Ошибка: ${err.message}`)
+    }
   }
 
   if (loading) {
