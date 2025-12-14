@@ -46,7 +46,7 @@ export function UsersTab() {
   const filteredUsers = users.filter((user) => {
     const searchLower = search.toLowerCase()
     return (
-      user.telegram_id.includes(searchLower) ||
+      String(user.telegram_id).includes(searchLower) ||
       user.username?.toLowerCase().includes(searchLower) ||
       user.first_name?.toLowerCase().includes(searchLower)
     )
