@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
-import { useAuth } from '../hooks/useAuth'
 
 // 🎯 MOCK DATA — Заглушки для UI preview
 const MOCK_LOCATION = {
@@ -78,7 +78,7 @@ const MOCK_STATS = {
 }
 
 export function FarmPage() {
-  const { gameState } = useAuth()
+  const navigate = useNavigate()
   const [currentLocation, setCurrentLocation] = useState(MOCK_LOCATION)
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [accumulated, setAccumulated] = useState(MOCK_STATS.accumulated)
@@ -136,45 +136,51 @@ export function FarmPage() {
   }
 
   return (
-    <Layout>
-      {/* Safe Area Top — 60px для системных кнопок Telegram */}
-      <div
-        className="flex flex-col min-h-screen pb-24 overflow-y-auto"
+    <Layout hideNavbar>
+      {/* Кастомная кнопка "← Назад" */}
+      <button
+        onClick={() => navigate(-1)}
+        className="fixed left-4 top-4 z-50 w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg active:scale-90 transition-transform"
         style={{
-          paddingTop: 'env(safe-area-inset-top, 60px)',
-          paddingBottom: 'env(safe-area-inset-bottom, 20px)'
+          top: 'calc(env(safe-area-inset-top, 60px) - 40px)'
         }}
       >
-        <div className="px-4">
-          {/* HEADER — Заголовок + Баланс */}
-          <div className="flex items-center justify-between mb-6">
-            <img
-              src="/icons/ased1.png"
-              alt="Crypto Farm"
-              className="h-11 w-auto object-contain"
-              style={{ filter: 'drop-shadow(0 0 15px rgba(191, 149, 63, 0.3))' }}
-            />
-            <div className="flex items-center gap-2">
-              <img src="/icons/BUL.png" className="w-6 h-6" alt="BUL" />
-              <span className="text-white text-xl font-bold">
-                {gameState?.balance_bul?.toLocaleString() || 0}
-              </span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      {/* Safe Area — увеличенный paddingBottom */}
+      <div
+        className="flex flex-col min-h-screen overflow-y-auto"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 60px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 80px)'
+        }}
+      >
+        {/* LOCATION CARD — Карточка текущей локации (FULL WIDTH) */}
+        <div className="relative h-[240px] mb-6 bg-zinc-900 shadow-2xl">
+          <img
+            src={currentLocation.image}
+            alt={currentLocation.name}
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png' }}
+          />
+
+          {/* Gradient Overlay + Location Name */}
+          <div
+            className="absolute bottom-0 left-0 w-full h-24 flex items-end p-4 justify-between"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 100%)' }}
+          >
+            <div className="flex flex-col gap-1">
+              <div className="text-white text-xl font-bold">{currentLocation.name}</div>
+              <div className="text-white/60 text-sm">Lvl {currentLocation.level}</div>
             </div>
-          </div>
 
-          {/* LOCATION CARD — Карточка текущей локации */}
-          <div className="relative rounded-3xl overflow-hidden h-[200px] mb-6 bg-zinc-900 shadow-2xl">
-            <img
-              src={currentLocation.image}
-              alt={currentLocation.name}
-              className="w-full h-full object-cover"
-              onError={(e) => { (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png' }}
-            />
-
-            {/* Change Button */}
+            {/* Change Button — внизу справа */}
             <button
               onClick={() => setShowLocationModal(true)}
-              className="absolute top-4 right-4 bg-zinc-900/60 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white text-sm font-semibold flex items-center gap-2 active:scale-95 transition-transform"
+              className="bg-zinc-900/60 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white text-sm font-semibold flex items-center gap-2 active:scale-95 transition-transform"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
@@ -183,16 +189,11 @@ export function FarmPage() {
               </svg>
               Сменить
             </button>
-
-            {/* Gradient Overlay + Location Name */}
-            <div
-              className="absolute bottom-0 left-0 w-full h-20 flex items-end p-4 justify-between"
-              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)' }}
-            >
-              <div className="text-white text-xl font-bold">{currentLocation.name}</div>
-              <div className="text-white/60 text-base">Lvl {currentLocation.level}</div>
-            </div>
           </div>
+        </div>
+
+        {/* Контент с отступами px-4 */}
+        <div className="px-4">
 
           {/* STATS PANEL — Панель статистики */}
           <div
@@ -211,32 +212,21 @@ export function FarmPage() {
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 30px rgba(0,0,0,0.5)'
             }}
           >
-            {/* Доход в час + Баланс */}
-            <div className="flex justify-between mb-5">
-              <div>
-                <div className="text-xs uppercase tracking-wide text-zinc-500 font-semibold mb-1.5">
-                  ДОХОД В ЧАС
-                </div>
-                <div
-                  className="text-2xl font-extrabold flex items-center gap-2"
-                  style={{
-                    background: 'linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    textShadow: '0 0 20px rgba(191, 149, 63, 0.3)'
-                  }}
-                >
-                  {MOCK_STATS.incomePerHour} <img src="/icons/BUL.png" className="w-5 h-5" alt="BUL" />
-                </div>
+            {/* Доход в час */}
+            <div className="mb-5">
+              <div className="text-xs uppercase tracking-wide text-zinc-500 font-semibold mb-1.5">
+                ДОХОД В ЧАС
               </div>
-
-              <div className="text-right">
-                <div className="text-xs uppercase tracking-wide text-zinc-500 font-semibold mb-1.5">
-                  БАЛАНС
-                </div>
-                <div className="text-2xl font-extrabold text-white flex items-center gap-2">
-                  {gameState?.balance_bul?.toLocaleString() || 0} <img src="/icons/BUL.png" className="w-5 h-5" alt="BUL" />
-                </div>
+              <div
+                className="text-2xl font-extrabold flex items-center gap-2"
+                style={{
+                  background: 'linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  textShadow: '0 0 20px rgba(191, 149, 63, 0.3)'
+                }}
+              >
+                {MOCK_STATS.incomePerHour} <img src="/icons/BUL.png" className="w-5 h-5" alt="BUL" />
               </div>
             </div>
 
