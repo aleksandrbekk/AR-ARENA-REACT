@@ -23,6 +23,16 @@ export function GiveawaysTab() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active')
   const [stats, setStats] = useState<Record<number, GiveawayStats>>({})
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [creating, setCreating] = useState(false)
+
+  // Форма создания розыгрыша
+  const [formData, setFormData] = useState({
+    title: '',
+    prize_ar: '',
+    ticket_price: '',
+    days: '7'
+  })
 
   useEffect(() => {
     fetchGiveaways()
@@ -110,6 +120,66 @@ export function GiveawaysTab() {
     })
   }
 
+  const handleCreateGiveaway = async () => {
+    if (!formData.title || !formData.prize_ar || !formData.ticket_price || !formData.days) {
+      alert('Заполните все поля')
+      return
+    }
+
+    try {
+      setCreating(true)
+
+      // Рассчитать end_date (NOW + days)
+      const endDate = new Date()
+      endDate.setDate(endDate.getDate() + parseInt(formData.days))
+
+      const { data, error } = await supabase.rpc('admin_create_giveaway', {
+        p_title: formData.title,
+        p_prize_ar: parseFloat(formData.prize_ar),
+        p_ticket_price: parseFloat(formData.ticket_price),
+        p_end_date: endDate.toISOString()
+      })
+
+      if (error) throw error
+
+      if (data?.success) {
+        alert(`✅ Розыгрыш создан!\nID: ${data.giveaway_id}`)
+        setShowCreateModal(false)
+        setFormData({ title: '', prize_ar: '', ticket_price: '', days: '7' })
+        fetchGiveaways()
+      } else {
+        alert(`❌ Ошибка: ${data?.error || 'Unknown error'}`)
+      }
+    } catch (err: any) {
+      console.error('Error creating giveaway:', err)
+      alert(`❌ Ошибка: ${err.message}`)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleEndGiveaway = async (giveawayId: number) => {
+    if (!confirm('Завершить розыгрыш и выбрать победителя?')) return
+
+    try {
+      const { data, error } = await supabase.rpc('admin_end_giveaway', {
+        p_giveaway_id: giveawayId
+      })
+
+      if (error) throw error
+
+      if (data?.success) {
+        alert(`✅ Розыгрыш завершён!\n\nПобедитель: ${data.winner_telegram_id}\nПриз: ${data.prize} AR`)
+        fetchGiveaways()
+      } else {
+        alert(`❌ Ошибка: ${data?.error || 'Unknown error'}`)
+      }
+    } catch (err: any) {
+      console.error('Error ending giveaway:', err)
+      alert(`❌ Ошибка: ${err.message}`)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -156,7 +226,7 @@ export function GiveawaysTab() {
 
       {/* Кнопка создать */}
       <button
-        onClick={() => alert('[MOCK] Создать розыгрыш — в разработке')}
+        onClick={() => setShowCreateModal(true)}
         className="w-full px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl active:scale-95 transition-transform"
       >
         + Создать розыгрыш
@@ -233,7 +303,7 @@ export function GiveawaysTab() {
                     </button>
                     {giveaway.status === 'active' && (
                       <button
-                        onClick={() => alert(`[MOCK] Завершить розыгрыш ${giveaway.id}`)}
+                        onClick={() => handleEndGiveaway(giveaway.id)}
                         className="px-3 py-1.5 bg-red-500/20 text-red-500 text-xs font-semibold rounded-lg border border-red-500/30 active:scale-95 transition-transform"
                       >
                         Завершить
@@ -246,6 +316,82 @@ export function GiveawaysTab() {
           })
         )}
       </div>
+
+      {/* Модалка создания розыгрыша */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
+            <h3 className="text-white text-lg font-bold mb-4">
+              Создать розыгрыш
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-white/60 text-sm mb-2 block">Название:</label>
+                <input
+                  type="text"
+                  placeholder="Розыгрыш 1000 AR"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 text-sm mb-2 block">Призовой фонд (AR):</label>
+                <input
+                  type="number"
+                  placeholder="5000"
+                  value={formData.prize_ar}
+                  onChange={(e) => setFormData({ ...formData, prize_ar: e.target.value })}
+                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 text-sm mb-2 block">Цена билета (AR):</label>
+                <input
+                  type="number"
+                  placeholder="10"
+                  value={formData.ticket_price}
+                  onChange={(e) => setFormData({ ...formData, ticket_price: e.target.value })}
+                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 text-sm mb-2 block">Длительность (дней):</label>
+                <input
+                  type="number"
+                  placeholder="7"
+                  value={formData.days}
+                  onChange={(e) => setFormData({ ...formData, days: e.target.value })}
+                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowCreateModal(false)
+                  setFormData({ title: '', prize_ar: '', ticket_price: '', days: '7' })
+                }}
+                className="flex-1 px-4 py-3 bg-zinc-800 text-white rounded-xl active:scale-95 transition-transform"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleCreateGiveaway}
+                disabled={creating || !formData.title || !formData.prize_ar || !formData.ticket_price}
+                className="flex-1 px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creating ? 'Создание...' : 'Создать'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

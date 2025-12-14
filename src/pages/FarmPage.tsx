@@ -86,9 +86,14 @@ export function FarmPage() {
 
   // Mock таймер для анимации прогресс-бара
   useEffect(() => {
+    // Правильный расчёт: (150 BUL/час ÷ 3600 секунд) × 10 секунд = 0.4166 BUL за обновление
+    const incomePerSecond = MOCK_STATS.incomePerHour / 3600
+    const updateInterval = 10000 // Обновлять каждые 10 секунд
+    const incomePerUpdate = incomePerSecond * (updateInterval / 1000)
+
     const interval = setInterval(() => {
       setAccumulated(prev => {
-        const newValue = prev + 0.5
+        const newValue = prev + incomePerUpdate
         return newValue > MOCK_STATS.maxAccumulated ? MOCK_STATS.maxAccumulated : newValue
       })
 
@@ -96,7 +101,7 @@ export function FarmPage() {
         const newPercent = (accumulated / MOCK_STATS.maxAccumulated) * 100
         return Math.min(newPercent, 100)
       })
-    }, 1000)
+    }, updateInterval)
 
     return () => clearInterval(interval)
   }, [accumulated])
