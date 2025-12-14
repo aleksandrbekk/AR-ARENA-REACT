@@ -12,51 +12,25 @@ type AdminSection = 'users' | 'giveaways' | 'transactions' | 'settings'
 export function AdminPage() {
   const { telegramUser, isLoading } = useAuth()
   const navigate = useNavigate()
-  const [activeSection, setActiveSection] = useState<AdminSection | null>(null)
+  const [activeSection, setActiveSection] = useState<AdminSection>('users')
 
   // Проверка admin-only (telegram_id = 190202791)
   const isAdmin = telegramUser?.id === 190202791
 
-  // Debug logging
-  console.log('🔍 AdminPage render:', {
-    isLoading,
-    telegramUser,
-    isAdmin,
-    userId: telegramUser?.id
-  })
-
-  // Loading state
-  if (isLoading) {
-    console.log('⏳ Showing loading screen');
-    return (
-      <Layout>
-        <div
-          className="flex flex-col items-center justify-center min-h-screen px-4"
-          style={{ paddingTop: 'env(safe-area-inset-top, 60px)' }}
-        >
-          <div className="text-white/40 text-lg text-center">
-            Загрузка...
-          </div>
-        </div>
-      </Layout>
-    )
-  }
-
   // Access denied
-  if (!isAdmin) {
-    console.log('⛔ Access denied for user:', telegramUser?.id)
+  if (!isLoading && !isAdmin) {
     return (
       <Layout>
         <div
           className="flex flex-col items-center justify-center min-h-screen px-4"
           style={{ paddingTop: 'env(safe-area-inset-top, 60px)' }}
         >
-          <div className="text-white/40 text-lg text-center">
-            ⛔ Доступ запрещён
+          <div className="text-white/40 text-lg text-center font-bold tracking-widest uppercase">
+            Доступ запрещён
           </div>
           <button
             onClick={() => navigate('/')}
-            className="mt-6 px-6 py-3 bg-zinc-800 text-white rounded-xl active:scale-95 transition-transform"
+            className="mt-6 px-6 py-3 bg-zinc-800 text-white rounded-xl active:scale-95 transition-transform font-medium"
           >
             На главную
           </button>
@@ -68,75 +42,80 @@ export function AdminPage() {
   const sections = [
     { id: 'users' as AdminSection, label: 'USERS', icon: '👥' },
     { id: 'giveaways' as AdminSection, label: 'GIVEAWAYS', icon: '🎁' },
-    { id: 'transactions' as AdminSection, label: 'TRANSACTIONS', icon: '💰' },
+    { id: 'transactions' as AdminSection, label: 'FINANCE', icon: '💰' },
     { id: 'settings' as AdminSection, label: 'SETTINGS', icon: '⚙️' }
   ]
 
-  console.log('✅ Rendering admin panel for user:', telegramUser?.id)
-
   return (
     <Layout>
-      <div
-        className="flex flex-col min-h-screen pb-24 px-4"
-        style={{
-          paddingTop: 'env(safe-area-inset-top, 60px)',
-          paddingBottom: 'env(safe-area-inset-bottom, 20px)'
-        }}
-      >
-        {/* ГЛАВНЫЙ ЭКРАН — СЕТКА */}
-        {activeSection === null && (
-          <>
-            {/* ЗАГОЛОВОК */}
-            <div className="text-center mb-8">
-              <h1 className="text-white text-2xl font-bold tracking-wide">🔧 АДМИН-ПАНЕЛЬ</h1>
-            </div>
-
-            {/* СЕТКА 2x2 */}
-            <div className="grid grid-cols-2 gap-4 flex-1">
-              {sections.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className="bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 active:scale-95 transition-transform hover:border-yellow-500/40"
-                >
-                  <div className="text-6xl">{section.icon}</div>
-                  <div className="text-white/80 text-sm font-semibold tracking-wide">
-                    {section.label}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* РАЗДЕЛ — С КНОПКОЙ НАЗАД */}
-        {activeSection !== null && (
-          <>
-            {/* HEADER С КНОПКОЙ НАЗАД */}
-            <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-col min-h-screen bg-[#0a0a0a]">
+        {/* HEADER - STICKY */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5"
+          style={{ paddingTop: 'env(safe-area-inset-top, 20px)' }}
+        >
+          <div className="px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setActiveSection(null)}
-                className="text-gray-400 active:scale-95 transition-transform"
+                onClick={() => navigate('/')}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/60 active:scale-95 transition-all"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h2 className="text-white text-xl font-bold tracking-wide">
-                {sections.find(s => s.id === activeSection)?.icon}{' '}
-                {sections.find(s => s.id === activeSection)?.label}
-              </h2>
+              <h1 className="text-white font-bold tracking-wide text-lg flex items-center gap-2">
+                <span className="text-[#FFD700]">Admin</span> Panel
+              </h1>
             </div>
+            {telegramUser && (
+              <div className="text-[10px] font-mono text-white/30 text-right">
+                ID: {telegramUser.id}
+              </div>
+            )}
+          </div>
 
-            {/* КОНТЕНТ */}
-            <div>
+          {/* TABS - SCROLLABLE */}
+          <div className="flex overflow-x-auto no-scrollbar px-4 pb-0 items-end gap-6 border-b border-white/5">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={`pb-3 relative flex items-center gap-2 transition-all ${activeSection === section.id
+                    ? 'text-[#FFD700]'
+                    : 'text-white/40 hover:text-white/60'
+                  }`}
+              >
+                <span className="text-lg">{section.icon}</span>
+                <span className={`text-xs font-bold tracking-wider ${activeSection === section.id ? '' : 'font-medium'}`}>
+                  {section.label}
+                </span>
+                {activeSection === section.id && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FFD700] rounded-t-full shadow-[0_0_10px_#FFD700]" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* CONTENT AREA */}
+        <div
+          className="flex-1 px-4 pb-24"
+          style={{ marginTop: 'calc(env(safe-area-inset-top, 20px) + 100px)' }}
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center h-40">
+              <div className="text-[#FFD700] text-sm font-mono animate-pulse">LOADING SYSTEM...</div>
+            </div>
+          ) : (
+            <div className="animate-fade-in">
               {activeSection === 'users' && <UsersTab />}
               {activeSection === 'giveaways' && <GiveawaysTab />}
               {activeSection === 'transactions' && <TransactionsTab />}
               {activeSection === 'settings' && <SettingsTab />}
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </Layout>
   )
