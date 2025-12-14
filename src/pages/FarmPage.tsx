@@ -6,14 +6,15 @@ import { useAuth } from '../hooks/useAuth'
 const MOCK_LOCATION = {
   name: 'Общага',
   image: '/icons/locations/dormitory.png',
-  level: 1
+  level: 1,
+  slots: 3
 }
 
 const MOCK_LOCATIONS = [
-  { id: 1, slug: 'dorm', name: 'Общага', price: 0, image: '/icons/locations/dormitory.png', owned: true, active: true },
-  { id: 2, slug: 'basement', name: 'Подвал', price: 5000, image: '/icons/locations/basement.png', owned: true, active: false },
-  { id: 3, slug: 'garage', name: 'Гараж', price: 15000, image: '/icons/locations/garage.png', owned: false, active: false },
-  { id: 4, slug: 'warehouse', name: 'Склад', price: 50000, image: '/icons/locations/warehouse.png', owned: false, active: false }
+  { id: 1, slug: 'dorm', name: 'Общага', price: 0, level: 1, slots: 3, image: '/icons/locations/dormitory.png', owned: true, active: true },
+  { id: 2, slug: 'apartment', name: 'Апартаменты', price: 5000, level: 3, slots: 4, image: '/icons/locations/apartment.png', owned: true, active: false },
+  { id: 3, slug: 'office', name: 'Офис', price: 15000, level: 5, slots: 5, image: '/icons/locations/office.png', owned: false, active: false },
+  { id: 4, slug: 'datacenter', name: 'Дата-центр', price: 50000, level: 10, slots: 8, image: '/icons/locations/datacenter.png', owned: false, active: false }
 ]
 
 const MOCK_EQUIPMENT = [
@@ -64,7 +65,7 @@ const MOCK_EQUIPMENT = [
     basePrice: 15000,
     owned: false,
     locationOwned: false,
-    locationName: 'Подвал'
+    locationName: 'Апартаменты'
   }
 ]
 
@@ -115,7 +116,7 @@ export function FarmPage() {
 
   const handleChangeLocation = (location: typeof MOCK_LOCATIONS[0]) => {
     console.log('🎯 Mock: Сменить локацию на', location.name)
-    setCurrentLocation({ name: location.name, image: location.image, level: 1 })
+    setCurrentLocation({ name: location.name, image: location.image, level: location.level, slots: location.slots })
     setShowLocationModal(false)
   }
 
