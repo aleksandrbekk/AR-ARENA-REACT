@@ -1,0 +1,29 @@
+# Build outputs
+dist/
+node_modules/
+*.log
+
+# Backup files
+*.backup
+*.tar.gz
+
+# Documentation (не нужны для кода)
+*.md
+!README.md
+
+# SQL files (работает АНЯ через Supabase)
+*.sql
+
+# Scripts для выполнения SQL
+execute_*.js
+execute_*.mjs
+quick_execute_*.sh
+
+# Config files (уже прочитаны)
+package-lock.json
+
+# Debug logs
+.cursor/debug.log
+
+
+
