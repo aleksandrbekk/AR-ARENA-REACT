@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ToastProvider } from './components/ToastProvider'
 import { Home } from './pages/Home'
 import SkinsPage from './pages/SkinsPage'
 import { ShopPage } from './pages/ShopPage'
@@ -31,20 +32,22 @@ function App() {
   }, [])
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/skins" element={<SkinsPage />} />
-        <Route path="/shop" element={<ShopPage />} />
-        <Route path="/farm" element={<FarmPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/giveaways" element={<GiveawaysPage />} />
-        <Route path="/giveaway/:id" element={<GiveawayDetailsPage />} />
-        <Route path="/live-arena/:id" element={<LiveArenaPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/payment-success" element={<PaymentSuccessPage />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/skins" element={<SkinsPage />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/farm" element={<FarmPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/giveaways" element={<GiveawaysPage />} />
+          <Route path="/giveaway/:id" element={<GiveawayDetailsPage />} />
+          <Route path="/live-arena/:id" element={<LiveArenaPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/payment-success" element={<PaymentSuccessPage />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   )
 }
 

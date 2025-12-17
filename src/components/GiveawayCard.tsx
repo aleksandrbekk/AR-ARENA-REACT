@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Timer, Ticket, Trophy } from 'lucide-react'
 import type { Giveaway } from '../types'
+import { useToast } from './ToastProvider'
 
 interface GiveawayCardProps {
   giveaway: Giveaway
@@ -12,6 +13,7 @@ interface GiveawayCardProps {
 export function GiveawayCard({ giveaway, onBuy, userTickets }: GiveawayCardProps) {
   const [timeLeft, setTimeLeft] = useState('')
   const [isBuying, setIsBuying] = useState(false)
+  const { showToast } = useToast()
 
   useEffect(() => {
     if (!giveaway?.end_date) return
@@ -50,16 +52,16 @@ export function GiveawayCard({ giveaway, onBuy, userTickets }: GiveawayCardProps
 
     const count = parseInt(countStr)
     if (isNaN(count) || count <= 0) {
-      alert('Пожалуйста, введите корректное число')
+      showToast({ variant: 'error', title: 'Введите корректное число' })
       return
     }
 
     try {
       setIsBuying(true)
       await onBuy(count)
-      alert('Билеты успешно куплены!')
+      showToast({ variant: 'success', title: 'Билеты куплены', description: `+${count} шт.` })
     } catch (error: any) {
-      alert(`Ошибка: ${error.message || 'Не удалось купить билеты'}`)
+      showToast({ variant: 'error', title: 'Не удалось купить билеты', description: error?.message })
     } finally {
       setIsBuying(false)
     }

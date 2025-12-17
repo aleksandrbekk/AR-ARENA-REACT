@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../components/ToastProvider'
 
 interface ARPackage {
   id: string
@@ -48,6 +49,7 @@ const AR_PACKAGES: ARPackage[] = [
 export function ShopPage() {
   const navigate = useNavigate()
   const { gameState, telegramUser } = useAuth()
+  const { showToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
 
   // Настройка Telegram Back Button
@@ -66,7 +68,7 @@ export function ShopPage() {
 
   const buyAR = async (pkg: ARPackage) => {
     if (!telegramUser) {
-      alert('❌ Ошибка: нет данных пользователя')
+      showToast({ variant: 'error', title: 'Нет данных пользователя' })
       return
     }
 
@@ -95,7 +97,7 @@ export function ShopPage() {
       if (!response.ok) {
         const errorText = await response.text()
         console.error('❌ API error:', response.status, errorText)
-        alert(`Ошибка ${response.status}: ${errorText}`)
+        showToast({ variant: 'error', title: `Ошибка ${response.status}`, description: errorText })
         return
       }
 
@@ -104,6 +106,7 @@ export function ShopPage() {
 
       if (data.ok && data.paymentUrl) {
         console.log('🔗 Opening payment URL:', data.paymentUrl)
+        showToast({ variant: 'success', title: 'Открываю оплату', description: 'Завершите оплату и вернитесь в приложение' })
 
         // Открываем ссылку через Telegram WebApp API
         if (window.Telegram?.WebApp?.openLink) {
@@ -114,11 +117,11 @@ export function ShopPage() {
         }
       } else {
         console.error('❌ No payment URL in response:', data)
-        alert(`Ошибка: ${data.error || 'Не получена ссылка на оплату'}`)
+        showToast({ variant: 'error', title: 'Не получена ссылка на оплату', description: data.error || undefined })
       }
     } catch (error) {
       console.error('❌ Network error:', error)
-      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      showToast({ variant: 'error', title: 'Ошибка сети', description: error instanceof Error ? error.message : 'Unknown error' })
     } finally {
       setLoading(null)
     }

@@ -8,6 +8,7 @@ import { CurrencyIcon } from '../components/CurrencyIcon';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Pickaxe, Battery, Lock, Check } from 'lucide-react';
+import { useToast } from '../components/ToastProvider';
 
 const RARITY_GRADIENTS = {
   default: 'radial-gradient(circle at center top, #404040 0%, #1a1a1a 40%, #0a0a0a 100%)',
@@ -52,6 +53,7 @@ const Particles = ({ color }: { color: string }) => {
 
 export default function SkinsPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const { telegramUser, gameState } = useAuth();
   const { skins, activeSkin, isOwned, isEquipped, reload } = useSkins();
   const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
@@ -104,19 +106,21 @@ export default function SkinsPage() {
 
       if (!data.success) {
         if (data.error === 'INSUFFICIENT_BUL') {
-          alert('Недостаточно BUL!');
+          showToast({ variant: 'error', title: 'Недостаточно BUL' });
         } else if (data.error === 'INSUFFICIENT_AR') {
-          alert('Недостаточно AR!');
+          showToast({ variant: 'error', title: 'Недостаточно AR' });
         } else if (data.error === 'ALREADY_OWNED') {
-          alert('Уже куплен!');
+          showToast({ variant: 'info', title: 'Скин уже куплен' });
         }
         return;
       }
 
       await reload();
+      showToast({ variant: 'success', title: 'Скин куплен', description: 'Можно выбрать и использовать' });
 
     } catch (err) {
       console.error('Error buying skin:', err);
+      showToast({ variant: 'error', title: 'Ошибка покупки', description: 'Попробуйте ещё раз' });
     } finally {
       setBuying(false);
     }
@@ -136,16 +140,18 @@ export default function SkinsPage() {
 
       if (!data.success) {
         if (data.error === 'SKIN_NOT_OWNED') {
-          alert('Скин не куплен!');
+          showToast({ variant: 'error', title: 'Скин не куплен' });
         } else if (data.error === 'USER_NOT_FOUND') {
-          alert('Пользователь не найден!');
+          showToast({ variant: 'error', title: 'Пользователь не найден' });
         }
         return;
       }
 
       await reload();
+      showToast({ variant: 'success', title: 'Скин выбран', description: 'Активирован для игры' });
     } catch (err) {
       console.error('Error equipping skin:', err);
+      showToast({ variant: 'error', title: 'Ошибка выбора', description: 'Попробуйте ещё раз' });
     } finally {
       setEquipping(false);
     }

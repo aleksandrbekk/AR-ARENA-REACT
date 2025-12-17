@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { supabase } from '../lib/supabase'
+import { useToast } from '../components/ToastProvider'
 
 // TypeScript interfaces
 interface FarmStatus {
@@ -79,6 +80,7 @@ const MOCK_EQUIPMENT = [
 
 export function FarmPage() {
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const locations = MOCK_LOCATIONS
 
   const [currentLocation, setCurrentLocation] = useState<Location>(() => {
@@ -201,17 +203,17 @@ export function FarmPage() {
 
   const handlePurchaseEquipment = (slug: string) => {
     console.log('🎯 Mock: Купить оборудование', slug)
-    alert(`Покупка ${slug} (MOCK)`)
+    showToast({ variant: 'info', title: 'Покупка (MOCK)', description: slug })
   }
 
   const handleUpgradeEquipment = (slug: string) => {
     console.log('🎯 Mock: Улучшить оборудование', slug)
-    alert(`Улучшение ${slug} (MOCK)`)
+    showToast({ variant: 'info', title: 'Улучшение (MOCK)', description: slug })
   }
 
   const handlePurchaseLocation = (slug: string) => {
     console.log('🎯 Mock: Купить локацию', slug)
-    alert(`Покупка локации ${slug} (MOCK)`)
+    showToast({ variant: 'info', title: 'Покупка локации (MOCK)', description: slug })
   }
 
   // Calculate progress based on real farm data
