@@ -261,7 +261,6 @@ export function FarmPage() {
           <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
             <div>
               <h1 className="text-white text-xl font-bold">{currentLocation.name}</h1>
-              <p className="text-gray-400 text-sm">Lvl {currentLocation.level}</p>
             </div>
             <button
               onClick={() => setShowLocationModal(true)}
