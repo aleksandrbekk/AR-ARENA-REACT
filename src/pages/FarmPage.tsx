@@ -157,16 +157,17 @@ export function FarmPage() {
 
   return (
     <Layout hideNavbar>
-      {/* Контейнер с safe-area */}
+      {/* Контейнер страницы БЕЗ верхнего padding (hero-картинка от самого верха) */}
       <div
-        className="flex flex-col min-h-screen overflow-y-auto"
+        className="min-h-screen bg-[#0a0a0a]"
         style={{
-          paddingTop: 'env(safe-area-inset-top, 60px)',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 80px)'
+          // Компенсируем padding-top из Layout, чтобы картинка начиналась от верхней кромки
+          marginTop: 'calc(var(--safe-area-top) * -1)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 80px)',
         }}
       >
-        {/* LOCATION CARD — FULL WIDTH (БЕЗ отступов) */}
-        <div className="relative w-full h-[240px] mb-6 bg-zinc-900 shadow-2xl">
+        {/* Картинка локации — от самого верха */}
+        <div className="relative w-full h-[280px]">
           <img
             src={currentLocation.image}
             alt={currentLocation.name}
@@ -174,33 +175,26 @@ export function FarmPage() {
             onError={(e) => { (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png' }}
           />
 
-          {/* Gradient Overlay + Location Name */}
-          <div
-            className="absolute bottom-0 left-0 w-full h-24 flex items-end p-4 justify-between"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 100%)' }}
-          >
-            <div className="flex flex-col gap-1">
-              <div className="text-white text-xl font-bold">{currentLocation.name}</div>
-              <div className="text-white/60 text-sm">Lvl {currentLocation.level}</div>
-            </div>
+          {/* Gradient overlay внизу картинки */}
+          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0a0a0a] to-transparent" />
 
-            {/* Change Button — внизу справа */}
+          {/* Название + кнопка Сменить — поверх gradient */}
+          <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+            <div>
+              <h1 className="text-white text-xl font-bold">{currentLocation.name}</h1>
+              <p className="text-gray-400 text-sm">Lvl {currentLocation.level}</p>
+            </div>
             <button
               onClick={() => setShowLocationModal(true)}
-              className="bg-zinc-900/60 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-2 text-white text-sm font-semibold flex items-center gap-2 active:scale-95 transition-transform"
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-800/80 backdrop-blur rounded-full text-white text-sm active:scale-95 transition-transform"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                <polyline points="16 6 12 2 8 6"/>
-                <line x1="12" y1="2" x2="12" y2="15"/>
-              </svg>
-              Сменить
+              <span>Сменить</span>
             </button>
           </div>
         </div>
 
-        {/* Контент с отступами px-4 */}
-        <div className="px-4">
+        {/* Остальной контент — с отступами */}
+        <div className="px-4 pt-4">
 
           {/* STATS PANEL — Панель статистики */}
           <div
