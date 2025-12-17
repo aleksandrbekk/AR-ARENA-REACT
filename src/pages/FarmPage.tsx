@@ -85,6 +85,26 @@ export function FarmPage() {
   const [timeDisplay] = useState(MOCK_STATS.timeElapsed)
   const [progressPercent, setProgressPercent] = useState(MOCK_STATS.progressPercent)
 
+  // Telegram BackButton: показываем "← Назад" вместо "X Закрыть"
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp
+
+    if (tg) {
+      tg.BackButton.show()
+
+      const handleBack = () => {
+        navigate(-1)
+      }
+
+      tg.BackButton.onClick(handleBack)
+
+      return () => {
+        tg.BackButton.offClick(handleBack)
+        tg.BackButton.hide()
+      }
+    }
+  }, [navigate])
+
   // Mock таймер для анимации прогресс-бара
   useEffect(() => {
     // Правильный расчёт: (150 BUL/час ÷ 3600 секунд) × 10 секунд = 0.4166 BUL за обновление
@@ -145,19 +165,6 @@ export function FarmPage() {
           paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 80px)'
         }}
       >
-        {/* Кнопка — с отступом, в потоке, под системной шапкой Telegram */}
-        <div className="pt-2 pl-4 mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-400"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            <span>Назад</span>
-          </button>
-        </div>
-
         {/* LOCATION CARD — FULL WIDTH (БЕЗ отступов) */}
         <div className="relative w-full h-[240px] mb-6 bg-zinc-900 shadow-2xl">
           <img
