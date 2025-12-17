@@ -3,19 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 
 // 🎯 MOCK DATA — Заглушки для UI preview
-const MOCK_LOCATION = {
-  name: 'Общага',
-  image: '/icons/locations/dormitory.png',
-  level: 1,
-  slots: 3
-}
-
 const MOCK_LOCATIONS = [
   { id: 1, slug: 'dorm', name: 'Общага', price: 0, level: 1, slots: 3, image: '/icons/locations/dormitory.png', owned: true, active: true },
   { id: 2, slug: 'apartment', name: 'Апартаменты', price: 5000, level: 3, slots: 4, image: '/icons/locations/apartment.png', owned: true, active: false },
   { id: 3, slug: 'office', name: 'Офис', price: 15000, level: 5, slots: 5, image: '/icons/locations/office.png', owned: false, active: false },
   { id: 4, slug: 'datacenter', name: 'Дата-центр', price: 50000, level: 10, slots: 8, image: '/icons/locations/datacenter.png', owned: false, active: false }
 ]
+
+type Location = (typeof MOCK_LOCATIONS)[number]
 
 const MOCK_EQUIPMENT = [
   {
@@ -79,12 +74,26 @@ const MOCK_STATS = {
 
 export function FarmPage() {
   const navigate = useNavigate()
-  const [currentLocation, setCurrentLocation] = useState(MOCK_LOCATION)
+  const [currentLocation, setCurrentLocation] = useState<Location>(() => {
+    return MOCK_LOCATIONS.find((l) => l.active) ?? MOCK_LOCATIONS[0]
+  })
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [accumulated, setAccumulated] = useState(MOCK_STATS.accumulated)
   const [timeDisplay] = useState(MOCK_STATS.timeElapsed)
   const [progressPercent, setProgressPercent] = useState(MOCK_STATS.progressPercent)
   const [toast, setToast] = useState<{ show: boolean; amount: number }>({ show: false, amount: 0 })
+
+  // Restore выбранную локацию (временно через localStorage)
+  useEffect(() => {
+    try {
+      const savedLocationId = localStorage.getItem('selectedLocationId')
+      if (!savedLocationId) return
+      const saved = MOCK_LOCATIONS.find((l) => l.id === Number(savedLocationId))
+      if (saved) setCurrentLocation(saved)
+    } catch (e) {
+      console.warn('Failed to restore selectedLocationId:', e)
+    }
+  }, [])
 
   // Telegram BackButton: показываем "← Назад" вместо "X Закрыть"
   useEffect(() => {
@@ -137,9 +146,19 @@ export function FarmPage() {
     setProgressPercent(0)
   }
 
-  const handleChangeLocation = (location: typeof MOCK_LOCATIONS[0]) => {
-    console.log('🎯 Mock: Сменить локацию на', location.name)
-    setCurrentLocation({ name: location.name, image: location.image, level: location.level, slots: location.slots })
+  const selectLocation = (locationId: number) => {
+    const selected = MOCK_LOCATIONS.find((l) => l.id === locationId)
+    if (!selected) return
+
+    console.log('🎯 Mock: Сменить локацию на', selected.name)
+    setCurrentLocation(selected)
+
+    try {
+      localStorage.setItem('selectedLocationId', String(locationId))
+    } catch (e) {
+      console.warn('Failed to save selectedLocationId:', e)
+    }
+
     setShowLocationModal(false)
   }
 
@@ -420,54 +439,62 @@ export function FarmPage() {
 
             {/* Locations List */}
             <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
-              {MOCK_LOCATIONS.map((loc) => (
-                <div
-                  key={loc.id}
-                  className={`bg-zinc-800 rounded-2xl p-4 flex items-center gap-4 border transition-all ${
-                    loc.active ? 'border-[#4facfe]' : 'border-yellow-500/20'
-                  }`}
-                  style={{ opacity: loc.owned || loc.id === 1 || MOCK_LOCATIONS[loc.id - 2]?.owned ? 1 : 0.5 }}
-                >
-                  <img
-                    src={loc.image}
-                    alt={loc.name}
-                    className="w-[60px] h-10 object-cover rounded-lg"
-                    onError={(e) => { (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png' }}
-                  />
+              {MOCK_LOCATIONS.map((loc) => {
+                const isCurrent = loc.id === currentLocation.id
+                const isUnlocked = loc.owned || loc.id === 1 || MOCK_LOCATIONS[loc.id - 2]?.owned
 
-                  <div className="flex-1">
-                    <div className="text-white text-base font-bold">{loc.name}</div>
-                    <div className="text-zinc-500 text-sm">
-                      {loc.owned ? 'Куплено' : `${loc.price.toLocaleString()} BUL`}
+                return (
+                  <div
+                    key={loc.id}
+                    className={`flex items-center gap-3 p-3 bg-zinc-800 rounded-2xl border transition-all ${
+                      isCurrent ? 'border-[#4facfe]' : 'border-yellow-500/20'
+                    }`}
+                    style={{ opacity: isUnlocked ? 1 : 0.5 }}
+                  >
+                    {/* Картинка должна быть видна */}
+                    <img
+                      src={loc.image}
+                      alt={loc.name}
+                      className="w-16 h-16 rounded-lg object-cover bg-zinc-800"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png'
+                      }}
+                    />
+
+                    <div className="flex-1">
+                      <p className="text-white font-medium">{loc.name}</p>
+                      <p className="text-zinc-500 text-sm">
+                        {loc.owned ? 'Куплено' : `${loc.price.toLocaleString()} BUL`}
+                      </p>
                     </div>
-                  </div>
 
-                  {/* Action */}
-                  {loc.owned ? (
-                    loc.active ? (
-                      <span className="text-[#4facfe] text-sm font-semibold">Текущая</span>
-                    ) : (
+                    {/* Action */}
+                    {loc.owned ? (
+                      isCurrent ? (
+                        <span className="text-[#4facfe] text-sm font-semibold">Текущая</span>
+                      ) : (
+                        <button
+                          onClick={() => selectLocation(loc.id)}
+                          className="text-[#4facfe] text-sm font-semibold cursor-pointer"
+                        >
+                          Выбрать
+                        </button>
+                      )
+                    ) : isUnlocked ? (
                       <button
-                        onClick={() => handleChangeLocation(loc)}
-                        className="text-[#4facfe] text-sm font-semibold cursor-pointer"
+                        onClick={() => handlePurchaseLocation(loc.slug)}
+                        className="text-[#FFD700] text-sm font-semibold cursor-pointer"
                       >
-                        Выбрать
+                        {loc.price.toLocaleString()} BUL
                       </button>
-                    )
-                  ) : loc.id === 1 || MOCK_LOCATIONS[loc.id - 2]?.owned ? (
-                    <button
-                      onClick={() => handlePurchaseLocation(loc.slug)}
-                      className="text-[#FFD700] text-sm font-semibold cursor-pointer"
-                    >
-                      {loc.price.toLocaleString()} BUL
-                    </button>
-                  ) : (
-                    <span className="text-xs text-zinc-600">
-                      Сначала {MOCK_LOCATIONS[loc.id - 2]?.name}
-                    </span>
-                  )}
-                </div>
-              ))}
+                    ) : (
+                      <span className="text-xs text-zinc-600">
+                        Сначала {MOCK_LOCATIONS[loc.id - 2]?.name}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
