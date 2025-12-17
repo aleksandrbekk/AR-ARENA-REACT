@@ -84,6 +84,7 @@ export function FarmPage() {
   const [accumulated, setAccumulated] = useState(MOCK_STATS.accumulated)
   const [timeDisplay] = useState(MOCK_STATS.timeElapsed)
   const [progressPercent, setProgressPercent] = useState(MOCK_STATS.progressPercent)
+  const [toast, setToast] = useState<{ show: boolean; amount: number }>({ show: false, amount: 0 })
 
   // Telegram BackButton: показываем "← Назад" вместо "X Закрыть"
   useEffect(() => {
@@ -128,8 +129,10 @@ export function FarmPage() {
   }, [accumulated])
 
   const handleCollect = () => {
-    console.log('🎯 Mock: Собрать награду', accumulated)
-    alert(`Собрано ${Math.floor(accumulated)} BUL (MOCK)`)
+    const claimedAmount = Math.floor(accumulated)
+    console.log('🎯 Mock: Собрать награду', claimedAmount)
+    setToast({ show: true, amount: claimedAmount })
+    setTimeout(() => setToast({ show: false, amount: 0 }), 2500)
     setAccumulated(0)
     setProgressPercent(0)
   }
@@ -370,6 +373,28 @@ export function FarmPage() {
             ))}
           </div>
         </div>
+
+        {/* Toast уведомление */}
+        {toast.show && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50">
+            <div className="flex items-center gap-3 px-6 py-4 bg-zinc-900/95 backdrop-blur-md border border-yellow-500/30 rounded-2xl shadow-lg shadow-yellow-500/10 animate-[fadeIn_0.3s_ease-out]">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-b from-[#FFD700] to-[#FFA500] flex items-center justify-center">
+                <span className="text-black text-lg">✓</span>
+              </div>
+              <div>
+                <p className="text-white font-bold text-lg">+{toast.amount} AR</p>
+                <p className="text-gray-400 text-sm">Успешно собрано</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
       </div>
 
       {/* LOCATION MODAL — Модалка выбора локации */}
