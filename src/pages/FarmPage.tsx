@@ -421,29 +421,39 @@ export function FarmPage() {
       {/* LOCATION MODAL — Модалка выбора локации */}
       {showLocationModal && (
         <div
-          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-end"
+          className="fixed inset-0 z-50 flex flex-col"
           onClick={() => setShowLocationModal(false)}
         >
+          {/* Верхняя часть — картинка текущей локации */}
+          <div className="flex-1 relative">
+            <img
+              src={currentLocation?.image || '/icons/locations/dormitory.png'}
+              alt="Current location"
+              className="w-full h-full object-cover opacity-50"
+              onError={(e) => {
+                ;(e.target as HTMLImageElement).src = '/icons/locations/dormitory.png'
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
+          </div>
+
+          {/* Нижняя часть — список локаций */}
           <div
-            className="w-full bg-zinc-900 rounded-t-3xl p-6 border-t border-white/10"
+            className="bg-[#0a0a0a] rounded-t-3xl p-4 max-h-[60vh] border-t border-white/10 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div className="flex justify-between items-center mb-5">
-              <span className="text-white text-xl font-bold">Локации</span>
-              <button
-                onClick={() => setShowLocationModal(false)}
-                className="text-white text-3xl leading-none"
-              >
-                &times;
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-white text-xl font-bold">Локации</h2>
+              <button onClick={() => setShowLocationModal(false)}>
+                <span className="text-gray-400 text-2xl">×</span>
               </button>
             </div>
 
-            {/* Locations List */}
-            <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
-              {MOCK_LOCATIONS.map((loc) => {
+            {/* Список локаций */}
+            <div className="space-y-3 overflow-y-auto flex-1 pb-1">
+              {locations.map((loc) => {
                 const isCurrent = loc.id === currentLocation.id
-                const isUnlocked = loc.owned || loc.id === 1 || MOCK_LOCATIONS[loc.id - 2]?.owned
+                const isUnlocked = loc.owned || loc.id === 1 || locations[loc.id - 2]?.owned
 
                 return (
                   <div
@@ -453,7 +463,7 @@ export function FarmPage() {
                     }`}
                     style={{ opacity: isUnlocked ? 1 : 0.5 }}
                   >
-                    {/* Картинка должна быть видна */}
+                    {/* Превью локации */}
                     <img
                       src={loc.image}
                       alt={loc.name}
@@ -491,7 +501,7 @@ export function FarmPage() {
                       </button>
                     ) : (
                       <span className="text-xs text-zinc-600">
-                        Сначала {MOCK_LOCATIONS[loc.id - 2]?.name}
+                        Сначала {locations[loc.id - 2]?.name}
                       </span>
                     )}
                   </div>
