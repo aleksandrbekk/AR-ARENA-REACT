@@ -145,19 +145,21 @@ export function FarmPage() {
           paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 80px)'
         }}
       >
-        {/* Кастомная кнопка "← Назад" — под safe-area */}
-        <button
-          onClick={() => navigate(-1)}
-          className="ml-4 mt-2 flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          <span className="text-sm font-semibold">Назад</span>
-        </button>
+        {/* Кнопка — с отступом, в потоке, под системной шапкой Telegram */}
+        <div className="pt-2 pl-4 mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-gray-400"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span>Назад</span>
+          </button>
+        </div>
 
         {/* LOCATION CARD — FULL WIDTH (БЕЗ отступов) */}
-        <div className="relative h-[240px] mb-6 bg-zinc-900 shadow-2xl">
+        <div className="relative w-full h-[240px] mb-6 bg-zinc-900 shadow-2xl">
           <img
             src={currentLocation.image}
             alt={currentLocation.name}
