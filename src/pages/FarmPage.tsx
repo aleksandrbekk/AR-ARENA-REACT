@@ -420,93 +420,82 @@ export function FarmPage() {
 
       {/* LOCATION MODAL — Модалка выбора локации */}
       {showLocationModal && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col"
-          onClick={() => setShowLocationModal(false)}
-        >
-          {/* Верхняя часть — картинка текущей локации */}
-          <div className="flex-1 relative">
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0a0a]">
+          {/* Кнопка закрыть */}
+          <div className="absolute top-4 right-4 z-10">
+            <button
+              onClick={() => setShowLocationModal(false)}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800"
+            >
+              <span className="text-white text-xl">×</span>
+            </button>
+          </div>
+
+          {/* Картинка текущей локации — верхняя треть */}
+          <div className="h-[35vh] relative">
             <img
               src={currentLocation?.image || '/icons/locations/dormitory.png'}
               alt="Current location"
-              className="w-full h-full object-cover opacity-50"
+              className="w-full h-full object-cover"
               onError={(e) => {
                 ;(e.target as HTMLImageElement).src = '/icons/locations/dormitory.png'
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-[#0a0a0a]" />
+
+            {/* Название текущей */}
+            <div className="absolute bottom-4 left-4">
+              <p className="text-gray-400 text-sm">Текущая локация</p>
+              <h2 className="text-white text-2xl font-bold">{currentLocation?.name}</h2>
+            </div>
           </div>
 
-          {/* Нижняя часть — список локаций */}
-          <div
-            className="bg-[#0a0a0a] rounded-t-3xl p-4 max-h-[60vh] border-t border-white/10 flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-white text-xl font-bold">Локации</h2>
-              <button onClick={() => setShowLocationModal(false)}>
-                <span className="text-gray-400 text-2xl">×</span>
-              </button>
-            </div>
-
-            {/* Список локаций */}
-            <div className="space-y-3 overflow-y-auto flex-1 pb-1">
-              {locations.map((loc) => {
-                const isCurrent = loc.id === currentLocation.id
-                const isUnlocked = loc.owned || loc.id === 1 || locations[loc.id - 2]?.owned
-
-                return (
-                  <div
-                    key={loc.id}
-                    className={`flex items-center gap-3 p-3 bg-zinc-800 rounded-2xl border transition-all ${
-                      isCurrent ? 'border-[#4facfe]' : 'border-yellow-500/20'
-                    }`}
-                    style={{ opacity: isUnlocked ? 1 : 0.5 }}
-                  >
-                    {/* Превью локации */}
-                    <img
-                      src={loc.image}
-                      alt={loc.name}
-                      className="w-16 h-16 rounded-lg object-cover bg-zinc-800"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).src = '/icons/skins/Bull1.png'
-                      }}
-                    />
-
-                    <div className="flex-1">
-                      <p className="text-white font-medium">{loc.name}</p>
-                      <p className="text-zinc-500 text-sm">
-                        {loc.owned ? 'Куплено' : `${loc.price.toLocaleString()} BUL`}
-                      </p>
-                    </div>
-
-                    {/* Action */}
-                    {loc.owned ? (
-                      isCurrent ? (
-                        <span className="text-[#4facfe] text-sm font-semibold">Текущая</span>
-                      ) : (
-                        <button
-                          onClick={() => selectLocation(loc)}
-                          className="text-[#4facfe] text-sm font-semibold cursor-pointer"
-                        >
-                          Выбрать
-                        </button>
-                      )
-                    ) : isUnlocked ? (
-                      <button
-                        onClick={() => handlePurchaseLocation(loc.slug)}
-                        className="text-[#FFD700] text-sm font-semibold cursor-pointer"
-                      >
-                        {loc.price.toLocaleString()} BUL
-                      </button>
+          {/* Список локаций */}
+          <div className="flex-1 px-4 pt-4 overflow-y-auto">
+            <h3 className="text-white text-lg font-bold mb-4">Выбрать локацию</h3>
+            <div className="space-y-3 pb-8">
+              {locations.map((location) => (
+                <div
+                  key={location.id}
+                  onClick={() => {
+                    if (currentLocation?.id === location.id) return
+                    if (location.owned) {
+                      selectLocation(location)
+                    } else {
+                      handlePurchaseLocation(location.slug)
+                    }
+                  }}
+                  className={`flex items-center gap-3 p-3 rounded-xl ${
+                    currentLocation?.id === location.id
+                      ? 'bg-yellow-500/20 border border-yellow-500/50'
+                      : 'bg-zinc-900'
+                  }`}
+                >
+                  <img
+                    src={location.image}
+                    alt={location.name}
+                    className="w-14 h-14 rounded-lg object-cover bg-zinc-800"
+                    onError={(e) => {
+                      ;(e.target as HTMLImageElement).src = '/icons/skins/Bull1.png'
+                    }}
+                  />
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{location.name}</p>
+                    <p className="text-gray-500 text-sm">
+                      {location.owned ? 'Куплено' : `${location.price} BUL`}
+                    </p>
+                  </div>
+                  <div>
+                    {currentLocation?.id === location.id ? (
+                      <span className="text-yellow-500 text-sm">Текущая</span>
+                    ) : location.owned ? (
+                      <span className="text-gray-400 text-sm">Выбрать</span>
                     ) : (
-                      <span className="text-xs text-zinc-600">
-                        Сначала {locations[loc.id - 2]?.name}
-                      </span>
+                      <span className="text-yellow-500 text-sm">{location.price} BUL</span>
                     )}
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           </div>
         </div>
