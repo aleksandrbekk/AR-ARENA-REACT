@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
+import { supabase } from '../lib/supabase'
+
+// TypeScript interfaces
+interface FarmStatus {
+  location_name: string
+  location_image: string
+  income_per_hour: number
+  accumulated_ar: number
+  hours_since_claim: number
+  max_hours: number
+  error?: string
+}
 
 // 🎯 MOCK DATA — Заглушки для UI preview
 const MOCK_LOCATIONS = [
@@ -12,6 +24,7 @@ const MOCK_LOCATIONS = [
 
 type Location = (typeof MOCK_LOCATIONS)[number]
 
+// Equipment mock data
 const MOCK_EQUIPMENT = [
   {
     id: 1,
@@ -64,14 +77,6 @@ const MOCK_EQUIPMENT = [
   }
 ]
 
-const MOCK_STATS = {
-  incomePerHour: 150,
-  accumulated: 450,
-  maxAccumulated: 600,
-  progressPercent: 75,
-  timeElapsed: '3ч 0м / 4ч'
-}
-
 export function FarmPage() {
   const navigate = useNavigate()
   const locations = MOCK_LOCATIONS
@@ -90,10 +95,32 @@ export function FarmPage() {
     return locations.find((l) => l.active) ?? locations[0]
   })
   const [showLocationModal, setShowLocationModal] = useState(false)
-  const [accumulated, setAccumulated] = useState(MOCK_STATS.accumulated)
-  const [timeDisplay] = useState(MOCK_STATS.timeElapsed)
-  const [progressPercent, setProgressPercent] = useState(MOCK_STATS.progressPercent)
+
+  // Real farm data from Supabase
+  const [farmStatus, setFarmStatus] = useState<FarmStatus | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [claiming, setClaiming] = useState(false)
   const [toast, setToast] = useState<{ show: boolean; amount: number }>({ show: false, amount: 0 })
+
+  // Load farm status from Supabase
+  const loadFarmStatus = async () => {
+    const tg = window.Telegram?.WebApp
+    const telegramId = tg?.initDataUnsafe?.user?.id
+
+    if (!telegramId) {
+      setLoading(false)
+      return
+    }
+
+    const { data, error } = await supabase.rpc('get_farm_status', {
+      p_telegram_id: telegramId
+    })
+
+    if (!error && data) {
+      setFarmStatus(data)
+    }
+    setLoading(false)
+  }
 
   // Restore выбранную локацию (временно через localStorage)
   useEffect(() => {
@@ -127,35 +154,36 @@ export function FarmPage() {
     }
   }, [navigate])
 
-  // Mock таймер для анимации прогресс-бара
+  // Load farm data on mount + auto-refresh every 30 seconds
   useEffect(() => {
-    // Правильный расчёт: (150 BUL/час ÷ 3600 секунд) × 10 секунд = 0.4166 BUL за обновление
-    const incomePerSecond = MOCK_STATS.incomePerHour / 3600
-    const updateInterval = 10000 // Обновлять каждые 10 секунд
-    const incomePerUpdate = incomePerSecond * (updateInterval / 1000)
+    loadFarmStatus()
 
-    const interval = setInterval(() => {
-      setAccumulated(prev => {
-        const newValue = prev + incomePerUpdate
-        return newValue > MOCK_STATS.maxAccumulated ? MOCK_STATS.maxAccumulated : newValue
-      })
-
-      setProgressPercent(() => {
-        const newPercent = (accumulated / MOCK_STATS.maxAccumulated) * 100
-        return Math.min(newPercent, 100)
-      })
-    }, updateInterval)
-
+    const interval = setInterval(loadFarmStatus, 30000)
     return () => clearInterval(interval)
-  }, [accumulated])
+  }, [])
 
-  const handleCollect = () => {
-    const claimedAmount = Math.floor(accumulated)
-    console.log('🎯 Mock: Собрать награду', claimedAmount)
-    setToast({ show: true, amount: claimedAmount })
-    setTimeout(() => setToast({ show: false, amount: 0 }), 2500)
-    setAccumulated(0)
-    setProgressPercent(0)
+  const handleCollect = async () => {
+    const tg = window.Telegram?.WebApp
+    const telegramId = tg?.initDataUnsafe?.user?.id
+
+    if (!telegramId || claiming || !farmStatus?.accumulated_ar) return
+
+    setClaiming(true)
+
+    const { data, error } = await supabase.rpc('claim_farm_income', {
+      p_telegram_id: telegramId
+    })
+
+    if (!error && data?.success) {
+      // Show toast with claimed amount
+      setToast({ show: true, amount: data.claimed_ar })
+      setTimeout(() => setToast({ show: false, amount: 0 }), 2500)
+
+      // Reload farm status
+      await loadFarmStatus()
+    }
+
+    setClaiming(false)
   }
 
   const selectLocation = (location: Location) => {
@@ -184,6 +212,26 @@ export function FarmPage() {
   const handlePurchaseLocation = (slug: string) => {
     console.log('🎯 Mock: Купить локацию', slug)
     alert(`Покупка локации ${slug} (MOCK)`)
+  }
+
+  // Calculate progress based on real farm data
+  const progressPercent = farmStatus
+    ? Math.min((farmStatus.hours_since_claim / farmStatus.max_hours) * 100, 100)
+    : 0
+
+  const timeDisplay = farmStatus
+    ? `${Math.floor(farmStatus.hours_since_claim)}ч ${Math.floor((farmStatus.hours_since_claim % 1) * 60)}м / ${farmStatus.max_hours}ч`
+    : '0ч 0м / 0ч'
+
+  // Loading state
+  if (loading) {
+    return (
+      <Layout hideNavbar>
+        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+          <p className="text-gray-400">Загрузка...</p>
+        </div>
+      </Layout>
+    )
   }
 
   return (
@@ -258,7 +306,7 @@ export function FarmPage() {
                   textShadow: '0 0 20px rgba(191, 149, 63, 0.3)'
                 }}
               >
-                {MOCK_STATS.incomePerHour} <img src="/icons/BUL.png" className="w-5 h-5" alt="BUL" />
+                {farmStatus?.income_per_hour || 0} AR
               </div>
             </div>
 
@@ -270,7 +318,7 @@ export function FarmPage() {
                   className="text-[#FCF6BA]"
                   style={{ textShadow: '0 0 10px rgba(191, 149, 63, 0.5)' }}
                 >
-                  +{Math.floor(accumulated).toLocaleString()} BUL
+                  +{Math.floor(farmStatus?.accumulated_ar || 0).toLocaleString()} AR
                 </span>
               </div>
 
@@ -290,19 +338,19 @@ export function FarmPage() {
             {/* CLAIM BUTTON — Золотой градиент */}
             <button
               onClick={handleCollect}
-              disabled={accumulated <= 0}
+              disabled={claiming || !farmStatus?.accumulated_ar || farmStatus.accumulated_ar <= 0}
               className="w-full h-[60px] rounded-2xl relative overflow-hidden transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
-                background: accumulated > 0
+                background: farmStatus?.accumulated_ar && farmStatus.accumulated_ar > 0
                   ? 'linear-gradient(180deg, #FBF5B7 0%, #BF953F 20%, #B38728 50%, #AA771C 100%)'
                   : 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%)',
-                boxShadow: accumulated > 0
+                boxShadow: farmStatus?.accumulated_ar && farmStatus.accumulated_ar > 0
                   ? '0 0 25px rgba(191, 149, 63, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -2px 0 rgba(0, 0, 0, 0.2)'
                   : 'inset 0 1px 0 rgba(255,255,255,0.05)'
               }}
             >
               {/* Glass highlight */}
-              {accumulated > 0 && (
+              {farmStatus?.accumulated_ar && farmStatus.accumulated_ar > 0 && (
                 <div
                   className="absolute top-0 left-0 right-0 h-[30px] pointer-events-none"
                   style={{
@@ -313,12 +361,11 @@ export function FarmPage() {
               )}
 
               <div className="relative z-10 flex items-center justify-center gap-2 text-lg font-black uppercase tracking-wide">
-                <img src="/icons/BUL.png" className="w-6 h-6" alt="BUL" />
                 <span
-                  className={accumulated > 0 ? 'text-[#3E2723]' : 'text-zinc-600'}
-                  style={accumulated > 0 ? { textShadow: '0 1px 0 rgba(255,255,255,0.4)' } : {}}
+                  className={farmStatus?.accumulated_ar && farmStatus.accumulated_ar > 0 ? 'text-[#3E2723]' : 'text-zinc-600'}
+                  style={farmStatus?.accumulated_ar && farmStatus.accumulated_ar > 0 ? { textShadow: '0 1px 0 rgba(255,255,255,0.4)' } : {}}
                 >
-                  СОБРАТЬ {Math.floor(accumulated).toLocaleString()} BUL
+                  {claiming ? 'Собираем...' : `СОБРАТЬ ${Math.floor(farmStatus?.accumulated_ar || 0).toLocaleString()} AR`}
                 </span>
               </div>
             </button>
@@ -366,9 +413,7 @@ export function FarmPage() {
                     className="text-sm text-[#FCF6BA] flex items-center gap-1"
                     style={{ textShadow: '0 0 5px rgba(191, 149, 63, 0.5)' }}
                   >
-                    {eq.income.toLocaleString()}
-                    <img src="/icons/BUL.png" className="w-3 h-3" alt="BUL" />
-                    /ч
+                    {eq.income.toLocaleString()} AR/ч
                   </div>
                 </div>
 
@@ -384,14 +429,14 @@ export function FarmPage() {
                       className="bg-transparent border border-[#FFD700] text-[#FFD700] px-4 py-2 rounded-xl font-bold text-sm transition-all active:scale-95 active:bg-[#FFD700]/10"
                       style={{ boxShadow: '0 0 10px rgba(255, 215, 0, 0.15)' }}
                     >
-                      {eq.basePrice?.toLocaleString()} BUL
+                      {eq.basePrice?.toLocaleString()} AR
                     </button>
                   ) : eq.level < eq.maxLevel ? (
                     <button
                       onClick={() => handleUpgradeEquipment(eq.slug)}
                       className="bg-transparent border border-[#4facfe] text-[#4facfe] px-4 py-2 rounded-xl font-bold text-sm transition-all active:scale-95"
                     >
-                      {eq.upgradePrice?.toLocaleString()} BUL
+                      {eq.upgradePrice?.toLocaleString()} AR
                     </button>
                   ) : (
                     <span className="text-xs text-zinc-600 font-bold">MAX</span>
@@ -482,7 +527,7 @@ export function FarmPage() {
                   <div className="flex-1">
                     <p className="text-white font-medium">{location.name}</p>
                     <p className="text-gray-500 text-sm">
-                      {location.owned ? 'Куплено' : `${location.price} BUL`}
+                      {location.owned ? 'Куплено' : `${location.price} AR`}
                     </p>
                   </div>
                   <div>
@@ -491,7 +536,7 @@ export function FarmPage() {
                     ) : location.owned ? (
                       <span className="text-gray-400 text-sm">Выбрать</span>
                     ) : (
-                      <span className="text-yellow-500 text-sm">{location.price} BUL</span>
+                      <span className="text-yellow-500 text-sm">{location.price} AR</span>
                     )}
                   </div>
                 </div>
