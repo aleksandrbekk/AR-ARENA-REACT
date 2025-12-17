@@ -74,8 +74,20 @@ const MOCK_STATS = {
 
 export function FarmPage() {
   const navigate = useNavigate()
+  const locations = MOCK_LOCATIONS
+
   const [currentLocation, setCurrentLocation] = useState<Location>(() => {
-    return MOCK_LOCATIONS.find((l) => l.active) ?? MOCK_LOCATIONS[0]
+    try {
+      const savedId = localStorage.getItem('selectedLocationId')
+      if (savedId && locations.length > 0) {
+        const saved = locations.find((l) => l.id === Number(savedId))
+        if (saved) return saved
+      }
+    } catch (e) {
+      console.warn('Failed to read selectedLocationId on init:', e)
+    }
+
+    return locations.find((l) => l.active) ?? locations[0]
   })
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [accumulated, setAccumulated] = useState(MOCK_STATS.accumulated)
@@ -87,13 +99,13 @@ export function FarmPage() {
   useEffect(() => {
     try {
       const savedLocationId = localStorage.getItem('selectedLocationId')
-      if (!savedLocationId) return
-      const saved = MOCK_LOCATIONS.find((l) => l.id === Number(savedLocationId))
+      if (!savedLocationId || locations.length === 0) return
+      const saved = locations.find((l) => l.id === Number(savedLocationId))
       if (saved) setCurrentLocation(saved)
     } catch (e) {
       console.warn('Failed to restore selectedLocationId:', e)
     }
-  }, [])
+  }, [locations])
 
   // Telegram BackButton: показываем "← Назад" вместо "X Закрыть"
   useEffect(() => {
@@ -146,15 +158,12 @@ export function FarmPage() {
     setProgressPercent(0)
   }
 
-  const selectLocation = (locationId: number) => {
-    const selected = MOCK_LOCATIONS.find((l) => l.id === locationId)
-    if (!selected) return
-
-    console.log('🎯 Mock: Сменить локацию на', selected.name)
-    setCurrentLocation(selected)
+  const selectLocation = (location: Location) => {
+    console.log('🎯 Mock: Сменить локацию на', location.name)
+    setCurrentLocation(location)
 
     try {
-      localStorage.setItem('selectedLocationId', String(locationId))
+      localStorage.setItem('selectedLocationId', String(location.id))
     } catch (e) {
       console.warn('Failed to save selectedLocationId:', e)
     }
@@ -457,7 +466,7 @@ export function FarmPage() {
                       alt={loc.name}
                       className="w-16 h-16 rounded-lg object-cover bg-zinc-800"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png'
+                        ;(e.target as HTMLImageElement).src = '/icons/skins/Bull1.png'
                       }}
                     />
 
@@ -474,7 +483,7 @@ export function FarmPage() {
                         <span className="text-[#4facfe] text-sm font-semibold">Текущая</span>
                       ) : (
                         <button
-                          onClick={() => selectLocation(loc.id)}
+                          onClick={() => selectLocation(loc)}
                           className="text-[#4facfe] text-sm font-semibold cursor-pointer"
                         >
                           Выбрать
