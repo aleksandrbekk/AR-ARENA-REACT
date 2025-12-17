@@ -405,7 +405,7 @@ export function FarmPage() {
         {/* Toast уведомление */}
         {toast.show && (
           <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50">
-            <div className="flex items-center gap-3 px-6 py-4 bg-zinc-900/95 backdrop-blur-md border border-yellow-500/30 rounded-2xl shadow-lg shadow-yellow-500/10 animate-[fadeIn_0.3s_ease-out]">
+            <div className="flex items-center gap-3 px-6 py-4 bg-zinc-900/95 backdrop-blur-md border border-yellow-500/30 rounded-2xl shadow-lg">
               <div className="w-10 h-10 rounded-full bg-gradient-to-b from-[#FFD700] to-[#FFA500] flex items-center justify-center">
                 <span className="text-black text-lg">✓</span>
               </div>
@@ -416,13 +416,6 @@ export function FarmPage() {
             </div>
           </div>
         )}
-
-        <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
       </div>
 
       {/* LOCATION MODAL — Модалка выбора локации */}
