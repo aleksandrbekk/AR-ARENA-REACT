@@ -64,12 +64,13 @@ export default function SkinsPage() {
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
+      const handleBack = () => navigate('/');
       tg.BackButton.show();
-      tg.BackButton.onClick(() => navigate('/'));
+      tg.BackButton.onClick(handleBack);
 
       return () => {
+        tg.BackButton.offClick(handleBack);
         tg.BackButton.hide();
-        tg.BackButton.offClick(() => navigate('/'));
       };
     }
   }, [navigate]);
