@@ -1,11 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = 'https://syxjkircmiwpnpagznay.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g'
 
 // Создаем клиент с обработкой ошибок
 // Если создание клиента падает, создаем его без дополнительных опций
-let supabase: ReturnType<typeof createClient>
+let supabase: SupabaseClient
 
 try {
   supabase = createClient(supabaseUrl, supabaseKey, {
