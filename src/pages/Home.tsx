@@ -96,25 +96,43 @@ export function Home() {
     )
   }
 
-  // ВСЕГДА используем mock данные, если реальные данные недоступны
-  // НИКОГДА не показываем ошибку - всегда показываем контент
-  const displayUser = telegramUser || {
-    id: 190202791,
-    first_name: 'Developer',
-    username: 'dev_user',
-    photo_url: undefined
+  // Показываем ошибку только если нет данных
+  if (error && !gameState && !telegramUser) {
+    const isConnectionError = error.includes('Failed to fetch') || 
+                              error.includes('ERR_NAME_NOT_RESOLVED') || 
+                              error.includes('Load failed') ||
+                              error.includes('TypeError')
+    
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-full gap-4 px-4">
+          <div className="text-red-400 text-xl text-center">
+            {isConnectionError ? (
+              <>
+                <div className="mb-2">⚠️ Ошибка подключения к Supabase</div>
+                <div className="text-sm text-gray-400 mt-4">
+                  Проект Supabase недоступен.<br/>
+                  Проверьте статус проекта в панели управления.
+                </div>
+              </>
+            ) : (
+              `Error: ${error}`
+            )}
+          </div>
+        </div>
+      </Layout>
+    )
   }
-  
-  const displayGameState = gameState || {
-    balance_bul: 1000,
-    balance_ar: 50,
-    energy: 100,
-    energy_max: 100,
-    level: 1,
-    xp: 0,
-    xp_to_next: 1000,
-    active_skin: 'Bull1.png',
-    last_energy_update: new Date().toISOString()
+
+  // Проверяем наличие данных
+  if (!telegramUser || !gameState) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-white text-xl">Loading...</div>
+        </div>
+      </Layout>
+    )
   }
 
   return (
@@ -129,19 +147,19 @@ export function Home() {
       <div className="flex flex-col h-full pb-24 relative z-10">
         {/* Header вверху страницы */}
         <Header
-          photoUrl={displayUser.photo_url}
-          firstName={displayUser.first_name}
-          balanceAr={displayGameState.balance_ar}
+          photoUrl={telegramUser.photo_url}
+          firstName={telegramUser.first_name}
+          balanceAr={gameState.balance_ar}
         />
 
         {/* BalanceDisplay */}
         <div className="flex justify-center py-2">
-          <BalanceDisplay balance={displayGameState.balance_bul} />
+          <BalanceDisplay balance={gameState.balance_bul} />
         </div>
 
         {/* TapBull - основной компонент тапа */}
         <TapBull
-          skinFile={displayGameState.active_skin || 'Bull1.png'}
+          skinFile={gameState.active_skin || 'Bull1.png'}
           onTap={handleTap}
         >
           <SideButtons
@@ -153,8 +171,8 @@ export function Home() {
 
         {/* StatusBar внизу - Энергия + Статы */}
         <StatusBar
-          energy={displayGameState.energy}
-          energyMax={displayGameState.energy_max}
+          energy={gameState.energy}
+          energyMax={gameState.energy_max}
           activeSkin={activeSkin}
         />
       </div>
