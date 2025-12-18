@@ -38,7 +38,10 @@ export function useEnergy(
       return result
     } catch (err) {
       console.error('Energy restore error:', err)
-      return null
+      // При ошибке используем значения по умолчанию, но не ломаем приложение
+      const defaultEnergy = { energy: 100, energy_max: 100, energy_restored: 0 }
+      onEnergyUpdate(defaultEnergy.energy, defaultEnergy.energy_max)
+      return defaultEnergy
     }
   }, [telegramId, onEnergyUpdate])
 

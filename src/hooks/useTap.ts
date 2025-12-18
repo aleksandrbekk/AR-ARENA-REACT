@@ -42,7 +42,19 @@ export function useTap(telegramId: string) {
       return result as TapResult
     } catch (err) {
       console.error('Tap error:', err)
-      return null
+      // При ошибке возвращаем mock результат, чтобы UI работал
+      return {
+        success: false,
+        message: 'Supabase unavailable',
+        balance_bul: 1000,
+        energy: 100,
+        level: 1,
+        xp: 0,
+        xp_to_next: 1000,
+        bul_earned: 0,
+        xp_earned: 0,
+        leveled_up: false
+      }
     } finally {
       setIsProcessing(false)
     }

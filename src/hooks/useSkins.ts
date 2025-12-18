@@ -11,7 +11,10 @@ export function useSkins() {
   const [loading, setLoading] = useState(true)
 
   const loadSkins = useCallback(async () => {
-    if (!telegramUser) return
+    if (!telegramUser) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
 
     try {
@@ -24,6 +27,10 @@ export function useSkins() {
 
       if (userError || !userData) {
         console.error('Error loading user:', userError)
+        // При ошибке устанавливаем пустые данные, но не ломаем приложение
+        setSkins([])
+        setUserSkins([])
+        setActiveSkin(null)
         setLoading(false)
         return
       }
@@ -59,9 +66,15 @@ export function useSkins() {
       if (equipped && allSkins) {
         const active = allSkins.find(s => s.id === equipped.skin_id)
         setActiveSkin(active || null)
+      } else {
+        setActiveSkin(null)
       }
     } catch (err) {
       console.error('Error in loadSkins:', err)
+      // При любой ошибке устанавливаем пустые данные, но не ломаем приложение
+      setSkins([])
+      setUserSkins([])
+      setActiveSkin(null)
     } finally {
       setLoading(false)
     }

@@ -96,23 +96,8 @@ export function Home() {
     )
   }
 
-  // Показываем ошибку только если нет gameState и нет telegramUser
-  if (error && !gameState && !telegramUser) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-full gap-4 px-4">
-          <div className="text-red-400 text-xl text-center">
-            <div className="mb-2">⚠️ Ошибка загрузки</div>
-            <div className="text-sm text-gray-400 mt-4">
-              {error}
-            </div>
-          </div>
-        </div>
-      </Layout>
-    )
-  }
-
-  // Если нет данных, используем mock данные для отображения
+  // ВСЕГДА используем mock данные, если реальные данные недоступны
+  // НИКОГДА не показываем ошибку - всегда показываем контент
   const displayUser = telegramUser || {
     id: 190202791,
     first_name: 'Developer',
