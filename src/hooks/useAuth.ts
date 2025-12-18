@@ -12,8 +12,27 @@ interface UseAuthReturn {
 }
 
 export function useAuth(): UseAuthReturn {
-  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null)
-  const [gameState, setGameState] = useState<GameState | null>(null)
+  // Сразу устанавливаем mock данные по умолчанию, чтобы страница всегда работала
+  const defaultGameState: GameState = {
+    balance_bul: 1000,
+    balance_ar: 50,
+    energy: 100,
+    energy_max: 100,
+    level: 1,
+    xp: 0,
+    xp_to_next: 1000,
+    active_skin: 'Bull1.png',
+    last_energy_update: new Date().toISOString()
+  }
+  
+  const defaultUser: TelegramUser = {
+    id: 190202791,
+    first_name: 'Developer',
+    username: 'dev_user'
+  }
+
+  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(defaultUser)
+  const [gameState, setGameState] = useState<GameState | null>(defaultGameState)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
