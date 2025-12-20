@@ -13,13 +13,14 @@ type AdminSection = 'dashboard' | 'users' | 'giveaways' | 'transactions' | 'sett
 interface DashboardStats {
   usersCount: number
   activeGiveawaysCount: number
+  activePremiumClientsCount: number
 }
 
 export function AdminPage() {
   const { telegramUser, isLoading } = useAuth()
   const navigate = useNavigate()
   const [activeSection, setActiveSection] = useState<AdminSection>('dashboard')
-  const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0 })
+  const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0 })
   const [loadingStats, setLoadingStats] = useState(true)
 
   // Проверка admin-only (telegram_id = 190202791)
@@ -35,14 +36,16 @@ export function AdminPage() {
   const loadDashboardStats = async () => {
     try {
       setLoadingStats(true)
-      const [usersRes, giveawaysRes] = await Promise.all([
+      const [usersRes, giveawaysRes, premiumClientsRes] = await Promise.all([
         supabase.from('users').select('*', { count: 'exact', head: true }),
-        supabase.from('giveaways').select('*', { count: 'exact', head: true }).eq('status', 'active')
+        supabase.from('giveaways').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('premium_clients').select('*', { count: 'exact', head: true }).gt('expires_at', new Date().toISOString())
       ])
 
       setStats({
         usersCount: usersRes.count || 0,
-        activeGiveawaysCount: giveawaysRes.count || 0
+        activeGiveawaysCount: giveawaysRes.count || 0,
+        activePremiumClientsCount: premiumClientsRes.count || 0
       })
     } catch (err) {
       console.error('Error loading dashboard stats:', err)
@@ -133,14 +136,23 @@ export function AdminPage() {
                 </div>
               </button>
 
-              {/* 3. FINANCE */}
+              {/* 3. PREMIUM CLIENTS */}
               <button
-                onClick={() => setActiveSection('transactions')}
+                onClick={() => navigate('/crm')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
               >
-                <img src="/icons/arcoin.png" alt="Finance" className="w-8 h-8 object-contain" />
+                <svg
+                  className="w-8 h-8 text-[#FFD700]"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 2L9.5 8.5L2 9L7 13L5.5 20.5L12 17L18.5 20.5L17 13L22 9L14.5 8.5L12 2Z" />
+                </svg>
                 <div className="text-center">
-                  <div className="text-white font-medium">Finance</div>
+                  <div className="text-white font-medium">Premium Clients</div>
+                  <div className="text-white/60 text-sm">
+                    {loadingStats ? '...' : `${stats.activePremiumClientsCount} активных`}
+                  </div>
                 </div>
               </button>
 
@@ -168,7 +180,18 @@ export function AdminPage() {
                 </div>
               </button>
 
-              {/* 5. SETTINGS */}
+              {/* 5. FINANCE */}
+              <button
+                onClick={() => setActiveSection('transactions')}
+                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
+              >
+                <img src="/icons/arcoin.png" alt="Finance" className="w-8 h-8 object-contain" />
+                <div className="text-center">
+                  <div className="text-white font-medium">Finance</div>
+                </div>
+              </button>
+
+              {/* 6. SETTINGS */}
               <button
                 onClick={() => setActiveSection('settings')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
