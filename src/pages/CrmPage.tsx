@@ -455,15 +455,15 @@ export function CrmPage() {
           </div>
 
           {/* ФИЛЬТРЫ */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-1.5 overflow-x-auto pb-2">
             {(['all', 'active', 'expiring_3d', 'expired', 'vip'] as FilterType[]).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                className={`px-2.5 py-1 text-sm rounded-md font-medium whitespace-nowrap transition-all ${
                   filter === f
                     ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-                    : 'bg-zinc-800 text-white/60'
+                    : 'bg-zinc-800/70 text-white/60 hover:bg-zinc-700'
                 }`}
               >
                 {f === 'all' ? 'Все' : f === 'active' ? 'Активные' : f === 'expiring_3d' ? 'Истекает 3д' : f === 'expired' ? 'Истёкшие' : 'VIP'}
