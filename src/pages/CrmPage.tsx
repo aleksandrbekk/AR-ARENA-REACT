@@ -57,6 +57,8 @@ export function CrmPage() {
   const [selectedClient, setSelectedClient] = useState<PremiumClient | null>(null)
   const [showClientModal, setShowClientModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviteLink, setInviteLink] = useState('')
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([])
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
@@ -313,34 +315,35 @@ export function CrmPage() {
     setActionLoading('kick')
 
     try {
+      const telegramId = parseInt(selectedClient.telegram_id)
       const response = await fetch('https://syxjkircmiwpnpagznay.supabase.co/functions/v1/telegram-channel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g'
         },
-        body: JSON.stringify({
-          action: 'kick',
-          telegram_id: parseInt(selectedClient.telegram_id)
-        })
+        body: JSON.stringify({ action: 'kick', telegram_id: telegramId })
       })
 
       const result = await response.json()
 
-      if (result.error) {
-        throw new Error(result.error)
+      if (result.success) {
+        // Обновляем статус в БД
+        const { error: updateError } = await supabase
+          .from('premium_clients')
+          .update({ in_channel: false, in_chat: false })
+          .eq('id', selectedClient.id)
+
+        if (updateError) {
+          console.error('Error updating status:', updateError)
+        }
+
+        showToast({ variant: 'success', title: 'Удалён из канала и чата' })
+        await loadClients()
+        setSelectedClient({ ...selectedClient, in_channel: false, in_chat: false })
+      } else {
+        throw new Error(result.error || 'Ошибка удаления')
       }
-
-      // Обновляем статус в БД
-      await supabase
-        .from('premium_clients')
-        .update({ in_channel: false, in_chat: false })
-        .eq('id', selectedClient.id)
-
-      showToast({ variant: 'success', title: 'Пользователь удалён из канала и чата' })
-      await loadClients()
-
-      setSelectedClient({ ...selectedClient, in_channel: false, in_chat: false })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка удаления'
       showToast({ variant: 'error', title: 'Ошибка', description: errorMessage })
@@ -356,31 +359,38 @@ export function CrmPage() {
     setActionLoading('invite')
 
     try {
+      const telegramId = parseInt(selectedClient.telegram_id)
       const response = await fetch('https://syxjkircmiwpnpagznay.supabase.co/functions/v1/telegram-channel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g'
         },
-        body: JSON.stringify({
-          action: 'invite',
-          telegram_id: parseInt(selectedClient.telegram_id)
-        })
+        body: JSON.stringify({ action: 'invite', telegram_id: telegramId })
       })
 
       const result = await response.json()
 
-      if (result.error) {
-        throw new Error(result.error)
-      }
+      if (result.success && result.results?.channel?.result?.invite_link) {
+        const link = result.results.channel.result.invite_link
+        setInviteLink(link)
+        setShowInviteModal(true)
 
-      const inviteLink = result.results?.channel?.result?.invite_link
-      if (inviteLink) {
-        // Копируем в буфер обмена
-        await navigator.clipboard.writeText(inviteLink)
-        showToast({ variant: 'success', title: 'Ссылка скопирована', description: inviteLink })
+        // Обновляем статус в БД
+        const { error: updateError } = await supabase
+          .from('premium_clients')
+          .update({ in_channel: true, in_chat: true })
+          .eq('id', selectedClient.id)
+
+        if (updateError) {
+          console.error('Error updating status:', updateError)
+        }
+
+        showToast({ variant: 'success', title: 'Ссылка создана' })
+        await loadClients()
+        setSelectedClient({ ...selectedClient, in_channel: true, in_chat: true })
       } else {
-        showToast({ variant: 'success', title: 'Инвайт создан' })
+        throw new Error(result.error || 'Ошибка создания ссылки')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка создания инвайта'
@@ -727,7 +737,7 @@ export function CrmPage() {
                     <button
                       onClick={() => handleKick()}
                       disabled={actionLoading === 'kick'}
-                      className="py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl disabled:opacity-50 active:scale-95 transition-all text-sm"
+                      className="py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl disabled:opacity-50 active:scale-95 transition-all text-sm"
                     >
                       {actionLoading === 'kick' ? '...' : 'Кикнуть'}
                     </button>
@@ -881,6 +891,48 @@ export function CrmPage() {
                   {actionLoading === 'add-client' ? 'Сохранение...' : 'Сохранить'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* МОДАЛКА СО ССЫЛКОЙ ИНВАЙТА */}
+        {showInviteModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+            <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-md border border-yellow-500/20">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-[#FFD700]">Инвайт-ссылка</h2>
+                <button
+                  onClick={() => {
+                    setShowInviteModal(false)
+                    setInviteLink('')
+                  }}
+                  className="text-white/60 hover:text-white text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <p className="text-white/60 text-sm mb-4">
+                Отправьте эту ссылку клиенту. Действует 24 часа, одноразовая.
+              </p>
+
+              <div className="bg-zinc-800 rounded-lg p-3 mb-4">
+                <div className="text-white font-mono text-sm break-all">{inviteLink}</div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(inviteLink)
+                    showToast({ variant: 'success', title: 'Ссылка скопирована' })
+                  } catch (err) {
+                    showToast({ variant: 'error', title: 'Ошибка копирования' })
+                  }
+                }}
+                className="w-full py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-lg active:scale-95 transition-transform"
+              >
+                Копировать
+              </button>
             </div>
           </div>
         )}
