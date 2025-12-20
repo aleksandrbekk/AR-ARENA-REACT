@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -6,16 +6,71 @@ import { UsersTab } from '../components/admin/UsersTab'
 import { GiveawaysTab } from '../components/admin/GiveawaysTab'
 import { TransactionsTab } from '../components/admin/TransactionsTab'
 import { SettingsTab } from '../components/admin/SettingsTab'
+import { supabase } from '../lib/supabase'
 
-type AdminSection = 'users' | 'giveaways' | 'transactions' | 'settings'
+type AdminSection = 'dashboard' | 'users' | 'giveaways' | 'transactions' | 'settings'
+
+interface DashboardStats {
+  usersCount: number
+  activeGiveawaysCount: number
+}
 
 export function AdminPage() {
   const { telegramUser, isLoading } = useAuth()
   const navigate = useNavigate()
-  const [activeSection, setActiveSection] = useState<AdminSection>('users')
+  const [activeSection, setActiveSection] = useState<AdminSection>('dashboard')
+  const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0 })
+  const [loadingStats, setLoadingStats] = useState(true)
 
   // Проверка admin-only (telegram_id = 190202791)
   const isAdmin = telegramUser?.id === 190202791
+
+  // Загрузка статистики для дашборда
+  useEffect(() => {
+    if (activeSection === 'dashboard' && isAdmin) {
+      loadDashboardStats()
+    }
+  }, [activeSection, isAdmin])
+
+  const loadDashboardStats = async () => {
+    try {
+      setLoadingStats(true)
+      const [usersRes, giveawaysRes] = await Promise.all([
+        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('giveaways').select('*', { count: 'exact', head: true }).eq('status', 'active')
+      ])
+
+      setStats({
+        usersCount: usersRes.count || 0,
+        activeGiveawaysCount: giveawaysRes.count || 0
+      })
+    } catch (err) {
+      console.error('Error loading dashboard stats:', err)
+    } finally {
+      setLoadingStats(false)
+    }
+  }
+
+  // Настройка Telegram Back Button
+  useEffect(() => {
+    if (window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp
+      const handleBack = () => {
+        if (activeSection !== 'dashboard') {
+          setActiveSection('dashboard')
+        } else {
+          navigate('/')
+        }
+      }
+      tg.BackButton.show()
+      tg.BackButton.onClick(handleBack)
+
+      return () => {
+        tg.BackButton.offClick(handleBack)
+        tg.BackButton.hide()
+      }
+    }
+  }, [navigate, activeSection])
 
   // Access denied
   if (!isLoading && !isAdmin) {
@@ -39,22 +94,111 @@ export function AdminPage() {
     )
   }
 
-  const sections = [
-    { id: 'users' as AdminSection, label: 'USERS', icon: '/icons/PARTNERS.png' },
-    { id: 'giveaways' as AdminSection, label: 'GIVEAWAYS', icon: '/icons/GIVEAWAY.png' },
-    { id: 'transactions' as AdminSection, label: 'FINANCE', icon: '/icons/arcoin.png' },
-    { id: 'settings' as AdminSection, label: 'SETTINGS', icon: '/icons/icons/settings-gear.png' }
-  ]
+  // ДАШБОРД - Сетка карточек
+  if (activeSection === 'dashboard') {
+    return (
+      <Layout hideNavbar>
+        <div className="min-h-screen bg-[#0a0a0a] text-white pt-[60px] pb-8 px-4">
+          <div className="max-w-2xl mx-auto">
+            {/* Заголовок */}
+            <h1 className="text-3xl font-bold text-center mb-8 text-[#FFD700]">Admin Panel</h1>
 
+            {/* Сетка карточек */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* 1. USERS */}
+              <button
+                onClick={() => setActiveSection('users')}
+                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
+              >
+                <img src="/icons/PARTNERS.png" alt="Users" className="w-8 h-8 object-contain" />
+                <div className="text-center">
+                  <div className="text-white font-medium">Users</div>
+                  <div className="text-white/60 text-sm">
+                    {loadingStats ? '...' : `${stats.usersCount} юзеров`}
+                  </div>
+                </div>
+              </button>
+
+              {/* 2. GIVEAWAYS */}
+              <button
+                onClick={() => setActiveSection('giveaways')}
+                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
+              >
+                <img src="/icons/GIVEAWAY.png" alt="Giveaways" className="w-8 h-8 object-contain" />
+                <div className="text-center">
+                  <div className="text-white font-medium">Giveaways</div>
+                  <div className="text-white/60 text-sm">
+                    {loadingStats ? '...' : `${stats.activeGiveawaysCount} активных`}
+                  </div>
+                </div>
+              </button>
+
+              {/* 3. FINANCE */}
+              <button
+                onClick={() => setActiveSection('transactions')}
+                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
+              >
+                <img src="/icons/arcoin.png" alt="Finance" className="w-8 h-8 object-contain" />
+                <div className="text-center">
+                  <div className="text-white font-medium">Finance</div>
+                </div>
+              </button>
+
+              {/* 4. EVENT 22.12 */}
+              <button
+                onClick={() => navigate('/event-admin')}
+                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
+              >
+                <svg
+                  className="w-8 h-8 text-[#FFD700]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
+                  />
+                </svg>
+                <div className="text-center">
+                  <div className="text-white font-medium">Event</div>
+                  <div className="text-white/60 text-sm">Крипто-итоги 2025</div>
+                </div>
+              </button>
+
+              {/* 5. SETTINGS */}
+              <button
+                onClick={() => setActiveSection('settings')}
+                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
+              >
+                <img
+                  src="/icons/icons/settings-gear.png"
+                  alt="Settings"
+                  className="w-8 h-8 object-contain"
+                />
+                <div className="text-center">
+                  <div className="text-white font-medium">Settings</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // КОНТЕНТ РАЗДЕЛОВ
   return (
     <Layout hideNavbar>
       <div className="flex flex-col min-h-screen bg-[#0a0a0a]">
-        {/* HEADER - NOT FIXED, flows with safe-area from Layout */}
+        {/* HEADER */}
         <div className="sticky top-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/5">
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate('/')}
+                onClick={() => setActiveSection('dashboard')}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white/60 active:scale-95 transition-all"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -71,36 +215,6 @@ export function AdminPage() {
                 ID: {telegramUser.id}
               </div>
             )}
-          </div>
-
-          {/* TABS - SCROLLABLE */}
-          <div className="flex overflow-x-auto no-scrollbar px-4 pb-0 items-end gap-5 border-b border-white/5">
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={`pb-3 relative flex items-center gap-2 transition-all shrink-0 ${activeSection === section.id
-                  ? 'text-[#FFD700]'
-                  : 'text-white/40'
-                  }`}
-              >
-                <img
-                  src={section.icon}
-                  alt={section.label}
-                  className={`w-5 h-5 object-contain transition-all ${activeSection === section.id
-                    ? 'opacity-100 drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]'
-                    : 'opacity-40 grayscale'
-                    }`}
-                />
-                <span className={`text-xs tracking-wider ${activeSection === section.id ? 'font-bold' : 'font-medium'
-                  }`}>
-                  {section.label}
-                </span>
-                {activeSection === section.id && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FFD700] rounded-t-full shadow-[0_0_10px_#FFD700]" />
-                )}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -123,4 +237,3 @@ export function AdminPage() {
     </Layout>
   )
 }
-
