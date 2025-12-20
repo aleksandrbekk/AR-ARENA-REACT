@@ -8,6 +8,7 @@ interface ARPackage {
   id: string
   amount: number
   price: number
+  priceUsd?: number // Цена в USD для Apple Pay
   popular?: boolean
   offerId: string
 }
@@ -17,6 +18,7 @@ const AR_PACKAGES: ARPackage[] = [
     id: 'test_drive',
     amount: 100,
     price: 100,
+    priceUsd: 1.1, // ~100₽ = $1.1 (примерный курс)
     popular: true,
     offerId: 'bfb09100-385e-4e36-932a-682032e54381' // ТЕСТ-ДРАЙВ
   },
@@ -24,24 +26,28 @@ const AR_PACKAGES: ARPackage[] = [
     id: 'start',
     amount: 500,
     price: 500,
+    priceUsd: 5.5, // ~500₽ = $5.5
     offerId: '8bc3a2ef-e5f1-412a-a356-e8aaf1a7fd06' // СТАРТ
   },
   {
     id: 'advanced',
     amount: 1000,
     price: 1000,
+    priceUsd: 11, // ~1000₽ = $11
     offerId: '7b79ce70-e816-4db7-a031-3b8976df9376' // ПРОДВИНУТЫЙ
   },
   {
     id: 'expert',
     amount: 2500,
     price: 2500,
+    priceUsd: 27.5, // ~2500₽ = $27.5
     offerId: 'ace5ec7e-371e-473c-80f5-cfe4374a4574' // ЭКСПЕРТ
   },
   {
     id: 'master',
     amount: 5000,
     price: 5000,
+    priceUsd: 55, // ~5000₽ = $55
     offerId: '4f758f9b-71ff-47e5-99ff-5244ba9bd80e' // МАСТЕР
   }
 ]
@@ -67,6 +73,8 @@ export function ShopPage() {
     }
   }, [navigate])
 
+  const [selectedCurrency, setSelectedCurrency] = useState<'RUB' | 'USD'>('RUB')
+
   const buyAR = async (pkg: ARPackage) => {
     if (!telegramUser) {
       showToast({ variant: 'error', title: 'Нет данных пользователя' })
@@ -76,9 +84,14 @@ export function ShopPage() {
     setLoading(pkg.id)
 
     try {
+      // Выбираем цену и валюту
+      const amount = selectedCurrency === 'USD' && pkg.priceUsd ? pkg.priceUsd : pkg.price
+      const currency = selectedCurrency
+
       console.log('🔄 Создаю счёт:', {
         telegramId: telegramUser.id,
-        amount: pkg.price
+        amount,
+        currency
       })
 
       const response = await fetch('/api/lava-create-invoice', {
@@ -87,8 +100,8 @@ export function ShopPage() {
         body: JSON.stringify({
           telegramId: telegramUser.id,
           email: `${telegramUser.id}@ararena.pro`,
-          amount: pkg.price,
-          currency: 'RUB',
+          amount,
+          currency,
           offerId: pkg.offerId
         })
       })
@@ -151,9 +164,33 @@ export function ShopPage() {
 
       {/* Заголовок */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-center">
+        <h1 className="text-2xl font-bold text-center mb-4">
           Магазин AR
         </h1>
+        
+        {/* Выбор валюты */}
+        <div className="flex justify-center gap-2 mb-4">
+          <button
+            onClick={() => setSelectedCurrency('RUB')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              selectedCurrency === 'RUB'
+                ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
+                : 'bg-zinc-800 text-white/60'
+            }`}
+          >
+            ₽ RUB
+          </button>
+          <button
+            onClick={() => setSelectedCurrency('USD')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              selectedCurrency === 'USD'
+                ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
+                : 'bg-zinc-800 text-white/60'
+            }`}
+          >
+            $ USD (Apple Pay)
+          </button>
+        </div>
       </div>
 
       {/* Пакеты AR */}
@@ -197,8 +234,15 @@ export function ShopPage() {
               {/* Price */}
               <div className="text-right">
                 <div className="text-3xl font-bold text-white">
-                  {pkg.price} ₽
+                  {selectedCurrency === 'USD' && pkg.priceUsd
+                    ? `$${pkg.priceUsd}`
+                    : `${pkg.price} ₽`}
                 </div>
+                {selectedCurrency === 'USD' && pkg.priceUsd && (
+                  <div className="text-xs text-white/40 line-through">
+                    {pkg.price} ₽
+                  </div>
+                )}
               </div>
             </div>
 
