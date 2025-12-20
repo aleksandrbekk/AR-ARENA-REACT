@@ -93,8 +93,17 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Расчёт AR (1 RUB = 1 AR, можно изменить формулу)
-      const arAmount = Math.floor(amount);
+      // Расчёт AR
+      // Для RUB: 1 RUB = 1 AR
+      // Для USD: 1 USD = ~90 AR (примерный курс, можно настроить)
+      let arAmount;
+      if (currency === 'USD' || currency === 'EUR') {
+        // Конвертируем USD/EUR в AR (примерный курс: $1 = 90 AR)
+        arAmount = Math.floor(amount * 90);
+      } else {
+        // Для RUB: 1 RUB = 1 AR
+        arAmount = Math.floor(amount);
+      }
 
       // Зачисление AR через RPC функцию
       const updateResponse = await fetch(
