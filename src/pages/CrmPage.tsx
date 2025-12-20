@@ -64,7 +64,7 @@ export function CrmPage() {
   const [newClient, setNewClient] = useState({
     telegram_id: '',
     username: '',
-    tariff: '1мес',
+    tariff: '1month',
     amount: '',
     source: 'manual'
   })
@@ -315,9 +315,11 @@ export function CrmPage() {
     try {
       // Определяем количество дней по тарифу
       const daysMap: Record<string, number> = {
-        '1мес': 30,
-        '2мес': 60,
-        '3мес': 90
+        '1month': 30,
+        '2months': 60,
+        '3months': 90,
+        '6months': 180,
+        '12months': 365
       }
       const days = daysMap[newClient.tariff] || 30
 
@@ -365,6 +367,29 @@ export function CrmPage() {
     return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
   }
 
+  // Получить русское название источника
+  const getSourceLabel = (source: string) => {
+    const labels: Record<string, string> = {
+      'manual': 'Вручную',
+      'wheel': 'Рулетка',
+      'direct': 'Напрямую',
+      'referral': 'Реферал'
+    }
+    return labels[source] || source
+  }
+
+  // Получить русское название тарифа
+  const getTariffLabel = (tariff: string) => {
+    const labels: Record<string, string> = {
+      '1month': '1 месяц',
+      '2months': '2 месяца',
+      '3months': '3 месяца',
+      '6months': '6 месяцев',
+      '12months': '12 месяцев'
+    }
+    return labels[tariff] || tariff
+  }
+
   // Доступ запрещён
   if (!isLoading && !isAdmin) {
     return (
@@ -400,7 +425,7 @@ export function CrmPage() {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Заголовок */}
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">CRM</h1>
+            <h1 className="text-2xl font-bold">Премиум клиенты</h1>
             <button
               onClick={() => setShowAddModal(true)}
               className="w-10 h-10 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-lg flex items-center justify-center"
@@ -474,7 +499,7 @@ export function CrmPage() {
                           <span className="text-xs text-[#FFD700]">[VIP]</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-white/80">{client.tariff}</td>
+                      <td className="px-4 py-3 text-white/80">{getTariffLabel(client.tariff)}</td>
                       <td className="px-4 py-3 text-white/80">{formatDate(client.expires_at)}</td>
                       <td className="px-4 py-3">
                         <span className={client.days_left < 7 ? 'text-red-500 font-bold' : 'text-white/80'}>
@@ -526,7 +551,7 @@ export function CrmPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="text-white/60 text-sm mb-1">Тариф:</div>
-                    <div className="text-white">{selectedClient.tariff}</div>
+                    <div className="text-white">{getTariffLabel(selectedClient.tariff)}</div>
                   </div>
                   <div>
                     <div className="text-white/60 text-sm mb-1">Дней осталось:</div>
@@ -560,7 +585,7 @@ export function CrmPage() {
 
                 <div>
                   <div className="text-white/60 text-sm mb-1">Источник:</div>
-                  <div className="text-white">{selectedClient.source || 'manual'}</div>
+                  <div className="text-white">{getSourceLabel(selectedClient.source || 'manual')}</div>
                 </div>
 
                 <div>
@@ -645,7 +670,7 @@ export function CrmPage() {
 
               {/* ИСТОРИЯ ПЛАТЕЖЕЙ */}
               <div>
-                <div className="text-white/60 text-sm mb-2">История платежей:</div>
+                <div className="text-white/60 text-sm mb-2">История платежей</div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {paymentHistory.length === 0 ? (
                     <div className="text-white/40 text-sm">Нет платежей</div>
@@ -657,7 +682,7 @@ export function CrmPage() {
                             <div className="text-white font-medium">${payment.amount} {payment.currency}</div>
                             <div className="text-white/60 text-xs">{formatDate(payment.created_at)}</div>
                           </div>
-                          <div className="text-white/60 text-xs">{payment.source}</div>
+                          <div className="text-white/60 text-xs">{getSourceLabel(payment.source)}</div>
                         </div>
                       </div>
                     ))
@@ -712,9 +737,11 @@ export function CrmPage() {
                     onChange={(e) => setNewClient({ ...newClient, tariff: e.target.value })}
                     className="w-full px-4 py-2 bg-zinc-800 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/30"
                   >
-                    <option value="1мес">1 месяц</option>
-                    <option value="2мес">2 месяца</option>
-                    <option value="3мес">3 месяца</option>
+                    <option value="1month">1 месяц</option>
+                    <option value="2months">2 месяца</option>
+                    <option value="3months">3 месяца</option>
+                    <option value="6months">6 месяцев</option>
+                    <option value="12months">12 месяцев</option>
                   </select>
                 </div>
 
@@ -736,9 +763,10 @@ export function CrmPage() {
                     onChange={(e) => setNewClient({ ...newClient, source: e.target.value })}
                     className="w-full px-4 py-2 bg-zinc-800 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/30"
                   >
-                    <option value="manual">Manual</option>
-                    <option value="wheel">Wheel</option>
-                    <option value="direct">Direct</option>
+                    <option value="manual">Вручную</option>
+                    <option value="wheel">Рулетка</option>
+                    <option value="direct">Напрямую</option>
+                    <option value="referral">Реферал</option>
                   </select>
                 </div>
 

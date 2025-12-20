@@ -115,7 +115,7 @@ export function AdminPage() {
               >
                 <img src="/icons/PARTNERS.png" alt="Users" className="w-8 h-8 object-contain" />
                 <div className="text-center">
-                  <div className="text-white font-medium">Users</div>
+                  <div className="text-white font-medium">Юзеры</div>
                   <div className="text-white/60 text-sm">
                     {loadingStats ? '...' : `${stats.usersCount} юзеров`}
                   </div>
@@ -129,14 +129,14 @@ export function AdminPage() {
               >
                 <img src="/icons/GIVEAWAY.png" alt="Giveaways" className="w-8 h-8 object-contain" />
                 <div className="text-center">
-                  <div className="text-white font-medium">Giveaways</div>
+                  <div className="text-white font-medium">Розыгрыши</div>
                   <div className="text-white/60 text-sm">
                     {loadingStats ? '...' : `${stats.activeGiveawaysCount} активных`}
                   </div>
                 </div>
               </button>
 
-              {/* 3. PREMIUM CLIENTS */}
+              {/* 3. PREMIUM */}
               <button
                 onClick={() => navigate('/crm')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
@@ -146,12 +146,12 @@ export function AdminPage() {
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path d="M12 2L9.5 8.5L2 9L7 13L5.5 20.5L12 17L18.5 20.5L17 13L22 9L14.5 8.5L12 2Z" />
+                  <path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" />
                 </svg>
                 <div className="text-center">
-                  <div className="text-white font-medium">Premium Clients</div>
+                  <div className="text-white font-medium">Премиум</div>
                   <div className="text-white/60 text-sm">
-                    {loadingStats ? '...' : `${stats.activePremiumClientsCount} активных`}
+                    {loadingStats ? '...' : `${stats.activePremiumClientsCount} клиентов`}
                   </div>
                 </div>
               </button>
@@ -175,7 +175,7 @@ export function AdminPage() {
                   />
                 </svg>
                 <div className="text-center">
-                  <div className="text-white font-medium">Event</div>
+                  <div className="text-white font-medium">Событие 22.12</div>
                   <div className="text-white/60 text-sm">Крипто-итоги 2025</div>
                 </div>
               </button>
@@ -187,7 +187,7 @@ export function AdminPage() {
               >
                 <img src="/icons/arcoin.png" alt="Finance" className="w-8 h-8 object-contain" />
                 <div className="text-center">
-                  <div className="text-white font-medium">Finance</div>
+                  <div className="text-white font-medium">Финансы</div>
                 </div>
               </button>
 
@@ -202,7 +202,7 @@ export function AdminPage() {
                   className="w-8 h-8 object-contain"
                 />
                 <div className="text-center">
-                  <div className="text-white font-medium">Settings</div>
+                  <div className="text-white font-medium">Настройки</div>
                 </div>
               </button>
             </div>
