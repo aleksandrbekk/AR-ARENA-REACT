@@ -292,7 +292,7 @@ export function CrmPage() {
 
       showToast({ variant: 'success', title: `Метка "${tag}" добавлена` })
       await loadClients()
-      
+
       // Обновляем выбранного клиента
       const updated = clients.find(c => c.id === selectedClient.id)
       if (updated) {
@@ -300,6 +300,90 @@ export function CrmPage() {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка добавления метки'
+      showToast({ variant: 'error', title: 'Ошибка', description: errorMessage })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // Кикнуть из канала и чата
+  const handleKick = async () => {
+    if (!selectedClient || actionLoading) return
+
+    setActionLoading('kick')
+
+    try {
+      const response = await fetch('https://syxjkircmiwpnpagznay.supabase.co/functions/v1/telegram-channel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g'
+        },
+        body: JSON.stringify({
+          action: 'kick',
+          telegram_id: parseInt(selectedClient.telegram_id)
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      // Обновляем статус в БД
+      await supabase
+        .from('premium_clients')
+        .update({ in_channel: false, in_chat: false })
+        .eq('id', selectedClient.id)
+
+      showToast({ variant: 'success', title: 'Пользователь удалён из канала и чата' })
+      await loadClients()
+
+      setSelectedClient({ ...selectedClient, in_channel: false, in_chat: false })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка удаления'
+      showToast({ variant: 'error', title: 'Ошибка', description: errorMessage })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // Создать инвайт-ссылку
+  const handleInvite = async () => {
+    if (!selectedClient || actionLoading) return
+
+    setActionLoading('invite')
+
+    try {
+      const response = await fetch('https://syxjkircmiwpnpagznay.supabase.co/functions/v1/telegram-channel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g'
+        },
+        body: JSON.stringify({
+          action: 'invite',
+          telegram_id: parseInt(selectedClient.telegram_id)
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      const inviteLink = result.results?.channel?.result?.invite_link
+      if (inviteLink) {
+        // Копируем в буфер обмена
+        await navigator.clipboard.writeText(inviteLink)
+        showToast({ variant: 'success', title: 'Ссылка скопирована', description: inviteLink })
+      } else {
+        showToast({ variant: 'success', title: 'Инвайт создан' })
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка создания инвайта'
       showToast({ variant: 'error', title: 'Ошибка', description: errorMessage })
     } finally {
       setActionLoading(null)
@@ -528,165 +612,184 @@ export function CrmPage() {
 
         {/* МОДАЛКА КЛИЕНТА */}
         {showClientModal && selectedClient && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-4 pb-4 overflow-y-auto">
-            <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-2xl border border-yellow-500/20 mb-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-[#FFD700]">
-                  {selectedClient.username || `@${selectedClient.telegram_id}`}
-                </h2>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4 py-8">
+            <div className="bg-zinc-900 rounded-2xl w-full max-w-md border border-yellow-500/20 max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Шапка */}
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-b from-[#FFD700] to-[#FFA500] rounded-full flex items-center justify-center text-black font-bold text-lg">
+                    {(selectedClient.username || selectedClient.telegram_id)[0]?.toUpperCase()}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">
+                      {selectedClient.username ? `@${selectedClient.username}` : 'Без username'}
+                    </h2>
+                    <div className="text-white/50 text-sm font-mono">{selectedClient.telegram_id}</div>
+                  </div>
+                </div>
                 <button
                   onClick={() => setShowClientModal(false)}
-                  className="text-white/60 hover:text-white text-2xl"
+                  className="w-8 h-8 flex items-center justify-center text-white/60 hover:text-white text-2xl rounded-lg hover:bg-white/10"
                 >
                   ×
                 </button>
               </div>
 
-              <div className="space-y-4 mb-6">
-                <div>
-                  <div className="text-white/60 text-sm mb-1">Telegram ID:</div>
-                  <div className="text-white font-mono">{selectedClient.telegram_id}</div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-white/60 text-sm mb-1">Тариф:</div>
-                    <div className="text-white">{getTariffLabel(selectedClient.tariff)}</div>
+              {/* Контент */}
+              <div className="overflow-y-auto flex-1 p-4 space-y-4">
+                {/* Статус подписки */}
+                <div className="p-3 bg-zinc-800/50 rounded-xl">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white/60 text-sm">Подписка</span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      selectedClient.days_left > 7 ? 'bg-green-500/20 text-green-400' :
+                      selectedClient.days_left > 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-red-500/20 text-red-400'
+                    }`}>
+                      {selectedClient.days_left > 0 ? `${selectedClient.days_left} дн.` : 'Истекла'}
+                    </span>
                   </div>
-                  <div>
-                    <div className="text-white/60 text-sm mb-1">Дней осталось:</div>
-                    <div className={selectedClient.days_left < 7 ? 'text-red-500 font-bold' : 'text-white'}>
-                      {selectedClient.days_left}
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-white/40">До:</span>{' '}
+                      <span className="text-white">{formatDate(selectedClient.expires_at)}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/40">Тариф:</span>{' '}
+                      <span className="text-white">{getTariffLabel(selectedClient.tariff)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-white/60 text-sm mb-1">Начало:</div>
-                    <div className="text-white">{formatDate(selectedClient.start_date)}</div>
+                {/* Статус в канале/чате */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className={`p-3 rounded-xl text-center ${selectedClient.in_channel ? 'bg-green-500/10 border border-green-500/30' : 'bg-zinc-800/50 border border-white/5'}`}>
+                    <div className="text-2xl mb-1">{selectedClient.in_channel ? '✅' : '❌'}</div>
+                    <div className="text-xs text-white/60">Канал</div>
                   </div>
-                  <div>
-                    <div className="text-white/60 text-sm mb-1">Окончание:</div>
-                    <div className="text-white">{formatDate(selectedClient.expires_at)}</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-white/60 text-sm mb-1">Всего заплатил:</div>
-                    <div className="text-[#FFD700] font-bold">${selectedClient.total_paid || 0}</div>
-                  </div>
-                  <div>
-                    <div className="text-white/60 text-sm mb-1">Платежей:</div>
-                    <div className="text-white">{selectedClient.payments_count || 0}</div>
+                  <div className={`p-3 rounded-xl text-center ${selectedClient.in_chat ? 'bg-green-500/10 border border-green-500/30' : 'bg-zinc-800/50 border border-white/5'}`}>
+                    <div className="text-2xl mb-1">{selectedClient.in_chat ? '✅' : '❌'}</div>
+                    <div className="text-xs text-white/60">Чат</div>
                   </div>
                 </div>
 
-                <div>
-                  <div className="text-white/60 text-sm mb-1">Источник:</div>
-                  <div className="text-white">{getSourceLabel(selectedClient.source || 'manual')}</div>
+                {/* Финансы */}
+                <div className="p-3 bg-zinc-800/50 rounded-xl">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/60 text-sm">Всего оплачено</span>
+                    <span className="text-[#FFD700] font-bold text-lg">${selectedClient.total_paid || 0}</span>
+                  </div>
                 </div>
 
-                <div>
-                  <div className="text-white/60 text-sm mb-1">Метки:</div>
+                {/* Метки */}
+                {selectedClient.tags && selectedClient.tags.length > 0 && (
                   <div className="flex gap-2 flex-wrap">
-                    {selectedClient.tags?.map((tag) => (
-                      <span key={tag} className="px-2 py-1 bg-yellow-500/20 text-yellow-500 text-xs rounded">
+                    {selectedClient.tags.map((tag) => (
+                      <span key={tag} className="px-2 py-1 bg-yellow-500/20 text-yellow-500 text-xs rounded-lg">
                         {tag}
                       </span>
                     ))}
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* ДЕЙСТВИЯ */}
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <button
-                  onClick={() => handleAddDays(30)}
-                  disabled={actionLoading === 'add-30'}
-                  className="px-4 py-2 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-lg disabled:opacity-50"
-                >
-                  {actionLoading === 'add-30' ? '...' : '+30 дней'}
-                </button>
-                <button
-                  onClick={() => handleAddDays(7)}
-                  disabled={actionLoading === 'add-7'}
-                  className="px-4 py-2 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-lg disabled:opacity-50"
-                >
-                  {actionLoading === 'add-7' ? '...' : '+7 дней'}
-                </button>
-                <button
-                  onClick={() => showToast({ variant: 'info', title: 'Функция в разработке' })}
-                  className="px-4 py-2 bg-zinc-800 text-white rounded-lg"
-                >
-                  Добавить в канал
-                </button>
-                <button
-                  onClick={() => showToast({ variant: 'info', title: 'Функция в разработке' })}
-                  className="px-4 py-2 bg-zinc-800 text-white rounded-lg"
-                >
-                  Удалить из канала
-                </button>
-              </div>
-
-              {/* ДОБАВИТЬ МЕТКУ */}
-              <div className="mb-6">
-                <div className="text-white/60 text-sm mb-2">Добавить метку:</div>
-                <div className="flex gap-2">
-                  {['VIP', 'проблемный', 'заморожен'].map((tag) => (
+                {/* Действия с подпиской */}
+                <div>
+                  <div className="text-white/60 text-xs mb-2 uppercase tracking-wide">Продлить</div>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
-                      key={tag}
-                      onClick={() => handleAddTag(tag)}
-                      disabled={actionLoading?.startsWith('tag-')}
-                      className="px-3 py-1 bg-zinc-800 text-white text-sm rounded-lg disabled:opacity-50"
+                      onClick={() => handleAddDays(7)}
+                      disabled={actionLoading === 'add-7'}
+                      className="py-2.5 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl disabled:opacity-50 active:scale-95 transition-transform text-sm"
                     >
-                      {tag}
+                      {actionLoading === 'add-7' ? '...' : '+7 дней'}
                     </button>
-                  ))}
+                    <button
+                      onClick={() => handleAddDays(30)}
+                      disabled={actionLoading === 'add-30'}
+                      className="py-2.5 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl disabled:opacity-50 active:scale-95 transition-transform text-sm"
+                    >
+                      {actionLoading === 'add-30' ? '...' : '+30 дней'}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* ЗАМЕТКА */}
-              <div className="mb-6">
-                <div className="text-white/60 text-sm mb-2">Заметка:</div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Введите заметку..."
-                    className="flex-1 px-4 py-2 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
-                  />
-                  <button
-                    onClick={handleSaveNote}
-                    disabled={actionLoading === 'note'}
-                    className="px-4 py-2 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-lg disabled:opacity-50"
-                  >
-                    {actionLoading === 'note' ? '...' : 'Сохранить'}
-                  </button>
+                {/* Действия с каналом */}
+                <div>
+                  <div className="text-white/60 text-xs mb-2 uppercase tracking-wide">Канал</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleInvite()}
+                      disabled={actionLoading === 'invite'}
+                      className="py-2.5 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl disabled:opacity-50 active:scale-95 transition-all text-sm"
+                    >
+                      {actionLoading === 'invite' ? '...' : 'Инвайт'}
+                    </button>
+                    <button
+                      onClick={() => handleKick()}
+                      disabled={actionLoading === 'kick'}
+                      className="py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl disabled:opacity-50 active:scale-95 transition-all text-sm"
+                    >
+                      {actionLoading === 'kick' ? '...' : 'Кикнуть'}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* ИСТОРИЯ ПЛАТЕЖЕЙ */}
-              <div>
-                <div className="text-white/60 text-sm mb-2">История платежей</div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {paymentHistory.length === 0 ? (
-                    <div className="text-white/40 text-sm">Нет платежей</div>
-                  ) : (
-                    paymentHistory.map((payment) => (
-                      <div key={payment.id} className="p-3 bg-zinc-800/50 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <div className="text-white font-medium">${payment.amount} {payment.currency}</div>
-                            <div className="text-white/60 text-xs">{formatDate(payment.created_at)}</div>
+                {/* Метки */}
+                <div>
+                  <div className="text-white/60 text-xs mb-2 uppercase tracking-wide">Добавить метку</div>
+                  <div className="flex gap-2 flex-wrap">
+                    {['VIP', 'проблемный', 'заморожен'].map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => handleAddTag(tag)}
+                        disabled={actionLoading?.startsWith('tag-')}
+                        className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Заметка */}
+                <div>
+                  <div className="text-white/60 text-xs mb-2 uppercase tracking-wide">Заметка</div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="Введите заметку..."
+                      className="flex-1 px-3 py-2 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30 text-sm"
+                    />
+                    <button
+                      onClick={handleSaveNote}
+                      disabled={actionLoading === 'note'}
+                      className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white font-medium rounded-lg disabled:opacity-50 text-sm transition-colors"
+                    >
+                      {actionLoading === 'note' ? '...' : 'OK'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* История платежей */}
+                <div>
+                  <div className="text-white/60 text-xs mb-2 uppercase tracking-wide">Платежи</div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {paymentHistory.length === 0 ? (
+                      <div className="text-white/40 text-sm p-3 bg-zinc-800/30 rounded-lg text-center">Нет платежей</div>
+                    ) : (
+                      paymentHistory.map((payment) => (
+                        <div key={payment.id} className="p-2 bg-zinc-800/50 rounded-lg flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#FFD700] font-medium">${payment.amount}</span>
+                            <span className="text-white/40 text-xs">{formatDate(payment.created_at)}</span>
                           </div>
-                          <div className="text-white/60 text-xs">{getSourceLabel(payment.source)}</div>
+                          <span className="text-white/40 text-xs">{getSourceLabel(payment.source)}</span>
                         </div>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
