@@ -695,8 +695,8 @@ export function CrmPage() {
 
         {/* МОДАЛКА ДОБАВЛЕНИЯ КЛИЕНТА */}
         {showAddModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-4 pb-4 overflow-y-auto">
-            <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-md border border-yellow-500/20 mb-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-[80px] pb-4 overflow-y-auto">
+            <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-md border border-yellow-500/20 mb-4 max-h-[calc(100vh-6rem)] overflow-y-auto mt-4">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-[#FFD700]">Добавить клиента</h2>
                 <button
