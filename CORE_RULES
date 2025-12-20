@@ -166,14 +166,20 @@ padding-top: 60px;
 
 ## 🤖 АВТОМАТИЗАЦИЯ
 
-Если задача требует действия в браузере/сервисе — используй MCP:
+Если задача требует действия в браузере/сервисе — используй MCP Browser Tools:
 
 | Задача | Инструмент |
 |--------|------------|
-| SQL в Supabase | Playwright → SQL Editor |
-| Проверка сайта | Playwright / Control Chrome |
+| SQL в Supabase | **MCP Browser** → Supabase Dashboard → SQL Editor |
+| Проверка сайта | MCP Browser / Playwright |
 | Файлы на сервере | SSH через bash |
 | Деплой | scp команда |
+
+**⚠️ ВАЖНО:** Для Supabase ВСЕГДА используй браузер через MCP:
+1. Открывай Supabase Dashboard через `browser_navigate`
+2. Входи через GitHub (данные в разделе ДОСТУПЫ)
+3. Выполняй SQL через SQL Editor
+4. НЕ используй Playwright скрипты — только MCP Browser Tools
 
 ---
 
@@ -274,6 +280,10 @@ git push
 ## 🔑 ДОСТУПЫ
 
 - **Supabase:** syxjkircmiwpnpagznay.supabase.co
+  - **Вход через GitHub:**
+    - Email: aleksandrbekk@bk.ru
+    - Password: xYrsyp-6jyhgy-gubjyc
+  - **Подключение:** Всегда через браузер (MCP browser tools)
 - **Vercel:** https://vercel.com (через GitHub)
 - **GitHub:** aleksandrbekk/AR-ARENA-REACT
 
