@@ -24,6 +24,7 @@ interface Tariff {
   oldPrice: number | null
   discount: string | null
   badge: string | null
+  cardImage: string
   auroraColors: [string, string]
   auroraOpacity: number
   auroraBlur: number
@@ -46,6 +47,7 @@ const tariffs: Tariff[] = [
     oldPrice: null,
     discount: null,
     badge: null,
+    cardImage: '/cards/classic.png',
     auroraColors: ['#4a4a4a', '#2a2a2a'],
     auroraOpacity: 0.3,
     auroraBlur: 15,
@@ -71,6 +73,7 @@ const tariffs: Tariff[] = [
     oldPrice: 12000,
     discount: '-15%',
     badge: null,
+    cardImage: '/cards/gold.png',
     auroraColors: ['#C9A962', '#FFA500'],
     auroraOpacity: 0.5,
     auroraBlur: 20,
@@ -93,6 +96,7 @@ const tariffs: Tariff[] = [
     oldPrice: 24000,
     discount: '-20%',
     badge: 'ПОПУЛЯРНЫЙ',
+    cardImage: '/cards/platinum.png',
     auroraColors: ['#7B68EE', '#06B6D4'],
     auroraOpacity: 0.7,
     auroraBlur: 25,
@@ -116,6 +120,7 @@ const tariffs: Tariff[] = [
     oldPrice: 48000,
     discount: '-30%',
     badge: 'VIP',
+    cardImage: '/cards/PRIVATE.png',
     auroraColors: ['#9F1239', '#BE123C'],
     auroraOpacity: 0.6,
     auroraBlur: 22,
@@ -267,7 +272,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           {/* Badge - скидка */}
           {tariff.discount && (
             <div
-              className="absolute top-3 right-3 md:top-4 md:right-4 px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold"
+              className="absolute top-3 right-3 md:top-4 md:right-4 px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold z-10"
               style={{
                 background: `${tariff.auroraColors[0]}20`,
                 color: tariff.auroraColors[0]
@@ -277,13 +282,32 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
             </div>
           )}
 
-          {/* Название */}
-          <h3
-            className="text-lg md:text-xl font-semibold tracking-wider mb-1"
-            style={{ color: isFeatured ? tariff.auroraColors[0] : '#ffffff' }}
-          >
-            {tariff.name}
-          </h3>
+          {/* Карта + Название */}
+          <div className="flex items-center gap-3 mb-1">
+            {/* Изображение карты */}
+            <motion.div
+              className="relative w-12 h-8 md:w-14 md:h-9 flex-shrink-0"
+              whileHover={{ scale: 1.05, rotate: -2 }}
+              transition={{ duration: 0.2 }}
+            >
+              <img
+                src={tariff.cardImage}
+                alt={`${tariff.name} card`}
+                className="w-full h-full object-contain drop-shadow-lg"
+                style={{
+                  filter: `drop-shadow(0 4px 8px ${tariff.auroraColors[0]}30)`
+                }}
+              />
+            </motion.div>
+
+            {/* Название */}
+            <h3
+              className="text-lg md:text-xl font-semibold tracking-wider"
+              style={{ color: isFeatured ? tariff.auroraColors[0] : '#ffffff' }}
+            >
+              {tariff.name}
+            </h3>
+          </div>
 
           {/* Срок */}
           <div className="text-gray-500 text-xs md:text-sm mb-4 md:mb-6">{tariff.duration}</div>
