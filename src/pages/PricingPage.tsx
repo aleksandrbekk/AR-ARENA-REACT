@@ -105,7 +105,7 @@ const tariffs: Tariff[] = [
       'Шаблон риск-менеджмента',
       '+1 месяц бесплатно'
     ],
-    buttonStyle: 'fill',
+    buttonStyle: 'outline',
     buttonColor: '#7B68EE'
   },
   {
@@ -117,7 +117,7 @@ const tariffs: Tariff[] = [
     oldPrice: 48000,
     discount: '-30%',
     badge: 'VIP',
-    auroraColors: ['#8B5CF6', '#EC4899'],
+    auroraColors: ['#8B5CF6', '#A855F7'],
     auroraOpacity: 0.6,
     auroraBlur: 22,
     auroraSpeed: 7,
@@ -130,7 +130,7 @@ const tariffs: Tariff[] = [
       '+2 месяца бесплатно'
     ],
     buttonStyle: 'outline',
-    buttonColor: '#EC4899'
+    buttonColor: '#8B5CF6'
   }
 ]
 
