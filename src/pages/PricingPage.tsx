@@ -223,14 +223,14 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
   return (
     <motion.div
-      className={`relative ${isFeatured ? 'md:scale-105 md:z-10' : ''}`}
+      className={`relative h-full ${isFeatured ? 'md:scale-105 md:z-10' : ''}`}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
     >
       {/* Aurora glow container */}
       <div
-        className="relative rounded-xl overflow-hidden"
+        className="relative rounded-xl overflow-hidden h-full"
         style={{
           background: '#08080a'
         }}
@@ -263,7 +263,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
         />
 
         {/* Content */}
-        <div className={`relative z-[2] p-5 md:${isFeatured ? 'p-8' : 'p-6'}`}>
+        <div className={`relative z-[2] p-5 md:p-6 h-full flex flex-col`}>
           {/* Badge - скидка */}
           {tariff.discount && (
             <div
@@ -344,9 +344,15 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
             </div>
           )}
 
-          {/* Дополнительные бонусы */}
+          {/* Дополнительные бонусы в плашке */}
           {tariff.bonuses.length > 0 && (
-            <div className="space-y-2 mb-4 md:mb-6">
+            <div
+              className="space-y-2 mb-4 md:mb-6 p-3 md:p-4 rounded-lg"
+              style={{
+                background: `${tariff.auroraColors[0]}08`,
+                border: `1px solid ${tariff.auroraColors[0]}15`
+              }}
+            >
               {tariff.bonuses.map((bonus, i) => (
                 <div key={i} className="flex items-start gap-2 text-xs md:text-sm">
                   <svg
@@ -364,6 +370,9 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
               ))}
             </div>
           )}
+
+          {/* Spacer для выравнивания кнопок */}
+          <div className="flex-grow" />
 
           {/* Кнопка */}
           <motion.button
