@@ -468,64 +468,6 @@ export function PricingPage() {
             ))}
           </div>
 
-          {/* Footer - Stats Banner */}
-          <motion.footer
-            className="text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
-            {/* Выделенная плашка статистики */}
-            <div className="relative inline-block w-full max-w-2xl mx-auto">
-              {/* Aurora glow для плашки */}
-              <div
-                className="absolute inset-[-1px] rounded-2xl"
-                style={{
-                  background: 'conic-gradient(from 0deg, rgba(123,104,238,0.3), rgba(6,182,212,0.3), rgba(139,92,246,0.3), rgba(123,104,238,0.3))',
-                  filter: 'blur(15px)',
-                  opacity: 0.5,
-                  animation: 'aurora-rotate 12s linear infinite'
-                }}
-              />
-
-              {/* Внутренний фон плашки */}
-              <div
-                className="relative rounded-2xl px-4 py-4 md:px-8 md:py-5"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(20,20,25,0.95) 0%, rgba(10,10,15,0.95) 100%)',
-                  border: '1px solid rgba(123,104,238,0.2)'
-                }}
-              >
-                {/* Статистика */}
-                <div className="flex items-center justify-center gap-3 md:gap-6 text-xs md:text-sm flex-wrap">
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <span className="text-[#7B68EE] font-semibold">82.2%</span>
-                    <span className="text-gray-400">точность</span>
-                  </div>
-                  <span className="w-1 h-1 rounded-full bg-[#7B68EE]/50 hidden md:block" />
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <span className="text-[#06B6D4] font-semibold">5000+</span>
-                    <span className="text-gray-400">участников</span>
-                  </div>
-                  <span className="w-1 h-1 rounded-full bg-[#06B6D4]/50 hidden md:block" />
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <span className="text-[#8B5CF6] font-semibold">900+</span>
-                    <span className="text-gray-400">материалов</span>
-                  </div>
-                  <span className="w-1 h-1 rounded-full bg-[#8B5CF6]/50 hidden md:block" />
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <span className="text-gray-300 font-medium">С 2022</span>
-                    <span className="text-gray-500">года</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Подпись под плашкой */}
-            <div className="text-gray-600 text-[10px] md:text-xs mt-4">
-              Акция действует 96 часов с начала эфира 23.12
-            </div>
-          </motion.footer>
         </div>
       </div>
     </>
