@@ -15,7 +15,7 @@ interface PromocodeResult {
 export function EventWheelPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
-  const [screen, setScreen] = useState<Screen>('code')
+  const [screen, setScreen] = useState<Screen>('wheel')
   const [code, setCode] = useState<string[]>(['', '', '', ''])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -36,10 +36,8 @@ export function EventWheelPage() {
   useEffect(() => {
     if (tg) {
       const handleBack = () => {
-        if (screen === 'code') {
+        if (screen === 'wheel') {
           navigate('/')
-        } else if (screen === 'wheel') {
-          setScreen('code')
         } else {
           setScreen('wheel')
         }
