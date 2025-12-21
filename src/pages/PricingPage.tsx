@@ -76,13 +76,7 @@ const tariffs: Tariff[] = [
     auroraBlur: 20,
     auroraSpeed: 8,
     isFeatured: false,
-    baseFeatures: [
-      'Торговые сигналы (82% точность)',
-      'Авторская аналитика',
-      '900+ обучающих материалов',
-      'Закрытый чат клуба',
-      'AMA-сессии с Алексеем'
-    ],
+    baseFeatures: [],
     bonuses: [
       'Запись эфира "Крипто-итоги 2025"',
       'Портфель 2025 (PDF)',
@@ -105,16 +99,8 @@ const tariffs: Tariff[] = [
     auroraBlur: 25,
     auroraSpeed: 6,
     isFeatured: true,
-    baseFeatures: [
-      'Торговые сигналы (82% точность)',
-      'Авторская аналитика',
-      '900+ обучающих материалов',
-      'Закрытый чат клуба',
-      'AMA-сессии с Алексеем'
-    ],
+    baseFeatures: [],
     bonuses: [
-      'Запись эфира "Крипто-итоги 2025"',
-      'Портфель 2025 (PDF)',
       'Чек-лист "Антискам"',
       'Шаблон риск-менеджмента',
       '+1 месяц бесплатно'
@@ -136,18 +122,8 @@ const tariffs: Tariff[] = [
     auroraBlur: 22,
     auroraSpeed: 7,
     isFeatured: false,
-    baseFeatures: [
-      'Торговые сигналы (82% точность)',
-      'Авторская аналитика',
-      '900+ обучающих материалов',
-      'Закрытый чат клуба',
-      'AMA-сессии с Алексеем'
-    ],
+    baseFeatures: [],
     bonuses: [
-      'Запись эфира "Крипто-итоги 2025"',
-      'Портфель 2025 (PDF)',
-      'Чек-лист "Антискам"',
-      'Шаблон риск-менеджмента',
       'VIP-чат с Алексеем',
       'Welcome-созвон 15 мин',
       'Персональный разбор портфеля',
@@ -157,6 +133,13 @@ const tariffs: Tariff[] = [
     buttonColor: '#EC4899'
   }
 ]
+
+// Названия предыдущих тарифов для каскада
+const previousTariff: Record<string, string> = {
+  gold: 'CLASSIC',
+  platinum: 'GOLD',
+  private: 'PLATINUM'
+}
 
 // ============ ТАЙМЕР ============
 const Timer = ({ deadline }: { deadline: string }) => {
@@ -339,12 +322,39 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           {/* Разделитель */}
           <div className="h-px bg-white/10 mb-4 md:mb-6" />
 
-          {/* Базовые функции */}
-          <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
-            {tariff.baseFeatures.map((feature, i) => (
-              <div key={i} className="flex items-start gap-2 md:gap-3 text-xs md:text-sm">
+          {/* Базовые функции (только для CLASSIC) */}
+          {tariff.baseFeatures.length > 0 && (
+            <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
+              {tariff.baseFeatures.map((feature, i) => (
+                <div key={i} className="flex items-start gap-2 md:gap-3 text-xs md:text-sm">
+                  <svg
+                    className="w-4 h-4 md:w-5 md:h-5 mt-0.5 flex-shrink-0"
+                    style={{ color: tariff.auroraColors[0] }}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-gray-300">{feature}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Каскадная структура: "Всё из [тарифа] +" */}
+          {previousTariff[tariff.id] && (
+            <div className="mb-4 md:mb-5">
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs md:text-sm"
+                style={{
+                  background: `${tariff.auroraColors[0]}10`,
+                  border: `1px solid ${tariff.auroraColors[0]}30`
+                }}
+              >
                 <svg
-                  className="w-4 h-4 md:w-5 md:h-5 mt-0.5 flex-shrink-0"
+                  className="w-4 h-4"
                   style={{ color: tariff.auroraColors[0] }}
                   fill="none"
                   viewBox="0 0 24 24"
@@ -353,14 +363,17 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-gray-300">{feature}</span>
+                <span className="text-gray-300">
+                  Всё из <span style={{ color: tariff.auroraColors[0] }}>{previousTariff[tariff.id]}</span>
+                </span>
+                <span style={{ color: tariff.auroraColors[0] }}>+</span>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
 
-          {/* Бонусы */}
+          {/* Дополнительные бонусы */}
           {tariff.bonuses.length > 0 && (
-            <div className="space-y-2 mb-4 md:mb-6 p-3 md:p-4 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+            <div className="space-y-2 mb-4 md:mb-6">
               {tariff.bonuses.map((bonus, i) => (
                 <div key={i} className="flex items-start gap-2 text-xs md:text-sm">
                   <svg
@@ -371,9 +384,9 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
                     stroke="currentColor"
                     strokeWidth={2}
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                   </svg>
-                  <span className="text-gray-400">{bonus}</span>
+                  <span className="text-gray-300">{bonus}</span>
                 </div>
               ))}
             </div>
