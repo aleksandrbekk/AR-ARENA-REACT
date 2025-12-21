@@ -292,7 +292,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           {/* Название */}
           <h3
             className="text-lg md:text-xl font-semibold tracking-wider mb-1"
-            style={{ color: isFeatured ? tariff.auroraColors[0] : '#ffffff' }}
+            style={{ color: tariff.auroraColors[0] }}
           >
             {tariff.name}
           </h3>
@@ -386,24 +386,14 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
             href="https://app.lava.top/products/d42513b3-8c4e-416e-b3cd-68a212a0a36e/d6edc26e-00b2-4fe0-9b0b-45fd7548b037"
             target="_blank"
             rel="noopener noreferrer"
-            className={`w-full py-3 md:py-3.5 rounded-lg text-sm md:text-base font-medium transition-all text-center block ${
-              tariff.buttonStyle === 'fill'
-                ? 'text-white'
-                : 'bg-transparent'
-            }`}
-            style={
-              tariff.buttonStyle === 'fill'
-                ? { background: tariff.buttonColor }
-                : {
-                    border: `1px solid ${tariff.buttonColor}60`,
-                    color: tariff.buttonColor
-                  }
-            }
+            className="w-full py-3 md:py-3.5 rounded-lg text-sm md:text-base font-medium transition-all text-center block text-white"
+            style={{
+              border: `1px solid ${tariff.auroraColors[0]}50`,
+              background: `${tariff.auroraColors[0]}15`
+            }}
             whileHover={{
               scale: 1.02,
-              boxShadow: tariff.buttonStyle === 'fill'
-                ? `0 0 20px ${tariff.buttonColor}40`
-                : 'none'
+              boxShadow: `0 0 20px ${tariff.auroraColors[0]}30`
             }}
             whileTap={{ scale: 0.98 }}
           >
