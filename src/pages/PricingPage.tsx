@@ -146,26 +146,6 @@ const previousTariff: Record<string, string> = {
 }
 
 // ============ ТАЙМЕР ============
-const TimerBlock = ({ value, label }: { value: string; label: string }) => (
-  <div className="flex flex-col items-center">
-    <div
-      className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-lg flex items-center justify-center text-xl sm:text-2xl md:text-3xl font-bold text-white"
-      style={{
-        background: 'linear-gradient(135deg, rgba(201,169,98,0.15) 0%, rgba(255,215,0,0.08) 100%)',
-        border: '1px solid rgba(201,169,98,0.3)',
-        boxShadow: '0 4px 20px rgba(201,169,98,0.1)'
-      }}
-    >
-      {value}
-    </div>
-    <span className="text-[10px] sm:text-xs text-white/40 mt-1.5 uppercase tracking-wider">{label}</span>
-  </div>
-)
-
-const TimerSeparator = () => (
-  <span className="text-white/30 text-xl sm:text-2xl font-light mb-4">:</span>
-)
-
 const Timer = ({ deadline }: { deadline: string }) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
@@ -191,22 +171,30 @@ const Timer = ({ deadline }: { deadline: string }) => {
 
   const pad = (n: number) => n.toString().padStart(2, '0')
 
+  const timeString = timeLeft.days > 0
+    ? `${timeLeft.days}д ${pad(timeLeft.hours)}:${pad(timeLeft.minutes)}:${pad(timeLeft.seconds)}`
+    : `${pad(timeLeft.hours)}:${pad(timeLeft.minutes)}:${pad(timeLeft.seconds)}`
+
   return (
-    <div className="flex flex-col items-center gap-3">
-      <span className="text-white/50 text-xs sm:text-sm tracking-wider">До конца акции</span>
-      <div className="flex items-center gap-2 sm:gap-3">
-        {timeLeft.days > 0 && (
-          <>
-            <TimerBlock value={String(timeLeft.days)} label="дней" />
-            <TimerSeparator />
-          </>
-        )}
-        <TimerBlock value={pad(timeLeft.hours)} label="часов" />
-        <TimerSeparator />
-        <TimerBlock value={pad(timeLeft.minutes)} label="минут" />
-        <TimerSeparator />
-        <TimerBlock value={pad(timeLeft.seconds)} label="секунд" />
+    <div className="flex items-center justify-center gap-3 sm:gap-4">
+      <div className="h-px w-8 sm:w-12 md:w-16 bg-gradient-to-r from-transparent to-white/20" />
+      <div className="text-center">
+        <div
+          className="text-2xl sm:text-3xl md:text-4xl font-light tracking-[0.15em] sm:tracking-[0.2em]"
+          style={{
+            background: 'linear-gradient(180deg, #ffffff 0%, #999999 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}
+        >
+          {timeString}
+        </div>
+        <div className="text-[10px] sm:text-xs text-white/30 tracking-[0.3em] uppercase mt-1">
+          до конца акции
+        </div>
       </div>
+      <div className="h-px w-8 sm:w-12 md:w-16 bg-gradient-to-l from-transparent to-white/20" />
     </div>
   )
 }
