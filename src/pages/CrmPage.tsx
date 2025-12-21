@@ -73,6 +73,9 @@ export function CrmPage() {
 
   // Форма заметки
   const [note, setNote] = useState('')
+  
+  // Ползунок дней
+  const [daysSlider, setDaysSlider] = useState(30)
 
   // Проверка доступа
   const isAdmin = telegramUser?.id === 190202791
@@ -199,6 +202,7 @@ export function CrmPage() {
   const handleClientClick = async (client: PremiumClient) => {
     setSelectedClient(client)
     setNote(client.note || '')
+    setDaysSlider(30) // Сброс ползунка на 30 дней
     setShowClientModal(true)
     await loadPaymentHistory(client.telegram_id)
   }
@@ -622,8 +626,8 @@ export function CrmPage() {
 
         {/* МОДАЛКА КЛИЕНТА */}
         {showClientModal && selectedClient && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4 py-8">
-            <div className="bg-zinc-900 rounded-2xl w-full max-w-md border border-yellow-500/20 max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 mx-4">
+            <div className="bg-zinc-900 rounded-2xl w-full max-w-md border border-yellow-500/20 max-h-[85vh] overflow-hidden flex flex-col pt-4 pb-[env(safe-area-inset-bottom,20px)]">
               {/* Шапка */}
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <div className="flex items-center gap-3">
@@ -702,24 +706,49 @@ export function CrmPage() {
                   </div>
                 )}
 
-                {/* Действия с подпиской */}
+                {/* Ползунок дней */}
                 <div>
-                  <div className="text-white/60 text-xs mb-2 uppercase tracking-wide">Продлить</div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="text-white/60 text-xs mb-2 uppercase tracking-wide">Добавить дней</div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="1"
+                      max="365"
+                      value={daysSlider}
+                      onChange={(e) => setDaysSlider(parseInt(e.target.value))}
+                      className="flex-1 h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-[#FFD700]"
+                    />
+                    <span className="text-white font-medium text-sm min-w-[3rem] text-right">{daysSlider} дн.</span>
                     <button
-                      onClick={() => handleAddDays(7)}
-                      disabled={actionLoading === 'add-7'}
-                      className="py-2.5 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl disabled:opacity-50 active:scale-95 transition-transform text-sm"
+                      onClick={() => handleAddDays(daysSlider)}
+                      disabled={actionLoading === `add-${daysSlider}`}
+                      className="px-4 py-2 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-lg disabled:opacity-50 active:scale-95 transition-transform text-sm whitespace-nowrap"
                     >
-                      {actionLoading === 'add-7' ? '...' : '+7 дней'}
+                      {actionLoading === `add-${daysSlider}` ? '...' : 'Добавить'}
                     </button>
-                    <button
-                      onClick={() => handleAddDays(30)}
-                      disabled={actionLoading === 'add-30'}
-                      className="py-2.5 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl disabled:opacity-50 active:scale-95 transition-transform text-sm"
-                    >
-                      {actionLoading === 'add-30' ? '...' : '+30 дней'}
-                    </button>
+                  </div>
+                </div>
+
+                {/* Быстрые кнопки месяцев */}
+                <div>
+                  <div className="text-white/60 text-xs mb-2 uppercase tracking-wide">Быстро</div>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      { label: '+1 мес', days: 30 },
+                      { label: '+2 мес', days: 60 },
+                      { label: '+3 мес', days: 90 },
+                      { label: '+6 мес', days: 180 },
+                      { label: '+12 мес', days: 365 }
+                    ].map(({ label, days }) => (
+                      <button
+                        key={days}
+                        onClick={() => handleAddDays(days)}
+                        disabled={actionLoading === `add-${days}`}
+                        className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+                      >
+                        {actionLoading === `add-${days}` ? '...' : label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
