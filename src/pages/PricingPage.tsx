@@ -269,16 +269,23 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
         {/* Content */}
         <div className={`relative z-[2] p-5 md:p-6 h-full flex flex-col`}>
-          {/* Badge - скидка */}
-          {tariff.discount && (
+          {/* Badge - скидка + старая цена */}
+          {tariff.discount && tariff.oldPrice && (
             <div
-              className="absolute top-3 right-3 md:top-4 md:right-4 px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold z-10"
-              style={{
-                background: `${tariff.auroraColors[0]}20`,
-                color: tariff.auroraColors[0]
-              }}
+              className="absolute top-3 right-3 md:top-4 md:right-4 flex items-center gap-2 z-10"
             >
-              {tariff.discount}
+              <span className="text-gray-500 text-[10px] md:text-xs line-through">
+                {tariff.oldPrice.toLocaleString('ru-RU')} ₽
+              </span>
+              <span
+                className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold"
+                style={{
+                  background: `${tariff.auroraColors[0]}20`,
+                  color: tariff.auroraColors[0]
+                }}
+              >
+                {tariff.discount}
+              </span>
             </div>
           )}
 
@@ -314,17 +321,12 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
           {/* Цена */}
           <div className="mb-4 md:mb-6">
-            <div className="flex items-baseline gap-2 flex-wrap">
+            <div className="flex items-baseline gap-1">
               <span className="text-3xl md:text-5xl font-bold text-white">
                 {tariff.price.toLocaleString('ru-RU')}
               </span>
               <span className="text-gray-500 text-base md:text-lg">₽</span>
               <span className="text-gray-600 text-xs md:text-sm">{tariff.durationShort}</span>
-              {tariff.oldPrice && (
-                <span className="text-gray-600 text-xs md:text-sm line-through ml-1">
-                  {tariff.oldPrice.toLocaleString('ru-RU')} ₽
-                </span>
-              )}
             </div>
           </div>
 
