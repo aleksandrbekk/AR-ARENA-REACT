@@ -289,35 +289,34 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
             </div>
           )}
 
-          {/* Карта + Название */}
-          <div className="flex items-center gap-3 mb-1">
-            {/* Изображение карты */}
-            <motion.div
-              className="relative w-12 h-8 md:w-14 md:h-9 flex-shrink-0"
-              whileHover={{ scale: 1.05, rotate: -2 }}
-              transition={{ duration: 0.2 }}
-            >
-              <img
-                src={tariff.cardImage}
-                alt={`${tariff.name} card`}
-                className="w-full h-full object-contain drop-shadow-lg"
-                style={{
-                  filter: `drop-shadow(0 4px 8px ${tariff.auroraColors[0]}30)`
-                }}
-              />
-            </motion.div>
+          {/* Изображение карты - по центру сверху */}
+          <motion.div
+            className="flex justify-center mb-4"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.3 }}
+          >
+            <img
+              src={tariff.cardImage}
+              alt={`${tariff.name} card`}
+              className="w-28 md:w-40 h-auto drop-shadow-lg transition-all duration-300"
+              style={{
+                filter: (tariff.id === 'platinum' || tariff.id === 'private')
+                  ? `drop-shadow(0 0 20px ${tariff.auroraColors[0]}40)`
+                  : `drop-shadow(0 8px 16px rgba(0,0,0,0.4))`
+              }}
+            />
+          </motion.div>
 
-            {/* Название */}
-            <h3
-              className="text-lg md:text-xl font-semibold tracking-wider"
-              style={{ color: isFeatured ? tariff.auroraColors[0] : '#ffffff' }}
-            >
-              {tariff.name}
-            </h3>
-          </div>
+          {/* Название */}
+          <h3
+            className="text-lg md:text-xl font-semibold tracking-wider text-center mb-1"
+            style={{ color: isFeatured ? tariff.auroraColors[0] : '#ffffff' }}
+          >
+            {tariff.name}
+          </h3>
 
           {/* Срок */}
-          <div className="text-gray-500 text-xs md:text-sm mb-4 md:mb-6">{tariff.duration}</div>
+          <div className="text-gray-500 text-xs md:text-sm mb-4 md:mb-6 text-center">{tariff.duration}</div>
 
           {/* Цена */}
           <div className="mb-4 md:mb-6">
