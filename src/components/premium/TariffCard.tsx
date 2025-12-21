@@ -1,4 +1,5 @@
 import React from 'react'
+import { BronzeShieldIcon, SilverGrowthIcon, GoldIngotIcon, DiamondStarIcon, GiftBoxIcon } from './LuxuryIcons'
 
 export type TariffTier = 'start' | 'growth' | 'investor' | 'partner'
 
@@ -26,84 +27,87 @@ export const TariffCard: React.FC<TariffCardProps> = ({
     const isInvestor = tier === 'investor'
 
     // Dynamic styles based on tier
-    const borderColor = isInvestor ? 'border-[#C9A962]/30' : 'border-white/5'
-    const glowClass = isInvestor ? 'shadow-[0_0_30px_-10px_rgba(201,169,98,0.15)]' : ''
-    const hoverScale = isInvestor ? 'hover:scale-105' : 'hover:scale-[1.02]'
+    // Investor gets gold border/shadow
+    // Partner gets platinum blue/ice border/shadow
+    // Growth/Start get subtle borders
+    let borderColor = 'border-white/5'
+    let glowClass = ''
+
+    if (isInvestor) {
+        borderColor = 'border-[#C9A962]/40'
+        glowClass = 'shadow-[0_0_30px_-5px_rgba(201,169,98,0.2)]'
+    } else if (tier === 'partner') {
+        borderColor = 'border-[#A8D4E6]/30'
+        glowClass = 'shadow-[0_0_20px_-5px_rgba(168,212,230,0.15)]'
+    }
+
+    const hoverScale = isInvestor ? 'hover:scale-[1.02]' : 'hover:scale-[1.01]'
 
     return (
         <div
             className={`
-        relative flex flex-col p-6 rounded-2xl bg-[#0d0d0d] backdrop-blur-md
+        relative flex flex-col p-6 rounded-2xl bg-[#0d0d0d]/80 backdrop-blur-xl
         border ${borderColor} ${glowClass} h-full
         transition-all duration-500 ease-out group
-        ${hoverScale} hover:border-opacity-50 hover:bg-[#121212]
-        ${isInvestor ? 'z-10' : 'z-0'}
+        ${hoverScale} hover:border-opacity-60 hover:bg-[#121212]
+        ${isInvestor ? 'z-10 bg-gradient-to-b from-[#1a1505]/80 to-[#0d0d0d]/90' : 'z-0'}
       `}
-            style={{
-                boxShadow: isInvestor ? '0 0 40px -10px rgba(201,169,98,0.15)' : 'none'
-            }}
         >
             {/* Badge */}
             {badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="px-3 py-1 bg-[#1a1a1a] border border-white/10 rounded-full text-[10px] uppercase tracking-widest font-semibold text-white/80 shadow-lg whitespace-nowrap">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+                    <span className={`
+                        px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold shadow-lg whitespace-nowrap
+                        ${isInvestor
+                            ? 'bg-gradient-to-r from-[#C9A962] to-[#B8860B] text-black ring-1 ring-[#FFD700]/50'
+                            : 'bg-[#1a1a1a] border border-white/10 text-white/80'}
+                    `}>
                         {badge}
                     </span>
                 </div>
             )}
 
-            {/* Gold Particles for Investor (Static decoration for now, could be animated) */}
+            {/* Ambient Light / Highlight for Investor */}
             {isInvestor && (
-                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-b from-[#C9A962]/10 to-transparent blur-xl -z-10 opacity-50" />
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A962] to-transparent opacity-50" />
             )}
 
-            {/* Icon Placeholder - Custom defined in parent or mapped here */}
-            <div className="mb-6 flex justify-center">
-                <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center border border-white/5 bg-white/[0.02]"
-                    style={{ borderColor: `${accentColor}40` }}
-                >
-                    {/* Simple shapes for icons as per request, avoiding external libraries for strict control */}
-                    {tier === 'start' && (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="1.5">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                    )}
-                    {tier === 'growth' && (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="1.5">
-                            <path d="M22 6L12 16l-4-4-6 6" /><path d="M22 6h-6" /><path d="M22 6v6" />
-                        </svg>
-                    )}
-                    {tier === 'investor' && (
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="1.5">
-                            <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
-                        </svg>
-                    )}
-                    {tier === 'partner' && (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="1.5">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                        </svg>
-                    )}
+            {/* Icon Area */}
+            <div className="mb-8 flex justify-center relative">
+                {/* Glow behind icon */}
+                <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full scale-150 opacity-20" style={{ backgroundColor: accentColor }} />
+
+                <div className="relative w-24 h-24 drop-shadow-2xl">
+                    {tier === 'start' && <BronzeShieldIcon className="w-full h-full" />}
+                    {tier === 'growth' && <SilverGrowthIcon className="w-full h-full" />}
+                    {tier === 'investor' && <GoldIngotIcon className="w-full h-full" />}
+                    {tier === 'partner' && <DiamondStarIcon className="w-full h-full" />}
                 </div>
             </div>
 
             {/* Header */}
-            <h3 className="text-center text-sm tracking-[0.2em] uppercase text-white/90 font-medium mb-1">
+            <h3 className="text-center text-sm tracking-[0.25em] uppercase text-white/90 font-bold mb-2">
                 {tier === 'start' && 'Старт'}
                 {tier === 'growth' && 'Рост'}
                 {tier === 'investor' && 'Инвестор'}
                 {tier === 'partner' && 'Партнёр'}
             </h3>
-            <p className="text-center text-xs text-white/40 mb-6">{days}</p>
+            <p className="text-center text-xs text-white/40 mb-6 font-light">{days}</p>
 
             {/* Price */}
-            <div className="text-center mb-6">
+            <div className="text-center mb-8 relative">
                 {oldPrice && (
                     <div className="text-xs text-white/30 line-through mb-1 font-light decoration-white/20">
                         {oldPrice}
                     </div>
                 )}
-                <div className="text-2xl md:text-3xl font-bold" style={{ color: '#C9A962' }}>
+                <div
+                    className="text-3xl font-bold tracking-tight"
+                    style={{
+                        color: isInvestor ? '#C9A962' : '#ffffff',
+                        textShadow: isInvestor ? '0 0 20px rgba(201,169,98,0.3)' : 'none'
+                    }}
+                >
                     {price}
                 </div>
             </div>
@@ -114,19 +118,24 @@ export const TariffCard: React.FC<TariffCardProps> = ({
             {/* Features */}
             <ul className="space-y-3 mb-8 flex-1">
                 {features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3 text-xs text-white/60">
-                        <span className="text-[#C9A962] mt-px">✦</span>
-                        <span className="leading-relaxed">{feature}</span>
+                    <li key={i} className="flex items-start gap-3 text-xs text-white/70 group-hover:text-white/90 transition-colors">
+                        <span style={{ color: accentColor }} className="mt-px">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                        </span>
+                        <span className="leading-relaxed font-light">{feature}</span>
                     </li>
                 ))}
             </ul>
 
             {/* Bonus Area */}
             {bonus && (
-                <div className="mb-6 p-3 rounded-lg bg-gradient-to-r from-white/[0.03] to-transparent border border-white/5">
-                    <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Подарок</div>
-                    <div className="text-sm text-white/90 font-medium flex items-center gap-2">
-                        <span className="text-lg">🎁</span>
+                <div className="mb-6 p-3 rounded-lg bg-gradient-to-r from-white/[0.03] to-transparent border border-white/5 relative overflow-hidden">
+                    <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
+                        <GiftBoxIcon className="w-16 h-16" />
+                    </div>
+                    <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1 relative z-10">Подарок</div>
+                    <div className="text-sm text-white/90 font-medium flex items-center gap-2 relative z-10">
+                        <GiftBoxIcon className="w-5 h-5 mb-0.5" />
                         {bonus}
                     </div>
                 </div>
@@ -135,19 +144,19 @@ export const TariffCard: React.FC<TariffCardProps> = ({
             {/* Action Button */}
             <button
                 className={`
-            w-full py-3 rounded-xl border border-white/10
-            text-xs uppercase tracking-widest font-semibold text-white
+            w-full py-4 rounded-xl border
+            text-xs uppercase tracking-[0.15em] font-bold 
             transition-all duration-300 relative overflow-hidden group/btn
-            ${isInvestor ? 'bg-[#C9A962] text-black border-[#C9A962]' : 'bg-transparent hover:bg-white/5'}
+            ${isInvestor
+                        ? 'bg-gradient-to-r from-[#C9A962] via-[#E2C785] to-[#C9A962] text-black border-transparent shadow-[0_4px_20px_rgba(201,169,98,0.3)] hover:shadow-[0_4px_30px_rgba(201,169,98,0.5)]'
+                        : 'bg-transparent text-white border-white/10 hover:bg-white/5 hover:border-white/20'}
         `}
             >
-                <span className="relative z-10">
-                    {isInvestor ? 'Вступить в клуб' : 'Выбрать'}
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                    {isInvestor ? 'Стать Инвестором' : 'Выбрать Тариф'}
                 </span>
-                {/* Shimmer effect for Investor button */}
-                {isInvestor && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000 ease-in-out" />
-                )}
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000 ease-in-out" />
             </button>
 
         </div>
