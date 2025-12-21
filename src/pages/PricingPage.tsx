@@ -241,7 +241,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
   return (
     <motion.div
-      className={`relative ${isFeatured ? 'lg:scale-105 lg:z-10' : ''}`}
+      className={`relative ${isFeatured ? 'md:scale-105 md:z-10' : ''}`}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -281,11 +281,11 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
         />
 
         {/* Content */}
-        <div className={`relative z-[2] ${isFeatured ? 'p-8' : 'p-6'}`}>
+        <div className={`relative z-[2] p-5 md:${isFeatured ? 'p-8' : 'p-6'}`}>
           {/* Badge - скидка */}
           {tariff.discount && (
             <div
-              className="absolute top-4 right-4 px-2.5 py-1 rounded-md text-xs font-semibold"
+              className="absolute top-3 right-3 md:top-4 md:right-4 px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold"
               style={{
                 background: `${tariff.auroraColors[0]}20`,
                 color: tariff.auroraColors[0]
@@ -298,7 +298,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           {/* Badge - статус */}
           {tariff.badge && (
             <div
-              className="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-wider mb-4"
+              className="inline-block px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-semibold tracking-wider mb-3 md:mb-4"
               style={{
                 background: `${tariff.auroraColors[0]}20`,
                 color: tariff.auroraColors[0],
@@ -311,40 +311,40 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
           {/* Название */}
           <h3
-            className="text-xl font-semibold tracking-wider mb-1"
+            className="text-lg md:text-xl font-semibold tracking-wider mb-1"
             style={{ color: isFeatured ? tariff.auroraColors[0] : '#ffffff' }}
           >
             {tariff.name}
           </h3>
 
           {/* Срок */}
-          <div className="text-gray-500 text-sm mb-6">{tariff.duration}</div>
+          <div className="text-gray-500 text-xs md:text-sm mb-4 md:mb-6">{tariff.duration}</div>
 
           {/* Цена */}
-          <div className="mb-6">
+          <div className="mb-4 md:mb-6">
             {tariff.oldPrice && (
-              <div className="text-gray-600 text-sm line-through mb-1">
+              <div className="text-gray-600 text-xs md:text-sm line-through mb-1">
                 {tariff.oldPrice.toLocaleString('ru-RU')} ₽
               </div>
             )}
             <div className="flex items-baseline gap-1">
-              <span className="text-5xl font-bold text-white">
+              <span className="text-3xl md:text-5xl font-bold text-white">
                 {tariff.price.toLocaleString('ru-RU')}
               </span>
-              <span className="text-gray-500 text-lg">₽</span>
-              <span className="text-gray-600 text-sm">{tariff.durationShort}</span>
+              <span className="text-gray-500 text-base md:text-lg">₽</span>
+              <span className="text-gray-600 text-xs md:text-sm">{tariff.durationShort}</span>
             </div>
           </div>
 
           {/* Разделитель */}
-          <div className="h-px bg-white/10 mb-6" />
+          <div className="h-px bg-white/10 mb-4 md:mb-6" />
 
           {/* Базовые функции */}
-          <div className="space-y-3 mb-6">
+          <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
             {tariff.baseFeatures.map((feature, i) => (
-              <div key={i} className="flex items-start gap-3 text-sm">
+              <div key={i} className="flex items-start gap-2 md:gap-3 text-xs md:text-sm">
                 <svg
-                  className="w-5 h-5 mt-0.5 flex-shrink-0"
+                  className="w-4 h-4 md:w-5 md:h-5 mt-0.5 flex-shrink-0"
                   style={{ color: tariff.auroraColors[0] }}
                   fill="none"
                   viewBox="0 0 24 24"
@@ -360,18 +360,18 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
           {/* Бонусы */}
           {tariff.bonuses.length > 0 && (
-            <div className="space-y-2.5 mb-6 p-4 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+            <div className="space-y-2 mb-4 md:mb-6 p-3 md:p-4 rounded-lg bg-white/[0.02] border border-white/[0.05]">
               {tariff.bonuses.map((bonus, i) => (
-                <div key={i} className="flex items-start gap-2.5 text-sm">
+                <div key={i} className="flex items-start gap-2 text-xs md:text-sm">
                   <svg
                     className="w-4 h-4 mt-0.5 flex-shrink-0"
                     style={{ color: tariff.auroraColors[0] }}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                    strokeWidth={1.5}
+                    strokeWidth={2}
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                   <span className="text-gray-400">{bonus}</span>
                 </div>
@@ -381,7 +381,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
           {/* Кнопка */}
           <motion.button
-            className={`w-full py-3.5 rounded-lg font-medium transition-all ${
+            className={`w-full py-3 md:py-3.5 rounded-lg text-sm md:text-base font-medium transition-all ${
               tariff.buttonStyle === 'fill'
                 ? 'text-white'
                 : 'bg-transparent'
@@ -470,21 +470,64 @@ export function PricingPage() {
             ))}
           </div>
 
-          {/* Footer */}
-          <footer className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-3 text-gray-500 text-sm flex-wrap">
-              <span>82.2% точность</span>
-              <span className="w-1 h-1 rounded-full bg-gray-700" />
-              <span>5000+ участников</span>
-              <span className="w-1 h-1 rounded-full bg-gray-700" />
-              <span>900+ материалов</span>
-              <span className="w-1 h-1 rounded-full bg-gray-700" />
-              <span>С 2022 года</span>
+          {/* Footer - Stats Banner */}
+          <motion.footer
+            className="text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            {/* Выделенная плашка статистики */}
+            <div className="relative inline-block w-full max-w-2xl mx-auto">
+              {/* Aurora glow для плашки */}
+              <div
+                className="absolute inset-[-1px] rounded-2xl"
+                style={{
+                  background: 'conic-gradient(from 0deg, rgba(123,104,238,0.3), rgba(6,182,212,0.3), rgba(139,92,246,0.3), rgba(123,104,238,0.3))',
+                  filter: 'blur(15px)',
+                  opacity: 0.5,
+                  animation: 'aurora-rotate 12s linear infinite'
+                }}
+              />
+
+              {/* Внутренний фон плашки */}
+              <div
+                className="relative rounded-2xl px-4 py-4 md:px-8 md:py-5"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(20,20,25,0.95) 0%, rgba(10,10,15,0.95) 100%)',
+                  border: '1px solid rgba(123,104,238,0.2)'
+                }}
+              >
+                {/* Статистика */}
+                <div className="flex items-center justify-center gap-3 md:gap-6 text-xs md:text-sm flex-wrap">
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <span className="text-[#7B68EE] font-semibold">82.2%</span>
+                    <span className="text-gray-400">точность</span>
+                  </div>
+                  <span className="w-1 h-1 rounded-full bg-[#7B68EE]/50 hidden md:block" />
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <span className="text-[#06B6D4] font-semibold">5000+</span>
+                    <span className="text-gray-400">участников</span>
+                  </div>
+                  <span className="w-1 h-1 rounded-full bg-[#06B6D4]/50 hidden md:block" />
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <span className="text-[#8B5CF6] font-semibold">900+</span>
+                    <span className="text-gray-400">материалов</span>
+                  </div>
+                  <span className="w-1 h-1 rounded-full bg-[#8B5CF6]/50 hidden md:block" />
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <span className="text-gray-300 font-medium">С 2022</span>
+                    <span className="text-gray-500">года</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="text-gray-600 text-xs">
+
+            {/* Подпись под плашкой */}
+            <div className="text-gray-600 text-[10px] md:text-xs mt-4">
               Акция действует 96 часов с начала эфира 23.12
             </div>
-          </footer>
+          </motion.footer>
         </div>
       </div>
     </>
