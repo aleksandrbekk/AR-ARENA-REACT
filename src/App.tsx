@@ -17,6 +17,7 @@ import { CrmPage } from './pages/CrmPage'
 import { PremiumPromoPage } from './pages/PremiumPromoPage'
 import { TariffsPage } from './pages/TariffsPage'
 import { PricingPage } from './pages/PricingPage'
+import { PricingPage2 } from './pages/PricingPage2'
 
 function App() {
   useEffect(() => {
@@ -55,6 +56,7 @@ function App() {
             <Route path="/premium-promo" element={<PremiumPromoPage />} />
             <Route path="/tariffs" element={<TariffsPage />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/pricing2" element={<PricingPage2 />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>
