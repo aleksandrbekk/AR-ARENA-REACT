@@ -457,33 +457,22 @@ export function PricingPage() {
             </motion.div>
 
             <motion.h1
-              className="text-3xl md:text-4xl font-bold tracking-tight mb-2"
+              className="text-4xl md:text-5xl font-bold tracking-tight mb-6"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              ЛУЧШЕЕ ПРЕДЛОЖЕНИЕ НА КЛУБНЫЕ КАРТЫ
+              АКЦИЯ ГОДА
             </motion.h1>
 
-            <motion.p
-              className="text-white/40 text-sm md:text-base"
+            <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
             >
-              только 1 раз в году
-            </motion.p>
+              <Timer deadline={deadline} />
+            </motion.div>
           </header>
-
-          {/* Таймер - фиксированный снизу */}
-          <motion.div
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <Timer deadline={deadline} />
-          </motion.div>
 
           {/* Карточки тарифов */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 items-start">
