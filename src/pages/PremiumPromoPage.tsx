@@ -96,8 +96,11 @@ export const PremiumPromoPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden relative flex flex-col font-sans selection:bg-[#C9A962]/30">
             {/* Background Effects */}
-            <div className="fixed inset-0 bg-gradient-radial from-[#1a1a1a] to-[#050505] -z-20" />
-            <WinterEffects />
+            {/* Background with Luxury Studio Lighting (CSS Only) - REPLACED WITH GENERATED ASSET */}
+            <div className="fixed inset-0 z-0 bg-[#030303]">
+                <div className="absolute inset-0 bg-[url('/premium/luxury_background.png')] bg-cover bg-center opacity-100" />
+                <div className="absolute inset-0 bg-black/20" /> {/* Subtle overlay for text readability */}
+            </div>      <WinterEffects />
 
             {/* Frozen Vignette */}
             <div className="fixed inset-0 pointer-events-none -z-10 shadow-[inset_0_0_150px_rgba(168,212,230,0.05)]" />

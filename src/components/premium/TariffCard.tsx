@@ -1,5 +1,5 @@
 import React from 'react'
-import { BronzeShieldIcon, SilverGrowthIcon, GoldIngotIcon, DiamondStarIcon, GiftBoxIcon } from './LuxuryIcons'
+import { GiftBoxIcon } from './LuxuryIcons' // Keeping GiftBoxIcon for small usage or removing if fully replaced
 
 export type TariffTier = 'start' | 'growth' | 'investor' | 'partner'
 
@@ -77,11 +77,35 @@ export const TariffCard: React.FC<TariffCardProps> = ({
                 {/* Glow behind icon */}
                 <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full scale-150 opacity-20" style={{ backgroundColor: accentColor }} />
 
-                <div className="relative w-24 h-24 drop-shadow-2xl">
-                    {tier === 'start' && <BronzeShieldIcon className="w-full h-full" />}
-                    {tier === 'growth' && <SilverGrowthIcon className="w-full h-full" />}
-                    {tier === 'investor' && <GoldIngotIcon className="w-full h-full" />}
-                    {tier === 'partner' && <DiamondStarIcon className="w-full h-full" />}
+                <div className="relative w-32 h-32 drop-shadow-2xl flex items-center justify-center">
+                    {tier === 'start' && (
+                        <img
+                            src="/premium/icon_shield.png"
+                            alt="Bronze Shield"
+                            className="w-full h-full object-contain mix-blend-screen grayscale-[0.2]"
+                        />
+                    )}
+                    {tier === 'growth' && (
+                        <img
+                            src="/premium/icon_chart.png"
+                            alt="Silver Growth"
+                            className="w-full h-full object-contain mix-blend-screen"
+                        />
+                    )}
+                    {tier === 'investor' && (
+                        <img
+                            src="/premium/icon_ingot.png"
+                            alt="Gold Ingot"
+                            className="w-full h-full object-contain mix-blend-screen brightness-110 contrast-125"
+                        />
+                    )}
+                    {tier === 'partner' && (
+                        <img
+                            src="/premium/icon_star.png"
+                            alt="Platinum Star"
+                            className="w-full h-full object-contain mix-blend-screen brightness-125 saturate-150"
+                        />
+                    )}
                 </div>
             </div>
 
@@ -130,8 +154,12 @@ export const TariffCard: React.FC<TariffCardProps> = ({
             {/* Bonus Area */}
             {bonus && (
                 <div className="mb-6 p-3 rounded-lg bg-gradient-to-r from-white/[0.03] to-transparent border border-white/5 relative overflow-hidden">
-                    <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
-                        <GiftBoxIcon className="w-16 h-16" />
+                    <div className="flex justify-center mb-2">
+                        <img
+                            src="/premium/icon_gift.png"
+                            alt="Gift Box"
+                            className="w-16 h-16 object-contain mix-blend-screen opacity-90"
+                        />
                     </div>
                     <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1 relative z-10">Подарок</div>
                     <div className="text-sm text-white/90 font-medium flex items-center gap-2 relative z-10">
