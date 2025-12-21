@@ -13,7 +13,6 @@ import { GiveawayDetailsPage } from './pages/GiveawayDetailsPage'
 import { LiveArenaPage } from './pages/LiveArenaPage'
 import { AdminPage } from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
-import { EventWheelPage } from './pages/EventWheelPage'
 import { CrmPage } from './pages/CrmPage'
 
 function App() {
@@ -49,7 +48,6 @@ function App() {
             <Route path="/live-arena/:id" element={<LiveArenaPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/payment-success" element={<PaymentSuccessPage />} />
-            <Route path="/event-wheel" element={<EventWheelPage />} />
             <Route path="/crm" element={<CrmPage />} />
           </Routes>
         </BrowserRouter>
