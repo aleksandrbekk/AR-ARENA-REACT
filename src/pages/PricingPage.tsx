@@ -78,7 +78,6 @@ const tariffs: Tariff[] = [
     isFeatured: false,
     baseFeatures: [],
     bonuses: [
-      'Запись эфира "Крипто-итоги 2025"',
       'Портфель 2025 (PDF)',
       '+1 неделя бесплатно'
     ],
