@@ -404,6 +404,36 @@ export function CrmPage() {
     }
   }
 
+
+  // Проверка пользователя в базе по ID
+  const handleCheckUser = async (telegramId: string) => {
+    if (!telegramId || telegramId.length < 3) return
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('username, first_name')
+        .eq('telegram_id', telegramId)
+        .single()
+
+      if (error) {
+        // Silently fail if not found or other error, mostly likely just user not in db
+        return
+      }
+
+      if (data) {
+        if (data.username) {
+          setNewClient(prev => ({ ...prev, username: data.username!.replace('@', '') }))
+          showToast({ variant: 'success', title: 'Пользователь найден', description: `@${data.username}` })
+        } else if (data.first_name) {
+          showToast({ variant: 'success', title: 'Пользователь найден', description: `Имя: ${data.first_name} (без username)` })
+        }
+      }
+    } catch (err) {
+      console.error('Error checking user:', err)
+    }
+  }
+
   // Добавление нового клиента
   const handleAddClient = async () => {
     if (!newClient.telegram_id || actionLoading) return
@@ -854,6 +884,7 @@ export function CrmPage() {
                     type="text"
                     value={newClient.telegram_id}
                     onChange={(e) => setNewClient({ ...newClient, telegram_id: e.target.value })}
+                    onBlur={(e) => handleCheckUser(e.target.value)}
                     placeholder="123456789"
                     className="w-full px-4 py-2 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
                   />
