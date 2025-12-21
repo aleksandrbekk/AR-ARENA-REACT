@@ -14,6 +14,7 @@ import { LiveArenaPage } from './pages/LiveArenaPage'
 import { AdminPage } from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
 import { CrmPage } from './pages/CrmPage'
+import { PremiumPromoPage } from './pages/PremiumPromoPage'
 
 function App() {
   useEffect(() => {
@@ -49,6 +50,7 @@ function App() {
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/payment-success" element={<PaymentSuccessPage />} />
             <Route path="/crm" element={<CrmPage />} />
+            <Route path="/premium-promo" element={<PremiumPromoPage />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>
