@@ -34,13 +34,13 @@ export const TariffCard: React.FC<TariffCardProps> = ({
         <div
             className={`
         relative flex flex-col p-6 rounded-2xl bg-[#0d0d0d] backdrop-blur-md
-        border ${borderColor} ${glowClass}
+        border ${borderColor} ${glowClass} h-full
         transition-all duration-500 ease-out group
         ${hoverScale} hover:border-opacity-50 hover:bg-[#121212]
-        ${isInvestor ? 'z-10 md:-mt-4 md:mb-4' : 'z-0'}
+        ${isInvestor ? 'z-10' : 'z-0'}
       `}
             style={{
-                boxShadow: isInvestor ? '0 0 30px -5px rgba(201,169,98,0.2)' : 'none'
+                boxShadow: isInvestor ? '0 0 40px -10px rgba(201,169,98,0.15)' : 'none'
             }}
         >
             {/* Badge */}

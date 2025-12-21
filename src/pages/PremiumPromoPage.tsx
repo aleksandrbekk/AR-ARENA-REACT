@@ -137,7 +137,7 @@ export const PremiumPromoPage: React.FC = () => {
 
             {/* Main Content */}
             <main className="flex-1 px-4 pb-20 relative z-10 max-w-[1400px] mx-auto w-full">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                     {tariffs.map((tariff) => (
                         <TariffCard key={tariff.tier} {...tariff} />
                     ))}
