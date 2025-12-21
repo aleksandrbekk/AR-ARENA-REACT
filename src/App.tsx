@@ -14,7 +14,6 @@ import { LiveArenaPage } from './pages/LiveArenaPage'
 import { AdminPage } from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
 import { EventWheelPage } from './pages/EventWheelPage'
-import { EventAdminPage } from './pages/EventAdminPage'
 import { CrmPage } from './pages/CrmPage'
 
 function App() {
@@ -51,7 +50,6 @@ function App() {
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/payment-success" element={<PaymentSuccessPage />} />
             <Route path="/event-wheel" element={<EventWheelPage />} />
-            <Route path="/event-admin" element={<EventAdminPage />} />
             <Route path="/crm" element={<CrmPage />} />
           </Routes>
         </BrowserRouter>
