@@ -215,9 +215,9 @@ export function CrmPage() {
 
     try {
       const { error } = await supabase.rpc('add_premium_client', {
-        telegram_id: selectedClient.telegram_id,
-        username: selectedClient.username || null,
-        days: days
+        p_telegram_id: selectedClient.telegram_id,
+        p_username: selectedClient.username || null,
+        p_days: days
       })
 
       if (error) {
@@ -422,9 +422,9 @@ export function CrmPage() {
       const days = daysMap[newClient.tariff] || 30
 
       const { error } = await supabase.rpc('add_premium_client', {
-        telegram_id: newClient.telegram_id,
-        username: newClient.username || null,
-        days: days
+        p_telegram_id: newClient.telegram_id,
+        p_username: newClient.username || null,
+        p_days: days
       })
 
       if (error) {
