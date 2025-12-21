@@ -289,34 +289,16 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
             </div>
           )}
 
-          {/* Изображение карты - по центру сверху */}
-          <motion.div
-            className="flex justify-center mb-4"
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.3 }}
-          >
-            <img
-              src={tariff.cardImage}
-              alt={`${tariff.name} card`}
-              className="w-28 md:w-40 h-auto drop-shadow-lg transition-all duration-300"
-              style={{
-                filter: (tariff.id === 'platinum' || tariff.id === 'private')
-                  ? `drop-shadow(0 0 20px ${tariff.auroraColors[0]}40)`
-                  : `drop-shadow(0 8px 16px rgba(0,0,0,0.4))`
-              }}
-            />
-          </motion.div>
-
           {/* Название */}
           <h3
-            className="text-lg md:text-xl font-semibold tracking-wider text-center mb-1"
+            className="text-lg md:text-xl font-semibold tracking-wider mb-1"
             style={{ color: isFeatured ? tariff.auroraColors[0] : '#ffffff' }}
           >
             {tariff.name}
           </h3>
 
           {/* Срок */}
-          <div className="text-gray-500 text-xs md:text-sm mb-4 md:mb-6 text-center">{tariff.duration}</div>
+          <div className="text-gray-500 text-xs md:text-sm mb-4 md:mb-6">{tariff.duration}</div>
 
           {/* Цена */}
           <div className="mb-4 md:mb-6">
