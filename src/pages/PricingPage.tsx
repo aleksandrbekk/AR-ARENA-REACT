@@ -146,6 +146,26 @@ const previousTariff: Record<string, string> = {
 }
 
 // ============ ТАЙМЕР ============
+const TimerBlock = ({ value, label }: { value: string; label: string }) => (
+  <div className="flex flex-col items-center">
+    <div
+      className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-lg flex items-center justify-center text-xl sm:text-2xl md:text-3xl font-bold text-white"
+      style={{
+        background: 'linear-gradient(135deg, rgba(201,169,98,0.15) 0%, rgba(255,215,0,0.08) 100%)',
+        border: '1px solid rgba(201,169,98,0.3)',
+        boxShadow: '0 4px 20px rgba(201,169,98,0.1)'
+      }}
+    >
+      {value}
+    </div>
+    <span className="text-[10px] sm:text-xs text-white/40 mt-1.5 uppercase tracking-wider">{label}</span>
+  </div>
+)
+
+const TimerSeparator = () => (
+  <span className="text-white/30 text-xl sm:text-2xl font-light mb-4">:</span>
+)
+
 const Timer = ({ deadline }: { deadline: string }) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
@@ -172,12 +192,21 @@ const Timer = ({ deadline }: { deadline: string }) => {
   const pad = (n: number) => n.toString().padStart(2, '0')
 
   return (
-    <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08]">
-      <span className="text-white/40 text-sm">До конца акции:</span>
-      <span className="font-mono text-white text-lg tracking-wider">
-        {timeLeft.days > 0 && <span className="text-white/70">{timeLeft.days}д </span>}
-        {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
-      </span>
+    <div className="flex flex-col items-center gap-3">
+      <span className="text-white/50 text-xs sm:text-sm tracking-wider">До конца акции</span>
+      <div className="flex items-center gap-2 sm:gap-3">
+        {timeLeft.days > 0 && (
+          <>
+            <TimerBlock value={String(timeLeft.days)} label="дней" />
+            <TimerSeparator />
+          </>
+        )}
+        <TimerBlock value={pad(timeLeft.hours)} label="часов" />
+        <TimerSeparator />
+        <TimerBlock value={pad(timeLeft.minutes)} label="минут" />
+        <TimerSeparator />
+        <TimerBlock value={pad(timeLeft.seconds)} label="секунд" />
+      </div>
     </div>
   )
 }
@@ -427,12 +456,12 @@ export function PricingPage() {
         <Snowflakes />
 
         {/* Контент */}
-        <div className="relative z-10 px-4 py-12 max-w-7xl mx-auto">
+        <div className="relative z-10 px-3 sm:px-4 md:px-6 py-8 sm:py-10 md:py-12 max-w-7xl mx-auto">
 
           {/* Header */}
-          <header className="text-center mb-12">
+          <header className="text-center mb-8 sm:mb-10 md:mb-12">
             <motion.div
-              className="text-sm tracking-[0.4em] uppercase mb-3 font-medium"
+              className="text-[10px] sm:text-xs md:text-sm tracking-[0.3em] sm:tracking-[0.4em] uppercase mb-2 sm:mb-3 font-medium"
               style={{
                 background: 'linear-gradient(90deg, #C9A962, #FFD700, #C9A962)',
                 WebkitBackgroundClip: 'text',
@@ -447,7 +476,7 @@ export function PricingPage() {
             </motion.div>
 
             <motion.h1
-              className="text-4xl md:text-5xl font-bold tracking-tight mb-6"
+              className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 sm:mb-5 md:mb-6"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
@@ -465,7 +494,7 @@ export function PricingPage() {
           </header>
 
           {/* Карточки тарифов */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 mb-12 items-start">
             {tariffs.map((tariff, index) => (
               <PricingCard key={tariff.id} tariff={tariff} index={index} />
             ))}
