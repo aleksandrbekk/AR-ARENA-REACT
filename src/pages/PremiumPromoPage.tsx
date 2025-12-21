@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { WinterEffects } from '../components/premium/WinterEffects'
+
 import { TariffCard } from '../components/premium/TariffCard'
 import type { TariffTier } from '../components/premium/TariffCard'
-import { useNavigate } from 'react-router-dom'
+
 
 export const PremiumPromoPage: React.FC = () => {
-    const navigate = useNavigate()
+
 
     // Countdown Timer Logic
     const [timeLeft, setTimeLeft] = useState({ d: 3, h: 23, m: 59, s: 59 })
@@ -27,141 +27,125 @@ export const PremiumPromoPage: React.FC = () => {
 
     const tariffs: {
         tier: TariffTier
-        price: string
-        oldPrice?: string
-        days: string
+        price: number
+        oldPrice?: number
         features: string[]
-        bonus?: string
+        days: string
         badge?: string
-        accentColor: string
+        isPopular?: boolean
     }[] = [
             {
                 tier: 'start',
-                price: '4 000 ₽',
-                days: '1 месяц',
-                accentColor: '#CD7F32',
+                price: 4000,
+                days: '1 мес',
                 features: [
-                    'Доступ к закрытому каналу',
-                    'Базовые сигналы',
+                    'Торговые сигналы',
+                    'Авторская аналитика',
                     'Чат участников'
                 ]
             },
             {
                 tier: 'growth',
-                price: '10 200 ₽',
-                oldPrice: '12 000 ₽',
-                days: '3 месяца',
-                accentColor: '#C0C0C0',
-                badge: '-15%',
-                bonus: '+1 неделя',
+                price: 10200,
+                oldPrice: 12000,
+                days: '3 мес',
                 features: [
-                    'Всё что в СТАРТ',
-                    'Расширенная аналитика',
+                    'Всё что в Classic',
+                    '900+ материалов',
+                    'AMA-сессии'
+                ]
+            },
+            {
+                tier: 'investor', // Platinum
+                price: 19200,
+                oldPrice: 24000,
+                days: '6 мес',
+                isPopular: true,
+                features: [
+                    'Всё что в Gold',
+                    'Запись "Крипто-итоги 2025"',
+                    'Портфель 2025',
                     'Приоритетная поддержка'
                 ]
             },
             {
-                tier: 'investor',
-                price: '19 200 ₽',
-                oldPrice: '24 000 ₽',
-                days: '6 месяцев',
-                accentColor: '#C9A962',
-                badge: 'ВЫБОР КЛУБА -20%',
-                bonus: '+1 месяц',
-                features: [
-                    'Всё что в РОСТ',
-                    'Персональные рекомендации',
-                    'Доступ к пресейлам',
-                    'Закрытые стримы',
-                    'Ментинг 1 на 1 (1 час)'
-                ]
-            },
-            {
-                tier: 'partner',
-                price: '33 600 ₽',
-                oldPrice: '48 000 ₽',
-                days: '12 месяцев',
-                accentColor: '#A8D4E6',
-                badge: 'VIP -30%',
-                bonus: '+2 месяца',
+                tier: 'partner', // Private
+                price: 33600,
+                oldPrice: 48000,
+                days: '12 мес',
                 features: [
                     'Полный доступ ко всему',
                     'Личный менеджер',
                     'Закрытые оффлайн встречи',
-                    'Доля в пуле ликвидности'
+                    'Доля в пуле (VIP)'
                 ]
             }
         ]
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden relative flex flex-col font-sans selection:bg-[#C9A962]/30">
-            {/* Background Effects */}
-            {/* Background with Luxury Studio Lighting (CSS Only) - REPLACED WITH GENERATED ASSET */}
-            <div className="fixed inset-0 z-0 bg-[#030303]">
-                <div className="absolute inset-0 bg-[url('/premium/luxury_background.png')] bg-cover bg-center opacity-100" />
-                <div className="absolute inset-0 bg-black/20" /> {/* Subtle overlay for text readability */}
-            </div>      <WinterEffects />
-
-            {/* Frozen Vignette */}
-            <div className="fixed inset-0 pointer-events-none -z-10 shadow-[inset_0_0_150px_rgba(168,212,230,0.05)]" />
+        <div className="min-h-screen bg-[#000000] text-white overflow-x-hidden relative flex flex-col font-sans selection:bg-[#6366F1]/30">
+            {/* Background Effects (Subtle global ambience) */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#6366F1]/5 blur-[120px] rounded-full mix-blend-screen" />
+                <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-[#06B6D4]/5 blur-[120px] rounded-full mix-blend-screen" />
+            </div>
 
             {/* Header */}
-            <header className="pt-12 pb-8 px-4 text-center relative z-10">
-                <div className="mb-2">
-                    <span className="text-[#C9A962] tracking-[0.3em] text-xs uppercase font-medium">Новогоднее предложение</span>
+            <header className="pt-16 pb-12 px-4 text-center relative z-10">
+                <div className="mb-4">
+                    <svg className="w-12 h-12 mx-auto text-white mb-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L2 19h20L12 2zm0 3.8l6.8 11.2H5.2L12 5.8z" />
+                    </svg>
                 </div>
-                <h1 className="text-3xl md:text-5xl font-light tracking-wide mb-8">
+                <h1 className="text-2xl md:text-3xl font-medium tracking-tight mb-2">
                     PREMIUM AR CLUB
                 </h1>
+                <p className="text-white/40 text-sm uppercase tracking-widest font-medium mb-8">
+                    Новогоднее предложение
+                </p>
 
-                {/* Timer */}
-                <div className="inline-flex gap-4 p-4 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 shadow-lg">
-                    <div className="text-center">
-                        <div className="text-xl md:text-2xl font-mono font-bold leading-none">{timeLeft.d}</div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-wider">Дней</div>
-                    </div>
-                    <div className="text-xl font-mono opacity-30">:</div>
-                    <div className="text-center">
-                        <div className="text-xl md:text-2xl font-mono font-bold leading-none">{formatTime(timeLeft.h)}</div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-wider">Часов</div>
-                    </div>
-                    <div className="text-xl font-mono opacity-30">:</div>
-                    <div className="text-center">
-                        <div className="text-xl md:text-2xl font-mono font-bold leading-none">{formatTime(timeLeft.m)}</div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-wider">Мин</div>
-                    </div>
-                    <div className="text-xl font-mono opacity-30">:</div>
-                    <div className="text-center">
-                        <div className="text-xl md:text-2xl font-mono font-bold leading-none text-[#C9A962]">{formatTime(timeLeft.s)}</div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-wider">Сек</div>
-                    </div>
+                {/* Minimal Timer */}
+                <div className="inline-flex items-center gap-1 text font-mono text-white/60 bg-white/5 px-4 py-2 rounded-lg border border-white/5">
+                    <span>⏳</span>
+                    <span>{timeLeft.d}д</span>
+                    <span>:</span>
+                    <span>{formatTime(timeLeft.h)}</span>
+                    <span>:</span>
+                    <span>{formatTime(timeLeft.m)}</span>
+                    <span>:</span>
+                    <span>{formatTime(timeLeft.s)}</span>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 px-4 pb-20 relative z-10 max-w-[1400px] mx-auto w-full">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-                    {tariffs.map((tariff) => (
-                        <TariffCard key={tariff.tier} {...tariff} />
-                    ))}
+            <main className="flex-1 px-4 pb-24 relative z-10 max-w-[1600px] mx-auto w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-center">
+                    {tariffs.map((tariff) => {
+                        const { isPopular, ...cardProps } = tariff
+                        return (
+                            <div key={tariff.tier} className={isPopular ? 'xl:-mt-8 xl:mb-8' : ''}>
+                                <TariffCard
+                                    {...cardProps}
+                                    onSelect={(t) => console.log('Selected:', t)}
+                                />
+                            </div>
+                        )
+                    })}
                 </div>
             </main>
 
             {/* Footer */}
             <footer className="text-center pb-12 text-white/30 text-xs px-4 relative z-10">
-                <div className="flex flex-col md:flex-row justify-center gap-4 mb-4 uppercase tracking-widest text-[10px]">
-                    <span>82.2% точность сигналов</span>
-                    <span className="hidden md:inline">•</span>
-                    <span>5000+ участников</span>
-                    <span className="hidden md:inline">•</span>
-                    <span>С 2022 года</span>
+                <div className="flex justify-center gap-6 mb-4 font-mono">
+                    <span>82.2% WINRATE</span>
+                    <span>•</span>
+                    <span>5000+ USERS</span>
+                    <span>•</span>
+                    <span>SINCE 2022</span>
                 </div>
-                <p className="font-light">
-                    Акция действует 96 часов с 23.12.2025. Кол-во мест ограничено.
+                <p className="opacity-50">
+                    Акция действует 96 часов. Limited Edition.
                 </p>
-                <button onClick={() => navigate('/')} className="mt-8 text-white/20 hover:text-white transition-colors underline decoration-white/10 underline-offset-4">
-                    На главную
-                </button>
             </footer>
         </div>
     )
