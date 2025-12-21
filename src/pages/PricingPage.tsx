@@ -277,20 +277,6 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
             </div>
           )}
 
-          {/* Badge - статус */}
-          {tariff.badge && (
-            <div
-              className="inline-block px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-semibold tracking-wider mb-3 md:mb-4"
-              style={{
-                background: `${tariff.auroraColors[0]}20`,
-                color: tariff.auroraColors[0],
-                border: `1px solid ${tariff.auroraColors[0]}40`
-              }}
-            >
-              {tariff.badge}
-            </div>
-          )}
-
           {/* Название */}
           <h3
             className="text-lg md:text-xl font-semibold tracking-wider mb-1"
@@ -344,28 +330,16 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
           {/* Каскадная структура: "Всё из [тарифа] +" */}
           {previousTariff[tariff.id] && (
-            <div className="mb-4 md:mb-5">
+            <div className="mb-4 md:mb-5 relative">
+              {/* Линия слева */}
               <div
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs md:text-sm"
-                style={{
-                  background: `${tariff.auroraColors[0]}10`,
-                  border: `1px solid ${tariff.auroraColors[0]}30`
-                }}
-              >
-                <svg
-                  className="w-4 h-4"
-                  style={{ color: tariff.auroraColors[0] }}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-300">
-                  Всё из <span style={{ color: tariff.auroraColors[0] }}>{previousTariff[tariff.id]}</span>
-                </span>
-                <span style={{ color: tariff.auroraColors[0] }}>+</span>
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-full rounded-full"
+                style={{ background: `linear-gradient(180deg, transparent, ${tariff.auroraColors[0]}40, transparent)` }}
+              />
+              <div className="pl-3 flex items-center gap-1.5 text-xs md:text-sm">
+                <span className="text-white/50">Всё из</span>
+                <span className="font-medium text-white/80">{previousTariff[tariff.id]}</span>
+                <span style={{ color: tariff.auroraColors[0] }} className="font-semibold">+</span>
               </div>
             </div>
           )}
