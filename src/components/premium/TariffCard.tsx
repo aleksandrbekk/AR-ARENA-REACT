@@ -27,8 +27,8 @@ export const TariffCard: React.FC<TariffCardProps> = ({
             case 'start': // CLASSIC
                 return {
                     name: 'Classic',
-                    glow: 'bg-white/5', // Minimal
-                    border: 'border-white/10',
+                    glow: 'from-zinc-800 to-zinc-900', // Minimal gray
+                    border: 'border-white/5',
                     button: 'border border-white/20 hover:bg-white/5 text-white',
                     badge: null,
                     height: 'h-[500px]'
@@ -36,25 +36,25 @@ export const TariffCard: React.FC<TariffCardProps> = ({
             case 'growth': // GOLD
                 return {
                     name: 'Gold',
-                    glow: 'bg-gradient-to-br from-[#C9A962] to-[#FFA500] opacity-20',
-                    border: 'border-[#FFA500]/20',
+                    glow: 'from-[#C9A962] to-[#FFA500]', // Gold -> Orange
+                    border: 'border-[#FFA500]/30',
                     button: 'bg-[#1a1a1a] text-[#FFA500] border border-[#FFA500]/50 hover:bg-[#FFA500]/10',
                     badge: { text: '-15%', color: 'text-[#FFA500] border border-[#FFA500]/30 bg-[#FFA500]/10' },
                     height: 'h-[500px]'
                 }
-            case 'investor': // PLATINUM (Main Focus)
+            case 'investor': // PLATINUM
                 return {
                     name: 'Platinum',
-                    glow: 'bg-gradient-to-br from-[#6366F1] via-[#8B5CF6] to-[#06B6D4] opacity-40',
-                    border: 'border-[#8B5CF6]/50 shadow-[0_0_30px_rgba(139,92,246,0.15)]',
-                    button: 'bg-gradient-to-r from-[#6366F1] to-[#06B6D4] text-white shadow-lg hover:shadow-cyan-500/25',
+                    glow: 'from-[#6366F1] via-[#8B5CF6] to-[#06B6D4]', // Indigo -> Violet -> Cyan
+                    border: 'border-[#8B5CF6] shadow-2xl shadow-[#8B5CF6]/20',
+                    button: 'bg-gradient-to-r from-[#6366F1] to-[#06B6D4] text-white shadow-lg shadow-indigo-500/20 hover:shadow-cyan-500/30',
                     badge: { text: '-20% • POPULAR', color: 'text-white bg-gradient-to-r from-[#6366F1] to-[#06B6D4]' },
-                    height: 'h-[540px] -mt-5' // Taller and visually elevated
+                    height: 'h-[560px] -mt-8 scale-105 z-20' // Much larger and elevated
                 }
             case 'partner': // PRIVATE
                 return {
                     name: 'Private',
-                    glow: 'bg-gradient-to-br from-[#8B5CF6] via-[#EC4899] to-[#F43F5E] opacity-30',
+                    glow: 'from-[#8B5CF6] via-[#EC4899] to-[#F43F5E]', // Violet -> Pink -> Red
                     border: 'border-[#EC4899]/30',
                     button: 'bg-[#1a1a1a] text-[#EC4899] border border-[#EC4899]/50 hover:bg-[#EC4899]/10',
                     badge: { text: '-30% • VIP', color: 'text-[#EC4899] border border-[#EC4899]/30 bg-[#EC4899]/10' },
@@ -68,19 +68,23 @@ export const TariffCard: React.FC<TariffCardProps> = ({
             className={`
                 relative group flex flex-col rounded-2xl transition-all duration-300
                 ${styleConfig.height} w-full
-                bg-[#0a0a0a] backdrop-blur-2xl
+                bg-[#0a0a0a]/60 backdrop-blur-xl border
                 ${styleConfig.border}
-                overflow-visible z-0 hover:z-10
+                overflow-hidden z-0 hover:z-10
             `}
         >
-            {/* Aurora Glow Effect (Behind) */}
+            {/* Aurora Glow Effect (Internal/Behind) */}
             <div
                 className={`
-                    absolute -inset-4 -z-10 blur-[60px] rounded-full transition-opacity duration-500
-                    ${styleConfig.glow}
-                    opacity-0 group-hover:opacity-60 group-hover:blur-[80px]
+                    absolute top-[-50%] left-[-50%] w-[200%] h-[200%] blur-[80px] rounded-full transition-opacity duration-500
+                    bg-gradient-to-br ${styleConfig.glow}
+                    opacity-20 group-hover:opacity-100 ease-in-out
                 `}
             />
+            {/* Glow Halo (External - simulated via inset shadow or spread) */}
+            {tier === 'investor' && (
+                <div className="absolute inset-0 rounded-2xl shadow-[0_0_80px_rgba(139,92,246,0.3)] z-[-1]" />
+            )}
 
             {/* Badge */}
             {(badge || styleConfig.badge) && (

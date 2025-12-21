@@ -97,10 +97,10 @@ export const PremiumPromoPage: React.FC = () => {
                         <path d="M12 2L2 19h20L12 2zm0 3.8l6.8 11.2H5.2L12 5.8z" />
                     </svg>
                 </div>
-                <h1 className="text-2xl md:text-3xl font-medium tracking-tight mb-2">
+                <h1 className="text-2xl md:text-3xl font-medium tracking-wide mb-2">
                     PREMIUM AR CLUB
                 </h1>
-                <p className="text-white/40 text-sm uppercase tracking-widest font-medium mb-8">
+                <p className="text-[#888888] text-sm uppercase tracking-widest font-medium mb-8">
                     Новогоднее предложение
                 </p>
 
