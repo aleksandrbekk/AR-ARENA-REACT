@@ -314,17 +314,17 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
           {/* Цена */}
           <div className="mb-4 md:mb-6">
-            {tariff.oldPrice && (
-              <div className="text-gray-600 text-xs md:text-sm line-through mb-1">
-                {tariff.oldPrice.toLocaleString('ru-RU')} ₽
-              </div>
-            )}
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-3xl md:text-5xl font-bold text-white">
                 {tariff.price.toLocaleString('ru-RU')}
               </span>
               <span className="text-gray-500 text-base md:text-lg">₽</span>
               <span className="text-gray-600 text-xs md:text-sm">{tariff.durationShort}</span>
+              {tariff.oldPrice && (
+                <span className="text-gray-600 text-xs md:text-sm line-through ml-1">
+                  {tariff.oldPrice.toLocaleString('ru-RU')} ₽
+                </span>
+              )}
             </div>
           </div>
 
