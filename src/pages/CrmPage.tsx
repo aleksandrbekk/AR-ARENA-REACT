@@ -625,7 +625,7 @@ export function CrmPage() {
 
         {/* МОДАЛКА КЛИЕНТА */}
         {showClientModal && selectedClient && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4 pt-[60px] pb-6">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4 pt-[85px] pb-6">
             <div className="bg-zinc-900 rounded-2xl w-full max-w-md border border-yellow-500/20 max-h-full h-auto overflow-hidden flex flex-col">
               {/* Шапка */}
               <div className="flex items-center justify-between p-4 border-b border-white/10">
