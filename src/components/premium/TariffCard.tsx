@@ -82,28 +82,28 @@ export const TariffCard: React.FC<TariffCardProps> = ({
                         <img
                             src="/premium/icon_shield.png"
                             alt="Bronze Shield"
-                            className="w-full h-full object-contain mix-blend-screen grayscale-[0.2]"
+                            className="w-full h-full object-contain grayscale-[0.2]"
                         />
                     )}
                     {tier === 'growth' && (
                         <img
                             src="/premium/icon_chart.png"
                             alt="Silver Growth"
-                            className="w-full h-full object-contain mix-blend-screen"
+                            className="w-full h-full object-contain"
                         />
                     )}
                     {tier === 'investor' && (
                         <img
                             src="/premium/icon_ingot.png"
                             alt="Gold Ingot"
-                            className="w-full h-full object-contain mix-blend-screen brightness-110 contrast-125"
+                            className="w-full h-full object-contain brightness-110 contrast-125"
                         />
                     )}
                     {tier === 'partner' && (
                         <img
                             src="/premium/icon_star.png"
                             alt="Platinum Star"
-                            className="w-full h-full object-contain mix-blend-screen brightness-125 saturate-150"
+                            className="w-full h-full object-contain brightness-125 saturate-150"
                         />
                     )}
                 </div>
@@ -158,7 +158,7 @@ export const TariffCard: React.FC<TariffCardProps> = ({
                         <img
                             src="/premium/icon_gift.png"
                             alt="Gift Box"
-                            className="w-16 h-16 object-contain mix-blend-screen opacity-90"
+                            className="w-16 h-16 object-contain opacity-90"
                         />
                     </div>
                     <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1 relative z-10">Подарок</div>
