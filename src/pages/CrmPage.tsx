@@ -73,7 +73,7 @@ export function CrmPage() {
 
   // Форма заметки
   const [note, setNote] = useState('')
-  
+
   // Ползунок дней
   const [daysSlider, setDaysSlider] = useState(30)
 
@@ -227,7 +227,7 @@ export function CrmPage() {
       showToast({ variant: 'success', title: `Добавлено ${days} дней` })
       await loadData()
       await loadClients()
-      
+
       // Обновляем выбранного клиента
       const updated = clients.find(c => c.id === selectedClient.id)
       if (updated) {
@@ -259,7 +259,7 @@ export function CrmPage() {
 
       showToast({ variant: 'success', title: 'Заметка сохранена' })
       await loadClients()
-      
+
       // Обновляем выбранного клиента
       const updated = clients.find(c => c.id === selectedClient.id)
       if (updated) {
@@ -558,11 +558,10 @@ export function CrmPage() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-2.5 py-1 text-sm rounded-md font-medium whitespace-nowrap transition-all ${
-                  filter === f
-                    ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-                    : 'bg-zinc-800/70 text-white/60 hover:bg-zinc-700'
-                }`}
+                className={`px-2.5 py-1 text-sm rounded-md font-medium whitespace-nowrap transition-all ${filter === f
+                  ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
+                  : 'bg-zinc-800/70 text-white/60 hover:bg-zinc-700'
+                  }`}
               >
                 {f === 'all' ? 'Все' : f === 'active' ? 'Активные' : f === 'expiring_3d' ? 'Истекает 3д' : f === 'expired' ? 'Истёкшие' : 'VIP'}
               </button>
@@ -626,8 +625,8 @@ export function CrmPage() {
 
         {/* МОДАЛКА КЛИЕНТА */}
         {showClientModal && selectedClient && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 mx-4">
-            <div className="bg-zinc-900 rounded-2xl w-full max-w-md border border-yellow-500/20 max-h-[85vh] overflow-hidden flex flex-col pt-4 pb-[env(safe-area-inset-bottom,20px)]">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4 pt-[60px] pb-6">
+            <div className="bg-zinc-900 rounded-2xl w-full max-w-md border border-yellow-500/20 max-h-full h-auto overflow-hidden flex flex-col">
               {/* Шапка */}
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <div className="flex items-center gap-3">
@@ -650,16 +649,15 @@ export function CrmPage() {
               </div>
 
               {/* Контент */}
-              <div className="overflow-y-auto flex-1 p-4 space-y-4">
+              <div className="overflow-y-auto flex-1 p-4 space-y-4 pb-[env(safe-area-inset-bottom,20px)]">
                 {/* Статус подписки */}
                 <div className="p-3 bg-zinc-800/50 rounded-xl">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-white/60 text-sm">Подписка</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      selectedClient.days_left > 7 ? 'bg-green-500/20 text-green-400' :
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${selectedClient.days_left > 7 ? 'bg-green-500/20 text-green-400' :
                       selectedClient.days_left > 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-red-500/20 text-red-400'
-                    }`}>
+                        'bg-red-500/20 text-red-400'
+                      }`}>
                       {selectedClient.days_left > 0 ? `${selectedClient.days_left} дн.` : 'Истекла'}
                     </span>
                   </div>
