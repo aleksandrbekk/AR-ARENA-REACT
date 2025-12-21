@@ -435,22 +435,61 @@ export function PricingPage() {
           {/* Header */}
           <header className="text-center mb-12">
             <motion.div
-              className="text-gray-500 text-sm tracking-[0.4em] uppercase mb-3"
+              className="text-sm tracking-[0.4em] uppercase mb-3 font-medium"
+              style={{
+                background: 'linear-gradient(90deg, #C9A962, #FFD700, #C9A962)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              Premium AR Club
+              AR PREMIUM CLUB
             </motion.div>
 
-            <motion.h1
-              className="text-4xl md:text-5xl font-bold mb-6 tracking-tight"
+            <motion.div
+              className="relative inline-block mb-6"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              Новогоднее предложение
-            </motion.h1>
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                Новогоднее предложение
+              </h1>
+              {/* Bitcoin как ёлочная игрушка */}
+              <motion.div
+                className="absolute -top-2 -right-4 md:-right-8"
+                animate={{
+                  rotate: [0, 5, -5, 0],
+                  y: [0, -2, 0]
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                {/* Нитка */}
+                <div
+                  className="absolute left-1/2 -top-3 w-px h-3"
+                  style={{ background: 'linear-gradient(180deg, #C9A962, #FFD70080)' }}
+                />
+                {/* Bitcoin */}
+                <div
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, #F7931A, #FFAB40)',
+                    boxShadow: '0 4px 15px rgba(247, 147, 26, 0.4)'
+                  }}
+                >
+                  <svg className="w-5 h-5 md:w-6 md:h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.001 2C6.47813 2 2.00098 6.47715 2.00098 12C2.00098 17.5228 6.47813 22 12.001 22C17.5238 22 22.001 17.5228 22.001 12C22.001 6.47715 17.5238 2 12.001 2ZM13.0881 16.4548V17.9998H11.0871V16.4678C9.97714 16.3398 8.95312 15.9048 8.41211 15.3928L9.25708 13.6758C9.82007 14.1398 10.6351 14.5368 11.5701 14.5368C12.3961 14.5368 12.8711 14.2028 12.8711 13.6758C12.8711 12.4948 8.76611 13.0698 8.76611 10.3378C8.76611 8.88281 9.79712 7.81982 11.0871 7.56982V6.00781H13.0881V7.53979C14.0231 7.66479 14.8701 8.00781 15.4541 8.48682L14.6091 10.1908C14.0671 9.78479 13.3911 9.46582 12.5431 9.46582C11.6741 9.46582 11.2861 9.81384 11.2861 10.2678C11.2861 11.3928 15.3911 10.8428 15.3911 13.5748C15.3911 15.0168 14.3731 16.1678 13.0881 16.4548Z"/>
+                  </svg>
+                </div>
+              </motion.div>
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: -20 }}
