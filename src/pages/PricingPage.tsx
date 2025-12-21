@@ -116,7 +116,7 @@ const tariffs: Tariff[] = [
     oldPrice: 48000,
     discount: '-30%',
     badge: 'VIP',
-    auroraColors: ['#8B5CF6', '#A855F7'],
+    auroraColors: ['#9F1239', '#BE123C'],
     auroraOpacity: 0.6,
     auroraBlur: 22,
     auroraSpeed: 7,
@@ -129,7 +129,7 @@ const tariffs: Tariff[] = [
       '+2 месяца бесплатно'
     ],
     buttonStyle: 'outline',
-    buttonColor: '#8B5CF6'
+    buttonColor: '#9F1239'
   }
 ]
 
@@ -375,8 +375,11 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           <div className="flex-grow" />
 
           {/* Кнопка */}
-          <motion.button
-            className={`w-full py-3 md:py-3.5 rounded-lg text-sm md:text-base font-medium transition-all ${
+          <motion.a
+            href="https://app.lava.top/products/d42513b3-8c4e-416e-b3cd-68a212a0a36e/d6edc26e-00b2-4fe0-9b0b-45fd7548b037"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`w-full py-3 md:py-3.5 rounded-lg text-sm md:text-base font-medium transition-all text-center block ${
               tariff.buttonStyle === 'fill'
                 ? 'text-white'
                 : 'bg-transparent'
@@ -398,7 +401,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
             whileTap={{ scale: 0.98 }}
           >
             {tariff.id === 'classic' ? 'Начать' : `Выбрать ${tariff.name}`}
-          </motion.button>
+          </motion.a>
         </div>
       </div>
     </motion.div>
