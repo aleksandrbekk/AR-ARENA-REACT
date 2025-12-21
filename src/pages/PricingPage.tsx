@@ -43,70 +43,83 @@ const tariffs: Tariff[] = [
     name: 'CLASSIC',
     duration: '1 месяц',
     durationShort: '/мес',
-    price: 4000,
+    price: 50, // Displayed as $50 usually, but type is number. Let's assume user wants $ sign logic or just number. Prompt said $50/мес. Code uses localestring 'ru-RU' with symbol. I will update display logic later, for now set number to 50? Or 4000? 
+    // PROMPT SAID: "CLASSIC — $50/мес". "TRADER — $100".
+    // CURRENT CODE uses rub symbol.
+    // I should probably change the display currency or use the PROMPT prices if they are intended to be USD.
+    // WAIT. Previous prompt was RUB. This prompt is specific "$50". 
+    // I will switch to USD prices in the data and update the render logic to show '$' instead of '₽'.
+
     oldPrice: null,
     discount: null,
     badge: null,
     cardImage: '/cards/classic.png',
-    auroraColors: ['#4a4a4a', '#2a2a2a'],
+    auroraColors: ['#6b7280', '#4b5563'], // Gray
     auroraOpacity: 0.3,
     auroraBlur: 15,
     auroraSpeed: 10,
     isFeatured: false,
     baseFeatures: [
-      'Торговые сигналы (82% точность)',
-      'Авторская аналитика',
-      '900+ обучающих материалов',
-      'Закрытый чат клуба',
-      'AMA-сессии с Алексеем'
+      'Полный доступ к публикациям канала',
+      'Доступ к Premium таблице',
+      'Бот-навигатор по материалам',
+      'Общение в тематических чатах',
+      'Поддержка от команды AR'
     ],
     bonuses: [],
     buttonStyle: 'outline',
-    buttonColor: '#666666'
+    buttonColor: '#9ca3af' // gray-400
   },
   {
-    id: 'gold',
-    name: 'GOLD',
-    duration: '3 месяца',
-    durationShort: '/3 мес',
-    price: 10200,
-    oldPrice: 12000,
-    discount: '-15%',
+    id: 'trader', // Rename from gold
+    name: 'TRADER',
+    duration: '60 дней',
+    durationShort: '/2 мес',
+    price: 100,
+    oldPrice: null,
+    discount: null,
     badge: null,
-    cardImage: '/cards/gold.png',
-    auroraColors: ['#C9A962', '#FFA500'],
+    cardImage: '/cards/gold.png', // Keep or update? Prompt says "Update images if existent (GOLD -> TRADER)". I will just use existing or empty.
+    auroraColors: ['#10b981', '#34d399'], // Emerald Green
     auroraOpacity: 0.5,
     auroraBlur: 20,
     auroraSpeed: 8,
     isFeatured: false,
     baseFeatures: [],
-    bonuses: [
-      'Портфель 2025 (PDF)',
-      '+1 неделя бесплатно'
+    bonuses: [ // "Everything in CLASSIC + ..." logic handled in render? No, previousTariff map handles it.
+      // Prompt says: "Deals with explanations...", "Directions SPOT...", "Podcasts", "Voting bot", "Highlights"
+      'Сделки с объяснениями и входом',
+      'Направления SPOT TRADE + Фьючерсы',
+      'Видео и аудио подкасты',
+      'Бот голосования за монеты',
+      'Подсветки сделок от команды'
     ],
     buttonStyle: 'outline',
-    buttonColor: '#C9A962'
+    buttonColor: '#10b981' // emerald-500
   },
   {
     id: 'platinum',
     name: 'PLATINUM',
-    duration: '6 месяцев',
-    durationShort: '/6 мес',
-    price: 19200,
-    oldPrice: 24000,
-    discount: '-20%',
+    duration: '90 дней',
+    durationShort: '/3 мес',
+    price: 135,
+    oldPrice: null,
+    discount: null,
     badge: 'ПОПУЛЯРНЫЙ',
     cardImage: '/cards/platinum.png',
-    auroraColors: ['#7B68EE', '#06B6D4'],
+    auroraColors: ['#7B68EE', '#06B6D4'], // Blue/Cyan
     auroraOpacity: 0.7,
     auroraBlur: 25,
     auroraSpeed: 6,
     isFeatured: true,
     baseFeatures: [],
     bonuses: [
-      'Чек-лист "Антискам"',
-      'Шаблон риск-менеджмента',
-      '+1 месяц бесплатно'
+      'Торговая стратегия X3 со сценариями',
+      'Авторские инвестиционные портфели',
+      'SPOT INVEST направление',
+      'Глубокая аналитика и ончейн метрики',
+      'Психология рынка, понимание циклов',
+      'AMA-сессии с Алексеем'
     ],
     buttonStyle: 'outline',
     buttonColor: '#7B68EE'
@@ -114,34 +127,34 @@ const tariffs: Tariff[] = [
   {
     id: 'private',
     name: 'PRIVATE',
-    duration: '12 месяцев',
-    durationShort: '/год',
-    price: 33600,
-    oldPrice: 48000,
-    discount: '-30%',
+    duration: 'Индивидуально',
+    durationShort: '',
+    price: 0, // Individual
+    oldPrice: null,
+    discount: null,
     badge: 'VIP',
     cardImage: '/cards/PRIVATE.png',
-    auroraColors: ['#9F1239', '#BE123C'],
-    auroraOpacity: 0.6,
+    auroraColors: ['#FFD700', '#FFA500'], // Gold/Amber
+    auroraOpacity: 0.8,
     auroraBlur: 22,
     auroraSpeed: 7,
     isFeatured: false,
     baseFeatures: [],
     bonuses: [
-      'VIP-чат с Алексеем',
-      'Welcome-созвон 15 мин',
-      'Персональный разбор портфеля',
-      '+2 месяца бесплатно'
+      'Закрытая AMA с разбором (1 час)',
+      'Приоритетная поддержка 24/7',
+      'Бонусы за активность в чате',
+      'Ранний доступ к новым продуктам'
     ],
     buttonStyle: 'outline',
-    buttonColor: '#9F1239'
+    buttonColor: '#FFD700'
   }
 ]
 
 // Названия предыдущих тарифов для каскада
 const previousTariff: Record<string, string> = {
-  gold: 'CLASSIC',
-  platinum: 'GOLD',
+  trader: 'CLASSIC',
+  platinum: 'TRADER',
   private: 'PLATINUM'
 }
 
@@ -321,10 +334,9 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           <div className="mb-4 md:mb-6">
             <div className="flex items-baseline gap-1">
               <span className="text-3xl md:text-5xl font-bold text-white">
-                {tariff.price.toLocaleString('ru-RU')}
+                {tariff.price > 0 ? `$${tariff.price}` : 'Individual'}
               </span>
-              <span className="text-gray-500 text-base md:text-lg">₽</span>
-              <span className="text-gray-600 text-xs md:text-sm">{tariff.durationShort}</span>
+              {tariff.price > 0 && <span className="text-gray-600 text-xs md:text-sm">{tariff.durationShort}</span>}
             </div>
           </div>
 
