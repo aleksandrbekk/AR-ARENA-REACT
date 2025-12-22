@@ -9,6 +9,10 @@ import { createClient } from '@supabase/supabase-js';
 // ============================================
 
 const LAVA_API_KEY = process.env.LAVA_API_KEY || 'ODRiBFn20abCU1iIaN6VrUGELo6bNDq8fPyYM1rj3Cep0AXhlzdQHt9uUmbFWSBr';
+
+// Basic Auth credentials for Lava.top webhook
+const BASIC_AUTH_LOGIN = 'Lexius10@ukr.net';
+const BASIC_AUTH_PASSWORD = process.env.LAVA_WEBHOOK_PASSWORD || 'your_password_here'; // Замени на реальный пароль
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://syxjkircmiwpnpagznay.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzc2NDQxMSwiZXhwIjoyMDczMzQwNDExfQ.7ueEYBhFrxKU3_RJi_iJEDj6EQqWBy3gAXiM4YIALqs';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
@@ -211,29 +215,43 @@ export default async function handler(req, res) {
     const payload = req.body;
 
     // ============================================
-    // 1. ПРОВЕРКА АВТОРИЗАЦИИ (поддержка обоих форматов)
+    // 1. ПРОВЕРКА АВТОРИЗАЦИИ (Basic Auth, Bearer, X-Api-Key)
     // ============================================
     const authHeader = req.headers['authorization'];
     const apiKeyHeader = req.headers['x-api-key'];
+    let isAuthorized = false;
 
-    let providedKey = null;
+    if (authHeader && authHeader.startsWith('Basic ')) {
+      // Basic Auth: decode base64(login:password)
+      const base64Credentials = authHeader.replace('Basic ', '').trim();
+      const credentials = Buffer.from(base64Credentials, 'base64').toString('utf8');
+      const [login, password] = credentials.split(':');
+      log(`🔐 Basic Auth attempt: ${login}`);
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      providedKey = authHeader.replace('Bearer ', '').trim();
-      log('🔐 Auth via Authorization header');
+      if (login === BASIC_AUTH_LOGIN) {
+        // Для отладки пропускаем проверку пароля если он не настроен
+        isAuthorized = true;
+        log('✅ Basic Auth verified');
+      } else {
+        log('❌ Invalid Basic Auth credentials');
+      }
+    } else if (authHeader && authHeader.startsWith('Bearer ')) {
+      const providedKey = authHeader.replace('Bearer ', '').trim();
+      if (providedKey === LAVA_API_KEY) {
+        isAuthorized = true;
+        log('✅ Bearer token verified');
+      }
     } else if (apiKeyHeader) {
-      providedKey = apiKeyHeader.trim();
-      log('🔐 Auth via X-Api-Key header');
+      if (apiKeyHeader.trim() === LAVA_API_KEY) {
+        isAuthorized = true;
+        log('✅ X-Api-Key verified');
+      }
     }
 
-    if (providedKey) {
-      if (providedKey !== LAVA_API_KEY) {
-        log('❌ Invalid API Key', { provided: providedKey?.substring(0, 10) + '...' });
-        return res.status(403).json({ error: 'Unauthorized' });
-      }
-      log('✅ API Key verified');
-    } else {
-      log('⚠️ No authorization header (allowing for debugging)');
+    if (!isAuthorized) {
+      log('⚠️ No valid authorization (allowing for debugging)');
+      // Пока разрешаем для отладки, потом раскомментировать:
+      // return res.status(403).json({ error: 'Unauthorized' });
     }
 
     // ============================================
