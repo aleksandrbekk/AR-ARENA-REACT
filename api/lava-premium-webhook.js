@@ -200,6 +200,15 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      status: 'ok',
+      service: 'Lava.top Webhook for Premium AR Club',
+      method: 'POST only',
+      events: ['payment.success', 'subscription.recurring.payment.success']
+    });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
