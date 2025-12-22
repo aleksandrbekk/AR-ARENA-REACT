@@ -47,15 +47,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             return
         }
 
-        // Формируем clientUTM для webhook
+        // Формируем clientUTM для webhook (включаем tariff ID)
+        const tariffId = tariff?.id || 'unknown'
         const clientUTM = telegramId
-            ? `telegram_id=${telegramId}`
-            : `telegram_username=${tgUsername}`
+            ? `telegram_id=${telegramId}&tariff=${tariffId}`
+            : `telegram_username=${tgUsername}&tariff=${tariffId}`
 
-        console.log('[PaymentModal] Opening Lava.top:', { telegramId, tgUsername, clientUTM })
+        console.log('[PaymentModal] Opening Lava.top:', { telegramId, tgUsername, tariffId, clientUTM })
 
-        // Прямая ссылка на продукт Premium AR Club (пользователь выберет тариф сам)
-        const paymentUrl = `https://app.lava.top/products/d42513b3-8c4e-416e-b3cd-68a212a0a36e/d6edc26e-00b2-4fe0-9b0b-45fd7548b037?clientUTM=${encodeURIComponent(clientUTM)}`
+        // Прямая ссылка на продукт Premium AR Club (обычный продукт, не подписка)
+        const paymentUrl = `https://app.lava.top/products/9ea7b8a5-c300-4b2e-b369-f0a0f6f968f8?clientUTM=${encodeURIComponent(clientUTM)}`
 
         // @ts-ignore
         if (window.Telegram?.WebApp?.openLink) {
