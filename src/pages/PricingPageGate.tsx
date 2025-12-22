@@ -496,7 +496,7 @@ const AccessGate = ({ onUnlock }: { onUnlock: () => void }) => {
                 {/* Code Input */}
                 <div className="max-w-xs mx-auto text-center space-y-4">
                     <label className="text-gray-400 text-sm tracking-widest uppercase font-medium">
-                        Введите код доступа
+                        Введите код из видео
                     </label>
                     <input
                         type="text"
@@ -509,7 +509,7 @@ const AccessGate = ({ onUnlock }: { onUnlock: () => void }) => {
               w-full bg-zinc-900/80 backdrop-blur-xl border-2 rounded-xl px-4 py-4 
               text-center text-3xl tracking-[0.5em] font-mono text-white 
               placeholder-white/10 focus:outline-none transition-all
-              ${error ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'border-yellow-500/20 focus:border-yellow-500/50 focus:shadow-[0_0_20px_rgba(234,179,8,0.2)]'}
+              ${error ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'border-[#FFD700]/30 focus:border-[#FFD700] focus:shadow-[0_0_20px_rgba(255,215,0,0.3)]'}
             `}
                     />
                     {error && (
