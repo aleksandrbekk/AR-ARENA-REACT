@@ -68,8 +68,8 @@ const tariffs: Tariff[] = [
   {
     id: 'trader', // Rename from gold
     name: 'TRADER',
-    duration: '60 дней',
-    durationShort: '/2 мес',
+    duration: '3 месяца',
+    durationShort: '/3 мес',
     price: 9900,
     oldPrice: 12000,
     discount: null,
@@ -95,8 +95,8 @@ const tariffs: Tariff[] = [
   {
     id: 'platinum',
     name: 'PLATINUM',
-    duration: '90 дней',
-    durationShort: '/3 мес',
+    duration: '6 месяцев',
+    durationShort: '/6 мес',
     price: 17900,
     oldPrice: 24000,
     discount: null,
@@ -122,8 +122,8 @@ const tariffs: Tariff[] = [
   {
     id: 'private',
     name: 'PRIVATE',
-    duration: '',
-    durationShort: '',
+    duration: '1 год',
+    durationShort: '/12 мес',
     price: 34900,
     oldPrice: 44000,
     discount: null,
