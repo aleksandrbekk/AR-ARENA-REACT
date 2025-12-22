@@ -64,6 +64,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     telegramUsername: finalUsername || null,
                     offerId: 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037', // This offerId might need to vary by tariff?
                     amount: tariff.price,
+                    currency: 'USD',
                     // Ideally pass tariffId too if the backend supports dynamic offers based on ID
                     tariffId: tariff.id
                 })
@@ -157,7 +158,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                                         type="text"
                                         placeholder="@username"
                                         value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
+                                        onChange={(e) => setUsername(e.target.value.replace('@', ''))}
                                         className="w-full bg-zinc-800 border border-zinc-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none transition-all"
                                     />
                                     {/* Optional: Add @ prefix visually if needed, but placeholder handles it well */}
