@@ -64,26 +64,48 @@ function getPeriodByAmount(amount, currency = 'USD') {
   return { days: 30, tariff: '1month', name: 'UNKNOWN' };
 }
 
-// Извлечь telegram_id из clientUTM если user_id не передан
-function extractTelegramId(payload) {
-  // Приоритет: user_id > clientUTM > buyer_id
+// Извлечь telegram_id или username из clientUTM
+async function extractTelegramIdOrUsername(payload) {
+  // Приоритет: user_id > clientUTM (telegram_id) > clientUTM (username) > buyer_id
   if (payload.user_id) {
-    return String(payload.user_id);
+    return { telegramId: String(payload.user_id), username: null };
   }
 
   if (payload.clientUTM) {
     // Формат: "telegram_id=123456789"
-    const match = payload.clientUTM.match(/telegram_id=(\d+)/);
-    if (match) {
-      return match[1];
+    const idMatch = payload.clientUTM.match(/telegram_id=(\d+)/);
+    if (idMatch) {
+      return { telegramId: idMatch[1], username: null };
+    }
+
+    // Формат: "telegram_username=aleksandrbekk"
+    const usernameMatch = payload.clientUTM.match(/telegram_username=(\w+)/);
+    if (usernameMatch) {
+      const username = usernameMatch[1];
+      log(`📛 Found username in clientUTM: ${username}`);
+
+      // Пробуем найти telegram_id по username в БД
+      const { data: userData } = await supabase
+        .from('users')
+        .select('telegram_id')
+        .eq('username', username)
+        .single();
+
+      if (userData?.telegram_id) {
+        log(`✅ Found telegram_id ${userData.telegram_id} for username ${username}`);
+        return { telegramId: String(userData.telegram_id), username };
+      }
+
+      // Если не нашли в users, вернём только username
+      return { telegramId: null, username };
     }
   }
 
   if (payload.buyer_id) {
-    return String(payload.buyer_id);
+    return { telegramId: String(payload.buyer_id), username: null };
   }
 
-  return null;
+  return { telegramId: null, username: null };
 }
 
 // Отправить сообщение в Telegram
@@ -224,14 +246,20 @@ export default async function handler(req, res) {
     // ============================================
     // 3. ИЗВЛЕЧЕНИЕ TELEGRAM_ID
     // ============================================
-    const telegramId = extractTelegramId(payload);
+    const { telegramId, username: extractedUsername } = await extractTelegramIdOrUsername(payload);
 
-    if (!telegramId) {
-      log('❌ Missing telegram_id in payload');
-      return res.status(400).json({ error: 'Missing telegram_id' });
+    if (!telegramId && !extractedUsername) {
+      log('❌ Missing telegram_id and username in payload');
+      return res.status(400).json({ error: 'Missing telegram_id or username' });
     }
 
-    log(`👤 Telegram ID: ${telegramId}`);
+    // Если есть только username без telegram_id - создаём запись с username
+    if (!telegramId && extractedUsername) {
+      log(`⚠️ Only username found: ${extractedUsername}, no telegram_id`);
+      // Можем создать запись с username, но без возможности отправить сообщение
+    }
+
+    log(`👤 Telegram ID: ${telegramId || 'N/A'}, Username: ${extractedUsername || 'N/A'}`);
 
     // ============================================
     // 4. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ
@@ -245,13 +273,26 @@ export default async function handler(req, res) {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + period.days * 24 * 60 * 60 * 1000);
 
-    // Проверяем существующего клиента (telegram_id как integer)
-    const telegramIdInt = parseInt(telegramId);
-    const { data: existingClient, error: fetchError } = await supabase
-      .from('premium_clients')
-      .select('*')
-      .eq('telegram_id', telegramIdInt)
-      .single();
+    // Проверяем существующего клиента
+    const telegramIdInt = telegramId ? parseInt(telegramId) : null;
+    let existingClient = null;
+
+    if (telegramIdInt) {
+      const { data } = await supabase
+        .from('premium_clients')
+        .select('*')
+        .eq('telegram_id', telegramIdInt)
+        .single();
+      existingClient = data;
+    } else if (extractedUsername) {
+      // Ищем по username если нет telegram_id
+      const { data } = await supabase
+        .from('premium_clients')
+        .select('*')
+        .eq('username', extractedUsername)
+        .single();
+      existingClient = data;
+    }
 
     let clientId;
     let isNewClient = false;
@@ -283,27 +324,29 @@ export default async function handler(req, res) {
       }
 
       clientId = existingClient.id;
-      log(`✅ Client updated: ${telegramId}, expires: ${newExpires.toISOString()}`);
+      log(`✅ Client updated: ${telegramId || extractedUsername}, expires: ${newExpires.toISOString()}`);
     } else {
       // Создаём нового клиента
       isNewClient = true;
 
-      // Пробуем получить username из users
-      let username = null;
-      const { data: userData } = await supabase
-        .from('users')
-        .select('username, first_name')
-        .eq('telegram_id', telegramIdInt)
-        .single();
+      // Используем username из extractedUsername или ищем в users
+      let username = extractedUsername;
+      if (telegramIdInt && !username) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('username, first_name')
+          .eq('telegram_id', telegramIdInt)
+          .single();
 
-      if (userData?.username) {
-        username = userData.username;
+        if (userData?.username) {
+          username = userData.username;
+        }
       }
 
       const { data: newClient, error: insertError } = await supabase
         .from('premium_clients')
         .insert({
-          telegram_id: parseInt(telegramId),
+          telegram_id: telegramIdInt, // может быть null если только username
           username,
           plan: period.tariff,
           started_at: now.toISOString(),
@@ -328,54 +371,58 @@ export default async function handler(req, res) {
       }
 
       clientId = newClient.id;
-      log(`✅ New client created: ${telegramId}, expires: ${expiresAt.toISOString()}`);
+      log(`✅ New client created: ${telegramId || extractedUsername}, expires: ${expiresAt.toISOString()}`);
     }
 
     // ============================================
-    // 6. СОЗДАНИЕ INVITE-ССЫЛКИ
+    // 6. СОЗДАНИЕ INVITE-ССЫЛКИ (только если есть telegram_id)
     // ============================================
-    const inviteLink = await createInviteLink(telegramId);
+    if (telegramIdInt) {
+      const inviteLink = await createInviteLink(telegramId);
 
-    if (inviteLink) {
-      log(`🔗 Invite link created: ${inviteLink}`);
+      if (inviteLink) {
+        log(`🔗 Invite link created: ${inviteLink}`);
 
-      // Обновляем статус в БД
-      await supabase
-        .from('premium_clients')
-        .update({ in_channel: true, in_chat: true })
-        .eq('id', clientId);
+        // Обновляем статус в БД
+        await supabase
+          .from('premium_clients')
+          .update({ in_channel: true, in_chat: true })
+          .eq('id', clientId);
 
-      // ============================================
-      // 7. ОТПРАВКА СООБЩЕНИЯ В TELEGRAM
-      // ============================================
-      const welcomeMessage = isNewClient
-        ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
-          `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
-          `📢 Нажмите кнопку ниже, чтобы присоединиться к закрытому каналу:`
-        : `✅ <b>Подписка продлена!</b>\n\n` +
-          `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
-          `📢 Если вы ещё не в канале — присоединяйтесь:`;
+        // ============================================
+        // 7. ОТПРАВКА СООБЩЕНИЯ В TELEGRAM
+        // ============================================
+        const welcomeMessage = isNewClient
+          ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
+            `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
+            `📢 Нажмите кнопку ниже, чтобы присоединиться к закрытому каналу:`
+          : `✅ <b>Подписка продлена!</b>\n\n` +
+            `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
+            `📢 Если вы ещё не в канале — присоединяйтесь:`;
 
-      const replyMarkup = {
-        inline_keyboard: [
-          [{ text: '📢 Присоединиться к каналу', url: inviteLink }],
-          [{ text: '🎮 Открыть AR ARENA', web_app: { url: 'https://ararena.pro' } }]
-        ]
-      };
+        const replyMarkup = {
+          inline_keyboard: [
+            [{ text: '📢 Присоединиться к каналу', url: inviteLink }],
+            [{ text: '🎮 Открыть AR ARENA', web_app: { url: 'https://ararena.pro' } }]
+          ]
+        };
 
-      await sendTelegramMessage(telegramId, welcomeMessage, replyMarkup);
-      log('✅ Welcome message sent');
+        await sendTelegramMessage(telegramId, welcomeMessage, replyMarkup);
+        log('✅ Welcome message sent');
+      } else {
+        log('⚠️ Failed to create invite link');
+
+        // Отправляем сообщение без ссылки
+        await sendTelegramMessage(
+          telegramId,
+          `✅ <b>Подписка Premium AR Club активирована!</b>\n\n` +
+          `Период: <b>${period.name}</b> (${period.days} дней)\n\n` +
+          `⚠️ Не удалось создать ссылку на канал автоматически.\n` +
+          `Напишите @alekseybk для получения доступа.`
+        );
+      }
     } else {
-      log('⚠️ Failed to create invite link');
-
-      // Отправляем сообщение без ссылки
-      await sendTelegramMessage(
-        telegramId,
-        `✅ <b>Подписка Premium AR Club активирована!</b>\n\n` +
-        `Период: <b>${period.name}</b> (${period.days} дней)\n\n` +
-        `⚠️ Не удалось создать ссылку на канал автоматически.\n` +
-        `Напишите @alekseybk для получения доступа.`
-      );
+      log(`⚠️ No telegram_id, skipping invite link and Telegram message. Username: ${extractedUsername}`);
     }
 
     // ============================================
@@ -384,7 +431,7 @@ export default async function handler(req, res) {
     const { error: paymentError } = await supabase
       .from('payment_history')
       .insert({
-        telegram_id: String(telegramIdInt),
+        telegram_id: telegramIdInt ? String(telegramIdInt) : extractedUsername,
         amount: parseFloat(amount),
         currency: currency,
         source: 'lava.top'
@@ -404,7 +451,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: 'Premium subscription activated',
-      telegram_id: telegramId,
+      telegram_id: telegramId || null,
+      username: extractedUsername || null,
       period: period.name,
       days: period.days
     });
