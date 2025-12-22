@@ -421,7 +421,7 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // 6. СОЗДАНИЕ INVITE-ССЫЛКИ
+    // 6. ОТПРАВКА СООБЩЕНИЯ В TELEGRAM
     // ============================================
     // Если telegram_id не пришёл в payload, но клиент уже есть в БД - используем его telegram_id
     let finalTelegramId = telegramIdInt;
@@ -430,7 +430,21 @@ export default async function handler(req, res) {
       log(`📱 Using telegram_id from existing client: ${finalTelegramId}`);
     }
 
+    log(`🔍 Final telegram_id for message: ${finalTelegramId}`);
+
     if (finalTelegramId) {
+      // Сначала отправляем сообщение, потом пробуем invite link
+      const welcomeMessage = isNewClient
+        ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
+          `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.`
+        : `✅ <b>Подписка продлена!</b>\n\n` +
+          `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.`;
+
+      // Отправляем базовое сообщение сразу
+      await sendTelegramMessage(String(finalTelegramId), welcomeMessage);
+      log('✅ Basic welcome message sent');
+
+      // Пробуем создать invite link
       const inviteLink = await createInviteLink(String(finalTelegramId));
 
       if (inviteLink) {
@@ -442,17 +456,7 @@ export default async function handler(req, res) {
           .update({ in_channel: true, in_chat: true })
           .eq('id', clientId);
 
-        // ============================================
-        // 7. ОТПРАВКА СООБЩЕНИЯ В TELEGRAM
-        // ============================================
-        const welcomeMessage = isNewClient
-          ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
-            `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
-            `📢 Нажмите кнопку ниже, чтобы присоединиться к закрытому каналу:`
-          : `✅ <b>Подписка продлена!</b>\n\n` +
-            `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
-            `📢 Если вы ещё не в канале — присоединяйтесь:`;
-
+        // Отправляем второе сообщение с invite link
         const replyMarkup = {
           inline_keyboard: [
             [{ text: '📢 Присоединиться к каналу', url: inviteLink }],
@@ -460,22 +464,13 @@ export default async function handler(req, res) {
           ]
         };
 
-        await sendTelegramMessage(String(finalTelegramId), welcomeMessage, replyMarkup);
-        log('✅ Welcome message sent');
+        await sendTelegramMessage(String(finalTelegramId), '📢 Нажмите кнопку ниже, чтобы присоединиться к каналу:', replyMarkup);
+        log('✅ Invite link message sent');
       } else {
-        log('⚠️ Failed to create invite link');
-
-        // Отправляем сообщение без ссылки
-        await sendTelegramMessage(
-          String(finalTelegramId),
-          `✅ <b>Подписка Premium AR Club активирована!</b>\n\n` +
-          `Период: <b>${period.name}</b> (${period.days} дней)\n\n` +
-          `⚠️ Не удалось создать ссылку на канал автоматически.\n` +
-          `Напишите @alekseybk для получения доступа.`
-        );
+        log('⚠️ Failed to create invite link, but basic message was sent');
       }
     } else {
-      log(`⚠️ No telegram_id, skipping invite link and Telegram message. Username: ${extractedUsername}`);
+      log(`⚠️ No telegram_id available. Username: ${extractedUsername}`);
     }
 
     // ============================================
