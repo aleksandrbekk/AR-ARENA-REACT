@@ -6,7 +6,7 @@
 // В начало файла добавить (если нет):
 // const fetch = require('node-fetch');
 
-const LAVA_API_KEY = 'OZiQUDFJAz5eunrbUrUjA2ToAYjCgXWqaxzK7ibQA23uk3VoR6ijcGEO9Y9lfPjM';
+const LAVA_API_KEY = '2q3qBOCGh0nOt1w4rvn8rzH0XwkvTr93rEfiY78h2MaRM8Vmd6jimSeECprrsnTF';
 const LAVA_OFFER_ID = '836adba6-5365-40f6-a646-aef9621f3af4';
 const LAVA_API_URL = 'https://gate.lava.top/api/v2/invoice';
 
