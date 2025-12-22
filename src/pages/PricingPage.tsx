@@ -101,10 +101,10 @@ const tariffs: Tariff[] = [
     discount: null,
     badge: 'ХИТ',
     cardImage: '/cards/platinum.png',
-    auroraColors: ['#7B68EE', '#06B6D4'], // Blue/Cyan
-    auroraOpacity: 0.7,
-    auroraBlur: 25,
-    auroraSpeed: 6,
+    auroraColors: ['#00E5FF', '#FFFFFF'], // Electric Cyan + White
+    auroraOpacity: 0.9,
+    auroraBlur: 10,
+    auroraSpeed: 4,
     isFeatured: true,
     baseFeatures: [],
     bonuses: [
