@@ -1,8 +1,12 @@
-// Lava.top Invoice Creation для покупки AR
-// FRESH VERSION 2025-12-09 - uses offerId from request
+// Lava.top Invoice Creation для Premium AR Club
+// Vercel Serverless Function
+// 2025-12-22
 
-const LAVA_API_KEY = 'OZiQUDFJAz5eunrbUrUjA2ToAYjCgXWqaxzK7ibQA23uk3VoR6ijcGEO9Y9lfPjM';
+const LAVA_API_KEY = process.env.LAVA_PREMIUM_API_KEY || 'ODRiBFn20abCU1iIaN6VrUGELo6bNDq8fPyYM1rj3Cep0AXhlzdQHt9uUmbFWSBr';
 const LAVA_API_URL = 'https://gate.lava.top/api/v2/invoice';
+
+// Premium AR Club Product/Offer ID
+const PREMIUM_OFFER_ID = 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037';
 
 export default async function handler(req, res) {
   // CORS headers
@@ -19,35 +23,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, telegramId, telegramUsername, amount, currency = 'RUB', offerId } = req.body;
+    const { telegramId, telegramUsername, tariffId } = req.body;
 
-    // Валидация
-    if (!amount || !offerId) {
+    console.log('[Premium Invoice] Request:', { telegramId, telegramUsername, tariffId });
+
+    // Валидация - нужен telegram_id или username
+    if (!telegramId && !telegramUsername) {
       return res.status(400).json({
         error: 'Missing required fields',
-        required: ['amount', 'offerId']
+        required: ['telegramId или telegramUsername']
       });
     }
 
-    if (amount < 1) {
-      return res.status(400).json({ error: 'Amount must be at least 1' });
-    }
+    // Формируем clientUTM для передачи в webhook
+    const clientUTM = telegramId
+      ? `telegram_id=${telegramId}`
+      : `telegram_username=${telegramUsername}`;
 
-    // Определяем идентификатор пользователя
-    const userIdentifier = telegramId || telegramUsername || 'anonymous';
+    // Email-заглушка (Lava требует email)
+    const userIdentifier = telegramId || telegramUsername;
+    const email = `${userIdentifier}@premium.ararena.pro`;
 
-    // Если email не передан, генерируем заглушку
-    const finalEmail = email || `${userIdentifier}@ararena.pro`;
-
-    // Формируем clientUTM для webhook
-    let clientUTM;
-    if (telegramId) {
-      clientUTM = `telegram_id=${telegramId}`;
-    } else if (telegramUsername) {
-      clientUTM = `username=${telegramUsername}`;
-    }
-
-    console.log('Creating invoice:', { email, telegramId, amount, offerId });
+    console.log('[Premium Invoice] Creating invoice:', { email, clientUTM, offerId: PREMIUM_OFFER_ID });
 
     // Создание счёта через Lava.top API
     const response = await fetch(LAVA_API_URL, {
@@ -57,11 +54,9 @@ export default async function handler(req, res) {
         'X-Api-Key': LAVA_API_KEY
       },
       body: JSON.stringify({
-        email: finalEmail,
-        offerId,
-        currency,
+        email,
+        offerId: PREMIUM_OFFER_ID,
         buyerLanguage: 'RU',
-        amount: parseFloat(amount),
         clientUTM,
         successUrl: 'https://ararena.pro/payment-success'
       })
@@ -70,18 +65,15 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Lava API error:', data);
+      console.error('[Premium Invoice] Lava API error:', data);
       return res.status(response.status).json({
         error: 'Failed to create invoice',
         details: data
       });
     }
 
-    console.log('Invoice created:', {
-      email,
+    console.log('[Premium Invoice] Invoice created:', {
       telegramId,
-      amount,
-      offerId,
       contractId: data.contractId,
       paymentUrl: data.paymentUrl
     });
@@ -90,13 +82,11 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       paymentUrl: data.paymentUrl,
-      contractId: data.contractId,
-      amount: data.amount,
-      currency: data.currency
+      contractId: data.contractId
     });
 
   } catch (error) {
-    console.error('Invoice creation error:', error);
+    console.error('[Premium Invoice] Error:', error);
     return res.status(500).json({
       error: 'Internal server error',
       message: error.message
