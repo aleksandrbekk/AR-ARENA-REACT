@@ -32,9 +32,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const [showUsernameInput] = useState(!telegramIdFromWebApp)
 
     // Единый offerId для Premium подписки + periodicity для выбора срока
-    // ТЕСТ: 50 RUB offer
-    const PREMIUM_OFFER_ID = 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037'
-    // ПРОД: 3400 RUB offer = '755e7046-e658-43e1-908d-0738766b464d'
+    const PREMIUM_OFFER_ID = '755e7046-e658-43e1-908d-0738766b464d' // ПРОД: 3400 RUB/мес
 
     // Маппинг тарифа на periodicity (Lava API)
     const TARIFF_PERIODICITY: Record<string, string> = {
