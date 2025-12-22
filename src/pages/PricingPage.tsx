@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { PaymentModal } from '../components/premium/PaymentModal'
 
 // ============ СТИЛИ ДЛЯ AURORA ============
 const auroraStyles = `
@@ -148,7 +149,7 @@ const tariffs: Tariff[] = [
 ]
 
 // Названия предыдущих тарифов для каскада
-const previousTariff: Record<string, string> = {
+const previousTariffMap: Record<string, string> = {
   trader: 'CLASSIC',
   platinum: 'TRADER',
   private: 'PLATINUM'
@@ -248,8 +249,15 @@ const Snowflakes = () => {
   )
 }
 
-// ============ КАРТОЧКА ТАРИФА ============
-const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
+// ============ КОМПОНЕНТ КАРТОЧКИ ============
+interface PricingCardProps {
+  tariff: Tariff
+  index: number
+  previousTariff: Record<string, string>
+  onBuy: (tariff: Tariff) => void
+}
+
+function PricingCard({ tariff, index, onBuy }: PricingCardProps) {
   const { isFeatured } = tariff
 
   return (
@@ -294,9 +302,8 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
         />
 
         {/* Content */}
-        <div className={`relative z-[2] p-5 md:p-6 h-full flex flex-col`}>
+        <div className="relative z-[2] p-5 md:p-6 h-full flex flex-col">
           {/* Badge - скидка + старая цена */}
-          {/* Badge - только скидка или бейдж, старая цена теперь внизу */}
           {(tariff.discount || tariff.badge) && (
             <div
               className="absolute top-3 right-3 md:top-4 md:right-4 flex items-center gap-2 z-10"
@@ -381,7 +388,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           )}
 
           {/* Каскадная структура: "Всё из [тарифа] +" */}
-          {previousTariff[tariff.id] && (
+          {previousTariffMap[tariff.id] && (
             <div className="mb-4 md:mb-5 relative">
               {/* Линия слева */}
               <div
@@ -390,7 +397,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
               />
               <div className="pl-3 flex items-center gap-1.5 text-xs md:text-sm">
                 <span className="text-white/50">Всё из</span>
-                <span className="font-medium text-white/80">{previousTariff[tariff.id]}</span>
+                <span className="font-medium text-white/80">{previousTariffMap[tariff.id]}</span>
                 <span style={{ color: tariff.auroraColors[0] }} className="font-semibold">+</span>
               </div>
             </div>
@@ -427,11 +434,9 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           <div className="flex-grow" />
 
           {/* Кнопка */}
-          <motion.a
-            href="https://app.lava.top/products/d42513b3-8c4e-416e-b3cd-68a212a0a36e/d6edc26e-00b2-4fe0-9b0b-45fd7548b037"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3 md:py-3.5 rounded-lg text-sm md:text-base font-medium transition-all text-center block text-white"
+          <motion.button
+            onClick={() => onBuy(tariff)}
+            className="w-full py-3 md:py-3.5 rounded-lg text-sm md:text-base font-medium transition-all text-center block text-white relative z-20 cursor-pointer"
             style={{
               border: `1px solid ${tariff.auroraColors[0]}50`,
               background: `${tariff.auroraColors[0]}15`
@@ -443,7 +448,7 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
             whileTap={{ scale: 0.98 }}
           >
             {tariff.id === 'classic' ? 'Начать' : `Выбрать ${tariff.name}`}
-          </motion.a>
+          </motion.button>
         </div>
       </div>
     </motion.div>
@@ -454,12 +459,33 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 export function PricingPage() {
   const deadline = '2025-12-27T18:00:00+03:00'
 
+  // Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [selectedTariffForPayment, setSelectedTariffForPayment] = useState<Tariff | null>(null)
+
+  const handleBuyClick = (tariff: Tariff) => {
+    setSelectedTariffForPayment(tariff)
+    setIsPaymentModalOpen(true)
+  }
+
+  const handlePaymentMethodSelect = (_method: 'crypto' | 'card') => {
+    // В реальном проекте здесь были бы разные ссылки для методов
+    // Сейчас используем одну (Lava сама предлагает выбор, но мы сделали пре-шаг в UI)
+    const baseUrl = 'https://app.lava.top/products/d42513b3-8c4e-416e-b3cd-68a212a0a36e/d6edc26e-00b2-4fe0-9b0b-45fd7548b037'
+
+    // Можно добавить параметры, если Lava их поддерживает, например ?method=crypto
+    // window.open(`${baseUrl}?method=${method}`, '_blank')
+    window.open(baseUrl, '_blank')
+
+    setIsPaymentModalOpen(false)
+  }
+
   return (
     <>
       {/* Инжектим стили для aurora анимации */}
       <style>{auroraStyles}</style>
 
-      <div className="min-h-screen text-white relative pt-[60px]" style={{ background: '#050505' }}>
+      <div className="min-h-screen bg-black text-white relative overflow-x-hidden pt-[60px] pb-20 selection:bg-purple-500/30">
         {/* Subtle gradient overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -512,11 +538,24 @@ export function PricingPage() {
           {/* Карточки тарифов */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 mb-12 items-start">
             {tariffs.map((tariff, index) => (
-              <PricingCard key={tariff.id} tariff={tariff} index={index} />
+              <PricingCard
+                key={tariff.id}
+                tariff={tariff}
+                index={index}
+                previousTariff={previousTariffMap}
+                onBuy={handleBuyClick}
+              />
             ))}
           </div>
 
         </div>
+
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          onSelectMethod={handlePaymentMethodSelect}
+          tariffName={selectedTariffForPayment?.name || ''}
+        />
       </div>
     </>
   )
