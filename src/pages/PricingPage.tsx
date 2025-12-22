@@ -106,7 +106,7 @@ const tariffs: Tariff[] = [
     auroraOpacity: 0.9,
     auroraBlur: 10,
     auroraSpeed: 4,
-    isFeatured: true,
+    isFeatured: false,
     baseFeatures: [],
     bonuses: [
       'Торговая стратегия X3 со сценариями',
