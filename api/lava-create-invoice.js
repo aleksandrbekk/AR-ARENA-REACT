@@ -22,15 +22,11 @@ export default async function handler(req, res) {
     const { email, telegramId, telegramUsername, amount, currency = 'RUB', offerId } = req.body;
 
     // Валидация
-    if (!amount || !offerId) {
+    if (!offerId) {
       return res.status(400).json({
         error: 'Missing required fields',
-        required: ['amount', 'offerId']
+        required: ['offerId']
       });
-    }
-
-    if (amount < 1) {
-      return res.status(400).json({ error: 'Amount must be at least 1' });
     }
 
     // Определяем идентификатор пользователя
@@ -50,21 +46,30 @@ export default async function handler(req, res) {
     console.log('Creating invoice:', { email, telegramId, amount, offerId });
 
     // Создание счёта через Lava.top API
+    // Если amount передан - используем его, иначе Lava возьмёт цену из продукта
+    const invoiceBody = {
+      email: finalEmail,
+      offerId,
+      currency,
+      buyerLanguage: 'RU',
+      clientUTM,
+      successUrl: 'https://ararena.pro/payment-success'
+    };
+
+    // Добавляем amount только если передан (для AR покупок)
+    if (amount && amount > 0) {
+      invoiceBody.amount = parseFloat(amount);
+    }
+
+    console.log('Invoice request body:', invoiceBody);
+
     const response = await fetch(LAVA_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Api-Key': LAVA_API_KEY
       },
-      body: JSON.stringify({
-        email: finalEmail,
-        offerId,
-        currency,
-        buyerLanguage: 'RU',
-        amount: parseFloat(amount),
-        clientUTM,
-        successUrl: 'https://ararena.pro/payment-success'
-      })
+      body: JSON.stringify(invoiceBody)
     });
 
     const data = await response.json();

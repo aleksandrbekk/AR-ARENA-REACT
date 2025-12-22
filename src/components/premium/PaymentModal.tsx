@@ -80,7 +80,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 return
             }
 
-            // Создаём invoice через API (как в магазине)
+            // Создаём invoice через API (без amount - Lava возьмёт из продукта)
             const response = await fetch('/api/lava-create-invoice', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -88,7 +88,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     telegramId: telegramId || undefined,
                     telegramUsername: tgUsername || undefined,
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
-                    amount: tariff.price,
                     currency: 'RUB',
                     offerId: offerId
                 })
