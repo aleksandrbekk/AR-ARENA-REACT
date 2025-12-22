@@ -31,8 +31,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const telegramIdFromWebApp = tg?.initDataUnsafe?.user?.id
     const [showUsernameInput] = useState(!telegramIdFromWebApp)
 
-    // Premium offer ID
-    const PREMIUM_OFFER_ID = 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037'
+    // Premium product/offer IDs для каждого тарифа
+    const TARIFF_OFFER_IDS: Record<string, string> = {
+        'classic': '9ea7b8a5-c300-4b2e-b369-f0a0f6f968f8',
+        'trader': 'c0f0210a-73b9-47d7-b439-89af26a63696',
+        'platinum': '90fcd637-7ec9-4b2b-8c7a-b502688985b1',
+        'private': '02370db3-f11e-439b-8924-45f8e945df4c'
+    }
 
     // Helper to format price
     const formatPrice = (price?: number) => {
@@ -66,6 +71,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 price: tariff.price
             })
 
+            // Получаем offerId для выбранного тарифа
+            const tariffKey = tariff.id.toLowerCase()
+            const offerId = TARIFF_OFFER_IDS[tariffKey]
+
+            if (!offerId) {
+                alert('Ошибка: неизвестный тариф ' + tariff.id)
+                return
+            }
+
             // Создаём invoice через API (как в магазине)
             const response = await fetch('/api/lava-create-invoice', {
                 method: 'POST',
@@ -76,7 +90,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
                     amount: tariff.price,
                     currency: 'RUB',
-                    offerId: PREMIUM_OFFER_ID
+                    offerId: offerId
                 })
             })
 
