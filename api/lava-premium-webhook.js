@@ -12,7 +12,7 @@ const LAVA_API_KEY = process.env.LAVA_API_KEY || 'ODRiBFn20abCU1iIaN6VrUGELo6bND
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://syxjkircmiwpnpagznay.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVED***';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
-const BOT_TOKEN = '***REMOVED***';
+const BOT_TOKEN = '***REMOVED***'; // AR ARENA основной бот
 
 // Premium Product ID из Lava.top
 const PREMIUM_PRODUCT_ID = 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037';
