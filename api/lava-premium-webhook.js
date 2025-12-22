@@ -284,7 +284,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ message: 'Event not a success payment, ignoring' });
     }
 
-    if (status !== 'COMPLETED' && status !== 'subscription-active') {
+    // status может быть "completed" (lowercase) или "COMPLETED" (uppercase)
+    const statusLower = status?.toLowerCase();
+    if (statusLower !== 'completed' && statusLower !== 'subscription-active') {
       log(`⚠️ Payment status: ${status} - ignoring`);
       return res.status(200).json({ message: 'Payment not completed, ignoring' });
     }
