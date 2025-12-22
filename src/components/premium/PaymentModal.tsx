@@ -158,13 +158,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                                         type="text"
                                         placeholder="@username"
                                         value={username}
-                                        onChange={(e) => setUsername(e.target.value.replace('@', ''))}
+                                        onChange={(e) => setUsername(e.target.value)}
                                         className="w-full bg-zinc-800 border border-zinc-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none transition-all"
                                     />
                                     {/* Optional: Add @ prefix visually if needed, but placeholder handles it well */}
                                 </div>
                                 <p className="text-gray-500 text-xs mt-2 leading-relaxed">
-                                    Мы выдадим доступ к клубу на этот аккаунт. Убедитесь в правильности ввода.
+                                    Мы выдадим доступ к клубу на этот аккаунт.<br />
+                                    Убедитесь в правильности ввода.
                                 </p>
                             </div>
                         )}
