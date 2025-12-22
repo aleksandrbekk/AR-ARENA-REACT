@@ -31,12 +31,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const telegramIdFromWebApp = tg?.initDataUnsafe?.user?.id
     const [showUsernameInput] = useState(!telegramIdFromWebApp)
 
-    // Premium product/offer IDs для каждого тарифа
-    const TARIFF_OFFER_IDS: Record<string, string> = {
-        'classic': '9ea7b8a5-c300-4b2e-b369-f0a0f6f968f8',
-        'trader': 'c0f0210a-73b9-47d7-b439-89af26a63696',
-        'platinum': '90fcd637-7ec9-4b2b-8c7a-b502688985b1',
-        'private': '02370db3-f11e-439b-8924-45f8e945df4c'
+    // Единый offerId для Premium подписки + periodicity для выбора срока
+    const PREMIUM_OFFER_ID = '755e7046-e658-43e1-908d-0738766b464d'
+
+    // Маппинг тарифа на periodicity (Lava API)
+    const TARIFF_PERIODICITY: Record<string, string> = {
+        'classic': 'MONTHLY',      // 1 месяц - 3400 RUB
+        'trader': 'QUARTERLY',     // 3 месяца - 9600 RUB
+        'platinum': 'HALF_YEARLY', // 6 месяцев - 18000 RUB
+        'private': 'YEARLY'        // 12 месяцев - 33600 RUB
     }
 
     // Helper to format price
@@ -71,16 +74,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 price: tariff.price
             })
 
-            // Получаем offerId для выбранного тарифа
+            // Получаем periodicity для выбранного тарифа
             const tariffKey = tariff.id.toLowerCase()
-            const offerId = TARIFF_OFFER_IDS[tariffKey]
+            const periodicity = TARIFF_PERIODICITY[tariffKey]
 
-            if (!offerId) {
+            if (!periodicity) {
                 alert('Ошибка: неизвестный тариф ' + tariff.id)
                 return
             }
 
-            // Создаём invoice через API (без amount - Lava возьмёт из продукта)
+            // Создаём invoice через API с единым offerId + periodicity
             const response = await fetch('/api/lava-create-invoice', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -89,7 +92,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     telegramUsername: tgUsername || undefined,
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
                     currency: 'RUB',
-                    offerId: offerId
+                    offerId: PREMIUM_OFFER_ID,
+                    periodicity: periodicity
                 })
             })
 
