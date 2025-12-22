@@ -36,10 +36,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
     // Маппинг тарифа на periodicity (Lava API)
     const TARIFF_PERIODICITY: Record<string, string> = {
-        'classic': 'MONTHLY',      // 1 месяц - 3400 RUB
-        'trader': 'QUARTERLY',     // 3 месяца - 9600 RUB
-        'platinum': 'HALF_YEARLY', // 6 месяцев - 18000 RUB
-        'private': 'YEARLY'        // 12 месяцев - 33600 RUB
+        'classic': 'MONTHLY',         // 1 месяц - 3400 RUB
+        'trader': 'PERIOD_90_DAYS',   // 3 месяца - 9600 RUB
+        'platinum': 'PERIOD_180_DAYS', // 6 месяцев - 18000 RUB
+        'private': 'PERIOD_YEAR'      // 12 месяцев - 33600 RUB
     }
 
     // Helper to format price
