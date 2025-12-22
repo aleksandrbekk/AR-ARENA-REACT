@@ -63,6 +63,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     telegramId: finalTelegramId,
                     telegramUsername: finalUsername || null,
                     offerId: 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037', // This offerId might need to vary by tariff?
+                    amount: tariff.price,
                     // Ideally pass tariffId too if the backend supports dynamic offers based on ID
                     tariffId: tariff.id
                 })
