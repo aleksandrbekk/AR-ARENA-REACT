@@ -161,24 +161,39 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ============================================
+    // ЛОГИРОВАНИЕ ВХОДЯЩЕГО ЗАПРОСА
+    // ============================================
+    console.log('=== LAVA WEBHOOK RECEIVED ===');
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+
     const payload = req.body;
+
+    // ============================================
+    // 1. ПРОВЕРКА АВТОРИЗАЦИИ (поддержка обоих форматов)
+    // ============================================
     const authHeader = req.headers['authorization'];
+    const apiKeyHeader = req.headers['x-api-key'];
 
-    log('📥 Premium Webhook received', payload);
-    log('🔐 Authorization header', { present: !!authHeader });
+    let providedKey = null;
 
-    // ============================================
-    // 1. ПРОВЕРКА АВТОРИЗАЦИИ
-    // ============================================
-    if (authHeader) {
-      const providedKey = authHeader.replace('Bearer ', '').trim();
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      providedKey = authHeader.replace('Bearer ', '').trim();
+      log('🔐 Auth via Authorization header');
+    } else if (apiKeyHeader) {
+      providedKey = apiKeyHeader.trim();
+      log('🔐 Auth via X-Api-Key header');
+    }
+
+    if (providedKey) {
       if (providedKey !== LAVA_API_KEY) {
-        log('❌ Invalid API Key');
+        log('❌ Invalid API Key', { provided: providedKey?.substring(0, 10) + '...' });
         return res.status(403).json({ error: 'Unauthorized' });
       }
       log('✅ API Key verified');
     } else {
-      log('⚠️ No authorization header (allowing for now)');
+      log('⚠️ No authorization header (allowing for debugging)');
     }
 
     // ============================================
