@@ -421,10 +421,17 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // 6. СОЗДАНИЕ INVITE-ССЫЛКИ (только если есть telegram_id)
+    // 6. СОЗДАНИЕ INVITE-ССЫЛКИ
     // ============================================
-    if (telegramIdInt) {
-      const inviteLink = await createInviteLink(telegramId);
+    // Если telegram_id не пришёл в payload, но клиент уже есть в БД - используем его telegram_id
+    let finalTelegramId = telegramIdInt;
+    if (!finalTelegramId && existingClient?.telegram_id) {
+      finalTelegramId = existingClient.telegram_id;
+      log(`📱 Using telegram_id from existing client: ${finalTelegramId}`);
+    }
+
+    if (finalTelegramId) {
+      const inviteLink = await createInviteLink(String(finalTelegramId));
 
       if (inviteLink) {
         log(`🔗 Invite link created: ${inviteLink}`);
@@ -453,14 +460,14 @@ export default async function handler(req, res) {
           ]
         };
 
-        await sendTelegramMessage(telegramId, welcomeMessage, replyMarkup);
+        await sendTelegramMessage(String(finalTelegramId), welcomeMessage, replyMarkup);
         log('✅ Welcome message sent');
       } else {
         log('⚠️ Failed to create invite link');
 
         // Отправляем сообщение без ссылки
         await sendTelegramMessage(
-          telegramId,
+          String(finalTelegramId),
           `✅ <b>Подписка Premium AR Club активирована!</b>\n\n` +
           `Период: <b>${period.name}</b> (${period.days} дней)\n\n` +
           `⚠️ Не удалось создать ссылку на канал автоматически.\n` +
