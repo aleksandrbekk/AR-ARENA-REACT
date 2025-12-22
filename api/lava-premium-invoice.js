@@ -56,6 +56,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         email,
         offerId: PREMIUM_OFFER_ID,
+        currency: 'RUB',
         buyerLanguage: 'RU',
         clientUTM,
         successUrl: 'https://ararena.pro/payment-success'
