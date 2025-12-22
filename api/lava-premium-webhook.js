@@ -1,0 +1,397 @@
+// Lava.top Webhook для Premium AR Club подписок
+// Vercel Serverless Function
+// 2025-12-22
+
+import { createClient } from '@supabase/supabase-js';
+
+// ============================================
+// КОНФИГУРАЦИЯ
+// ============================================
+
+const LAVA_API_KEY = process.env.LAVA_API_KEY || 'zB6gEepcNeys6kwRR2Kkg2UbDRtMG3uLAjZSbJIPDAbpTpCtHwXPefwUqZFsGWyA';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://syxjkircmiwpnpagznay.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzc2NDQxMSwiZXhwIjoyMDczMzQwNDExfQ.7ueEYBhFrxKU3_RJi_iJEDj6EQqWBy3gAXiM4YIALqs';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
+const BOT_TOKEN = '8413063885:AAH61h5MxgssMIXOBtn_Xd_CiENHu962_Rc';
+
+// Premium Product ID из Lava.top
+const PREMIUM_PRODUCT_ID = 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037';
+
+// Маппинг суммы на период подписки (в USD, примерные значения)
+// Lava.top передаёт сумму в валюте платежа
+const AMOUNT_TO_PERIOD = [
+  { minUSD: 0, maxUSD: 10, days: 30, tariff: '1month', name: 'CLASSIC (тест)' },
+  { minUSD: 40, maxUSD: 60, days: 30, tariff: '1month', name: 'CLASSIC' },
+  { minUSD: 90, maxUSD: 110, days: 60, tariff: '2months', name: 'TRADER' },
+  { minUSD: 120, maxUSD: 150, days: 90, tariff: '3months', name: 'PLATINUM' },
+  { minUSD: 200, maxUSD: 280, days: 180, tariff: '6months', name: 'PLATINUM+' },
+  { minUSD: 400, maxUSD: 550, days: 365, tariff: '12months', name: 'PRIVATE' }
+];
+
+// Supabase клиент
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+function log(message, data = null) {
+  const timestamp = new Date().toISOString();
+  if (data) {
+    console.log(`[${timestamp}] ${message}`, JSON.stringify(data, null, 2));
+  } else {
+    console.log(`[${timestamp}] ${message}`);
+  }
+}
+
+function getPeriodByAmount(amount, currency = 'USD') {
+  // Конвертируем в USD если нужно (примерный курс)
+  let amountUSD = amount;
+  if (currency === 'RUB') {
+    amountUSD = amount / 100; // ~100 RUB = 1 USD
+  } else if (currency === 'EUR') {
+    amountUSD = amount * 1.1;
+  }
+
+  for (const period of AMOUNT_TO_PERIOD) {
+    if (amountUSD >= period.minUSD && amountUSD <= period.maxUSD) {
+      return period;
+    }
+  }
+
+  // Fallback: если не нашли — 30 дней
+  log(`⚠️ Unknown amount ${amount} ${currency} (${amountUSD} USD), defaulting to 30 days`);
+  return { days: 30, tariff: '1month', name: 'UNKNOWN' };
+}
+
+// Извлечь telegram_id из clientUTM если user_id не передан
+function extractTelegramId(payload) {
+  // Приоритет: user_id > clientUTM > buyer_id
+  if (payload.user_id) {
+    return String(payload.user_id);
+  }
+
+  if (payload.clientUTM) {
+    // Формат: "telegram_id=123456789"
+    const match = payload.clientUTM.match(/telegram_id=(\d+)/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  if (payload.buyer_id) {
+    return String(payload.buyer_id);
+  }
+
+  return null;
+}
+
+// Отправить сообщение в Telegram
+async function sendTelegramMessage(telegramId, text, replyMarkup = null) {
+  try {
+    const body = {
+      chat_id: telegramId,
+      text,
+      parse_mode: 'HTML'
+    };
+
+    if (replyMarkup) {
+      body.reply_markup = replyMarkup;
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const result = await response.json();
+    if (!result.ok) {
+      log('❌ Telegram sendMessage failed', result);
+    }
+    return result;
+  } catch (error) {
+    log('❌ Telegram sendMessage error', { error: error.message });
+    return null;
+  }
+}
+
+// Создать invite-ссылку через Edge Function
+async function createInviteLink(telegramId) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-channel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify({ action: 'invite', telegram_id: parseInt(telegramId) })
+    });
+
+    const result = await response.json();
+    log('📨 Invite response', result);
+
+    if (result.success && result.results?.channel?.result?.invite_link) {
+      return result.results.channel.result.invite_link;
+    }
+
+    return null;
+  } catch (error) {
+    log('❌ Create invite error', { error: error.message });
+    return null;
+  }
+}
+
+// ============================================
+// MAIN HANDLER
+// ============================================
+
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const payload = req.body;
+    const authHeader = req.headers['authorization'];
+
+    log('📥 Premium Webhook received', payload);
+    log('🔐 Authorization header', { present: !!authHeader });
+
+    // ============================================
+    // 1. ПРОВЕРКА АВТОРИЗАЦИИ
+    // ============================================
+    if (authHeader) {
+      const providedKey = authHeader.replace('Bearer ', '').trim();
+      if (providedKey !== LAVA_API_KEY) {
+        log('❌ Invalid API Key');
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+      log('✅ API Key verified');
+    } else {
+      log('⚠️ No authorization header (allowing for now)');
+    }
+
+    // ============================================
+    // 2. ВАЛИДАЦИЯ PAYLOAD
+    // ============================================
+    if (!payload || !payload.status) {
+      log('❌ Invalid payload - missing status');
+      return res.status(400).json({ error: 'Invalid payload' });
+    }
+
+    const {
+      order_id,
+      status,
+      amount,
+      currency = 'USD',
+      product_id,
+      invoice_id,
+      contractId,
+      email
+    } = payload;
+
+    // Проверяем статус платежа
+    if (status !== 'success' && status !== 'completed') {
+      log(`⚠️ Payment status: ${status} - ignoring`);
+      return res.status(200).json({ message: 'Payment not successful, ignoring' });
+    }
+
+    // ============================================
+    // 3. ИЗВЛЕЧЕНИЕ TELEGRAM_ID
+    // ============================================
+    const telegramId = extractTelegramId(payload);
+
+    if (!telegramId) {
+      log('❌ Missing telegram_id in payload');
+      return res.status(400).json({ error: 'Missing telegram_id' });
+    }
+
+    log(`👤 Telegram ID: ${telegramId}`);
+
+    // ============================================
+    // 4. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ
+    // ============================================
+    const period = getPeriodByAmount(amount, currency);
+    log(`📅 Period determined: ${period.days} days (${period.name})`);
+
+    // ============================================
+    // 5. UPSERT В PREMIUM_CLIENTS
+    // ============================================
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + period.days * 24 * 60 * 60 * 1000);
+
+    // Проверяем существующего клиента
+    const { data: existingClient, error: fetchError } = await supabase
+      .from('premium_clients')
+      .select('*')
+      .eq('telegram_id', telegramId)
+      .single();
+
+    let clientId;
+    let isNewClient = false;
+
+    if (existingClient) {
+      // Продлеваем подписку
+      const currentExpires = new Date(existingClient.expires_at);
+      const newExpires = currentExpires > now
+        ? new Date(currentExpires.getTime() + period.days * 24 * 60 * 60 * 1000)
+        : expiresAt;
+
+      const { error: updateError } = await supabase
+        .from('premium_clients')
+        .update({
+          tariff: period.tariff,
+          expires_at: newExpires.toISOString(),
+          total_paid: (existingClient.total_paid || 0) + parseFloat(amount),
+          payments_count: (existingClient.payments_count || 0) + 1,
+          source: 'lava.top'
+        })
+        .eq('id', existingClient.id);
+
+      if (updateError) {
+        log('❌ Error updating client', updateError);
+        throw new Error('Failed to update client');
+      }
+
+      clientId = existingClient.id;
+      log(`✅ Client updated: ${telegramId}, expires: ${newExpires.toISOString()}`);
+    } else {
+      // Создаём нового клиента
+      isNewClient = true;
+
+      // Пробуем получить username из users
+      let username = null;
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username, first_name')
+        .eq('telegram_id', telegramId)
+        .single();
+
+      if (userData?.username) {
+        username = userData.username;
+      }
+
+      const { data: newClient, error: insertError } = await supabase
+        .from('premium_clients')
+        .insert({
+          telegram_id: telegramId,
+          username,
+          tariff: period.tariff,
+          start_date: now.toISOString(),
+          expires_at: expiresAt.toISOString(),
+          in_channel: false,
+          in_chat: false,
+          tags: [],
+          source: 'lava.top',
+          total_paid: parseFloat(amount),
+          payments_count: 1
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        log('❌ Error inserting client', insertError);
+        throw new Error('Failed to insert client');
+      }
+
+      clientId = newClient.id;
+      log(`✅ New client created: ${telegramId}, expires: ${expiresAt.toISOString()}`);
+    }
+
+    // ============================================
+    // 6. СОЗДАНИЕ INVITE-ССЫЛКИ
+    // ============================================
+    const inviteLink = await createInviteLink(telegramId);
+
+    if (inviteLink) {
+      log(`🔗 Invite link created: ${inviteLink}`);
+
+      // Обновляем статус в БД
+      await supabase
+        .from('premium_clients')
+        .update({ in_channel: true, in_chat: true })
+        .eq('id', clientId);
+
+      // ============================================
+      // 7. ОТПРАВКА СООБЩЕНИЯ В TELEGRAM
+      // ============================================
+      const welcomeMessage = isNewClient
+        ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
+          `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
+          `📢 Нажмите кнопку ниже, чтобы присоединиться к закрытому каналу:`
+        : `✅ <b>Подписка продлена!</b>\n\n` +
+          `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
+          `📢 Если вы ещё не в канале — присоединяйтесь:`;
+
+      const replyMarkup = {
+        inline_keyboard: [
+          [{ text: '📢 Присоединиться к каналу', url: inviteLink }],
+          [{ text: '🎮 Открыть AR ARENA', web_app: { url: 'https://ararena.pro' } }]
+        ]
+      };
+
+      await sendTelegramMessage(telegramId, welcomeMessage, replyMarkup);
+      log('✅ Welcome message sent');
+    } else {
+      log('⚠️ Failed to create invite link');
+
+      // Отправляем сообщение без ссылки
+      await sendTelegramMessage(
+        telegramId,
+        `✅ <b>Подписка Premium AR Club активирована!</b>\n\n` +
+        `Период: <b>${period.name}</b> (${period.days} дней)\n\n` +
+        `⚠️ Не удалось создать ссылку на канал автоматически.\n` +
+        `Напишите @alekseybk для получения доступа.`
+      );
+    }
+
+    // ============================================
+    // 8. ЗАПИСЬ В PAYMENT_HISTORY
+    // ============================================
+    const { error: paymentError } = await supabase
+      .from('payment_history')
+      .insert({
+        telegram_id: telegramId,
+        amount: parseFloat(amount),
+        currency: currency,
+        source: 'lava.top',
+        // Дополнительные данные в note или отдельных полях если есть
+      });
+
+    if (paymentError) {
+      log('⚠️ Failed to record payment history', paymentError);
+    } else {
+      log('📝 Payment history recorded');
+    }
+
+    // ============================================
+    // 9. УСПЕШНЫЙ ОТВЕТ
+    // ============================================
+    log('✅ Premium webhook processed successfully');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Premium subscription activated',
+      telegram_id: telegramId,
+      period: period.name,
+      days: period.days
+    });
+
+  } catch (error) {
+    log('❌ Premium Webhook error', { error: error.message, stack: error.stack });
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+}
