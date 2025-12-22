@@ -55,8 +55,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
         console.log('[PaymentModal] Opening Lava.top:', { telegramId, tgUsername, tariffId, clientUTM })
 
-        // Прямая ссылка на продукт Premium AR Club (обычный продукт, не подписка)
-        const paymentUrl = `https://app.lava.top/products/9ea7b8a5-c300-4b2e-b369-f0a0f6f968f8?clientUTM=${encodeURIComponent(clientUTM)}`
+        // Прямая ссылка на продукт Premium AR Club (рабочий продукт с webhook)
+        const paymentUrl = `https://app.lava.top/products/836adba6-5365-40f6-a646-aef9621f3af4?clientUTM=${encodeURIComponent(clientUTM)}`
 
         // @ts-ignore
         if (window.Telegram?.WebApp?.openLink) {
