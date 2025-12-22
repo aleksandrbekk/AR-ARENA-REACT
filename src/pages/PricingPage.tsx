@@ -45,7 +45,7 @@ const tariffs: Tariff[] = [
     durationShort: '/мес',
     price: 4000,
     oldPrice: null,
-    discount: null,
+    discount: null, // No discount badge for manual old price handling
     badge: null,
     cardImage: '/cards/classic.png',
     auroraColors: ['#6b7280', '#4b5563'], // Gray
@@ -70,7 +70,7 @@ const tariffs: Tariff[] = [
     duration: '60 дней',
     durationShort: '/2 мес',
     price: 9900,
-    oldPrice: null,
+    oldPrice: 12000,
     discount: null,
     badge: null,
     cardImage: '/cards/gold.png', // Keep or update? Prompt says "Update images if existent (GOLD -> TRADER)". I will just use existing or empty.
@@ -97,7 +97,7 @@ const tariffs: Tariff[] = [
     duration: '90 дней',
     durationShort: '/3 мес',
     price: 17900,
-    oldPrice: null,
+    oldPrice: 24000,
     discount: null,
     badge: 'ПОПУЛЯРНЫЙ',
     cardImage: '/cards/platinum.png',
@@ -124,7 +124,7 @@ const tariffs: Tariff[] = [
     duration: 'Индивидуально',
     durationShort: '',
     price: 34900,
-    oldPrice: null,
+    oldPrice: 44000,
     discount: null,
     badge: 'VIP',
     cardImage: '/cards/PRIVATE.png',
@@ -294,22 +294,33 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
         {/* Content */}
         <div className={`relative z-[2] p-5 md:p-6 h-full flex flex-col`}>
           {/* Badge - скидка + старая цена */}
-          {tariff.discount && tariff.oldPrice && (
+          {/* Badge - только скидка или бейдж, старая цена теперь внизу */}
+          {(tariff.discount || tariff.badge) && (
             <div
               className="absolute top-3 right-3 md:top-4 md:right-4 flex items-center gap-2 z-10"
             >
-              <span className="text-gray-500 text-[10px] md:text-xs line-through">
-                {tariff.oldPrice.toLocaleString('ru-RU')} ₽
-              </span>
-              <span
-                className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold"
-                style={{
-                  background: `${tariff.auroraColors[0]}20`,
-                  color: tariff.auroraColors[0]
-                }}
-              >
-                {tariff.discount}
-              </span>
+              {tariff.discount && (
+                <span
+                  className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold"
+                  style={{
+                    background: `${tariff.auroraColors[0]}20`,
+                    color: tariff.auroraColors[0]
+                  }}
+                >
+                  {tariff.discount}
+                </span>
+              )}
+              {tariff.badge && (
+                <span
+                  className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold border"
+                  style={{
+                    borderColor: `${tariff.auroraColors[0]}40`,
+                    color: tariff.auroraColors[0]
+                  }}
+                >
+                  {tariff.badge}
+                </span>
+              )}
             </div>
           )}
 
@@ -324,8 +335,17 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           {/* Срок */}
           <div className="text-gray-500 text-xs md:text-sm mb-4 md:mb-6">{tariff.duration}</div>
 
-          {/* Цена */}
+          {/* Цена (с фиксированным отступом для старой цены) */}
           <div className="mb-4 md:mb-6">
+            {/* Старая цена - placeholder всегда рендерится для выравнивания */}
+            <div className="h-4 md:h-5 mb-1 flex items-center">
+              {tariff.oldPrice ? (
+                <span className="text-gray-500 text-xs md:text-sm line-through decoration-white/30 decoration-1">
+                  {tariff.oldPrice.toLocaleString('ru-RU')} ₽
+                </span>
+              ) : <div />}
+            </div>
+
             <div className="flex items-baseline gap-1.5 flex-wrap">
               <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-white whitespace-nowrap">
                 {tariff.price.toLocaleString('ru-RU')} ₽
