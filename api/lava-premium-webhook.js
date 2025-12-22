@@ -18,19 +18,13 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVE
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
 const BOT_TOKEN = '***REMOVED***'; // AR ARENA основной бот
 
-// Premium Product ID из Lava.top
-const PREMIUM_PRODUCT_ID = 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037';
-
-// Маппинг суммы на период подписки (в USD, примерные значения)
-// Lava.top передаёт сумму в валюте платежа
-const AMOUNT_TO_PERIOD = [
-  { minUSD: 0, maxUSD: 10, days: 30, tariff: '1month', name: 'CLASSIC (тест)' },
-  { minUSD: 40, maxUSD: 60, days: 30, tariff: '1month', name: 'CLASSIC' },
-  { minUSD: 90, maxUSD: 110, days: 60, tariff: '2months', name: 'TRADER' },
-  { minUSD: 120, maxUSD: 150, days: 90, tariff: '3months', name: 'PLATINUM' },
-  { minUSD: 200, maxUSD: 280, days: 180, tariff: '6months', name: 'PLATINUM+' },
-  { minUSD: 400, maxUSD: 550, days: 365, tariff: '12months', name: 'PRIVATE' }
-];
+// Маппинг Product ID на период подписки
+const PRODUCT_TO_PERIOD = {
+  '9ea7b8a5-c300-4b2e-b369-f0a0f6f968f8': { days: 30, tariff: 'classic', name: 'CLASSIC' },
+  'c0f0210a-73b9-47d7-b439-89af26a63696': { days: 90, tariff: 'trader', name: 'TRADER' },
+  '90fcd637-7ec9-4b2b-8c7a-b502688985b1': { days: 180, tariff: 'platinum', name: 'PLATINUM' },
+  '02370db3-f11e-439b-8924-45f8e945df4c': { days: 365, tariff: 'private', name: 'PRIVATE' }
+};
 
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -48,24 +42,16 @@ function log(message, data = null) {
   }
 }
 
-function getPeriodByAmount(amount, currency = 'USD') {
-  // Конвертируем в USD если нужно (примерный курс)
-  let amountUSD = amount;
-  if (currency === 'RUB') {
-    amountUSD = amount / 100; // ~100 RUB = 1 USD
-  } else if (currency === 'EUR') {
-    amountUSD = amount * 1.1;
-  }
+function getPeriodByProductId(productId) {
+  const period = PRODUCT_TO_PERIOD[productId];
 
-  for (const period of AMOUNT_TO_PERIOD) {
-    if (amountUSD >= period.minUSD && amountUSD <= period.maxUSD) {
-      return period;
-    }
+  if (period) {
+    return period;
   }
 
   // Fallback: если не нашли — 30 дней
-  log(`⚠️ Unknown amount ${amount} ${currency} (${amountUSD} USD), defaulting to 30 days`);
-  return { days: 30, tariff: '1month', name: 'UNKNOWN' };
+  log(`⚠️ Unknown product ID ${productId}, defaulting to 30 days`);
+  return { days: 30, tariff: 'unknown', name: 'UNKNOWN' };
 }
 
 // Извлечь telegram_id или username из clientUtm (объект от Lava.top)
@@ -117,12 +103,37 @@ async function extractTelegramIdOrUsername(payload) {
     }
   }
 
-  // Fallback: проверяем buyer email на наличие telegram_id
+  // Fallback: проверяем buyer email
   if (payload.buyer?.email) {
-    const emailMatch = payload.buyer.email.match(/(\d{6,})@/);
-    if (emailMatch) {
-      log(`📧 Found potential telegram_id in email: ${emailMatch[1]}`);
-      return { telegramId: emailMatch[1], username: null };
+    const email = payload.buyer.email;
+
+    // Формат: 123456789@premium.ararena.pro (telegram_id)
+    const idMatch = email.match(/^(\d{6,})@/);
+    if (idMatch) {
+      log(`📧 Found telegram_id in email: ${idMatch[1]}`);
+      return { telegramId: idMatch[1], username: null };
+    }
+
+    // Формат: username@premium.ararena.pro (username)
+    const usernameMatch = email.match(/^([a-zA-Z][a-zA-Z0-9_]+)@/);
+    if (usernameMatch) {
+      const username = usernameMatch[1];
+      log(`📧 Found username in email: ${username}`);
+
+      // Пробуем найти telegram_id по username в БД
+      const { data: userData } = await supabase
+        .from('users')
+        .select('telegram_id, username')
+        .ilike('username', username)
+        .single();
+
+      if (userData?.telegram_id) {
+        log(`✅ Found telegram_id ${userData.telegram_id} for email username ${userData.username}`);
+        return { telegramId: String(userData.telegram_id), username: userData.username };
+      }
+
+      log(`⚠️ Username ${username} from email not found in users table`);
+      return { telegramId: null, username };
     }
   }
 
@@ -319,9 +330,11 @@ export default async function handler(req, res) {
     log(`👤 Telegram ID: ${telegramId || 'N/A'}, Username: ${extractedUsername || 'N/A'}`);
 
     // ============================================
-    // 4. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ
+    // 4. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ (по product ID)
     // ============================================
-    const period = getPeriodByAmount(amount, currency);
+    const productId = product?.id;
+    log(`🏷️ Product ID: ${productId}`);
+    const period = getPeriodByProductId(productId);
     log(`📅 Period determined: ${period.days} days (${period.name})`);
 
     // ============================================
