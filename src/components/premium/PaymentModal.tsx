@@ -22,7 +22,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     onClose,
     tariff
 }) => {
-    const [isLoading, setIsLoading] = useState(false)
+    // const [isLoading, setIsLoading] = useState(false) - removed as direct link is instant
     const [username, setUsername] = useState('')
 
     // Check if we have a Telegram ID available
@@ -36,60 +36,31 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         return price ? price.toLocaleString('ru-RU') + ' ₽' : '...'
     }
 
-    const handleCardBuy = async () => {
-        if (!tariff) return
-
+    const handleCardBuy = () => {
         // @ts-ignore
         const tg = window.Telegram?.WebApp
         const telegramId = tg?.initDataUnsafe?.user?.id
+        const tgUsername = username.trim().replace('@', '')
 
-        const finalTelegramId = telegramId ? String(telegramId) : null
-        const finalUsername = username.trim().replace('@', '')
+        // Формируем идентификатор
+        const clientId = telegramId
+            ? `telegram_id=${telegramId}`
+            : `telegram_username=${tgUsername}`
 
-        if (!finalTelegramId && !finalUsername) {
-            alert('Пожалуйста, введите ваш Telegram username для доступа к клубу')
+        if (!telegramId && !tgUsername) {
+            alert('Пожалуйста, введите ваш Telegram username')
             return
         }
 
-        setIsLoading(true)
+        // Прямая ссылка на продукт с выбором периода
+        const paymentUrl = `https://app.lava.top/products/d42513b3-8c4e-416e-b3cd-68a212a0a36e/d6edc26e-00b2-4fe0-9b0b-45fd7548b037?clientUTM=${clientId}`
 
-        try {
-            // NOTE: This endpoint is hypothetical based on requirements. 
-            // In a real scenario, ensure this backend route exists.
-            const res = await fetch('/api/lava-create-invoice', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    telegramId: finalTelegramId,
-                    telegramUsername: finalUsername || null,
-                    offerId: 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037', // This offerId might need to vary by tariff?
-                    amount: tariff.price,
-                    currency: 'USD',
-                    // Ideally pass tariffId too if the backend supports dynamic offers based on ID
-                    tariffId: tariff.id
-                })
-            })
-
-            const data = await res.json()
-
-            if (data.paymentUrl) {
-                // @ts-ignore
-                if (window.Telegram?.WebApp?.openLink) {
-                    // @ts-ignore
-                    window.Telegram.WebApp.openLink(data.paymentUrl)
-                } else {
-                    window.open(data.paymentUrl, '_blank')
-                }
-
-                onClose() // Close modal after redirect?
-            } else {
-                alert('Ошибка создания платежа: ' + (data.message || 'Неизвестная ошибка'))
-            }
-        } catch (e) {
-            console.error(e)
-            alert('Ошибка сети. Попробуйте позже.')
-        } finally {
-            setIsLoading(false)
+        // @ts-ignore
+        if (window.Telegram?.WebApp?.openLink) {
+            // @ts-ignore
+            window.Telegram.WebApp.openLink(paymentUrl)
+        } else {
+            window.open(paymentUrl, '_blank')
         }
     }
 
@@ -175,7 +146,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                             {/* Card Payment (Lava) */}
                             <button
                                 onClick={handleCardBuy}
-                                disabled={isLoading}
+                                // disabled={isLoading} - removed
                                 className="w-full group relative overflow-hidden rounded-xl p-4 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
                             >
                                 {/* Background Gradient */}
