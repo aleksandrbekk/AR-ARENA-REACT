@@ -28,6 +28,7 @@ const PERIODICITY_TO_PERIOD = {
 
 // Fallback: маппинг суммы на период (в RUB)
 const AMOUNT_TO_PERIOD = [
+  { min: 40, max: 60, days: 30, tariff: 'test', name: 'TEST' }, // Тестовый 50 RUB
   { min: 3000, max: 4000, days: 30, tariff: 'classic', name: 'CLASSIC' },
   { min: 9000, max: 10000, days: 90, tariff: 'trader', name: 'TRADER' },
   { min: 17000, max: 19000, days: 180, tariff: 'platinum', name: 'PLATINUM' },
