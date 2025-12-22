@@ -1,4 +1,4 @@
-import { Home, ShoppingBag, User, Shield } from 'lucide-react'
+import { Home, ShoppingBag, User, Shield, Crown } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -17,6 +17,7 @@ export function Navbar() {
   const baseNavItems = [
     { icon: Home, label: 'Home', path: '/' },
     { icon: ShoppingBag, label: 'Shop', path: '/shop' },
+    { icon: Crown, label: 'Premium', path: '/pricing' },
     { icon: User, label: 'Profile', path: '/profile' },
   ]
 
