@@ -84,19 +84,20 @@ async function extractTelegramIdOrUsername(payload) {
       const username = usernameMatch[1];
       log(`📛 Found username in clientUTM: ${username}`);
 
-      // Пробуем найти telegram_id по username в БД
+      // Пробуем найти telegram_id по username в БД (case-insensitive)
       const { data: userData } = await supabase
         .from('users')
-        .select('telegram_id')
-        .eq('username', username)
+        .select('telegram_id, username')
+        .ilike('username', username)
         .single();
 
       if (userData?.telegram_id) {
-        log(`✅ Found telegram_id ${userData.telegram_id} for username ${username}`);
-        return { telegramId: String(userData.telegram_id), username };
+        log(`✅ Found telegram_id ${userData.telegram_id} for username ${userData.username}`);
+        return { telegramId: String(userData.telegram_id), username: userData.username };
       }
 
       // Если не нашли в users, вернём только username
+      log(`⚠️ Username ${username} not found in users table`);
       return { telegramId: null, username };
     }
   }
