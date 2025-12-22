@@ -43,13 +43,7 @@ const tariffs: Tariff[] = [
     name: 'CLASSIC',
     duration: '1 месяц',
     durationShort: '/мес',
-    price: 50, // Displayed as $50 usually, but type is number. Let's assume user wants $ sign logic or just number. Prompt said $50/мес. Code uses localestring 'ru-RU' with symbol. I will update display logic later, for now set number to 50? Or 4000? 
-    // PROMPT SAID: "CLASSIC — $50/мес". "TRADER — $100".
-    // CURRENT CODE uses rub symbol.
-    // I should probably change the display currency or use the PROMPT prices if they are intended to be USD.
-    // WAIT. Previous prompt was RUB. This prompt is specific "$50". 
-    // I will switch to USD prices in the data and update the render logic to show '$' instead of '₽'.
-
+    price: 4000,
     oldPrice: null,
     discount: null,
     badge: null,
@@ -75,7 +69,7 @@ const tariffs: Tariff[] = [
     name: 'TRADER',
     duration: '60 дней',
     durationShort: '/2 мес',
-    price: 100,
+    price: 10800,
     oldPrice: null,
     discount: null,
     badge: null,
@@ -102,7 +96,7 @@ const tariffs: Tariff[] = [
     name: 'PLATINUM',
     duration: '90 дней',
     durationShort: '/3 мес',
-    price: 135,
+    price: 20400,
     oldPrice: null,
     discount: null,
     badge: 'ПОПУЛЯРНЫЙ',
@@ -129,7 +123,7 @@ const tariffs: Tariff[] = [
     name: 'PRIVATE',
     duration: 'Индивидуально',
     durationShort: '',
-    price: 0, // Individual
+    price: 38400,
     oldPrice: null,
     discount: null,
     badge: 'VIP',
@@ -334,9 +328,9 @@ const PricingCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           <div className="mb-4 md:mb-6">
             <div className="flex items-baseline gap-1">
               <span className="text-3xl md:text-5xl font-bold text-white">
-                {tariff.price > 0 ? `$${tariff.price}` : 'Individual'}
+                {tariff.price.toLocaleString('ru-RU')} ₽
               </span>
-              {tariff.price > 0 && <span className="text-gray-600 text-xs md:text-sm">{tariff.durationShort}</span>}
+              {tariff.durationShort && <span className="text-gray-600 text-xs md:text-sm">{tariff.durationShort}</span>}
             </div>
           </div>
 
@@ -443,7 +437,7 @@ export function PricingPage() {
       {/* Инжектим стили для aurora анимации */}
       <style>{auroraStyles}</style>
 
-      <div className="min-h-screen text-white relative" style={{ background: '#050505' }}>
+      <div className="min-h-screen text-white relative pt-[60px]" style={{ background: '#050505' }}>
         {/* Subtle gradient overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
