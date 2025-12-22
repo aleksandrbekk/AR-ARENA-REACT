@@ -384,11 +384,10 @@ export default async function handler(req, res) {
     const { error: paymentError } = await supabase
       .from('payment_history')
       .insert({
-        telegram_id: telegramId,
+        telegram_id: String(telegramIdInt),
         amount: parseFloat(amount),
         currency: currency,
-        source: 'lava.top',
-        // Дополнительные данные в note или отдельных полях если есть
+        source: 'lava.top'
       });
 
     if (paymentError) {
