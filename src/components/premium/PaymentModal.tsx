@@ -23,6 +23,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     tariff
 }) => {
     const [username, setUsername] = useState('')
+    const [loading, setLoading] = useState(false)
 
     // Check if we have a Telegram ID available
     // @ts-ignore
@@ -30,12 +31,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const telegramIdFromWebApp = tg?.initDataUnsafe?.user?.id
     const [showUsernameInput] = useState(!telegramIdFromWebApp)
 
+    // Premium offer ID
+    const PREMIUM_OFFER_ID = 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037'
+
     // Helper to format price
     const formatPrice = (price?: number) => {
         return price ? price.toLocaleString('ru-RU') + ' ₽' : '...'
     }
 
-    const handleCardBuy = () => {
+    const handleCardBuy = async () => {
         // @ts-ignore
         const tg = window.Telegram?.WebApp
         const telegramId = tg?.initDataUnsafe?.user?.id
@@ -47,23 +51,54 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             return
         }
 
-        // Формируем clientUTM для webhook (включаем tariff ID)
-        const tariffId = tariff?.id || 'unknown'
-        const clientUTM = telegramId
-            ? `telegram_id=${telegramId}&tariff=${tariffId}`
-            : `telegram_username=${tgUsername}&tariff=${tariffId}`
+        if (!tariff?.price) {
+            alert('Ошибка: не выбран тариф')
+            return
+        }
 
-        console.log('[PaymentModal] Opening Lava.top:', { telegramId, tgUsername, tariffId, clientUTM })
+        setLoading(true)
 
-        // Прямая ссылка на продукт Premium AR Club (подписка)
-        const paymentUrl = `https://app.lava.top/products/d42513b3-8c4e-416e-b3cd-68a212a0a36e/d6edc26e-00b2-4fe0-9b0b-45fd7548b037?clientUTM=${encodeURIComponent(clientUTM)}`
+        try {
+            console.log('[PaymentModal] Creating invoice via API:', {
+                telegramId,
+                tgUsername,
+                tariffId: tariff.id,
+                price: tariff.price
+            })
 
-        // @ts-ignore
-        if (window.Telegram?.WebApp?.openLink) {
-            // @ts-ignore
-            window.Telegram.WebApp.openLink(paymentUrl)
-        } else {
-            window.open(paymentUrl, '_blank')
+            // Создаём invoice через API (как в магазине)
+            const response = await fetch('/api/lava-create-invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    telegramId: telegramId || undefined,
+                    telegramUsername: tgUsername || undefined,
+                    email: `${telegramId || tgUsername}@premium.ararena.pro`,
+                    amount: tariff.price,
+                    currency: 'RUB',
+                    offerId: PREMIUM_OFFER_ID
+                })
+            })
+
+            const data = await response.json()
+            console.log('[PaymentModal] API response:', data)
+
+            if (data.ok && data.paymentUrl) {
+                // @ts-ignore
+                if (window.Telegram?.WebApp?.openLink) {
+                    // @ts-ignore
+                    window.Telegram.WebApp.openLink(data.paymentUrl)
+                } else {
+                    window.open(data.paymentUrl, '_blank')
+                }
+            } else {
+                alert('Ошибка создания платежа: ' + (data.error || 'Неизвестная ошибка'))
+            }
+        } catch (error) {
+            console.error('[PaymentModal] Error:', error)
+            alert('Ошибка сети. Попробуйте ещё раз.')
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -149,7 +184,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                             {/* Card Payment (Lava) */}
                             <button
                                 onClick={handleCardBuy}
-                                className="w-full group relative overflow-hidden rounded-xl p-4 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+                                disabled={loading}
+                                className="w-full group relative overflow-hidden rounded-xl p-4 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
                             >
                                 {/* Background Gradient */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-orange-500 opacity-90 group-hover:opacity-100 transition-opacity" />
@@ -164,7 +200,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
                                     <div className="text-left">
                                         <div className="text-white font-bold text-lg leading-tight">
-                                            Банковская карта
+                                            {loading ? 'Создаём платёж...' : 'Банковская карта'}
                                         </div>
                                         <div className="text-white/80 text-xs font-medium">
                                             Visa, Mastercard, МИР
@@ -173,7 +209,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                                 </div>
                             </button>
 
-                            {/* Crypto Payment (0xProcessing) */}
+                            {/* Crypto Payment */}
                             <button
                                 onClick={handleCryptoBuy}
                                 className="w-full group relative overflow-hidden rounded-xl p-4 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
