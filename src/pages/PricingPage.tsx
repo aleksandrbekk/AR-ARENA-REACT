@@ -99,7 +99,7 @@ const tariffs: Tariff[] = [
     price: 17900,
     oldPrice: 24000,
     discount: null,
-    badge: 'ПОПУЛЯРНЫЙ',
+    badge: 'ХИТ',
     cardImage: '/cards/platinum.png',
     auroraColors: ['#7B68EE', '#06B6D4'], // Blue/Cyan
     auroraOpacity: 0.7,
@@ -121,7 +121,7 @@ const tariffs: Tariff[] = [
   {
     id: 'private',
     name: 'PRIVATE',
-    duration: 'Индивидуально',
+    duration: '',
     durationShort: '',
     price: 34900,
     oldPrice: 44000,
@@ -135,10 +135,12 @@ const tariffs: Tariff[] = [
     isFeatured: false,
     baseFeatures: [],
     bonuses: [
-      'Закрытая AMA с разбором (1 час)',
-      'Приоритетная поддержка 24/7',
+      'Закрытая AMA с разбором',
+      'Приоритетная поддержка',
       'Бонусы за активность в чате',
-      'Ранний доступ к новым продуктам'
+      'Ранний доступ к новым продуктам',
+      'МИНИ АП В ТЕЛЕГРАМ',
+      'VIP ЗНАЧЕК В ПРИЛОЖЕНИИ'
     ],
     buttonStyle: 'outline',
     buttonColor: '#FFD700'
