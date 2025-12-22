@@ -64,25 +64,37 @@ function getPeriodByAmount(amount, currency = 'USD') {
   return { days: 30, tariff: '1month', name: 'UNKNOWN' };
 }
 
-// Извлечь telegram_id или username из clientUTM
+// Извлечь telegram_id или username из clientUtm (объект от Lava.top)
 async function extractTelegramIdOrUsername(payload) {
-  // Приоритет: user_id > clientUTM (telegram_id) > clientUTM (username) > buyer_id
-  if (payload.user_id) {
-    return { telegramId: String(payload.user_id), username: null };
-  }
+  log('🔍 Extracting telegram info from payload');
 
-  if (payload.clientUTM) {
+  // clientUtm от Lava.top - это объект с полями utm_source, utm_medium, utm_campaign, utm_term, utm_content
+  const clientUtm = payload.clientUtm || {};
+
+  // Ищем telegram_id или username во всех utm полях
+  const utmValues = [
+    clientUtm.utm_source,
+    clientUtm.utm_medium,
+    clientUtm.utm_campaign,
+    clientUtm.utm_term,
+    clientUtm.utm_content
+  ].filter(Boolean);
+
+  log('📊 UTM values:', utmValues);
+
+  for (const value of utmValues) {
     // Формат: "telegram_id=123456789"
-    const idMatch = payload.clientUTM.match(/telegram_id=(\d+)/);
+    const idMatch = value.match(/telegram_id[=:](\d+)/i);
     if (idMatch) {
+      log(`✅ Found telegram_id in UTM: ${idMatch[1]}`);
       return { telegramId: idMatch[1], username: null };
     }
 
     // Формат: "telegram_username=aleksandrbekk"
-    const usernameMatch = payload.clientUTM.match(/telegram_username=(\w+)/);
+    const usernameMatch = value.match(/telegram_username[=:](\w+)/i);
     if (usernameMatch) {
       const username = usernameMatch[1];
-      log(`📛 Found username in clientUTM: ${username}`);
+      log(`📛 Found username in UTM: ${username}`);
 
       // Пробуем найти telegram_id по username в БД (case-insensitive)
       const { data: userData } = await supabase
@@ -96,16 +108,21 @@ async function extractTelegramIdOrUsername(payload) {
         return { telegramId: String(userData.telegram_id), username: userData.username };
       }
 
-      // Если не нашли в users, вернём только username
       log(`⚠️ Username ${username} not found in users table`);
       return { telegramId: null, username };
     }
   }
 
-  if (payload.buyer_id) {
-    return { telegramId: String(payload.buyer_id), username: null };
+  // Fallback: проверяем buyer email на наличие telegram_id
+  if (payload.buyer?.email) {
+    const emailMatch = payload.buyer.email.match(/(\d{6,})@/);
+    if (emailMatch) {
+      log(`📧 Found potential telegram_id in email: ${emailMatch[1]}`);
+      return { telegramId: emailMatch[1], username: null };
+    }
   }
 
+  log('⚠️ No telegram info found in payload');
   return { telegramId: null, username: null };
 }
 
@@ -220,28 +237,38 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // 2. ВАЛИДАЦИЯ PAYLOAD
+    // 2. ВАЛИДАЦИЯ PAYLOAD (формат Lava.top v2)
     // ============================================
-    if (!payload || !payload.status) {
-      log('❌ Invalid payload - missing status');
+    if (!payload || !payload.eventType) {
+      log('❌ Invalid payload - missing eventType');
       return res.status(400).json({ error: 'Invalid payload' });
     }
 
     const {
-      order_id,
-      status,
-      amount,
-      currency = 'USD',
-      product_id,
-      invoice_id,
+      eventType,
       contractId,
-      email
+      parentContractId,
+      amount,
+      currency = 'RUB',
+      status,
+      timestamp,
+      product,
+      buyer,
+      clientUtm
     } = payload;
 
-    // Проверяем статус платежа
-    if (status !== 'success' && status !== 'completed') {
+    log(`📨 Event: ${eventType}, Status: ${status}, Amount: ${amount} ${currency}`);
+
+    // Проверяем тип события и статус
+    const successEvents = ['payment.success', 'subscription.recurring.payment.success'];
+    if (!successEvents.includes(eventType)) {
+      log(`⚠️ Event type: ${eventType} - ignoring`);
+      return res.status(200).json({ message: 'Event not a success payment, ignoring' });
+    }
+
+    if (status !== 'COMPLETED' && status !== 'subscription-active') {
       log(`⚠️ Payment status: ${status} - ignoring`);
-      return res.status(200).json({ message: 'Payment not successful, ignoring' });
+      return res.status(200).json({ message: 'Payment not completed, ignoring' });
     }
 
     // ============================================
