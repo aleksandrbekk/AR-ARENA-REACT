@@ -18,13 +18,21 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciO
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
 const BOT_TOKEN = '8265126337:AAHBKYlU6fQA09nkJwsMaBQtP16CXSq1Cnc'; // AR ARENA основной бот
 
-// Маппинг Product ID на период подписки
-const PRODUCT_TO_PERIOD = {
-  '9ea7b8a5-c300-4b2e-b369-f0a0f6f968f8': { days: 30, tariff: 'classic', name: 'CLASSIC' },
-  'c0f0210a-73b9-47d7-b439-89af26a63696': { days: 90, tariff: 'trader', name: 'TRADER' },
-  '90fcd637-7ec9-4b2b-8c7a-b502688985b1': { days: 180, tariff: 'platinum', name: 'PLATINUM' },
-  '02370db3-f11e-439b-8924-45f8e945df4c': { days: 365, tariff: 'private', name: 'PRIVATE' }
+// Маппинг periodicity на период подписки
+const PERIODICITY_TO_PERIOD = {
+  'MONTHLY': { days: 30, tariff: 'classic', name: 'CLASSIC' },
+  'PERIOD_90_DAYS': { days: 90, tariff: 'trader', name: 'TRADER' },
+  'PERIOD_180_DAYS': { days: 180, tariff: 'platinum', name: 'PLATINUM' },
+  'PERIOD_YEAR': { days: 365, tariff: 'private', name: 'PRIVATE' }
 };
+
+// Fallback: маппинг суммы на период (в RUB)
+const AMOUNT_TO_PERIOD = [
+  { min: 3000, max: 4000, days: 30, tariff: 'classic', name: 'CLASSIC' },
+  { min: 9000, max: 10000, days: 90, tariff: 'trader', name: 'TRADER' },
+  { min: 17000, max: 19000, days: 180, tariff: 'platinum', name: 'PLATINUM' },
+  { min: 32000, max: 35000, days: 365, tariff: 'private', name: 'PRIVATE' }
+];
 
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -42,15 +50,26 @@ function log(message, data = null) {
   }
 }
 
-function getPeriodByProductId(productId) {
-  const period = PRODUCT_TO_PERIOD[productId];
+function getPeriodByPeriodicityOrAmount(periodicity, amount) {
+  // Сначала пробуем по periodicity
+  if (periodicity && PERIODICITY_TO_PERIOD[periodicity]) {
+    log(`✅ Period found by periodicity: ${periodicity}`);
+    return PERIODICITY_TO_PERIOD[periodicity];
+  }
 
-  if (period) {
-    return period;
+  // Fallback: по сумме
+  if (amount) {
+    const amountNum = parseFloat(amount);
+    for (const period of AMOUNT_TO_PERIOD) {
+      if (amountNum >= period.min && amountNum <= period.max) {
+        log(`✅ Period found by amount: ${amountNum} RUB`);
+        return period;
+      }
+    }
   }
 
   // Fallback: если не нашли — 30 дней
-  log(`⚠️ Unknown product ID ${productId}, defaulting to 30 days`);
+  log(`⚠️ Unknown periodicity ${periodicity} and amount ${amount}, defaulting to 30 days`);
   return { days: 30, tariff: 'unknown', name: 'UNKNOWN' };
 }
 
@@ -330,11 +349,11 @@ export default async function handler(req, res) {
     log(`👤 Telegram ID: ${telegramId || 'N/A'}, Username: ${extractedUsername || 'N/A'}`);
 
     // ============================================
-    // 4. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ (по product ID)
+    // 4. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ (по periodicity или amount)
     // ============================================
-    const productId = product?.id;
-    log(`🏷️ Product ID: ${productId}`);
-    const period = getPeriodByProductId(productId);
+    const periodicity = payload.periodicity || payload.offer?.periodicity;
+    log(`🏷️ Periodicity: ${periodicity}, Amount: ${amount}`);
+    const period = getPeriodByPeriodicityOrAmount(periodicity, amount);
     log(`📅 Period determined: ${period.days} days (${period.name})`);
 
     // ============================================
