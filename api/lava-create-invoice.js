@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, telegramId, telegramUsername, amount, currency = 'RUB', offerId } = req.body;
+    const { email, telegramId, telegramUsername, amount, currency = 'RUB', offerId, periodicity } = req.body;
 
     // Валидация
     if (!offerId) {
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       clientUTM = `username=${telegramUsername}`;
     }
 
-    console.log('Creating invoice:', { email, telegramId, amount, offerId });
+    console.log('Creating invoice:', { email, telegramId, amount, offerId, periodicity });
 
     // Создание счёта через Lava.top API
     // Если amount передан - используем его, иначе Lava возьмёт цену из продукта
@@ -59,6 +59,11 @@ export default async function handler(req, res) {
     // Добавляем amount только если передан (для AR покупок)
     if (amount && amount > 0) {
       invoiceBody.amount = parseFloat(amount);
+    }
+
+    // Добавляем periodicity для подписок (MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY)
+    if (periodicity) {
+      invoiceBody.periodicity = periodicity;
     }
 
     console.log('Invoice request body:', invoiceBody);
