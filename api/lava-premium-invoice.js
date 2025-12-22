@@ -2,7 +2,7 @@
 // Vercel Serverless Function
 // 2025-12-22
 
-const LAVA_API_KEY = process.env.LAVA_PREMIUM_API_KEY || 'ODRiBFn20abCU1iIaN6VrUGELo6bNDq8fPyYM1rj3Cep0AXhlzdQHt9uUmbFWSBr';
+const LAVA_API_KEY = process.env.LAVA_PREMIUM_API_KEY || '2q3qBOCGh0nOt1w4rvn8rzH0XwkvTr93rEfiY78h2MaRM8Vmd6jimSeECprrsnTF';
 const LAVA_API_URL = 'https://gate.lava.top/api/v2/invoice';
 
 // Premium AR Club Product/Offer ID
