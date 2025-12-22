@@ -245,11 +245,12 @@ export default async function handler(req, res) {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + period.days * 24 * 60 * 60 * 1000);
 
-    // Проверяем существующего клиента
+    // Проверяем существующего клиента (telegram_id как integer)
+    const telegramIdInt = parseInt(telegramId);
     const { data: existingClient, error: fetchError } = await supabase
       .from('premium_clients')
       .select('*')
-      .eq('telegram_id', telegramId)
+      .eq('telegram_id', telegramIdInt)
       .single();
 
     let clientId;
@@ -265,11 +266,14 @@ export default async function handler(req, res) {
       const { error: updateError } = await supabase
         .from('premium_clients')
         .update({
-          tariff: period.tariff,
+          plan: period.tariff,
           expires_at: newExpires.toISOString(),
-          total_paid: (existingClient.total_paid || 0) + parseFloat(amount),
+          total_paid_usd: (existingClient.total_paid_usd || 0) + parseFloat(amount),
           payments_count: (existingClient.payments_count || 0) + 1,
-          source: 'lava.top'
+          last_payment_at: now.toISOString(),
+          last_payment_method: 'lava.top',
+          source: 'lava.top',
+          updated_at: now.toISOString()
         })
         .eq('id', existingClient.id);
 
@@ -289,7 +293,7 @@ export default async function handler(req, res) {
       const { data: userData } = await supabase
         .from('users')
         .select('username, first_name')
-        .eq('telegram_id', telegramId)
+        .eq('telegram_id', telegramIdInt)
         .single();
 
       if (userData?.username) {
@@ -299,17 +303,21 @@ export default async function handler(req, res) {
       const { data: newClient, error: insertError } = await supabase
         .from('premium_clients')
         .insert({
-          telegram_id: telegramId,
+          telegram_id: parseInt(telegramId),
           username,
-          tariff: period.tariff,
-          start_date: now.toISOString(),
+          plan: period.tariff,
+          started_at: now.toISOString(),
           expires_at: expiresAt.toISOString(),
           in_channel: false,
           in_chat: false,
           tags: [],
           source: 'lava.top',
-          total_paid: parseFloat(amount),
-          payments_count: 1
+          total_paid_usd: parseFloat(amount),
+          payments_count: 1,
+          last_payment_at: now.toISOString(),
+          last_payment_method: 'lava.top',
+          created_at: now.toISOString(),
+          updated_at: now.toISOString()
         })
         .select()
         .single();
