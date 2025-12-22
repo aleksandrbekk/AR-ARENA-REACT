@@ -19,13 +19,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, telegramId, amount, currency = 'RUB', offerId } = req.body;
+    const { email, telegramId, telegramUsername, amount, currency = 'RUB', offerId } = req.body;
 
     // Валидация
-    if (!email || !amount || !offerId) {
+    if (!amount || !offerId) {
       return res.status(400).json({
         error: 'Missing required fields',
-        required: ['email', 'amount', 'offerId']
+        required: ['amount', 'offerId']
       });
     }
 
@@ -33,8 +33,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Amount must be at least 1' });
     }
 
-    // Формируем clientUTM с telegram_id для webhook
-    const clientUTM = telegramId ? `telegram_id=${telegramId}` : undefined;
+    // Определяем идентификатор пользователя
+    const userIdentifier = telegramId || telegramUsername || 'anonymous';
+
+    // Если email не передан, генерируем заглушку
+    const finalEmail = email || `${userIdentifier}@ararena.pro`;
+
+    // Формируем clientUTM для webhook
+    let clientUTM;
+    if (telegramId) {
+      clientUTM = `telegram_id=${telegramId}`;
+    } else if (telegramUsername) {
+      clientUTM = `username=${telegramUsername}`;
+    }
 
     console.log('Creating invoice:', { email, telegramId, amount, offerId });
 
@@ -46,7 +57,7 @@ export default async function handler(req, res) {
         'X-Api-Key': LAVA_API_KEY
       },
       body: JSON.stringify({
-        email,
+        email: finalEmail,
         offerId,
         currency,
         buyerLanguage: 'RU',
