@@ -16,7 +16,7 @@ const auroraStyles = `
 `
 
 // ============ ТИПЫ ============
-interface Tariff {
+export interface Tariff {
   id: string
   name: string
   duration: string
@@ -468,17 +468,7 @@ export function PricingPage() {
     setIsPaymentModalOpen(true)
   }
 
-  const handlePaymentMethodSelect = (_method: 'crypto' | 'card') => {
-    // В реальном проекте здесь были бы разные ссылки для методов
-    // Сейчас используем одну (Lava сама предлагает выбор, но мы сделали пре-шаг в UI)
-    const baseUrl = 'https://app.lava.top/products/d42513b3-8c4e-416e-b3cd-68a212a0a36e/d6edc26e-00b2-4fe0-9b0b-45fd7548b037'
 
-    // Можно добавить параметры, если Lava их поддерживает, например ?method=crypto
-    // window.open(`${baseUrl}?method=${method}`, '_blank')
-    window.open(baseUrl, '_blank')
-
-    setIsPaymentModalOpen(false)
-  }
 
   return (
     <>
@@ -553,8 +543,7 @@ export function PricingPage() {
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => setIsPaymentModalOpen(false)}
-          onSelectMethod={handlePaymentMethodSelect}
-          tariffName={selectedTariffForPayment?.name || ''}
+          tariff={selectedTariffForPayment}
         />
       </div>
     </>
