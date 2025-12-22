@@ -9,7 +9,6 @@ interface Tariff {
     durationShort: string
     price: number
     auroraColors: [string, string]
-    // Add other fields if needed, but these are essential for the modal
 }
 
 interface PaymentModalProps {
@@ -17,8 +16,6 @@ interface PaymentModalProps {
     onClose: () => void
     tariff: Tariff | null
 }
-
-
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
     isOpen,
@@ -97,28 +94,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     return (
         <AnimatePresence>
             {isOpen && tariff && (
-                <>
+                <motion.div
+                    key="payment-modal-container"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                >
                     {/* Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                    <div
+                        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9998] flex items-center justify-center p-4"
                     />
 
-                    {/* Modal Container - Glassmorphism */}
+                    {/* Modal Content */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed z-[9999] w-full max-w-md bg-zinc-900/80 backdrop-blur-xl border border-yellow-500/20 rounded-2xl overflow-hidden shadow-2xl p-6"
-                        style={{
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            margin: 0
-                        }}
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20 }}
+                        className="relative w-full max-w-md bg-zinc-900/80 backdrop-blur-xl border border-yellow-500/20 rounded-2xl overflow-hidden shadow-2xl p-6"
+                        onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
                         <div className="text-center mb-6">
@@ -203,7 +198,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                             </button>
                         </div>
                     </motion.div>
-                </>
+                </motion.div>
             )}
         </AnimatePresence>
     )
