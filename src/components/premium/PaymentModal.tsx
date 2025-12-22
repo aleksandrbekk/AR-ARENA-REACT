@@ -23,6 +23,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     tariff
 }) => {
     const [isLoading, setIsLoading] = useState(false)
+    const [username, setUsername] = useState('')
+
+    // Check if we have a Telegram ID available
+    // @ts-ignore
+    const tg = window.Telegram?.WebApp
+    const telegramIdFromWebApp = tg?.initDataUnsafe?.user?.id
+    const [showUsernameInput] = useState(!telegramIdFromWebApp)
 
     // Helper to format price
     const formatPrice = (price?: number) => {
@@ -32,13 +39,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const handleCardBuy = async () => {
         if (!tariff) return
 
-        // @ts-ignore - Telegram types are global but we want to avoid conflicts
+        // @ts-ignore
         const tg = window.Telegram?.WebApp
         const telegramId = tg?.initDataUnsafe?.user?.id
 
-        if (!telegramId) {
-            // For testing outside Telegram, we might want to allow a bypass or just alert
-            alert('Откройте приложение через Telegram для оплаты (ID не найден)')
+        const finalTelegramId = telegramId ? String(telegramId) : null
+        const finalUsername = username.trim().replace('@', '')
+
+        if (!finalTelegramId && !finalUsername) {
+            alert('Пожалуйста, введите ваш Telegram username для доступа к клубу')
             return
         }
 
@@ -51,7 +60,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    telegramId: String(telegramId),
+                    telegramId: finalTelegramId,
+                    telegramUsername: finalUsername || null,
                     offerId: 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037', // This offerId might need to vary by tariff?
                     // Ideally pass tariffId too if the backend supports dynamic offers based on ID
                     tariffId: tariff.id
@@ -62,7 +72,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
             if (data.paymentUrl) {
                 // @ts-ignore
-                window.Telegram?.WebApp?.openLink?.(data.paymentUrl)
+                if (window.Telegram?.WebApp?.openLink) {
+                    // @ts-ignore
+                    window.Telegram.WebApp.openLink(data.paymentUrl)
+                } else {
+                    window.open(data.paymentUrl, '_blank')
+                }
+
                 onClose() // Close modal after redirect?
             } else {
                 alert('Ошибка создания платежа: ' + (data.message || 'Неизвестная ошибка'))
@@ -128,6 +144,28 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                                 <span className="text-sm">{tariff.duration}</span>
                             </p>
                         </div>
+
+                        {/* Username Input (if no Telegram ID) */}
+                        {showUsernameInput && (
+                            <div className="mb-6 text-left">
+                                <label className="text-gray-400 text-sm mb-2 block font-medium">
+                                    Ваш Telegram username
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="@username"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        className="w-full bg-zinc-800 border border-zinc-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none transition-all"
+                                    />
+                                    {/* Optional: Add @ prefix visually if needed, but placeholder handles it well */}
+                                </div>
+                                <p className="text-gray-500 text-xs mt-2 leading-relaxed">
+                                    Мы выдадим доступ к клубу на этот аккаунт. Убедитесь в правильности ввода.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Buttons Stack */}
                         <div className="space-y-4">
