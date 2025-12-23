@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ToastProvider } from './components/ToastProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Home } from './pages/Home'
@@ -13,7 +13,6 @@ import { GiveawayDetailsPage } from './pages/GiveawayDetailsPage'
 import { LiveArenaPage } from './pages/LiveArenaPage'
 import { AdminPage } from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
-import { CrmPage } from './pages/CrmPage'
 import { FullCrmPage } from './pages/FullCrmPage'
 import { PremiumPromoPage } from './pages/PremiumPromoPage'
 import { TariffsPage } from './pages/TariffsPage'
@@ -62,7 +61,7 @@ function App() {
             <Route path="/live-arena/:id" element={<LiveArenaPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/payment-success" element={<PaymentSuccessPage />} />
-            <Route path="/crm" element={<CrmPage />} />
+            <Route path="/crm" element={<Navigate to="/full-crm" replace />} />
             <Route path="/full-crm" element={<FullCrmPage />} />
             <Route path="/premium-promo" element={<PremiumPromoPage />} />
             <Route path="/tariffs" element={<TariffsPage />} />
