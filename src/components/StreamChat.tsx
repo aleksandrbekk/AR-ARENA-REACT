@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../hooks/useAuth'
 
 interface Message {
   id: number
@@ -20,7 +19,6 @@ interface StreamChatProps {
 }
 
 export function StreamChat({ forceAdmin = false }: StreamChatProps) {
-  const { telegramUser } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -39,16 +37,12 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
     }
   }, [])
 
-  // Текущий пользователь (только из реального Telegram WebApp или гость с введённым именем)
-  const telegramWebUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-  // Проверяем что это реальный Telegram user (не mock) - должен быть id
-  const realTelegramUser = telegramWebUser?.id ? telegramWebUser : (telegramUser?.id ? telegramUser : null)
-  const currentUser = realTelegramUser || (isNameSet ? { id: null, first_name: guestName, username: null } : null)
-  const canWrite = !!currentUser
+  // Текущий пользователь - только гость с введённым именем
+  const currentUser = isNameSet ? { id: null, first_name: guestName, username: null } : null
+  const canWrite = isNameSet
 
-  // Проверка админа (Telegram WebApp, useAuth, или forceAdmin)
-  const adminUserId = telegramWebUser?.id || telegramUser?.id
-  const isAdmin = forceAdmin || (adminUserId ? STREAM_ADMINS.includes(adminUserId) : false)
+  // Проверка админа - только через forceAdmin (для /stream-admin)
+  const isAdmin = forceAdmin
   const isMessageAdmin = (msg: Message) => msg.telegram_id && STREAM_ADMINS.includes(msg.telegram_id)
 
   // Загрузка сообщений
@@ -239,7 +233,7 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
           {isAdmin && <span className="text-xs text-yellow-500 ml-2">★ ADMIN</span>}
         </div>
         <span className="text-white/40 text-sm">
-          {adminUserId ? `ID: ${adminUserId}` : 'Guest'} • {messages.length}
+          {isNameSet ? guestName : 'Гость'} • {messages.length}
         </span>
       </div>
 
@@ -268,7 +262,7 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
           </div>
         ) : (
           messages.map((msg) => {
-            const isMe = telegramUser?.id === msg.telegram_id
+            const isMe = isNameSet && msg.first_name === guestName && !msg.telegram_id
             const isMsgAdmin = isMessageAdmin(msg)
             return (
               <div
