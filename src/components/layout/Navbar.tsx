@@ -2,17 +2,14 @@ import { Home, ShoppingBag, User, Shield, Crown } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
-const ADMIN_ID = 190202791
+const ADMIN_IDS = [190202791, 144828618]
 
 export function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const { telegramUser } = useAuth()
 
-  // Debug: проверяем ID пользователя
-  console.log('Navbar: telegramUser =', telegramUser, 'isAdmin =', telegramUser?.id === ADMIN_ID)
-
-  const isAdmin = telegramUser?.id === ADMIN_ID
+  const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
 
   const baseNavItems = [
     { icon: Home, label: 'Home', path: '/' },

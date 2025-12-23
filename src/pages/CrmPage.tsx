@@ -78,7 +78,8 @@ export function CrmPage() {
   const [daysSlider, setDaysSlider] = useState(30)
 
   // Проверка доступа
-  const isAdmin = telegramUser?.id === 190202791
+  const ADMIN_IDS = [190202791, 144828618]
+  const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
 
   // Загрузка данных
   const loadData = async () => {

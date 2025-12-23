@@ -23,8 +23,9 @@ export function AdminPage() {
   const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0 })
   const [loadingStats, setLoadingStats] = useState(true)
 
-  // Проверка admin-only (telegram_id = 190202791)
-  const isAdmin = telegramUser?.id === 190202791
+  // Проверка admin-only
+  const ADMIN_IDS = [190202791, 144828618]
+  const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
 
   // Загрузка статистики для дашборда
   useEffect(() => {
