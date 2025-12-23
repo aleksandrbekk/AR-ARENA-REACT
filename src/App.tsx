@@ -14,6 +14,7 @@ import { LiveArenaPage } from './pages/LiveArenaPage'
 import { AdminPage } from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
 import { CrmPage } from './pages/CrmPage'
+import { FullCrmPage } from './pages/FullCrmPage'
 import { PremiumPromoPage } from './pages/PremiumPromoPage'
 import { TariffsPage } from './pages/TariffsPage'
 import { PricingPage } from './pages/PricingPage'
@@ -62,6 +63,7 @@ function App() {
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/payment-success" element={<PaymentSuccessPage />} />
             <Route path="/crm" element={<CrmPage />} />
+            <Route path="/full-crm" element={<FullCrmPage />} />
             <Route path="/premium-promo" element={<PremiumPromoPage />} />
             <Route path="/tariffs" element={<TariffsPage />} />
             <Route path="/pricing" element={<PricingPage />} />
