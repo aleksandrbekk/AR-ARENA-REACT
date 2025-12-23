@@ -363,7 +363,7 @@ export function UtmLinksTab() {
 
       {/* === БЛОК ССЫЛОК НА ИНСТРУМЕНТЫ === */}
       {activeTab === 'tools' && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {toolLinks.length === 0 ? (
             <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl p-8 border border-white/5 text-center">
               <div className="text-4xl mb-3">🔗</div>
@@ -376,40 +376,40 @@ export function UtmLinksTab() {
             toolLinks.map((link) => (
               <div
                 key={link.id}
-                className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10"
+                className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden"
               >
-                {/* Верхняя строка: название + переходы */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-white font-semibold">{link.name}</div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[#FFD700] font-bold text-lg">{link.clicks}</span>
-                    <span className="text-white/40 text-xs">переходов</span>
+                {/* Шапка карточки */}
+                <div className="p-4 pb-3">
+                  <div className="text-white font-semibold text-base mb-1">{link.name}</div>
+                  <div className="text-white/40 text-xs font-mono">
+                    ararena.pro/stream?utm_source=<span className="text-white/60">{link.slug}</span>
                   </div>
                 </div>
 
-                {/* Ссылка */}
-                <div className="text-white/30 text-xs font-mono mb-3 truncate">
-                  {getToolUrl(link)}
-                </div>
-
-                {/* Кнопки */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => copyToClipboard(getToolUrl(link), `tool-${link.id}`)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                      copiedId === `tool-${link.id}`
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                        : 'bg-zinc-800 text-white/80 active:scale-[0.98]'
-                    }`}
-                  >
-                    {copiedId === `tool-${link.id}` ? '✓ Скопировано' : 'Копировать ссылку'}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteLink(link.id, link.name, true)}
-                    className="px-4 py-2 bg-zinc-800 text-red-400 text-sm rounded-lg active:scale-[0.98] transition-transform"
-                  >
-                    Удалить
-                  </button>
+                {/* Статистика и действия */}
+                <div className="flex items-center justify-between px-4 py-3 bg-zinc-800/50 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#FFD700] font-bold text-xl">{link.clicks}</span>
+                    <span className="text-white/40 text-sm">переходов</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => copyToClipboard(getToolUrl(link), `tool-${link.id}`)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        copiedId === `tool-${link.id}`
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-zinc-700 text-white active:scale-95'
+                      }`}
+                    >
+                      {copiedId === `tool-${link.id}` ? '✓' : 'Копировать'}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteLink(link.id, link.name, true)}
+                      className="px-3 py-2 text-red-400/70 text-sm rounded-lg hover:text-red-400 active:scale-95 transition-all"
+                    >
+                      Удалить
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
