@@ -32,16 +32,19 @@ export function StreamPage() {
       <div className="relative max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <header className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/40 rounded-full mb-4">
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            <span className="text-red-400 text-sm font-medium">LIVE</span>
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-500/20 to-red-600/10 border border-red-500/30 rounded-full mb-5 shadow-lg shadow-red-500/10">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+            </span>
+            <span className="text-red-400 text-sm font-bold tracking-wider">LIVE</span>
           </div>
 
           <h1 className="text-3xl md:text-4xl font-bold mb-3">
-            <span className="text-[#FFD700]">Крипто-итоги 2024</span>
+            <span className="text-[#FFD700]">Крипто-итоги 2025</span>
           </h1>
           <p className="text-white/60 text-lg">
-            Разбираем год, планируем 2025
+            Разбираем год, планируем 2026
           </p>
         </header>
 
