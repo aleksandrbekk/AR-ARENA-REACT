@@ -10,14 +10,26 @@ import { useAuth } from '../hooks/useAuth'
 import { useTap } from '../hooks/useTap'
 import { useEnergy } from '../hooks/useEnergy'
 import { useSkins } from '../hooks/useSkins'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+
+// Админы которые видят полное приложение
+const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
 
 export function Home() {
   const { telegramUser, gameState, isLoading, error, updateGameState } = useAuth()
   const { tap, isProcessing } = useTap(telegramUser?.id?.toString() || '')
   const { activeSkin } = useSkins()
   const navigate = useNavigate()
+
+  // Редирект не-админов на страницу тарифов (приложение в разработке)
+  const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
+
+  useEffect(() => {
+    if (!isLoading && telegramUser && !isAdmin) {
+      navigate('/pricing', { replace: true })
+    }
+  }, [isLoading, telegramUser, isAdmin, navigate])
 
   // Состояние для плавающих чисел
   const [floatingNumbers, setFloatingNumbers] = useState<Array<{

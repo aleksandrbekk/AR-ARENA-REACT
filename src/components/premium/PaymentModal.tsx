@@ -70,6 +70,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         const tg = window.Telegram?.WebApp
         const telegramId = tg?.initDataUnsafe?.user?.id
         const tgUsername = username.trim().replace('@', '')
+        const streamUtmSource = localStorage.getItem('stream_utm_source') || ''
 
         // Проверяем наличие идентификатора
         if (!telegramId && !tgUsername) {
@@ -111,7 +112,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
                     currency: 'RUB',
                     offerId: PREMIUM_OFFER_ID,
-                    periodicity: periodicity
+                    periodicity: periodicity,
+                    streamUtmSource: streamUtmSource || undefined
                 })
             })
 
@@ -137,6 +139,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         const tg = window.Telegram?.WebApp
         const telegramId = tg?.initDataUnsafe?.user?.id
         const tgUsername = username.trim().replace('@', '')
+        const streamUtmSource = localStorage.getItem('stream_utm_source') || ''
 
         if (!telegramId && !tgUsername) {
             alert('Пожалуйста, введите ваш Telegram username')
@@ -172,7 +175,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
                     amountUSD,
                     currency: network.currency,
-                    tariff: tariffKey
+                    tariff: tariffKey,
+                    streamUtmSource: streamUtmSource || undefined
                 })
             })
 

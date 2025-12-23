@@ -25,11 +25,12 @@ export function StreamPage() {
             .single()
 
           if (link) {
-            // Увеличиваем счётчик кликов
+            // Увеличиваем счётчик кликов и записываем время последнего перехода
             await supabase
               .from('utm_tool_links')
               .update({
                 clicks: link.clicks + 1,
+                last_click_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
               .eq('id', link.id)
