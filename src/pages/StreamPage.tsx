@@ -3,9 +3,20 @@ import { StreamChat } from '../components/StreamChat'
 import { TapGame } from '../components/TapGame'
 import { supabase } from '../lib/supabase'
 
+interface StreamSettings {
+  show_premium_button: boolean
+  button_text: string
+  button_url: string
+}
+
 export function StreamPage() {
   const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
   const [guestName, setGuestName] = useState('')
+  const [settings, setSettings] = useState<StreamSettings>({
+    show_premium_button: false,
+    button_text: 'Выбрать клубную карту',
+    button_url: 'https://t.me/ARARENA_BOT?start=premium_01'
+  })
 
   // Сохранение UTM из URL и запись клика в БД
   useEffect(() => {
@@ -45,6 +56,46 @@ export function StreamPage() {
 
       // Убираем UTM из URL без перезагрузки
       window.history.replaceState({}, '', '/stream')
+    }
+  }, [])
+
+  // Загрузка настроек и подписка на Realtime
+  useEffect(() => {
+    // Загружаем начальные настройки
+    const loadSettings = async () => {
+      const { data } = await supabase
+        .from('stream_settings')
+        .select('show_premium_button, button_text, button_url')
+        .eq('id', 1)
+        .single()
+
+      if (data) {
+        setSettings(data)
+      }
+    }
+
+    loadSettings()
+
+    // Подписываемся на изменения в реалтайме
+    const channel = supabase
+      .channel('stream_settings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'stream_settings',
+          filter: 'id=eq.1'
+        },
+        (payload) => {
+          const newSettings = payload.new as StreamSettings
+          setSettings(newSettings)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
   }, [])
 
@@ -125,8 +176,21 @@ export function StreamPage() {
           <div className="absolute -inset-2 bg-gradient-to-r from-yellow-500/20 via-red-500/10 to-yellow-500/20 rounded-3xl blur-2xl -z-10 opacity-60 group-hover:opacity-80 transition-opacity" />
         </div>
 
-        {/* Tap Game */}
-        <TapGame userName={guestName} />
+        {/* Premium Button или Tap Game */}
+        {settings.show_premium_button ? (
+          <div className="mb-8">
+            <a
+              href={settings.button_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full py-4 px-6 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold text-lg text-center rounded-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all duration-300 hover:scale-[1.02]"
+            >
+              {settings.button_text}
+            </a>
+          </div>
+        ) : (
+          <TapGame userName={guestName} />
+        )}
 
         {/* Live Chat */}
         <div className="w-full overflow-hidden">

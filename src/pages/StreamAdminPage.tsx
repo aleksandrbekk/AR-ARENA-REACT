@@ -1,9 +1,48 @@
+import { useState, useEffect } from 'react'
 import { StreamChat } from '../components/StreamChat'
 import { TapGame } from '../components/TapGame'
+import { supabase } from '../lib/supabase'
 
 // Admin stream page with forced admin mode
 export function StreamAdminPage() {
   const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
+  const [showPremiumButton, setShowPremiumButton] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  // Загрузка текущего состояния
+  useEffect(() => {
+    const loadSettings = async () => {
+      const { data } = await supabase
+        .from('stream_settings')
+        .select('show_premium_button')
+        .eq('id', 1)
+        .single()
+
+      if (data) {
+        setShowPremiumButton(data.show_premium_button)
+      }
+    }
+    loadSettings()
+  }, [])
+
+  // Переключение кнопки
+  const togglePremiumButton = async () => {
+    setIsUpdating(true)
+    const newValue = !showPremiumButton
+
+    const { error } = await supabase
+      .from('stream_settings')
+      .update({
+        show_premium_button: newValue,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1)
+
+    if (!error) {
+      setShowPremiumButton(newValue)
+    }
+    setIsUpdating(false)
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -37,6 +76,31 @@ export function StreamAdminPage() {
             Разбираем год, планируем 2026
           </p>
         </header>
+
+        {/* Admin: Premium Button Toggle */}
+        <div className="mb-6 p-4 bg-zinc-900/80 border border-yellow-500/30 rounded-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-white font-semibold">Кнопка Premium</h3>
+              <p className="text-white/50 text-sm">
+                {showPremiumButton ? 'Показывается вместо тапалки' : 'Скрыта, показывается тапалка'}
+              </p>
+            </div>
+            <button
+              onClick={togglePremiumButton}
+              disabled={isUpdating}
+              className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${
+                showPremiumButton ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500]' : 'bg-zinc-700'
+              } ${isUpdating ? 'opacity-50' : ''}`}
+            >
+              <span
+                className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 ${
+                  showPremiumButton ? 'translate-x-7' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
 
         {/* YouTube Player */}
         <div className="relative mb-8 group">
