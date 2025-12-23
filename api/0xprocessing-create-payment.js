@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       telegramUsername,
       email,
       amountUSD,
-      currency = 'USDT',
+      currency, // Опционально - если не указан, 0xProcessing покажет выбор сети
       tariff,
       periodicity
     } = req.body;
@@ -57,7 +57,10 @@ export default async function handler(req, res) {
     // Создаём платёж через 0xProcessing
     const formData = new URLSearchParams();
     formData.append('AmountUSD', amountUSD.toString());
-    formData.append('Currency', currency);
+    // Currency опционально - если не указан, пользователь выберет сеть на странице оплаты
+    if (currency) {
+      formData.append('Currency', currency);
+    }
     formData.append('Email', finalEmail);
     formData.append('ClientId', clientId);
     formData.append('MerchantId', MERCHANT_ID);
