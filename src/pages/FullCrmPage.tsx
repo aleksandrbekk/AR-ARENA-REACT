@@ -180,6 +180,22 @@ export function FullCrmPage() {
   const premiumUsers = users.filter(u => u.status === 'premium')
   const nonPremiumUsers = users.filter(u => u.status !== 'premium')
 
+  // Вспомогательные функции (перенесены выше для использования в фильтрах)
+  const getDaysRemaining = (expiresAt: string) => {
+    const now = new Date()
+    const expires = new Date(expiresAt)
+    const diff = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return diff
+  }
+
+  const getDaysColor = (days: number) => {
+    if (days <= 0) return 'text-red-400'
+    if (days <= 3) return 'text-red-400'
+    if (days <= 7) return 'text-orange-400'
+    if (days <= 14) return 'text-yellow-400'
+    return 'text-green-400'
+  }
+
   // Фильтрация Premium клиентов
   const filteredPremiumClients = premiumClients.filter(client => {
     // Поиск
@@ -282,21 +298,6 @@ export function FullCrmPage() {
   // ============ ФОРМАТЫ ============
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '-'
   const formatFullDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'
-
-  const getDaysRemaining = (expiresAt: string) => {
-    const now = new Date()
-    const expires = new Date(expiresAt)
-    const diff = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    return diff
-  }
-
-  const getDaysColor = (days: number) => {
-    if (days <= 0) return 'text-red-400'
-    if (days <= 3) return 'text-red-400'
-    if (days <= 7) return 'text-orange-400'
-    if (days <= 14) return 'text-yellow-400'
-    return 'text-green-400'
-  }
 
   const getInitial = (user: User) => (user.first_name || user.username || '?')[0]?.toUpperCase()
   const getPremiumInitial = (client: PremiumClient) => (client.first_name || client.username || '?')[0]?.toUpperCase()
