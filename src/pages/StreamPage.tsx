@@ -187,15 +187,11 @@ export function StreamPage() {
               }
             `}</style>
 
-            <a
-              href={settings.button_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative block w-full overflow-hidden rounded-xl"
-            >
-              {/* Aurora rotating glow - как у GOLD карточки */}
+            {/* Контейнер с aurora эффектом */}
+            <div className="relative rounded-2xl overflow-hidden">
+              {/* Aurora rotating glow вокруг всего блока */}
               <div
-                className="absolute inset-[-2px] rounded-xl"
+                className="absolute inset-[-2px] rounded-2xl"
                 style={{
                   background: `conic-gradient(
                     from 0deg,
@@ -213,13 +209,19 @@ export function StreamPage() {
                 }}
               />
 
-              {/* Button content */}
-              <div className="relative bg-[#08080a] py-4 px-6 rounded-xl">
-                <span className="block text-center font-medium text-white">
+              {/* Внутренний контейнер с чёрным фоном */}
+              <div className="relative bg-[#08080a] p-6 rounded-2xl">
+                {/* Золотая кнопка */}
+                <a
+                  href={settings.button_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full py-4 px-6 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold text-lg text-center rounded-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all duration-300 hover:scale-[1.02]"
+                >
                   {settings.button_text}
-                </span>
+                </a>
               </div>
-            </a>
+            </div>
           </div>
         ) : (
           <TapGame userName={guestName} />
