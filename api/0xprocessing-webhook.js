@@ -312,6 +312,30 @@ export default async function handler(req, res) {
     }
 
     // ============================================
+    // ПРОВЕРКА НА ДУБЛИКАТ (по времени последнего платежа)
+    // ============================================
+    // Если тот же клиент платил в последние 5 минут — это retry, игнорируем
+    const clientIdentifier = /^\d+$/.test(ClientId) ? parseInt(ClientId) : null;
+    if (clientIdentifier) {
+      const { data: recentClient } = await supabase
+        .from('premium_clients')
+        .select('last_payment_at')
+        .eq('telegram_id', clientIdentifier)
+        .single();
+
+      if (recentClient?.last_payment_at) {
+        const lastPayment = new Date(recentClient.last_payment_at);
+        const now = new Date();
+        const minutesSinceLastPayment = (now - lastPayment) / 1000 / 60;
+
+        if (minutesSinceLastPayment < 5) {
+          log(`⚠️ Duplicate payment detected: last payment was ${minutesSinceLastPayment.toFixed(1)} min ago - ignoring`);
+          return res.status(200).json({ message: 'Payment already processed (duplicate)' });
+        }
+      }
+    }
+
+    // ============================================
     // 2. ОПРЕДЕЛЕНИЕ TELEGRAM ID
     // ============================================
     let telegramId = null;
