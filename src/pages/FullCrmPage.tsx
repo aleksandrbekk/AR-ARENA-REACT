@@ -23,6 +23,7 @@ interface PremiumClient {
   telegram_id: number
   username: string | null
   first_name: string | null
+  avatar_url: string | null
   plan: string
   started_at: string
   expires_at: string
@@ -141,7 +142,19 @@ export function FullCrmPage() {
         .select('*')
         .order('expires_at', { ascending: true })
 
-      setPremiumClients((premiumClientsData || []) as PremiumClient[])
+      // Подтягиваем аватарки из users
+      const premiumWithAvatars = await Promise.all(
+        (premiumClientsData || []).map(async (client) => {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('avatar_url')
+            .eq('telegram_id', client.telegram_id)
+            .single()
+          return { ...client, avatar_url: userData?.avatar_url || null }
+        })
+      )
+
+      setPremiumClients(premiumWithAvatars as PremiumClient[])
     } catch (err) {
       console.error('Error:', err)
     } finally {
@@ -503,9 +516,17 @@ export function FullCrmPage() {
                       {/* Шапка: имя + план */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white/60 font-medium">
-                            {getPremiumInitial(client)}
-                          </div>
+                          {client.avatar_url ? (
+                            <img
+                              src={client.avatar_url}
+                              alt=""
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white/60 font-medium">
+                              {getPremiumInitial(client)}
+                            </div>
+                          )}
                           <div>
                             <div className="font-medium">
                               {client.username ? `@${client.username}` : client.first_name || client.telegram_id}
