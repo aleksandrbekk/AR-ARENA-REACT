@@ -681,9 +681,21 @@ export function FullCrmPage() {
         <div className="max-w-3xl mx-auto px-4">
 
           {/* Заголовок */}
-          <div className="py-4">
-            <h1 className="text-3xl font-bold">CRM</h1>
-            <p className="text-white/40 mt-1">{users.length} пользователей</p>
+          <div className="py-4 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">CRM</h1>
+              <p className="text-white/40 mt-1">{users.length} пользователей</p>
+            </div>
+            <button
+              onClick={() => loadData()}
+              disabled={loading}
+              className="p-3 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition-colors disabled:opacity-50"
+              title="Обновить данные"
+            >
+              <svg className={`w-5 h-5 text-white/60 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
           </div>
 
           {/* Табы */}
@@ -697,7 +709,7 @@ export function FullCrmPage() {
                 }`}
               >
                 {tab === 'users' && `Все (${users.length})`}
-                {tab === 'premium' && `Premium (${premiumUsers.length})`}
+                {tab === 'premium' && `Premium (${premiumClients.length})`}
                 {tab === 'broadcast' && 'Рассылка'}
               </button>
             ))}
