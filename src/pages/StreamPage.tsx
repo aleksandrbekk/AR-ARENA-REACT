@@ -1,17 +1,47 @@
 import { useState, useEffect } from 'react'
 import { StreamChat } from '../components/StreamChat'
 import { TapGame } from '../components/TapGame'
+import { supabase } from '../lib/supabase'
 
 export function StreamPage() {
   const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
   const [guestName, setGuestName] = useState('')
 
-  // Сохранение UTM из URL
+  // Сохранение UTM из URL и запись клика в БД
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const utmSource = params.get('utm_source')
     if (utmSource) {
       localStorage.setItem('stream_utm_source', utmSource)
+
+      // Записываем клик в БД
+      const trackClick = async () => {
+        try {
+          // Находим ссылку по slug
+          const { data: link } = await supabase
+            .from('utm_tool_links')
+            .select('id, clicks')
+            .eq('slug', utmSource)
+            .single()
+
+          if (link) {
+            // Увеличиваем счётчик кликов
+            await supabase
+              .from('utm_tool_links')
+              .update({
+                clicks: link.clicks + 1,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', link.id)
+          }
+        } catch (err) {
+          // Молча игнорируем ошибки трекинга
+          console.error('Track click error:', err)
+        }
+      }
+
+      trackClick()
+
       // Убираем UTM из URL без перезагрузки
       window.history.replaceState({}, '', '/stream')
     }
