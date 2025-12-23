@@ -179,13 +179,75 @@ export function StreamPage() {
         {/* Premium Button или Tap Game */}
         {settings.show_premium_button ? (
           <div className="mb-8">
+            {/* Aurora glow styles */}
+            <style>{`
+              @keyframes aurora-glow {
+                0%, 100% {
+                  opacity: 0.6;
+                  transform: scale(1);
+                }
+                50% {
+                  opacity: 1;
+                  transform: scale(1.02);
+                }
+              }
+              @keyframes aurora-rotate-btn {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+              }
+              @keyframes shimmer {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(100%); }
+              }
+            `}</style>
+
             <a
               href={settings.button_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full py-4 px-6 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold text-lg text-center rounded-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all duration-300 hover:scale-[1.02]"
+              className="relative block w-full overflow-hidden rounded-xl group"
             >
-              {settings.button_text}
+              {/* Aurora rotating glow */}
+              <div
+                className="absolute inset-[-3px] rounded-xl"
+                style={{
+                  background: `conic-gradient(
+                    from 0deg,
+                    transparent 0deg,
+                    #FFD700 60deg,
+                    #FFA500 120deg,
+                    transparent 180deg,
+                    #FFD700 240deg,
+                    #FFA500 300deg,
+                    transparent 360deg
+                  )`,
+                  filter: 'blur(12px)',
+                  opacity: 0.8,
+                  animation: 'aurora-rotate-btn 4s linear infinite, aurora-glow 2s ease-in-out infinite'
+                }}
+              />
+
+              {/* Button content */}
+              <div className="relative bg-gradient-to-r from-[#1a1a1a] to-[#0d0d0d] py-5 px-6 rounded-xl border border-yellow-500/30">
+                {/* Shimmer effect */}
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent"
+                  style={{ animation: 'shimmer 2s infinite' }}
+                />
+
+                {/* Text */}
+                <span
+                  className="relative block text-center font-bold text-xl tracking-wide"
+                  style={{
+                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    textShadow: '0 0 30px rgba(255,215,0,0.5)'
+                  }}
+                >
+                  {settings.button_text}
+                </span>
+              </div>
             </a>
           </div>
         ) : (
