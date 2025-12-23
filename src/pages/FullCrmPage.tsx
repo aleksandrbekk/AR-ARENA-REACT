@@ -65,6 +65,13 @@ export function FullCrmPage() {
   const [messageText, setMessageText] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
 
+  // Premium фильтры и поиск
+  const [premiumSearch, setPremiumSearch] = useState('')
+  const [premiumFilter, setPremiumFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
+  const [planFilter, setPlanFilter] = useState<string>('all')
+  const [addingDaysFor, setAddingDaysFor] = useState<string | null>(null)
+  const [daysToAdd, setDaysToAdd] = useState(30)
+
   // Защита паролем для браузера
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [passwordInput, setPasswordInput] = useState('')
@@ -172,6 +179,30 @@ export function FullCrmPage() {
 
   const premiumUsers = users.filter(u => u.status === 'premium')
   const nonPremiumUsers = users.filter(u => u.status !== 'premium')
+
+  // Фильтрация Premium клиентов
+  const filteredPremiumClients = premiumClients.filter(client => {
+    // Поиск
+    if (premiumSearch) {
+      const q = premiumSearch.toLowerCase()
+      const matchesSearch =
+        client.username?.toLowerCase().includes(q) ||
+        client.first_name?.toLowerCase().includes(q) ||
+        client.telegram_id.toString().includes(q)
+      if (!matchesSearch) return false
+    }
+
+    // Фильтр по плану
+    if (planFilter !== 'all' && client.plan !== planFilter) return false
+
+    // Фильтр по статусу
+    const days = getDaysRemaining(client.expires_at)
+    if (premiumFilter === 'active' && days <= 7) return false
+    if (premiumFilter === 'expiring' && (days <= 0 || days > 7)) return false
+    if (premiumFilter === 'expired' && days > 0) return false
+
+    return true
+  })
 
   // ============ ДОБАВИТЬ ДНИ ============
   const addDays = async (clientId: string, telegramId: number, currentExpires: string, days: number) => {
@@ -528,11 +559,75 @@ export function FullCrmPage() {
 
           {/* ============ PREMIUM ============ */}
           {activeTab === 'premium' && (
-            <div className="space-y-3">
-              {premiumClients.length === 0 ? (
-                <div className="bg-zinc-900 rounded-2xl py-12 text-center text-white/30">Нет Premium клиентов</div>
+            <div className="space-y-4">
+              {/* Поиск */}
+              <div className="relative">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={premiumSearch}
+                  onChange={e => setPremiumSearch(e.target.value)}
+                  placeholder="Поиск по имени или ID..."
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                />
+              </div>
+
+              {/* Фильтры */}
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                {/* По статусу */}
+                {[
+                  { key: 'all', label: 'Все' },
+                  { key: 'active', label: '✓ Активные' },
+                  { key: 'expiring', label: '⚠️ Истекают' },
+                  { key: 'expired', label: '✗ Истекли' }
+                ].map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setPremiumFilter(f.key as typeof premiumFilter)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                      premiumFilter === f.key ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* По плану */}
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                {[
+                  { key: 'all', label: 'Все планы', color: 'bg-zinc-700' },
+                  { key: 'private', label: 'Private', color: 'bg-purple-500/30 text-purple-400' },
+                  { key: 'platinum', label: 'Platinum', color: 'bg-cyan-500/30 text-cyan-400' },
+                  { key: 'gold', label: 'Gold', color: 'bg-[#FFD700]/30 text-[#FFD700]' },
+                  { key: 'classic', label: 'Classic', color: 'bg-zinc-600' }
+                ].map(p => (
+                  <button
+                    key={p.key}
+                    onClick={() => setPlanFilter(p.key)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                      planFilter === p.key
+                        ? p.key === 'all' ? 'bg-white text-black' : p.color + ' ring-2 ring-white/30'
+                        : 'bg-zinc-800 text-white/50'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Счётчик */}
+              <div className="text-sm text-white/40">
+                Найдено: <span className="text-white">{filteredPremiumClients.length}</span> из {premiumClients.length}
+              </div>
+
+              {/* Список */}
+              {filteredPremiumClients.length === 0 ? (
+                <div className="bg-zinc-900 rounded-2xl py-12 text-center text-white/30">Нет клиентов</div>
               ) : (
-                premiumClients.map((client) => {
+                filteredPremiumClients.map((client) => {
                   const daysRemaining = getDaysRemaining(client.expires_at)
                   const isExpired = daysRemaining <= 0
 
@@ -629,18 +724,55 @@ export function FullCrmPage() {
                         )}
                       </div>
 
-                      {/* Кнопки добавления дней */}
-                      <div className="flex gap-2 mt-3 pt-3 border-t border-white/5">
-                        <span className="text-xs text-white/30 self-center mr-1">Добавить:</span>
-                        {[7, 14, 30, 90].map(days => (
+                      {/* Добавление дней */}
+                      <div className="mt-3 pt-3 border-t border-white/5">
+                        {addingDaysFor === client.id ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="range"
+                                min="1"
+                                max="365"
+                                value={daysToAdd}
+                                onChange={e => setDaysToAdd(Number(e.target.value))}
+                                className="flex-1 h-2 bg-zinc-700 rounded-full appearance-none cursor-pointer accent-[#FFD700]"
+                              />
+                              <input
+                                type="number"
+                                min="1"
+                                max="999"
+                                value={daysToAdd}
+                                onChange={e => setDaysToAdd(Math.max(1, Number(e.target.value)))}
+                                className="w-16 px-2 py-1 bg-zinc-800 rounded-lg text-center text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50"
+                              />
+                              <span className="text-white/40 text-sm">дн.</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  addDays(client.id, client.telegram_id, client.expires_at, daysToAdd)
+                                  setAddingDaysFor(null)
+                                }}
+                                className="flex-1 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm font-medium transition-all active:scale-[0.98]"
+                              >
+                                ✓ Добавить {daysToAdd} дн.
+                              </button>
+                              <button
+                                onClick={() => setAddingDaysFor(null)}
+                                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white/60 rounded-lg text-sm transition-all"
+                              >
+                                ✗
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
                           <button
-                            key={days}
-                            onClick={() => addDays(client.id, client.telegram_id, client.expires_at, days)}
-                            className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 active:scale-95 rounded-lg text-xs font-medium text-white/70 hover:text-white transition-all"
+                            onClick={() => { setAddingDaysFor(client.id); setDaysToAdd(30) }}
+                            className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-white/60 hover:text-white transition-all flex items-center justify-center gap-2"
                           >
-                            +{days}д
+                            <span className="text-lg">+</span> Добавить дни
                           </button>
-                        ))}
+                        )}
                       </div>
                     </div>
                   )
