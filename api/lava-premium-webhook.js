@@ -476,46 +476,41 @@ export default async function handler(req, res) {
     log(`🔍 Final telegram_id for message: ${finalTelegramId}`);
 
     if (finalTelegramId) {
-      // Сначала отправляем сообщение, потом пробуем invite link
-      const welcomeMessage = isNewClient
-        ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
-          `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.`
-        : `✅ <b>Подписка продлена!</b>\n\n` +
-          `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.`;
-
-      // Отправляем базовое сообщение сразу
-      await sendTelegramMessage(String(finalTelegramId), welcomeMessage);
-      log('✅ Basic welcome message sent');
-
-      // Пробуем создать invite links (канал + чат)
+      // Создаём invite links (канал + чат)
       const { channelLink, chatLink } = await createInviteLinks(String(finalTelegramId));
+      log(`🔗 Invite links: channel=${channelLink}, chat=${chatLink}`);
 
+      // Обновляем статус в БД
       if (channelLink || chatLink) {
-        log(`🔗 Invite links: channel=${channelLink}, chat=${chatLink}`);
-
-        // Обновляем статус в БД
         await supabase
           .from('premium_clients')
           .update({ in_channel: !!channelLink, in_chat: !!chatLink })
           .eq('id', clientId);
-
-        // Формируем кнопки
-        const buttons = [];
-        if (channelLink) {
-          buttons.push([{ text: '📢 Присоединиться к каналу', url: channelLink }]);
-        }
-        if (chatLink) {
-          buttons.push([{ text: '💬 Присоединиться к чату', url: chatLink }]);
-        }
-        buttons.push([{ text: '🎮 Открыть AR ARENA', web_app: { url: 'https://ararena.pro' } }]);
-
-        const replyMarkup = { inline_keyboard: buttons };
-
-        await sendTelegramMessage(String(finalTelegramId), '📢 Нажмите кнопки ниже, чтобы присоединиться к Premium:', replyMarkup);
-        log('✅ Invite links message sent');
-      } else {
-        log('⚠️ Failed to create invite links, but basic message was sent');
       }
+
+      // Формируем ОДНО сообщение с приветствием и кнопками
+      const welcomeText = isNewClient
+        ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
+          `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
+          `👇 Нажмите кнопки ниже для доступа:`
+        : `✅ <b>Подписка продлена!</b>\n\n` +
+          `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
+          `👇 Нажмите кнопки ниже для доступа:`;
+
+      // Формируем кнопки
+      const buttons = [];
+      if (channelLink) {
+        buttons.push([{ text: '📢 Канал Premium', url: channelLink }]);
+      }
+      if (chatLink) {
+        buttons.push([{ text: '💬 Чат Premium', url: chatLink }]);
+      }
+      buttons.push([{ text: '🎮 Открыть AR ARENA', web_app: { url: 'https://ararena.pro' } }]);
+
+      const replyMarkup = { inline_keyboard: buttons };
+
+      await sendTelegramMessage(String(finalTelegramId), welcomeText, replyMarkup);
+      log('✅ Welcome message with buttons sent');
     } else {
       log(`⚠️ No telegram_id available. Username: ${extractedUsername}`);
     }
