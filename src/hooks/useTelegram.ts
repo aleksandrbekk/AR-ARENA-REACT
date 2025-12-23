@@ -18,7 +18,7 @@ export function useTelegram() {
 
     if (tg) {
       tg.ready()
-      tg.expand()
+      // expand() вызывается в App.tsx только для мобильных устройств
       setUser(tg.initDataUnsafe.user || null)
       setIsReady(true)
     } else {
