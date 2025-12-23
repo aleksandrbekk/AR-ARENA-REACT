@@ -193,7 +193,7 @@ export function StreamChat() {
   }
 
   return (
-    <div className="flex flex-col h-[400px] bg-zinc-900/50 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
+    <div className="flex flex-col h-[450px] bg-zinc-900/50 backdrop-blur-sm md:rounded-xl border-y md:border border-white/10 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-zinc-900/80">
         <div className="flex items-center gap-2">

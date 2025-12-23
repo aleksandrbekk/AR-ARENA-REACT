@@ -44,8 +44,8 @@ export function StreamPage() {
           <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500/20 via-red-500/20 to-yellow-500/20 rounded-2xl blur-xl -z-10" />
         </div>
 
-        {/* Live Chat */}
-        <div className="mb-8">
+        {/* Live Chat - на всю ширину на мобильных */}
+        <div className="-mx-4 md:mx-0">
           <StreamChat />
         </div>
 
