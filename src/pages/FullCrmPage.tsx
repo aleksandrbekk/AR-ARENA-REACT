@@ -69,8 +69,8 @@ export function FullCrmPage() {
   const [premiumSearch, setPremiumSearch] = useState('')
   const [premiumFilter, setPremiumFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [planFilter, setPlanFilter] = useState<string>('all')
-  const [addingDaysFor, setAddingDaysFor] = useState<string | null>(null)
   const [daysToAdd, setDaysToAdd] = useState(30)
+  const [selectedPremiumClient, setSelectedPremiumClient] = useState<PremiumClient | null>(null)
 
   // Защита паролем для браузера
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -306,12 +306,20 @@ export function FullCrmPage() {
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp
-      const handleBack = () => selectedUser ? setSelectedUser(null) : navigate('/admin')
+      const handleBack = () => {
+        if (selectedPremiumClient) {
+          setSelectedPremiumClient(null)
+        } else if (selectedUser) {
+          setSelectedUser(null)
+        } else {
+          navigate('/admin')
+        }
+      }
       tg.BackButton.show()
       tg.BackButton.onClick(handleBack)
       return () => { tg.BackButton.offClick(handleBack); tg.BackButton.hide() }
     }
-  }, [navigate, selectedUser])
+  }, [navigate, selectedUser, selectedPremiumClient])
 
   // ============ ДОСТУП ============
   // В Telegram - проверяем ID, в браузере - показываем форму пароля
@@ -368,6 +376,201 @@ export function FullCrmPage() {
       <Layout hideNavbar>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-white/50">Загрузка...</div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // ============ ДЕТАЛИ PREMIUM КЛИЕНТА ============
+  if (selectedPremiumClient) {
+    const client = selectedPremiumClient
+    const daysRemaining = getDaysRemaining(client.expires_at)
+    const isExpired = daysRemaining <= 0
+
+    return (
+      <Layout hideNavbar>
+        <div className="min-h-screen bg-[#000] text-white pt-[60px] pb-8">
+          <div className="max-w-lg mx-auto px-4">
+            {/* Кнопка назад */}
+            <button
+              onClick={() => setSelectedPremiumClient(null)}
+              className="flex items-center gap-2 text-white/50 hover:text-white mb-6 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Назад
+            </button>
+
+            {/* Аватар и имя */}
+            <div className="flex flex-col items-center mb-6">
+              {client.avatar_url ? (
+                <img src={client.avatar_url} alt="" className="w-24 h-24 rounded-full object-cover mb-4" />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center text-3xl font-medium text-white/60 mb-4">
+                  {getPremiumInitial(client)}
+                </div>
+              )}
+              <h1 className="text-2xl font-semibold">
+                {client.username ? `@${client.username}` : client.first_name || 'Без имени'}
+              </h1>
+              <p className="text-white/40 font-mono text-sm mt-1">{client.telegram_id}</p>
+
+              {/* Бейдж плана */}
+              <div className={`mt-3 px-4 py-1.5 rounded-full text-sm font-bold uppercase ${
+                client.plan === 'private' ? 'bg-purple-500/20 text-purple-400' :
+                client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
+                client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                'bg-zinc-700/50 text-white/70'
+              }`}>
+                {client.plan || 'N/A'}
+              </div>
+            </div>
+
+            {/* Главный блок: дни */}
+            <div className="bg-zinc-900 rounded-2xl p-6 mb-4 text-center">
+              <div className="text-white/40 text-sm mb-2">Осталось дней</div>
+              <div className={`text-5xl font-bold ${getDaysColor(daysRemaining)}`}>
+                {isExpired ? '0' : daysRemaining}
+              </div>
+              <div className="text-white/40 text-sm mt-2">
+                {isExpired ? 'Подписка истекла' : `до ${formatFullDate(client.expires_at)}`}
+              </div>
+            </div>
+
+            {/* Добавить дни */}
+            <div className="bg-zinc-900 rounded-2xl p-4 mb-4">
+              <div className="text-white/40 text-xs uppercase tracking-wide mb-3">Добавить бонусные дни</div>
+              <div className="flex items-center gap-3 mb-3">
+                <input
+                  type="range"
+                  min="1"
+                  max="365"
+                  value={daysToAdd}
+                  onChange={e => setDaysToAdd(Number(e.target.value))}
+                  className="flex-1 h-2 bg-zinc-700 rounded-full appearance-none cursor-pointer accent-[#FFD700]"
+                />
+                <input
+                  type="number"
+                  min="1"
+                  max="999"
+                  value={daysToAdd}
+                  onChange={e => setDaysToAdd(Math.max(1, Number(e.target.value)))}
+                  className="w-20 px-3 py-2 bg-zinc-800 rounded-lg text-center text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50"
+                />
+                <span className="text-white/40">дн.</span>
+              </div>
+              <button
+                onClick={async () => {
+                  await addDays(client.id, client.telegram_id, client.expires_at, daysToAdd)
+                  // Обновляем selectedPremiumClient
+                  const newExpires = new Date(
+                    (new Date(client.expires_at) > new Date() ? new Date(client.expires_at) : new Date()).getTime() + daysToAdd * 24 * 60 * 60 * 1000
+                  )
+                  setSelectedPremiumClient({ ...client, expires_at: newExpires.toISOString() })
+                }}
+                className="w-full py-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-xl font-medium transition-all active:scale-[0.98]"
+              >
+                + Добавить {daysToAdd} дней
+              </button>
+            </div>
+
+            {/* Статистика */}
+            <div className="bg-zinc-900 rounded-2xl overflow-hidden mb-4">
+              <div className="px-4 py-3 flex justify-between border-b border-white/5">
+                <span className="text-white/50">Всего оплачено</span>
+                <span className="text-white font-medium">${client.total_paid_usd || 0}</span>
+              </div>
+              <div className="px-4 py-3 flex justify-between border-b border-white/5">
+                <span className="text-white/50">Платежей</span>
+                <span className="text-white font-medium">{client.payments_count || 1}</span>
+              </div>
+              <div className="px-4 py-3 flex justify-between border-b border-white/5">
+                <span className="text-white/50">Источник</span>
+                <span className="text-white font-medium">{client.source || '-'}</span>
+              </div>
+              <div className="px-4 py-3 flex justify-between border-b border-white/5">
+                <span className="text-white/50">Последний платёж</span>
+                <span className="text-white font-medium">
+                  {client.last_payment_at ? formatFullDate(client.last_payment_at) : '-'}
+                </span>
+              </div>
+              <div className="px-4 py-3 flex justify-between border-b border-white/5">
+                <span className="text-white/50">Метод оплаты</span>
+                <span className="text-white font-medium">
+                  {client.last_payment_method === 'lava.top' ? '💳 Карта' : client.last_payment_method === '0xprocessing' ? '🪙 Крипто' : client.last_payment_method || '-'}
+                </span>
+              </div>
+              <div className="px-4 py-3 flex justify-between">
+                <span className="text-white/50">Клиент с</span>
+                <span className="text-white font-medium">{formatFullDate(client.started_at)}</span>
+              </div>
+            </div>
+
+            {/* Статус в канале/чате */}
+            <div className="bg-zinc-900 rounded-2xl p-4 mb-4">
+              <div className="text-white/40 text-xs uppercase tracking-wide mb-3">Статус доступа</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className={`p-3 rounded-xl text-center ${client.in_channel ? 'bg-green-500/20' : 'bg-zinc-800'}`}>
+                  <div className={`text-2xl mb-1 ${client.in_channel ? 'text-green-400' : 'text-white/30'}`}>
+                    {client.in_channel ? '✓' : '✗'}
+                  </div>
+                  <div className={`text-sm ${client.in_channel ? 'text-green-400' : 'text-white/30'}`}>Канал</div>
+                </div>
+                <div className={`p-3 rounded-xl text-center ${client.in_chat ? 'bg-green-500/20' : 'bg-zinc-800'}`}>
+                  <div className={`text-2xl mb-1 ${client.in_chat ? 'text-green-400' : 'text-white/30'}`}>
+                    {client.in_chat ? '✓' : '✗'}
+                  </div>
+                  <div className={`text-sm ${client.in_chat ? 'text-green-400' : 'text-white/30'}`}>Чат</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Действия */}
+            <button
+              onClick={() => { setMessageText(''); setShowMessageModal(true) }}
+              className="w-full py-4 bg-white/10 hover:bg-white/15 rounded-2xl text-white font-medium transition-colors mb-3"
+            >
+              💬 Написать сообщение
+            </button>
+
+            {/* Модалка сообщения */}
+            {showMessageModal && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end justify-center z-50">
+                <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Сообщение для {client.username ? `@${client.username}` : client.telegram_id}</h3>
+                    <button onClick={() => setShowMessageModal(false)} className="w-8 h-8 flex items-center justify-center text-white/60 text-2xl">×</button>
+                  </div>
+                  <textarea
+                    value={messageText}
+                    onChange={e => setMessageText(e.target.value)}
+                    placeholder="Введите сообщение..."
+                    className="w-full h-32 bg-zinc-800 rounded-xl p-4 text-white placeholder-white/30 focus:outline-none resize-none mb-4"
+                    autoFocus
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!messageText.trim()) return
+                      setSendingMessage(true)
+                      const success = await sendMessage(client.telegram_id, messageText)
+                      setSendingMessage(false)
+                      if (success) {
+                        showToast({ variant: 'success', title: 'Сообщение отправлено' })
+                        setShowMessageModal(false)
+                      } else {
+                        showToast({ variant: 'error', title: 'Ошибка отправки' })
+                      }
+                    }}
+                    disabled={sendingMessage || !messageText.trim()}
+                    className="w-full py-4 bg-white text-black font-semibold rounded-xl disabled:opacity-30 active:scale-[0.98] transition-transform"
+                  >
+                    {sendingMessage ? 'Отправка...' : 'Отправить'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </Layout>
     )
@@ -635,7 +838,8 @@ export function FullCrmPage() {
                   return (
                     <div
                       key={client.id}
-                      className={`bg-zinc-900 rounded-2xl p-4 ${isExpired ? 'opacity-60' : ''}`}
+                      onClick={() => setSelectedPremiumClient(client)}
+                      className={`bg-zinc-900 rounded-2xl p-4 cursor-pointer active:scale-[0.99] transition-transform ${isExpired ? 'opacity-60' : ''}`}
                     >
                       {/* Шапка: имя + план */}
                       <div className="flex items-center justify-between mb-3">
@@ -725,55 +929,12 @@ export function FullCrmPage() {
                         )}
                       </div>
 
-                      {/* Добавление дней */}
-                      <div className="mt-3 pt-3 border-t border-white/5">
-                        {addingDaysFor === client.id ? (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="range"
-                                min="1"
-                                max="365"
-                                value={daysToAdd}
-                                onChange={e => setDaysToAdd(Number(e.target.value))}
-                                className="flex-1 h-2 bg-zinc-700 rounded-full appearance-none cursor-pointer accent-[#FFD700]"
-                              />
-                              <input
-                                type="number"
-                                min="1"
-                                max="999"
-                                value={daysToAdd}
-                                onChange={e => setDaysToAdd(Math.max(1, Number(e.target.value)))}
-                                className="w-16 px-2 py-1 bg-zinc-800 rounded-lg text-center text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50"
-                              />
-                              <span className="text-white/40 text-sm">дн.</span>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => {
-                                  addDays(client.id, client.telegram_id, client.expires_at, daysToAdd)
-                                  setAddingDaysFor(null)
-                                }}
-                                className="flex-1 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm font-medium transition-all active:scale-[0.98]"
-                              >
-                                ✓ Добавить {daysToAdd} дн.
-                              </button>
-                              <button
-                                onClick={() => setAddingDaysFor(null)}
-                                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white/60 rounded-lg text-sm transition-all"
-                              >
-                                ✗
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => { setAddingDaysFor(client.id); setDaysToAdd(30) }}
-                            className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-white/60 hover:text-white transition-all flex items-center justify-center gap-2"
-                          >
-                            <span className="text-lg">+</span> Добавить дни
-                          </button>
-                        )}
+                      {/* Стрелка - клик для деталей */}
+                      <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-center text-white/30">
+                        <span className="text-xs">Нажмите для деталей</span>
+                        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
                     </div>
                   )
