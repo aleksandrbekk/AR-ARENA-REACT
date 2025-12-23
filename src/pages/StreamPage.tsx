@@ -48,27 +48,13 @@ export function StreamPage() {
         {/* YouTube Player */}
         <div className="relative mb-8">
           <div className="aspect-video bg-zinc-900 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-            {YOUTUBE_VIDEO_ID !== 'YOUR_VIDEO_ID' ? (
-              <iframe
-                src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&rel=0`}
-                title="AR ARENA Live Stream"
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-                </div>
-                <div className="text-white/40 text-center">
-                  <div className="font-medium">Трансляция скоро начнётся</div>
-                  <div className="text-sm">Ожидайте...</div>
-                </div>
-              </div>
-            )}
+            <iframe
+              src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&rel=0`}
+              title="AR ARENA Live Stream"
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
 
           {/* Glow effect */}
