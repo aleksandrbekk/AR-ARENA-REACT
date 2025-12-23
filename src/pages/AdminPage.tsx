@@ -141,9 +141,9 @@ export function AdminPage() {
                 </div>
               </button>
 
-              {/* 3. PREMIUM */}
+              {/* 3. CRM СИСТЕМА */}
               <button
-                onClick={() => navigate('/crm')}
+                onClick={() => navigate('/full-crm')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
               >
                 <svg
@@ -154,9 +154,9 @@ export function AdminPage() {
                   <path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" />
                 </svg>
                 <div className="text-center">
-                  <div className="text-white font-medium">Премиум</div>
+                  <div className="text-white font-medium">CRM</div>
                   <div className="text-white/60 text-sm">
-                    {loadingStats ? '...' : `${stats.activePremiumClientsCount} клиентов`}
+                    {loadingStats ? '...' : `${stats.activePremiumClientsCount} premium`}
                   </div>
                 </div>
               </button>
