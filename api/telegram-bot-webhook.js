@@ -16,7 +16,7 @@ const WEB_APP_URL = 'https://ararena.pro';
 const PRICING_URL = 'https://ararena.pro/pricing';
 
 // File ID для welcome картинки (быстрее чем URL)
-const WELCOME_IMAGE_FILE_ID = 'AgACAgIAAxkDAAIBfGlKN_tJvbsyZSoY-KiiDF6PpLcpAALhC2sb-DpYSgABgmQuYrVHlAEAAwIAA3MAAzYE';
+const WELCOME_IMAGE_FILE_ID = 'AgACAgIAAxkDAAIBgmlKOHkPSECVGl5g6uKX7gnzOTaGAALkC2sb-DpYSqPtt60_I9skAQADAgADeAADNgQ';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
