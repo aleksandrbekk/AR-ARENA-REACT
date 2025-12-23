@@ -39,9 +39,11 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
     }
   }, [])
 
-  // Текущий пользователь (из Telegram WebApp или гость)
+  // Текущий пользователь (только из реального Telegram WebApp или гость с введённым именем)
   const telegramWebUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-  const currentUser = telegramWebUser || telegramUser || (isNameSet ? { id: null, first_name: guestName, username: null } : null)
+  // Проверяем что это реальный Telegram user (не mock) - должен быть id
+  const realTelegramUser = telegramWebUser?.id ? telegramWebUser : (telegramUser?.id ? telegramUser : null)
+  const currentUser = realTelegramUser || (isNameSet ? { id: null, first_name: guestName, username: null } : null)
   const canWrite = !!currentUser
 
   // Проверка админа (Telegram WebApp, useAuth, или forceAdmin)
@@ -228,7 +230,7 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
   }
 
   return (
-    <div className="flex flex-col h-[450px] bg-zinc-900/50 backdrop-blur-sm md:rounded-xl border-y md:border border-white/10 overflow-hidden">
+    <div className="flex flex-col h-[450px] w-full max-w-full bg-zinc-900/50 backdrop-blur-sm md:rounded-xl border-y md:border border-white/10 overflow-hidden touch-manipulation">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-zinc-900/80">
         <div className="flex items-center gap-2">
