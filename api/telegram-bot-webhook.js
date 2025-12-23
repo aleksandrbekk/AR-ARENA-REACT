@@ -15,6 +15,9 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVE
 const WEB_APP_URL = 'https://ararena.pro';
 const PRICING_URL = 'https://ararena.pro/pricing';
 
+// File ID для welcome картинки (быстрее чем URL)
+const WELCOME_IMAGE_FILE_ID = 'AgACAgIAAxkDAAIBfGlKN_tJvbsyZSoY-KiiDF6PpLcpAALhC2sb-DpYSgABgmQuYrVHlAEAAwIAA3MAAzYE';
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 // ============================================
@@ -27,6 +30,33 @@ function log(message, data = null) {
     console.log(`[${timestamp}] [BotWebhook] ${message}`, JSON.stringify(data, null, 2));
   } else {
     console.log(`[${timestamp}] [BotWebhook] ${message}`);
+  }
+}
+
+// Отправить фото
+async function sendPhoto(chatId, photo, caption, replyMarkup = null) {
+  try {
+    const body = {
+      chat_id: chatId,
+      photo,
+      caption,
+      parse_mode: 'HTML'
+    };
+
+    if (replyMarkup) {
+      body.reply_markup = replyMarkup;
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    return await response.json();
+  } catch (error) {
+    log('❌ sendPhoto error', { error: error.message });
+    return null;
   }
 }
 
@@ -124,8 +154,8 @@ async function handleStartPremium(chatId, telegramId) {
 
     await sendMessage(chatId, text, keyboard);
   } else {
-    // Нет подписки — показываем приветствие
-    const text = `🔐 <b>Добро пожаловать в Premium AR Club</b>
+    // Нет подписки — показываем приветствие с картинкой
+    const caption = `🔐 <b>Добро пожаловать в Premium AR Club</b>
 
 Закрытое сообщество трейдеров и инвесторов.
 9 лет опыта. 82% успешных сделок. 5000+ участников.
@@ -145,7 +175,7 @@ async function handleStartPremium(chatId, telegramId) {
       ]
     };
 
-    await sendMessage(chatId, text, keyboard);
+    await sendPhoto(chatId, WELCOME_IMAGE_FILE_ID, caption, keyboard);
   }
 }
 
