@@ -1,5 +1,6 @@
 import { StreamChat } from '../components/StreamChat'
 
+// Admin stream page with forced admin mode
 export function StreamAdminPage() {
   const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
 
