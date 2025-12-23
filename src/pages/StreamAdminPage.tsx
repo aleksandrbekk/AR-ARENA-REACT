@@ -8,21 +8,53 @@ export function StreamAdminPage() {
   const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
   const [showPremiumButton, setShowPremiumButton] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [onlineCount, setOnlineCount] = useState(0)
+  const [totalViews, setTotalViews] = useState(0)
 
-  // Загрузка текущего состояния
+  // Загрузка настроек и просмотров
   useEffect(() => {
     const loadSettings = async () => {
       const { data } = await supabase
         .from('stream_settings')
-        .select('show_premium_button')
+        .select('show_premium_button, total_views')
         .eq('id', 1)
         .single()
 
       if (data) {
         setShowPremiumButton(data.show_premium_button)
+        setTotalViews(data.total_views || 0)
       }
     }
     loadSettings()
+
+    // Polling для просмотров каждые 5 секунд
+    const pollInterval = setInterval(async () => {
+      const { data } = await supabase
+        .from('stream_settings')
+        .select('total_views')
+        .eq('id', 1)
+        .single()
+      if (data) setTotalViews(data.total_views || 0)
+    }, 5000)
+
+    return () => clearInterval(pollInterval)
+  }, [])
+
+  // Подписка на Presence для онлайн счётчика
+  useEffect(() => {
+    const presenceChannel = supabase.channel('stream_viewers')
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState()
+        const count = Object.keys(state).length
+        setOnlineCount(count)
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(presenceChannel)
+    }
   }, [])
 
   // Переключение кнопки
@@ -76,6 +108,38 @@ export function StreamAdminPage() {
             Разбираем год, планируем 2026
           </p>
         </header>
+
+        {/* Admin: Статистика зрителей */}
+        <div className="mb-6 grid grid-cols-2 gap-4">
+          <div className="p-4 bg-zinc-900/80 border border-green-500/30 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+                </span>
+              </div>
+              <div>
+                <p className="text-white/50 text-sm">Онлайн сейчас</p>
+                <p className="text-2xl font-bold text-green-400">{onlineCount}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 bg-zinc-900/80 border border-blue-500/30 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-white/50 text-sm">Всего просмотров</p>
+                <p className="text-2xl font-bold text-blue-400">{totalViews}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Admin: Premium Button Toggle */}
         <div className="mb-6 p-4 bg-zinc-900/80 border border-yellow-500/30 rounded-xl">

@@ -18,6 +18,44 @@ export function StreamPage() {
     button_url: 'https://t.me/ARARENA_BOT?start=premium_01'
   })
 
+  // Трекинг просмотров + Presence для онлайн счётчика
+  useEffect(() => {
+    // Увеличиваем счётчик просмотров (один раз при загрузке)
+    const trackView = async () => {
+      const { data } = await supabase
+        .from('stream_settings')
+        .select('total_views')
+        .eq('id', 1)
+        .single()
+
+      if (data) {
+        await supabase
+          .from('stream_settings')
+          .update({ total_views: (data.total_views || 0) + 1 })
+          .eq('id', 1)
+      }
+    }
+    trackView()
+
+    // Присоединяемся к Presence каналу для отслеживания онлайн
+    const uniqueId = Math.random().toString(36).substring(7)
+    const presenceChannel = supabase.channel('stream_viewers')
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        // Синхронизация - ничего не делаем на клиенте
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ id: uniqueId })
+        }
+      })
+
+    return () => {
+      supabase.removeChannel(presenceChannel)
+    }
+  }, [])
+
   // Сохранение UTM из URL и запись клика в БД
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
