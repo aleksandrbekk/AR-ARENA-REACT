@@ -131,7 +131,7 @@ export function useAuth(): UseAuthReturn {
 
         // Инициализируем Telegram WebApp
         tg.ready()
-        tg.expand()
+        // expand() вызывается в App.tsx только для мобильных устройств
 
         // Получаем данные пользователя
         const user = tg.initDataUnsafe?.user

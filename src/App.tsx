@@ -25,15 +25,22 @@ function App() {
     const tg = window.Telegram?.WebApp
     if (tg) {
       tg.ready()
-      tg.expand()
-      // Проверяем что метод существует и поддерживается
-      if (typeof tg.requestFullscreen === 'function') {
-        try {
-          tg.requestFullscreen()
-        } catch (e) {
-          console.warn('requestFullscreen not supported:', e)
+
+      // Fullscreen только на мобильных устройствах
+      const platform = tg.platform
+      const isMobile = platform === 'android' || platform === 'ios'
+
+      if (isMobile) {
+        tg.expand()
+        if (typeof tg.requestFullscreen === 'function') {
+          try {
+            tg.requestFullscreen()
+          } catch (e) {
+            console.warn('requestFullscreen not supported:', e)
+          }
         }
       }
+
       tg.setHeaderColor('#0a0a0a')
     }
   }, [])
