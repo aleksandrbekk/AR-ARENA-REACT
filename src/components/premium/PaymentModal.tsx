@@ -52,12 +52,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         'private': 'PERIOD_YEAR'      // 12 месяцев
     }
 
-    // Цены в USD для крипто-оплаты
+    // Цены в USD для крипто-оплаты (продакшн)
     const TARIFF_USD_PRICES: Record<string, number> = {
-        'classic': 3,     // ТЕСТ (прод: 50, минимум 0xProcessing = $3)
-        'gold': 100,      // 3 мес
-        'platinum': 200,  // 6 мес
-        'private': 400    // 12 мес
+        'classic': 50,    // 1 мес
+        'gold': 125,      // 3 мес
+        'platinum': 225,  // 6 мес
+        'private': 445    // 12 мес
     }
 
     // Helper to format price
