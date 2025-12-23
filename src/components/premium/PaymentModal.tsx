@@ -123,9 +123,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const [cryptoLoading, setCryptoLoading] = useState(false)
 
     // Цены в USD для крипто-оплаты (круглые суммы)
-    // ТЕСТ: classic = $2
+    // ТЕСТ: classic = $3 (минимум 0xProcessing)
     const TARIFF_USD_PRICES: Record<string, number> = {
-        'classic': 2,     // ТЕСТ (прод: 50)
+        'classic': 3,     // ТЕСТ (прод: 50, минимум 0xProcessing = $3)
         'trader': 100,    // 3 мес
         'platinum': 200,  // 6 мес
         'private': 400    // 12 мес

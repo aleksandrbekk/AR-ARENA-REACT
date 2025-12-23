@@ -55,25 +55,35 @@ export default async function handler(req, res) {
     });
 
     // Создаём платёж через 0xProcessing
-    const formData = new URLSearchParams();
-    formData.append('AmountUSD', amountUSD.toString());
     // Сеть указывается в формате "USDT (TRC20)", "USDT (BEP20)", "USDT (TON)"
-    // Если не указана - дефолт TRC20 (дешёвые комиссии)
-    formData.append('Currency', currency || 'USDT (TRC20)');
-    formData.append('Email', finalEmail);
-    formData.append('ClientId', clientId);
-    formData.append('MerchantId', MERCHANT_ID);
-    formData.append('BillingId', billingId);
-    formData.append('SuccessUrl', 'https://ararena.pro/payment-success');
-    formData.append('CancelUrl', 'https://ararena.pro/pricing');
-    formData.append('ReturnUrl', 'true'); // Вернуть URL вместо редиректа
+    const finalCurrency = currency || 'USDT (TRC20)';
+
+    // Формируем body вручную с правильным URL-encoding
+    // (URLSearchParams кодирует пробел как +, а 0xProcessing требует %20)
+    const params = {
+      AmountUSD: amountUSD.toString(),
+      Currency: finalCurrency,
+      Email: finalEmail,
+      ClientId: clientId,
+      MerchantId: MERCHANT_ID,
+      BillingId: billingId,
+      SuccessUrl: 'https://ararena.pro/payment-success',
+      CancelUrl: 'https://ararena.pro/pricing',
+      ReturnUrl: 'true'
+    };
+
+    const body = Object.entries(params)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&');
+
+    console.log('[0xProcessing] Request body:', body);
 
     const response = await fetch(OXPROCESSING_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: formData.toString()
+      body
     });
 
     const data = await response.json();
