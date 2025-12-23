@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { PaymentModal } from '../components/premium/PaymentModal'
+import { supabase } from '../lib/supabase'
 
 // ============ СТИЛИ ДЛЯ AURORA ============
 const auroraStyles = `
@@ -443,6 +444,29 @@ export function PricingPage() {
   // Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedTariffForPayment, setSelectedTariffForPayment] = useState<Tariff | null>(null)
+
+  // Регистрация пользователя при открытии страницы
+  useEffect(() => {
+    const registerUser = async () => {
+      try {
+        // @ts-ignore
+        const tg = window.Telegram?.WebApp
+        const user = tg?.initDataUnsafe?.user
+
+        if (user?.id) {
+          // Вызываем RPC которая создаёт юзера если его нет
+          await supabase.rpc('get_bull_game_state', {
+            p_telegram_id: user.id.toString()
+          })
+          console.log('[PricingPage] User registered:', user.id)
+        }
+      } catch (err) {
+        console.warn('[PricingPage] User registration error (non-critical):', err)
+      }
+    }
+
+    registerUser()
+  }, [])
 
   const handleBuyClick = (tariff: Tariff) => {
     setSelectedTariffForPayment(tariff)
