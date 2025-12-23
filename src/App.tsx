@@ -19,6 +19,7 @@ import { TariffsPage } from './pages/TariffsPage'
 import { PricingPage } from './pages/PricingPage'
 import { PricingPage2 } from './pages/PricingPage2'
 import { PricingPageGate } from './pages/PricingPageGate'
+import { StreamPage } from './pages/StreamPage'
 
 function App() {
   useEffect(() => {
@@ -66,6 +67,8 @@ function App() {
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/pricing2" element={<PricingPage2 />} />
             <Route path="/pricing-gate" element={<PricingPageGate />} />
+            <Route path="/stream" element={<StreamPage />} />
+            <Route path="/live" element={<StreamPage />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>
