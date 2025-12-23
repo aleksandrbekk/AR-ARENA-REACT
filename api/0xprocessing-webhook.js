@@ -381,7 +381,6 @@ export default async function handler(req, res) {
       if (chatLink) {
         buttons.push([{ text: '💬 Чат Premium', url: chatLink }]);
       }
-      buttons.push([{ text: '🎮 Открыть AR ARENA', web_app: { url: 'https://ararena.pro' } }]);
 
       const replyMarkup = { inline_keyboard: buttons };
 
