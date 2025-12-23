@@ -14,14 +14,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const BOT_TOKEN = '8265126337:AAHBKYlU6fQA09nkJwsMaBQtP16CXSq1Cnc';
 
 // Маппинг суммы USD на период подписки
-// ТЕСТОВЫЕ ЦЕНЫ: $50=Classic, $60=Gold, $70=Platinum, $80=Private
+// ПРОДАКШН ЦЕНЫ (крипто)
 const AMOUNT_TO_PERIOD = [
-  // Тестовые суммы (USD)
-  { min: 1, max: 5, days: 30, tariff: 'test', name: 'TEST' },             // $3 тест
-  { min: 48, max: 52, days: 30, tariff: 'classic', name: 'CLASSIC' },     // $50
-  { min: 58, max: 62, days: 90, tariff: 'gold', name: 'GOLD' },           // $60
-  { min: 68, max: 72, days: 180, tariff: 'platinum', name: 'PLATINUM' },  // $70
-  { min: 78, max: 82, days: 365, tariff: 'private', name: 'PRIVATE' }     // $80
+  { min: 48, max: 52, days: 30, tariff: 'classic', name: 'CLASSIC' },       // $50
+  { min: 120, max: 130, days: 90, tariff: 'gold', name: 'GOLD' },           // $125
+  { min: 220, max: 230, days: 180, tariff: 'platinum', name: 'PLATINUM' },  // $225
+  { min: 440, max: 450, days: 365, tariff: 'private', name: 'PRIVATE' }     // $445
 ];
 
 // Supabase клиент
