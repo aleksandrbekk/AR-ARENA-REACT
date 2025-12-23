@@ -15,71 +15,33 @@ interface Message {
 // Админы трансляции
 const STREAM_ADMINS = [190202791, 288542643, 288475216]
 
-// Тип для Telegram Login Widget
-interface TelegramLoginUser {
-  id: number
-  first_name: string
-  last_name?: string
-  username?: string
-  photo_url?: string
-  auth_date: number
-  hash: string
-}
-
 export function StreamChat() {
   const { telegramUser } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [pinnedMessage, setPinnedMessage] = useState<Message | null>(null)
-  const [webUser, setWebUser] = useState<TelegramLoginUser | null>(null)
+  const [guestName, setGuestName] = useState('')
+  const [isNameSet, setIsNameSet] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
-  const loginButtonRef = useRef<HTMLDivElement>(null)
 
-  // Загрузка сохранённого пользователя из localStorage
+  // Загрузка имени гостя из localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('telegram_web_user')
+    const saved = localStorage.getItem('stream_guest_name')
     if (saved) {
-      try {
-        setWebUser(JSON.parse(saved))
-      } catch {
-        localStorage.removeItem('telegram_web_user')
-      }
+      setGuestName(saved)
+      setIsNameSet(true)
     }
   }, [])
 
-  // Telegram Login Widget callback
-  useEffect(() => {
-    (window as unknown as { onTelegramAuth: (user: TelegramLoginUser) => void }).onTelegramAuth = (user: TelegramLoginUser) => {
-      setWebUser(user)
-      localStorage.setItem('telegram_web_user', JSON.stringify(user))
-    }
-  }, [])
-
-  // Загрузка Telegram Login Widget скрипта
-  useEffect(() => {
-    if (!loginButtonRef.current || webUser || window.Telegram?.WebApp?.initDataUnsafe?.user) return
-
-    const script = document.createElement('script')
-    script.src = 'https://telegram.org/js/telegram-widget.js?22'
-    script.setAttribute('data-telegram-login', 'ARARENA_BOT')
-    script.setAttribute('data-size', 'medium')
-    script.setAttribute('data-radius', '10')
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)')
-    script.setAttribute('data-request-access', 'write')
-    script.async = true
-
-    loginButtonRef.current.innerHTML = ''
-    loginButtonRef.current.appendChild(script)
-  }, [webUser])
-
-  // Текущий пользователь (из WebApp или из Web Login)
-  const currentUser = window.Telegram?.WebApp?.initDataUnsafe?.user || webUser
+  // Текущий пользователь (из Telegram WebApp или гость)
+  const telegramWebUser = window.Telegram?.WebApp?.initDataUnsafe?.user
+  const currentUser = telegramWebUser || (isNameSet ? { id: null, first_name: guestName, username: null } : null)
   const canWrite = !!currentUser
 
-  // Проверка админа
-  const isAdmin = canWrite && currentUser && STREAM_ADMINS.includes(currentUser.id)
+  // Проверка админа (только для Telegram пользователей)
+  const isAdmin = telegramWebUser && STREAM_ADMINS.includes(telegramWebUser.id)
   const isMessageAdmin = (msg: Message) => msg.telegram_id && STREAM_ADMINS.includes(msg.telegram_id)
 
   // Загрузка сообщений
@@ -372,21 +334,36 @@ export function StreamChat() {
             </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 py-2">
-            <p className="text-white/50 text-sm">Войдите чтобы писать в чат</p>
-            <div ref={loginButtonRef} className="flex justify-center" />
-            {/* Fallback кнопка если виджет не загрузился */}
-            <a
-              href="https://t.me/ARARENA_BOT?start=chat_login"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#2AABEE] hover:bg-[#229ED9] text-white font-medium rounded-xl transition-colors"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
-              </svg>
-              Войти через Telegram
-            </a>
+          <div className="flex flex-col gap-3 py-1">
+            <p className="text-white/50 text-sm text-center">Введите имя чтобы писать в чат</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && guestName.trim()) {
+                    localStorage.setItem('stream_guest_name', guestName.trim())
+                    setIsNameSet(true)
+                  }
+                }}
+                placeholder="Ваше имя..."
+                className="flex-1 px-4 py-2.5 bg-zinc-800 border border-white/10 rounded-xl text-white placeholder-white/40 text-sm focus:outline-none focus:border-yellow-500/30"
+                maxLength={30}
+              />
+              <button
+                onClick={() => {
+                  if (guestName.trim()) {
+                    localStorage.setItem('stream_guest_name', guestName.trim())
+                    setIsNameSet(true)
+                  }
+                }}
+                disabled={!guestName.trim()}
+                className="px-4 py-2.5 bg-[#FFD700] text-black font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform"
+              >
+                Войти
+              </button>
+            </div>
           </div>
         )}
       </div>
