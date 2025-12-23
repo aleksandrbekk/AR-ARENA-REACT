@@ -27,7 +27,8 @@ export default async function handler(req, res) {
       amountUSD,
       currency, // Опционально - если не указан, 0xProcessing покажет выбор сети
       tariff,
-      periodicity
+      periodicity,
+      streamUtmSource
     } = req.body;
 
     // Валидация
@@ -44,7 +45,10 @@ export default async function handler(req, res) {
     const finalEmail = email || `${clientId}@premium.ararena.pro`;
 
     // BillingId - уникальный ID платежа (для отслеживания)
-    const billingId = `premium_${tariff}_${clientId}_${Date.now()}`;
+    // Формат: premium_tariff_clientId_timestamp_streamUtm (если есть)
+    const billingId = streamUtmSource
+      ? `premium_${tariff}_${clientId}_${Date.now()}_stream_${streamUtmSource}`
+      : `premium_${tariff}_${clientId}_${Date.now()}`;
 
     console.log('[0xProcessing] Creating payment:', {
       clientId,

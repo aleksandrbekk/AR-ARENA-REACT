@@ -148,6 +148,46 @@ async function trackUtmConversion(telegramId) {
   }
 }
 
+// Трекинг конверсии для stream UTM ссылок (извлекает из BillingId)
+async function trackStreamConversion(billingId) {
+  if (!billingId) return;
+
+  try {
+    // BillingId формат: premium_tariff_clientId_timestamp_stream_SLUG
+    const streamMatch = billingId.match(/_stream_([a-zA-Z0-9_-]+)$/);
+    if (!streamMatch) {
+      log('ℹ️ No stream_utm in BillingId');
+      return;
+    }
+
+    const streamUtmSlug = streamMatch[1];
+    log(`📊 Found stream_utm in BillingId: ${streamUtmSlug}`);
+
+    // Увеличиваем conversions в utm_tool_links
+    const { data: link } = await supabase
+      .from('utm_tool_links')
+      .select('id, conversions')
+      .eq('slug', streamUtmSlug)
+      .single();
+
+    if (link) {
+      await supabase
+        .from('utm_tool_links')
+        .update({
+          conversions: (link.conversions || 0) + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', link.id);
+
+      log(`✅ Stream conversion tracked for slug: ${streamUtmSlug}`);
+    } else {
+      log(`⚠️ Stream UTM link not found: ${streamUtmSlug}`);
+    }
+  } catch (err) {
+    log('⚠️ trackStreamConversion error (non-critical)', { error: err.message });
+  }
+}
+
 // Создать invite-ссылку напрямую через Telegram API
 async function createDirectInviteLink(chatId) {
   try {
@@ -483,6 +523,9 @@ export default async function handler(req, res) {
     if (finalTelegramId) {
       await trackUtmConversion(finalTelegramId);
     }
+
+    // Трекинг конверсии для stream UTM ссылок
+    await trackStreamConversion(BillingId);
 
     // ============================================
     // 7. УСПЕШНЫЙ ОТВЕТ (200 OK без body для 0xProcessing)
