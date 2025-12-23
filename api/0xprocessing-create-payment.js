@@ -3,7 +3,7 @@
 // 2025-12-23
 
 const OXPROCESSING_URL = 'https://app.0xprocessing.com/Payment';
-const MERCHANT_ID = process.env.OXPROCESSING_MERCHANT_ID;
+const MERCHANT_ID = process.env.OXPROCESSING_MERCHANT_ID || '0xMR3389551';
 
 export default async function handler(req, res) {
   // CORS headers
