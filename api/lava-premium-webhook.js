@@ -490,6 +490,29 @@ export default async function handler(req, res) {
     log(`👤 Telegram ID: ${telegramId || 'N/A'}, Username: ${extractedUsername || 'N/A'}`);
 
     // ============================================
+    // ПРОВЕРКА НА ДУБЛИКАТ (по времени последнего платежа)
+    // ============================================
+    // Если тот же клиент платил в последние 5 минут — это retry, игнорируем
+    if (telegramId) {
+      const { data: recentClient } = await supabase
+        .from('premium_clients')
+        .select('last_payment_at')
+        .eq('telegram_id', parseInt(telegramId))
+        .single();
+
+      if (recentClient?.last_payment_at) {
+        const lastPayment = new Date(recentClient.last_payment_at);
+        const now = new Date();
+        const minutesSinceLastPayment = (now - lastPayment) / 1000 / 60;
+
+        if (minutesSinceLastPayment < 5) {
+          log(`⚠️ Duplicate payment detected: last payment was ${minutesSinceLastPayment.toFixed(1)} min ago - ignoring`);
+          return res.status(200).json({ message: 'Payment already processed (duplicate)' });
+        }
+      }
+    }
+
+    // ============================================
     // 4. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ (по periodicity или amount)
     // ============================================
     const periodicity = payload.periodicity || payload.offer?.periodicity;
