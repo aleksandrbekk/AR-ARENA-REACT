@@ -1,4 +1,5 @@
 import { StreamChat } from '../components/StreamChat'
+import { TapGame } from '../components/TapGame'
 
 // Admin stream page with forced admin mode
 export function StreamAdminPage() {
@@ -56,6 +57,9 @@ export function StreamAdminPage() {
           {/* Glow effect */}
           <div className="absolute -inset-2 bg-gradient-to-r from-yellow-500/20 via-red-500/10 to-yellow-500/20 rounded-3xl blur-2xl -z-10 opacity-60 group-hover:opacity-80 transition-opacity" />
         </div>
+
+        {/* Admin: Tap Game Control */}
+        <TapGame userName="" isAdmin={true} />
 
         {/* Live Chat */}
         <div className="w-full overflow-hidden">

@@ -1,8 +1,34 @@
+import { useState, useEffect } from 'react'
 import { StreamChat } from '../components/StreamChat'
+import { TapGame } from '../components/TapGame'
 
 export function StreamPage() {
-  // YouTube Video ID
   const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
+  const [guestName, setGuestName] = useState('')
+
+  // Загрузка имени из localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('stream_guest_name')
+    if (saved) setGuestName(saved)
+
+    // Слушаем изменения localStorage
+    const handleStorage = () => {
+      const name = localStorage.getItem('stream_guest_name')
+      if (name) setGuestName(name)
+    }
+    window.addEventListener('storage', handleStorage)
+
+    // Проверяем каждую секунду (для той же вкладки)
+    const interval = setInterval(() => {
+      const name = localStorage.getItem('stream_guest_name')
+      if (name && name !== guestName) setGuestName(name)
+    }, 1000)
+
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      clearInterval(interval)
+    }
+  }, [guestName])
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -56,6 +82,9 @@ export function StreamPage() {
           {/* Glow effect */}
           <div className="absolute -inset-2 bg-gradient-to-r from-yellow-500/20 via-red-500/10 to-yellow-500/20 rounded-3xl blur-2xl -z-10 opacity-60 group-hover:opacity-80 transition-opacity" />
         </div>
+
+        {/* Tap Game */}
+        <TapGame userName={guestName} />
 
         {/* Live Chat */}
         <div className="w-full overflow-hidden">
