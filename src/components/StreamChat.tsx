@@ -13,7 +13,7 @@ interface Message {
 }
 
 // Админы трансляции
-const STREAM_ADMINS = [190202791, 288542643]
+const STREAM_ADMINS = [190202791, 288542643, 288475216]
 
 export function StreamChat() {
   const { telegramUser } = useAuth()
