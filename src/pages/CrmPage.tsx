@@ -66,7 +66,7 @@ export function CrmPage() {
   const [newClient, setNewClient] = useState({
     telegram_id: '',
     username: '',
-    tariff: '1month',
+    tariff: 'classic',
     amount: '',
     source: 'manual'
   })
@@ -443,11 +443,10 @@ export function CrmPage() {
     try {
       // Определяем количество дней по тарифу
       const daysMap: Record<string, number> = {
-        '1month': 30,
-        '2months': 60,
-        '3months': 90,
-        '6months': 180,
-        '12months': 365
+        'classic': 30,
+        'gold': 90,
+        'platinum': 180,
+        'private': 365
       }
       const days = daysMap[newClient.tariff] || 30
 
@@ -479,7 +478,7 @@ export function CrmPage() {
 
       showToast({ variant: 'success', title: 'Клиент добавлен' })
       setShowAddModal(false)
-      setNewClient({ telegram_id: '', username: '', tariff: '1мес', amount: '', source: 'manual' })
+      setNewClient({ telegram_id: '', username: '', tariff: 'classic', amount: '', source: 'manual' })
       await loadData()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка добавления клиента'
@@ -499,7 +498,8 @@ export function CrmPage() {
   const getSourceLabel = (source: string) => {
     const labels: Record<string, string> = {
       'manual': 'Вручную',
-      'wheel': 'Рулетка',
+      'lava.top': 'Lava.top',
+      '0xprocessing': 'Крипта',
       'direct': 'Напрямую',
       'referral': 'Реферал'
     }
@@ -509,13 +509,13 @@ export function CrmPage() {
   // Получить русское название тарифа
   const getTariffLabel = (tariff: string) => {
     const labels: Record<string, string> = {
-      '1month': '1 месяц',
-      '2months': '2 месяца',
-      '3months': '3 месяца',
-      '6months': '6 месяцев',
-      '12months': '12 месяцев'
+      'test': 'ТЕСТ',
+      'classic': 'CLASSIC',
+      'gold': 'GOLD',
+      'platinum': 'PLATINUM',
+      'private': 'PRIVATE'
     }
-    return labels[tariff] || tariff
+    return labels[tariff] || tariff.toUpperCase()
   }
 
   // Доступ запрещён
@@ -908,11 +908,10 @@ export function CrmPage() {
                     onChange={(e) => setNewClient({ ...newClient, tariff: e.target.value })}
                     className="w-full px-4 py-2 bg-zinc-800 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/30"
                   >
-                    <option value="1month">1 месяц</option>
-                    <option value="2months">2 месяца</option>
-                    <option value="3months">3 месяца</option>
-                    <option value="6months">6 месяцев</option>
-                    <option value="12months">12 месяцев</option>
+                    <option value="classic">CLASSIC (1 мес)</option>
+                    <option value="gold">GOLD (3 мес)</option>
+                    <option value="platinum">PLATINUM (6 мес)</option>
+                    <option value="private">PRIVATE (12 мес)</option>
                   </select>
                 </div>
 
@@ -935,7 +934,8 @@ export function CrmPage() {
                     className="w-full px-4 py-2 bg-zinc-800 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/30"
                   >
                     <option value="manual">Вручную</option>
-                    <option value="wheel">Рулетка</option>
+                    <option value="lava.top">Lava.top (карта)</option>
+                    <option value="0xprocessing">Крипта (0xProcessing)</option>
                     <option value="direct">Напрямую</option>
                     <option value="referral">Реферал</option>
                   </select>

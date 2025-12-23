@@ -15,11 +15,11 @@ const BOT_TOKEN = '8265126337:AAHBKYlU6fQA09nkJwsMaBQtP16CXSq1Cnc';
 
 // Маппинг суммы USD на период подписки (круглые суммы)
 const AMOUNT_TO_PERIOD = [
-  { min: 1, max: 5, days: 30, tariff: 'test', name: 'TEST' },             // $2 тест
+  { min: 1, max: 5, days: 30, tariff: 'test', name: 'TEST' },             // $3 тест
   { min: 45, max: 55, days: 30, tariff: 'classic', name: 'CLASSIC' },     // $50
-  { min: 95, max: 105, days: 90, tariff: 'trader', name: 'TRADER' },      // $100
+  { min: 95, max: 105, days: 90, tariff: 'gold', name: 'GOLD' },          // $100
   { min: 195, max: 205, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // $200
-  { min: 395, max: 405, days: 365, tariff: 'private', name: 'PRIVATE' }   // $400
+  { min: 395, max: 410, days: 365, tariff: 'private', name: 'PRIVATE' }   // $400
 ];
 
 // Supabase клиент
@@ -327,10 +327,12 @@ export default async function handler(req, res) {
       const welcomeText = isNewClient
         ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
           `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
-          `👇 Нажмите кнопки ниже для доступа:`
+          `👇 Нажмите кнопки ниже для доступа:\n\n` +
+          `📞 Служба заботы: @Andrey_cryptoinvestor`
         : `✅ <b>Подписка продлена!</b>\n\n` +
           `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
-          `👇 Нажмите кнопки ниже для доступа:`;
+          `👇 Нажмите кнопки ниже для доступа:\n\n` +
+          `📞 Служба заботы: @Andrey_cryptoinvestor`;
 
       // Формируем кнопки
       const buttons = [];

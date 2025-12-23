@@ -8,5 +8,11 @@
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/auto-kick-expired",
+      "schedule": "0 */6 * * *"
+    }
   ]
 }

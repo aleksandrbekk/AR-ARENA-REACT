@@ -21,7 +21,7 @@ const BOT_TOKEN = '8265126337:AAHBKYlU6fQA09nkJwsMaBQtP16CXSq1Cnc'; // AR ARENA 
 // Маппинг periodicity на период подписки
 const PERIODICITY_TO_PERIOD = {
   'MONTHLY': { days: 30, tariff: 'classic', name: 'CLASSIC' },
-  'PERIOD_90_DAYS': { days: 90, tariff: 'trader', name: 'TRADER' },
+  'PERIOD_90_DAYS': { days: 90, tariff: 'gold', name: 'GOLD' },
   'PERIOD_180_DAYS': { days: 180, tariff: 'platinum', name: 'PLATINUM' },
   'PERIOD_YEAR': { days: 365, tariff: 'private', name: 'PRIVATE' }
 };
@@ -29,10 +29,10 @@ const PERIODICITY_TO_PERIOD = {
 // Fallback: маппинг суммы на период (в RUB)
 const AMOUNT_TO_PERIOD = [
   { min: 40, max: 60, days: 30, tariff: 'test', name: 'TEST' }, // Тестовый 50 RUB
-  { min: 3000, max: 4000, days: 30, tariff: 'classic', name: 'CLASSIC' },
-  { min: 9000, max: 10000, days: 90, tariff: 'trader', name: 'TRADER' },
+  { min: 3000, max: 5000, days: 30, tariff: 'classic', name: 'CLASSIC' },
+  { min: 9000, max: 11000, days: 90, tariff: 'gold', name: 'GOLD' },
   { min: 17000, max: 19000, days: 180, tariff: 'platinum', name: 'PLATINUM' },
-  { min: 32000, max: 35000, days: 365, tariff: 'private', name: 'PRIVATE' }
+  { min: 32000, max: 36000, days: 365, tariff: 'private', name: 'PRIVATE' }
 ];
 
 // Supabase клиент
@@ -492,10 +492,12 @@ export default async function handler(req, res) {
       const welcomeText = isNewClient
         ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
           `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
-          `👇 Нажмите кнопки ниже для доступа:`
+          `👇 Нажмите кнопки ниже для доступа:\n\n` +
+          `📞 Служба заботы: @Andrey_cryptoinvestor`
         : `✅ <b>Подписка продлена!</b>\n\n` +
           `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
-          `👇 Нажмите кнопки ниже для доступа:`;
+          `👇 Нажмите кнопки ниже для доступа:\n\n` +
+          `📞 Служба заботы: @Andrey_cryptoinvestor`;
 
       // Формируем кнопки
       const buttons = [];

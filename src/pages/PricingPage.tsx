@@ -66,16 +66,16 @@ const tariffs: Tariff[] = [
     buttonColor: '#9ca3af' // gray-400
   },
   {
-    id: 'trader', // Rename from gold
-    name: 'TRADER',
+    id: 'gold',
+    name: 'GOLD',
     duration: '3 месяца',
     durationShort: '/3 мес',
     price: 9900,
     oldPrice: 12000,
     discount: null,
     badge: null,
-    cardImage: '/cards/gold.png', // Keep or update? Prompt says "Update images if existent (GOLD -> TRADER)". I will just use existing or empty.
-    auroraColors: ['#10b981', '#34d399'], // Emerald Green
+    cardImage: '/cards/gold.png',
+    auroraColors: ['#FFD700', '#FFA500'], // Gold
     auroraOpacity: 0.5,
     auroraBlur: 20,
     auroraSpeed: 8,
@@ -90,7 +90,7 @@ const tariffs: Tariff[] = [
       'Подсветки сделок от команды'
     ],
     buttonStyle: 'outline',
-    buttonColor: '#10b981' // emerald-500
+    buttonColor: '#FFD700' // gold
   },
   {
     id: 'platinum',
@@ -150,8 +150,8 @@ const tariffs: Tariff[] = [
 
 // Названия предыдущих тарифов для каскада
 const previousTariffMap: Record<string, string> = {
-  trader: 'CLASSIC',
-  platinum: 'TRADER',
+  gold: 'CLASSIC',
+  platinum: 'GOLD',
   private: 'PLATINUM'
 }
 
