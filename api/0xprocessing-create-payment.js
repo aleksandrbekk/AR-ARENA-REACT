@@ -57,8 +57,8 @@ export default async function handler(req, res) {
     // Создаём платёж через 0xProcessing
     const formData = new URLSearchParams();
     formData.append('AmountUSD', amountUSD.toString());
-    // TRX сеть - дешёвая комиссия
-    formData.append('Currency', currency || 'TRX');
+    // USDT по умолчанию (0xProcessing покажет выбор сети)
+    formData.append('Currency', currency || 'USDT');
     formData.append('Email', finalEmail);
     formData.append('ClientId', clientId);
     formData.append('MerchantId', MERCHANT_ID);
