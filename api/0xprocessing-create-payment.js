@@ -57,11 +57,9 @@ export default async function handler(req, res) {
     // Создаём платёж через 0xProcessing
     const formData = new URLSearchParams();
     formData.append('AmountUSD', amountUSD.toString());
-    // НЕ передаём Currency - 0xProcessing должен показать выбор сети
-    // Если currency передан явно (например "USDT (TRC20)") - используем его
-    if (currency) {
-      formData.append('Currency', currency);
-    }
+    // Сеть указывается в формате "USDT (TRC20)", "USDT (BEP20)", "USDT (TON)"
+    // Если не указана - дефолт TRC20 (дешёвые комиссии)
+    formData.append('Currency', currency || 'USDT (TRC20)');
     formData.append('Email', finalEmail);
     formData.append('ClientId', clientId);
     formData.append('MerchantId', MERCHANT_ID);
