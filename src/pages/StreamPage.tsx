@@ -1,28 +1,8 @@
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { StreamChat } from '../components/StreamChat'
 
 export function StreamPage() {
-  const [searchParams] = useSearchParams()
-  const [source, setSource] = useState('organic')
-
   // YouTube Video ID
   const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
-
-  useEffect(() => {
-    // Ловим UTM source и сохраняем
-    const utmSource = searchParams.get('utm_source')
-    if (utmSource) {
-      localStorage.setItem('traffic_source', utmSource)
-      setSource(utmSource)
-    } else {
-      const savedSource = localStorage.getItem('traffic_source')
-      setSource(savedSource || 'organic')
-    }
-  }, [searchParams])
-
-  // Динамическая ссылка на бота с UTM
-  const botLink = `https://t.me/ARARENA_BOT?start=premium_${source}`
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -62,21 +42,6 @@ export function StreamPage() {
 
           {/* Glow effect */}
           <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500/20 via-red-500/20 to-yellow-500/20 rounded-2xl blur-xl -z-10" />
-        </div>
-
-        {/* CTA Button */}
-        <div className="mb-8">
-          <a
-            href={botLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full py-4 px-6 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold text-lg rounded-xl text-center active:scale-[0.98] transition-transform shadow-lg shadow-yellow-500/20"
-          >
-            Получить Premium доступ
-          </a>
-          <p className="text-center text-white/40 text-sm mt-3">
-            Эксклюзивные сигналы, закрытый чат, персональное сопровождение
-          </p>
         </div>
 
         {/* Live Chat */}
