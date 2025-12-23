@@ -2,7 +2,7 @@ import { Home, ShoppingBag, User, Shield, Crown } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
-const ADMIN_IDS = [190202791, 144828618]
+const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
 
 export function Navbar() {
   const navigate = useNavigate()
