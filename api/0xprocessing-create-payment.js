@@ -57,8 +57,11 @@ export default async function handler(req, res) {
     // Создаём платёж через 0xProcessing
     const formData = new URLSearchParams();
     formData.append('AmountUSD', amountUSD.toString());
-    // USDT по умолчанию (0xProcessing покажет выбор сети)
-    formData.append('Currency', currency || 'USDT');
+    // НЕ передаём Currency - 0xProcessing должен показать выбор сети
+    // Если currency передан явно (например "USDT (TRC20)") - используем его
+    if (currency) {
+      formData.append('Currency', currency);
+    }
     formData.append('Email', finalEmail);
     formData.append('ClientId', clientId);
     formData.append('MerchantId', MERCHANT_ID);
