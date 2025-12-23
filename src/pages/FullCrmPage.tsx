@@ -22,11 +22,18 @@ interface PremiumClient {
   id: string
   telegram_id: number
   username: string | null
+  first_name: string | null
   plan: string
+  started_at: string
   expires_at: string
   in_channel: boolean
   in_chat: boolean
   total_paid_usd: number
+  payments_count: number
+  last_payment_at: string | null
+  last_payment_method: string | null
+  source: string | null
+  tags: string[]
 }
 
 type TabType = 'users' | 'premium' | 'broadcast'
@@ -202,8 +209,25 @@ export function FullCrmPage() {
 
   // ============ ФОРМАТЫ ============
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '-'
+  const formatFullDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'
+
+  const getDaysRemaining = (expiresAt: string) => {
+    const now = new Date()
+    const expires = new Date(expiresAt)
+    const diff = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return diff
+  }
+
+  const getDaysColor = (days: number) => {
+    if (days <= 0) return 'text-red-400'
+    if (days <= 3) return 'text-red-400'
+    if (days <= 7) return 'text-orange-400'
+    if (days <= 14) return 'text-yellow-400'
+    return 'text-green-400'
+  }
 
   const getInitial = (user: User) => (user.first_name || user.username || '?')[0]?.toUpperCase()
+  const getPremiumInitial = (client: PremiumClient) => (client.first_name || client.username || '?')[0]?.toUpperCase()
 
   // ============ TELEGRAM BACK ============
   useEffect(() => {
@@ -463,34 +487,97 @@ export function FullCrmPage() {
 
           {/* ============ PREMIUM ============ */}
           {activeTab === 'premium' && (
-            <div className="bg-zinc-900 rounded-2xl overflow-hidden">
+            <div className="space-y-3">
               {premiumClients.length === 0 ? (
-                <div className="py-12 text-center text-white/30">Нет Premium клиентов</div>
+                <div className="bg-zinc-900 rounded-2xl py-12 text-center text-white/30">Нет Premium клиентов</div>
               ) : (
-                premiumClients.map((client, i) => {
-                  const isExpired = new Date(client.expires_at) < new Date()
-                  const isExpiring = !isExpired && new Date(client.expires_at) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                premiumClients.map((client) => {
+                  const daysRemaining = getDaysRemaining(client.expires_at)
+                  const isExpired = daysRemaining <= 0
 
                   return (
                     <div
                       key={client.id}
-                      className={`px-4 py-3 ${i !== 0 ? 'border-t border-white/5' : ''} ${isExpired ? 'opacity-50' : ''}`}
+                      className={`bg-zinc-900 rounded-2xl p-4 ${isExpired ? 'opacity-60' : ''}`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium">
-                          {client.username ? `@${client.username}` : client.telegram_id}
-                        </span>
-                        <span className="text-[#FFD700] text-sm font-medium uppercase">
+                      {/* Шапка: имя + план */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white/60 font-medium">
+                            {getPremiumInitial(client)}
+                          </div>
+                          <div>
+                            <div className="font-medium">
+                              {client.username ? `@${client.username}` : client.first_name || client.telegram_id}
+                            </div>
+                            <div className="text-xs text-white/40 font-mono">{client.telegram_id}</div>
+                          </div>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-sm font-bold uppercase ${
+                          client.plan === 'private' ? 'bg-purple-500/20 text-purple-400' :
+                          client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
+                          client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                          'bg-zinc-700/50 text-white/70'
+                        }`}>
                           {client.plan || 'N/A'}
-                        </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className={isExpired ? 'text-red-400' : isExpiring ? 'text-orange-400' : 'text-white/40'}>
-                          {isExpired ? 'Истёк' : `до ${formatDate(client.expires_at)}`}
-                        </span>
-                        <span className="text-white/40">
-                          ${client.total_paid_usd || 0}
-                        </span>
+
+                      {/* Основная инфа: дни + дата */}
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="bg-zinc-800/50 rounded-xl p-3">
+                          <div className="text-xs text-white/40 mb-1">Осталось</div>
+                          <div className={`text-xl font-bold ${getDaysColor(daysRemaining)}`}>
+                            {isExpired ? 'Истёк' : `${daysRemaining} дн.`}
+                          </div>
+                        </div>
+                        <div className="bg-zinc-800/50 rounded-xl p-3">
+                          <div className="text-xs text-white/40 mb-1">Истекает</div>
+                          <div className="text-lg font-medium text-white">
+                            {formatFullDate(client.expires_at)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Детали */}
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
+                          <span className="text-white/40">Оплачено</span>
+                          <span className="text-white font-medium">${client.total_paid_usd || 0}</span>
+                        </div>
+                        <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
+                          <span className="text-white/40">Платежей</span>
+                          <span className="text-white font-medium">{client.payments_count || 1}</span>
+                        </div>
+                        <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
+                          <span className="text-white/40">Источник</span>
+                          <span className="text-white font-medium">{client.source || '-'}</span>
+                        </div>
+                        <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
+                          <span className="text-white/40">Начало</span>
+                          <span className="text-white font-medium">{formatDate(client.started_at)}</span>
+                        </div>
+                      </div>
+
+                      {/* Статус канал/чат */}
+                      <div className="flex gap-2 mt-3">
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${
+                          client.in_channel ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-white/30'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_channel ? 'bg-green-400' : 'bg-white/30'}`}/>
+                          Канал
+                        </div>
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${
+                          client.in_chat ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-white/30'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_chat ? 'bg-green-400' : 'bg-white/30'}`}/>
+                          Чат
+                        </div>
+                        {client.last_payment_method && (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-zinc-800 text-white/50">
+                            {client.last_payment_method === 'lava.top' ? '💳' : '🪙'} {client.last_payment_method}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
