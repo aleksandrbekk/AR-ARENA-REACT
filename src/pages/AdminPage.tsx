@@ -26,7 +26,7 @@ export function AdminPage() {
   const [loadingStats, setLoadingStats] = useState(true)
 
   // Проверка admin-only
-  const ADMIN_IDS = [190202791, 144828618]
+  const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
   const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
 
   // Загрузка статистики для дашборда

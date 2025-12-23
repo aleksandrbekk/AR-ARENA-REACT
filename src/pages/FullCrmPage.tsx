@@ -14,10 +14,7 @@ interface User {
   last_name: string | null
   avatar_url: string | null
   balance_ar: number
-  balance_coins: number
   created_at: string
-  updated_at: string | null
-  // Вычисляемые поля
   status: 'new' | 'active' | 'premium' | 'expired'
   premium_expires?: string | null
 }
@@ -27,24 +24,13 @@ interface PremiumClient {
   telegram_id: number
   username: string | null
   plan: string
-  started_at: string
   expires_at: string
   in_channel: boolean
   in_chat: boolean
   total_paid_usd: number
-  payments_count: number
-}
-
-interface Stats {
-  totalUsers: number
-  newUsers7d: number
-  activeUsers30d: number
-  premiumActive: number
-  premiumExpiring7d: number
 }
 
 type TabType = 'users' | 'premium' | 'broadcast'
-type UserFilter = 'all' | 'new' | 'active' | 'premium' | 'no_premium'
 
 // ============ КОНСТАНТЫ ============
 const BOT_TOKEN = '***REMOVED***'
@@ -55,119 +41,67 @@ export function FullCrmPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
 
-  // Состояния
   const [activeTab, setActiveTab] = useState<TabType>('users')
   const [users, setUsers] = useState<User[]>([])
   const [premiumClients, setPremiumClients] = useState<PremiumClient[]>([])
-  const [stats, setStats] = useState<Stats>({
-    totalUsers: 0,
-    newUsers7d: 0,
-    activeUsers30d: 0,
-    premiumActive: 0,
-    premiumExpiring7d: 0
-  })
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<UserFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedUsers, setSelectedUsers] = useState<number[]>([])
   const [broadcastMessage, setBroadcastMessage] = useState('')
   const [sendingBroadcast, setSendingBroadcast] = useState(false)
-  const [broadcastProgress, setBroadcastProgress] = useState({ sent: 0, total: 0, failed: 0 })
+  const [broadcastProgress, setBroadcastProgress] = useState({ sent: 0, total: 0 })
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
-  // Проверка доступа
-  const ADMIN_IDS = [190202791, 144828618]
+  const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
   const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
 
-  // ============ ЗАГРУЗКА ДАННЫХ ============
+  // ============ ЗАГРУЗКА ============
   useEffect(() => {
-    if (isAdmin) {
-      loadData()
-    }
+    if (isAdmin) loadData()
   }, [isAdmin])
 
   const loadData = async () => {
     try {
       setLoading(true)
-
-      // Загружаем всех юзеров
-      const { data: usersData, error: usersError } = await supabase
+      const { data: usersData } = await supabase
         .from('users')
-        .select('id, telegram_id, username, first_name, last_name, avatar_url, balance_ar, balance_coins, created_at, updated_at')
+        .select('id, telegram_id, username, first_name, last_name, avatar_url, balance_ar, created_at')
         .order('created_at', { ascending: false })
 
-      if (usersError) {
-        console.error('Error loading users:', usersError)
-        setUsers([])
-      } else {
-        // Загружаем premium клиентов для определения статуса
-        const { data: premiumData } = await supabase
-          .from('premium_clients')
-          .select('telegram_id, expires_at')
+      const { data: premiumData } = await supabase
+        .from('premium_clients')
+        .select('telegram_id, expires_at')
 
-        const premiumMap = new Map()
-        premiumData?.forEach(p => {
-          premiumMap.set(p.telegram_id, p.expires_at)
-        })
+      const premiumMap = new Map()
+      premiumData?.forEach(p => premiumMap.set(p.telegram_id, p.expires_at))
 
-        // Определяем статус каждого юзера
-        const now = new Date()
-        const usersWithStatus: User[] = (usersData || []).map(user => {
-          const premiumExpires = premiumMap.get(user.telegram_id)
-          let status: User['status'] = 'active'
+      const now = new Date()
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-          if (premiumExpires) {
-            const expiresDate = new Date(premiumExpires)
-            if (expiresDate > now) {
-              status = 'premium'
-            } else {
-              status = 'expired'
-            }
-          }
+      const usersWithStatus: User[] = (usersData || []).map(user => {
+        const premiumExpires = premiumMap.get(user.telegram_id)
+        let status: User['status'] = 'active'
 
-          // Новый юзер - создан за последние 7 дней
-          const createdAt = new Date(user.created_at)
-          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-          if (createdAt > sevenDaysAgo && status !== 'premium') {
-            status = 'new'
-          }
+        if (premiumExpires) {
+          status = new Date(premiumExpires) > now ? 'premium' : 'expired'
+        }
+        if (new Date(user.created_at) > sevenDaysAgo && status !== 'premium') {
+          status = 'new'
+        }
 
-          return {
-            ...user,
-            status,
-            premium_expires: premiumExpires || null
-          }
-        })
+        return { ...user, status, premium_expires: premiumExpires || null }
+      })
 
-        setUsers(usersWithStatus)
+      setUsers(usersWithStatus)
 
-        // Статистика
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-        setStats({
-          totalUsers: usersWithStatus.length,
-          newUsers7d: usersWithStatus.filter(u => new Date(u.created_at) > sevenDaysAgo).length,
-          activeUsers30d: usersWithStatus.filter(u => u.updated_at && new Date(u.updated_at) > thirtyDaysAgo).length,
-          premiumActive: usersWithStatus.filter(u => u.status === 'premium').length,
-          premiumExpiring7d: usersWithStatus.filter(u => {
-            if (u.status !== 'premium' || !u.premium_expires) return false
-            const expires = new Date(u.premium_expires)
-            return expires > now && expires < new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-          }).length
-        })
-      }
-
-      // Загружаем Premium клиентов
       const { data: premiumClientsData } = await supabase
         .from('premium_clients')
         .select('*')
         .order('expires_at', { ascending: true })
 
       setPremiumClients((premiumClientsData || []) as PremiumClient[])
-
     } catch (err) {
-      console.error('Error loading data:', err)
-      showToast({ variant: 'error', title: 'Ошибка загрузки данных' })
+      console.error('Error:', err)
     } finally {
       setLoading(false)
     }
@@ -175,549 +109,368 @@ export function FullCrmPage() {
 
   // ============ ФИЛЬТРАЦИЯ ============
   const filteredUsers = users.filter(user => {
-    // Поиск
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      const matchesSearch =
-        (user.username?.toLowerCase().includes(query)) ||
-        (user.first_name?.toLowerCase().includes(query)) ||
-        (user.last_name?.toLowerCase().includes(query)) ||
-        (user.telegram_id.toString().includes(query))
-      if (!matchesSearch) return false
-    }
-
-    // Фильтр по статусу
-    if (filter === 'all') return true
-    if (filter === 'new') return user.status === 'new'
-    if (filter === 'active') return user.status === 'active'
-    if (filter === 'premium') return user.status === 'premium'
-    if (filter === 'no_premium') return user.status !== 'premium'
-
-    return true
+    if (!searchQuery) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      user.username?.toLowerCase().includes(q) ||
+      user.first_name?.toLowerCase().includes(q) ||
+      user.telegram_id.toString().includes(q)
+    )
   })
 
-  // ============ ОТПРАВКА СООБЩЕНИЙ ============
+  const premiumUsers = users.filter(u => u.status === 'premium')
+  const nonPremiumUsers = users.filter(u => u.status !== 'premium')
+
+  // ============ СООБЩЕНИЯ ============
   const sendMessage = async (telegramId: number, message: string): Promise<boolean> => {
     try {
-      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: telegramId,
-          text: message,
-          parse_mode: 'HTML'
-        })
+        body: JSON.stringify({ chat_id: telegramId, text: message, parse_mode: 'HTML' })
       })
-      const result = await response.json()
-      return result.ok
-    } catch (err) {
-      console.error('Error sending message:', err)
-      return false
-    }
-  }
-
-  const handleSendToUser = async (user: User) => {
-    const message = prompt(`Сообщение для ${user.username || user.first_name || user.telegram_id}:`)
-    if (!message) return
-
-    const success = await sendMessage(user.telegram_id, message)
-    if (success) {
-      showToast({ variant: 'success', title: 'Сообщение отправлено' })
-    } else {
-      showToast({ variant: 'error', title: 'Ошибка отправки', description: 'Возможно пользователь заблокировал бота' })
-    }
+      return (await res.json()).ok
+    } catch { return false }
   }
 
   const handleBroadcast = async () => {
-    if (!broadcastMessage.trim()) {
-      showToast({ variant: 'error', title: 'Введите сообщение' })
-      return
-    }
+    if (!broadcastMessage.trim()) return showToast({ variant: 'error', title: 'Введите сообщение' })
 
     const targets = selectedUsers.length > 0
       ? users.filter(u => selectedUsers.includes(u.telegram_id))
       : filteredUsers
 
-    if (targets.length === 0) {
-      showToast({ variant: 'error', title: 'Нет получателей' })
-      return
-    }
-
-    const confirmed = confirm(`Отправить сообщение ${targets.length} пользователям?`)
-    if (!confirmed) return
+    if (!confirm(`Отправить ${targets.length} пользователям?`)) return
 
     setSendingBroadcast(true)
-    setBroadcastProgress({ sent: 0, total: targets.length, failed: 0 })
+    setBroadcastProgress({ sent: 0, total: targets.length })
 
     let sent = 0
-    let failed = 0
-
     for (const user of targets) {
-      const success = await sendMessage(user.telegram_id, broadcastMessage)
-      if (success) {
-        sent++
-      } else {
-        failed++
-      }
-      setBroadcastProgress({ sent, total: targets.length, failed })
-
-      // Задержка чтобы не упереться в лимиты Telegram API
+      if (await sendMessage(user.telegram_id, broadcastMessage)) sent++
+      setBroadcastProgress({ sent, total: targets.length })
       await new Promise(r => setTimeout(r, 50))
     }
 
     setSendingBroadcast(false)
     setBroadcastMessage('')
     setSelectedUsers([])
-    showToast({
-      variant: 'success',
-      title: 'Рассылка завершена',
-      description: `Отправлено: ${sent}, Ошибок: ${failed}`
-    })
+    showToast({ variant: 'success', title: `Отправлено: ${sent}/${targets.length}` })
   }
 
-  // ============ ВЫБОР ПОЛЬЗОВАТЕЛЕЙ ============
-  const toggleUserSelection = (telegramId: number) => {
-    setSelectedUsers(prev =>
-      prev.includes(telegramId)
-        ? prev.filter(id => id !== telegramId)
-        : [...prev, telegramId]
-    )
+  // ============ ВЫБОР ============
+  const toggleSelect = (id: number) => {
+    setSelectedUsers(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
-  const selectAllFiltered = () => {
-    if (selectedUsers.length === filteredUsers.length) {
-      setSelectedUsers([])
-    } else {
-      setSelectedUsers(filteredUsers.map(u => u.telegram_id))
-    }
+  const selectAll = (list: User[]) => {
+    const ids = list.map(u => u.telegram_id)
+    const allSelected = ids.every(id => selectedUsers.includes(id))
+    setSelectedUsers(allSelected ? [] : ids)
   }
 
-  // ============ ФОРМАТИРОВАНИЕ ============
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })
-  }
+  // ============ ФОРМАТЫ ============
+  const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '-'
 
-  const getStatusBadge = (status: User['status']) => {
-    const badges = {
-      new: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Новый' },
-      active: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Активный' },
-      premium: { bg: 'bg-[#FFD700]/20', text: 'text-[#FFD700]', label: 'Premium' },
-      expired: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Истёк' }
-    }
-    const badge = badges[status]
-    return (
-      <span className={`px-2 py-0.5 rounded text-xs font-medium ${badge.bg} ${badge.text}`}>
-        {badge.label}
-      </span>
-    )
-  }
+  const getInitial = (user: User) => (user.first_name || user.username || '?')[0]?.toUpperCase()
 
-  // ============ TELEGRAM BACK BUTTON ============
+  // ============ TELEGRAM BACK ============
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp
-      const handleBack = () => navigate('/admin')
+      const handleBack = () => selectedUser ? setSelectedUser(null) : navigate('/admin')
       tg.BackButton.show()
       tg.BackButton.onClick(handleBack)
-      return () => {
-        tg.BackButton.offClick(handleBack)
-        tg.BackButton.hide()
-      }
+      return () => { tg.BackButton.offClick(handleBack); tg.BackButton.hide() }
     }
-  }, [navigate])
+  }, [navigate, selectedUser])
 
-  // ============ ДОСТУП ЗАПРЕЩЁН ============
+  // ============ ДОСТУП ============
   if (!isLoading && !isAdmin) {
     return (
       <Layout hideNavbar>
-        <div className="flex flex-col items-center justify-center min-h-screen px-4 pt-20">
-          <div className="text-white/40 text-lg text-center font-bold tracking-widest uppercase">
-            Доступ запрещён
-          </div>
-          <button
-            onClick={() => navigate('/')}
-            className="mt-6 px-6 py-3 bg-zinc-800 text-white rounded-xl active:scale-95 transition-transform font-medium"
-          >
-            На главную
-          </button>
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <div className="text-white/40 text-lg">Доступ запрещён</div>
         </div>
       </Layout>
     )
   }
 
-  if (isLoading || loading) {
+  if (loading) {
     return (
       <Layout hideNavbar>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-[#FFD700] text-xl animate-pulse">Загрузка CRM...</div>
+          <div className="text-white/50">Загрузка...</div>
         </div>
       </Layout>
     )
   }
 
-  // ============ РЕНДЕР ============
-  return (
-    <Layout hideNavbar>
-      <div className="min-h-screen bg-[#0a0a0a] text-white pt-[60px] pb-8">
-        <div className="max-w-7xl mx-auto px-4">
+  // ============ ДЕТАЛИ ПОЛЬЗОВАТЕЛЯ ============
+  if (selectedUser) {
+    return (
+      <Layout hideNavbar>
+        <div className="min-h-screen bg-[#000] text-white pt-[60px]">
+          <div className="max-w-lg mx-auto px-4 py-6">
+            {/* Аватар и имя */}
+            <div className="flex flex-col items-center mb-8">
+              <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center text-3xl font-medium text-white/60 mb-4">
+                {getInitial(selectedUser)}
+              </div>
+              <h1 className="text-2xl font-semibold">
+                {selectedUser.username ? `@${selectedUser.username}` : selectedUser.first_name || 'Без имени'}
+              </h1>
+              <p className="text-white/40 font-mono text-sm mt-1">{selectedUser.telegram_id}</p>
 
-          {/* HEADER */}
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">
-              <span className="text-[#FFD700]">CRM</span> Система
-            </h1>
+              {/* Статус */}
+              <div className={`mt-3 px-3 py-1 rounded-full text-sm ${
+                selectedUser.status === 'premium' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                selectedUser.status === 'new' ? 'bg-blue-500/20 text-blue-400' :
+                selectedUser.status === 'expired' ? 'bg-red-500/20 text-red-400' :
+                'bg-white/10 text-white/60'
+              }`}>
+                {selectedUser.status === 'premium' ? 'Premium' :
+                 selectedUser.status === 'new' ? 'Новый' :
+                 selectedUser.status === 'expired' ? 'Подписка истекла' : 'Активный'}
+              </div>
+            </div>
+
+            {/* Информация */}
+            <div className="bg-zinc-900/50 rounded-2xl overflow-hidden mb-6">
+              <div className="px-4 py-3 flex justify-between border-b border-white/5">
+                <span className="text-white/50">Баланс AR</span>
+                <span className="text-[#FFD700] font-medium">{selectedUser.balance_ar || 0}</span>
+              </div>
+              <div className="px-4 py-3 flex justify-between border-b border-white/5">
+                <span className="text-white/50">Регистрация</span>
+                <span className="text-white">{formatDate(selectedUser.created_at)}</span>
+              </div>
+              {selectedUser.premium_expires && (
+                <div className="px-4 py-3 flex justify-between">
+                  <span className="text-white/50">Premium до</span>
+                  <span className="text-white">{formatDate(selectedUser.premium_expires)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Действия */}
             <button
-              onClick={loadData}
-              className="px-3 py-1.5 bg-zinc-800 text-white/60 rounded-lg text-sm hover:bg-zinc-700"
+              onClick={async () => {
+                const msg = prompt('Сообщение:')
+                if (msg && await sendMessage(selectedUser.telegram_id, msg)) {
+                  showToast({ variant: 'success', title: 'Отправлено' })
+                }
+              }}
+              className="w-full py-4 bg-white/10 hover:bg-white/15 rounded-2xl text-white font-medium transition-colors"
             >
-              Обновить
+              Написать сообщение
             </button>
           </div>
+        </div>
+      </Layout>
+    )
+  }
 
-          {/* СТАТИСТИКА */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-            <div className="p-3 bg-zinc-900/50 border border-white/10 rounded-lg text-center">
-              <div className="text-2xl font-bold text-white">{stats.totalUsers}</div>
-              <div className="text-xs text-white/50">Всего юзеров</div>
-            </div>
-            <div className="p-3 bg-zinc-900/50 border border-blue-500/20 rounded-lg text-center">
-              <div className="text-2xl font-bold text-blue-400">{stats.newUsers7d}</div>
-              <div className="text-xs text-white/50">Новых за 7д</div>
-            </div>
-            <div className="p-3 bg-zinc-900/50 border border-white/10 rounded-lg text-center">
-              <div className="text-2xl font-bold text-white">{stats.activeUsers30d}</div>
-              <div className="text-xs text-white/50">Активных 30д</div>
-            </div>
-            <div className="p-3 bg-zinc-900/50 border border-[#FFD700]/20 rounded-lg text-center">
-              <div className="text-2xl font-bold text-[#FFD700]">{stats.premiumActive}</div>
-              <div className="text-xs text-white/50">Premium</div>
-            </div>
-            <div className="p-3 bg-zinc-900/50 border border-orange-500/20 rounded-lg text-center">
-              <div className="text-2xl font-bold text-orange-400">{stats.premiumExpiring7d}</div>
-              <div className="text-xs text-white/50">Истекает 7д</div>
-            </div>
+  // ============ ГЛАВНЫЙ ЭКРАН ============
+  return (
+    <Layout hideNavbar>
+      <div className="min-h-screen bg-[#000] text-white pt-[60px] pb-24">
+        <div className="max-w-3xl mx-auto px-4">
+
+          {/* Заголовок */}
+          <div className="py-4">
+            <h1 className="text-3xl font-bold">CRM</h1>
+            <p className="text-white/40 mt-1">{users.length} пользователей</p>
           </div>
 
-          {/* ВКЛАДКИ */}
-          <div className="flex gap-2 mb-6 border-b border-white/10 pb-3">
+          {/* Табы */}
+          <div className="flex gap-1 p-1 bg-zinc-900 rounded-xl mb-6">
             {(['users', 'premium', 'broadcast'] as TabType[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  activeTab === tab
-                    ? 'bg-[#FFD700] text-black'
-                    : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === tab ? 'bg-white text-black' : 'text-white/60'
                 }`}
               >
-                {tab === 'users' && 'Все юзеры'}
-                {tab === 'premium' && 'Premium'}
+                {tab === 'users' && `Все (${users.length})`}
+                {tab === 'premium' && `Premium (${premiumUsers.length})`}
                 {tab === 'broadcast' && 'Рассылка'}
               </button>
             ))}
           </div>
 
-          {/* ============ ВКЛАДКА: ВСЕ ЮЗЕРЫ ============ */}
+          {/* ============ ВСЕ ЮЗЕРЫ ============ */}
           {activeTab === 'users' && (
-            <div className="space-y-4">
-              {/* Поиск и фильтры */}
-              <div className="flex flex-col sm:flex-row gap-3">
+            <>
+              {/* Поиск */}
+              <div className="relative mb-4">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Поиск по username, имени или ID..."
-                  className="flex-1 px-4 py-2 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#FFD700]/50"
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Поиск..."
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
                 />
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {(['all', 'new', 'premium', 'no_premium'] as UserFilter[]).map(f => (
-                    <button
-                      key={f}
-                      onClick={() => setFilter(f)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                        filter === f
-                          ? 'bg-[#FFD700] text-black'
-                          : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
-                      }`}
-                    >
-                      {f === 'all' && 'Все'}
-                      {f === 'new' && 'Новые'}
-                      {f === 'premium' && 'Premium'}
-                      {f === 'no_premium' && 'Без Premium'}
-                    </button>
-                  ))}
-                </div>
               </div>
 
-              {/* Действия с выбранными */}
-              {selectedUsers.length > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-[#FFD700]/10 border border-[#FFD700]/30 rounded-lg">
-                  <span className="text-[#FFD700] font-medium">Выбрано: {selectedUsers.length}</span>
-                  <button
-                    onClick={() => setActiveTab('broadcast')}
-                    className="px-3 py-1 bg-[#FFD700] text-black rounded-lg text-sm font-medium"
+              {/* Список */}
+              <div className="bg-zinc-900 rounded-2xl overflow-hidden">
+                {filteredUsers.map((user, i) => (
+                  <div
+                    key={user.id}
+                    onClick={() => setSelectedUser(user)}
+                    className={`flex items-center gap-3 px-4 py-3 active:bg-white/5 cursor-pointer ${
+                      i !== 0 ? 'border-t border-white/5' : ''
+                    }`}
                   >
-                    Отправить сообщение
-                  </button>
-                  <button
-                    onClick={() => setSelectedUsers([])}
-                    className="px-3 py-1 bg-zinc-700 text-white rounded-lg text-sm"
-                  >
-                    Сбросить
-                  </button>
-                </div>
-              )}
-
-              {/* Таблица юзеров */}
-              <div className="bg-zinc-900/50 border border-white/10 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-zinc-800/50">
-                      <tr>
-                        <th className="px-3 py-3 text-left">
-                          <input
-                            type="checkbox"
-                            checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                            onChange={selectAllFiltered}
-                            className="rounded"
-                          />
-                        </th>
-                        <th className="px-3 py-3 text-left text-sm font-medium text-white/80">Пользователь</th>
-                        <th className="px-3 py-3 text-left text-sm font-medium text-white/80">Telegram ID</th>
-                        <th className="px-3 py-3 text-left text-sm font-medium text-white/80">Статус</th>
-                        <th className="px-3 py-3 text-left text-sm font-medium text-white/80">Баланс</th>
-                        <th className="px-3 py-3 text-left text-sm font-medium text-white/80">Регистрация</th>
-                        <th className="px-3 py-3 text-center text-sm font-medium text-white/80">Действия</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredUsers.map((user) => (
-                        <tr
-                          key={user.id}
-                          className="border-t border-white/5 hover:bg-zinc-800/30 transition-colors"
-                        >
-                          <td className="px-3 py-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedUsers.includes(user.telegram_id)}
-                              onChange={() => toggleUserSelection(user.telegram_id)}
-                              className="rounded"
-                            />
-                          </td>
-                          <td className="px-3 py-3">
-                            <div className="flex items-center gap-2">
-                              {user.avatar_url ? (
-                                <img src={user.avatar_url} alt="" className="w-8 h-8 rounded-full" />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-white/60 text-sm">
-                                  {(user.first_name || user.username || '?')[0]?.toUpperCase()}
-                                </div>
-                              )}
-                              <div>
-                                <div className="font-medium text-white">
-                                  {user.username ? `@${user.username}` : user.first_name || 'Без имени'}
-                                </div>
-                                {user.first_name && user.username && (
-                                  <div className="text-xs text-white/50">{user.first_name} {user.last_name || ''}</div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 font-mono text-white/60 text-sm">{user.telegram_id}</td>
-                          <td className="px-3 py-3">{getStatusBadge(user.status)}</td>
-                          <td className="px-3 py-3 text-white/80">
-                            <span className="text-[#FFD700]">{user.balance_ar || 0}</span>
-                            <span className="text-white/30"> AR</span>
-                          </td>
-                          <td className="px-3 py-3 text-white/60 text-sm">{formatDate(user.created_at)}</td>
-                          <td className="px-3 py-3 text-center">
-                            <button
-                              onClick={() => handleSendToUser(user)}
-                              className="px-2 py-1 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-xs"
-                            >
-                              Написать
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {filteredUsers.length === 0 && (
-                    <div className="p-8 text-center text-white/40">Нет пользователей</div>
-                  )}
-                </div>
-                <div className="px-4 py-2 bg-zinc-800/30 text-white/50 text-sm">
-                  Показано: {filteredUsers.length} из {users.length}
-                </div>
+                    <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white/60 font-medium">
+                      {getInitial(user)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">
+                        {user.username ? `@${user.username}` : user.first_name || 'Без имени'}
+                      </div>
+                      <div className="text-sm text-white/40 truncate">
+                        {user.first_name && user.username ? user.first_name : `ID: ${user.telegram_id}`}
+                      </div>
+                    </div>
+                    {user.status === 'premium' && (
+                      <div className="px-2 py-0.5 bg-[#FFD700]/20 text-[#FFD700] rounded text-xs font-medium">
+                        PRO
+                      </div>
+                    )}
+                    {user.status === 'new' && (
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    )}
+                    <svg className="w-5 h-5 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                ))}
+                {filteredUsers.length === 0 && (
+                  <div className="py-12 text-center text-white/30">Ничего не найдено</div>
+                )}
               </div>
-            </div>
+            </>
           )}
 
-          {/* ============ ВКЛАДКА: PREMIUM ============ */}
+          {/* ============ PREMIUM ============ */}
           {activeTab === 'premium' && (
-            <div className="space-y-4">
-              <div className="bg-zinc-900/50 border border-[#FFD700]/20 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-zinc-800/50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-white/80">Клиент</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-white/80">Тариф</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-white/80">Истекает</th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-white/80">Канал</th>
-                        <th className="px-4 py-3 text-center text-sm font-medium text-white/80">Чат</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-white/80">Оплачено</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {premiumClients.map((client) => {
-                        const isExpired = new Date(client.expires_at) < new Date()
-                        const isExpiring = !isExpired && new Date(client.expires_at) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            <div className="bg-zinc-900 rounded-2xl overflow-hidden">
+              {premiumClients.length === 0 ? (
+                <div className="py-12 text-center text-white/30">Нет Premium клиентов</div>
+              ) : (
+                premiumClients.map((client, i) => {
+                  const isExpired = new Date(client.expires_at) < new Date()
+                  const isExpiring = !isExpired && new Date(client.expires_at) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
-                        return (
-                          <tr
-                            key={client.id}
-                            className={`border-t border-white/5 hover:bg-zinc-800/30 transition-colors ${isExpired ? 'opacity-50' : ''}`}
-                          >
-                            <td className="px-4 py-3">
-                              <div className="font-medium text-white">
-                                {client.username ? `@${client.username}` : 'Без username'}
-                              </div>
-                              <div className="text-xs text-white/50 font-mono">{client.telegram_id}</div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-0.5 bg-[#FFD700]/20 text-[#FFD700] rounded text-xs font-medium uppercase">
-                                {client.plan || 'N/A'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`${isExpired ? 'text-red-400' : isExpiring ? 'text-orange-400' : 'text-white/80'}`}>
-                                {formatDate(client.expires_at)}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-center">{client.in_channel ? '✅' : '❌'}</td>
-                            <td className="px-4 py-3 text-center">{client.in_chat ? '✅' : '❌'}</td>
-                            <td className="px-4 py-3 text-[#FFD700] font-medium">${client.total_paid_usd || 0}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                  {premiumClients.length === 0 && (
-                    <div className="p-8 text-center text-white/40">Нет Premium клиентов</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-center">
-                <button
-                  onClick={() => navigate('/crm')}
-                  className="px-4 py-2 bg-zinc-800 text-white/60 rounded-lg hover:bg-zinc-700"
-                >
-                  Открыть полную CRM Premium →
-                </button>
-              </div>
+                  return (
+                    <div
+                      key={client.id}
+                      className={`px-4 py-3 ${i !== 0 ? 'border-t border-white/5' : ''} ${isExpired ? 'opacity-50' : ''}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium">
+                          {client.username ? `@${client.username}` : client.telegram_id}
+                        </span>
+                        <span className="text-[#FFD700] text-sm font-medium uppercase">
+                          {client.plan || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className={isExpired ? 'text-red-400' : isExpiring ? 'text-orange-400' : 'text-white/40'}>
+                          {isExpired ? 'Истёк' : `до ${formatDate(client.expires_at)}`}
+                        </span>
+                        <span className="text-white/40">
+                          ${client.total_paid_usd || 0}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           )}
 
-          {/* ============ ВКЛАДКА: РАССЫЛКА ============ */}
+          {/* ============ РАССЫЛКА ============ */}
           {activeTab === 'broadcast' && (
             <div className="space-y-4">
-              {/* Выбор получателей */}
-              <div className="p-4 bg-zinc-900/50 border border-white/10 rounded-lg">
-                <h3 className="text-lg font-medium text-white mb-3">Получатели</h3>
-
-                <div className="flex flex-wrap gap-2 mb-4">
+              {/* Получатели */}
+              <div className="bg-zinc-900 rounded-2xl p-4">
+                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-3">Получатели</h3>
+                <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => { setFilter('all'); setSelectedUsers([]) }}
-                    className={`px-3 py-1.5 rounded-lg text-sm ${
-                      filter === 'all' && selectedUsers.length === 0
-                        ? 'bg-[#FFD700] text-black'
-                        : 'bg-zinc-700 text-white/60'
+                    onClick={() => { setSelectedUsers([]); setSearchQuery('') }}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      selectedUsers.length === 0 ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
                     }`}
                   >
                     Все ({users.length})
                   </button>
                   <button
-                    onClick={() => { setFilter('premium'); setSelectedUsers([]) }}
-                    className={`px-3 py-1.5 rounded-lg text-sm ${
-                      filter === 'premium' && selectedUsers.length === 0
-                        ? 'bg-[#FFD700] text-black'
-                        : 'bg-zinc-700 text-white/60'
+                    onClick={() => selectAll(premiumUsers)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      premiumUsers.every(u => selectedUsers.includes(u.telegram_id)) && selectedUsers.length > 0
+                        ? 'bg-[#FFD700] text-black' : 'bg-zinc-800 text-white/60'
                     }`}
                   >
-                    Premium ({stats.premiumActive})
+                    Premium ({premiumUsers.length})
                   </button>
                   <button
-                    onClick={() => { setFilter('no_premium'); setSelectedUsers([]) }}
-                    className={`px-3 py-1.5 rounded-lg text-sm ${
-                      filter === 'no_premium' && selectedUsers.length === 0
-                        ? 'bg-[#FFD700] text-black'
-                        : 'bg-zinc-700 text-white/60'
+                    onClick={() => selectAll(nonPremiumUsers)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      nonPremiumUsers.every(u => selectedUsers.includes(u.telegram_id)) && selectedUsers.length > 0
+                        ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
                     }`}
                   >
-                    Без Premium ({users.length - stats.premiumActive})
+                    Без Premium ({nonPremiumUsers.length})
                   </button>
                 </div>
-
-                {selectedUsers.length > 0 ? (
-                  <div className="text-[#FFD700]">
-                    Выбрано вручную: <strong>{selectedUsers.length}</strong> пользователей
-                    <button
-                      onClick={() => setSelectedUsers([])}
-                      className="ml-2 text-white/50 underline text-sm"
-                    >
-                      сбросить
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-white/60">
-                    Будет отправлено: <strong className="text-white">{filteredUsers.length}</strong> пользователям
-                  </div>
+                {selectedUsers.length > 0 && (
+                  <p className="text-sm text-white/40 mt-3">
+                    Выбрано: <span className="text-white">{selectedUsers.length}</span>
+                  </p>
                 )}
               </div>
 
-              {/* Редактор сообщения */}
-              <div className="p-4 bg-zinc-900/50 border border-white/10 rounded-lg">
-                <h3 className="text-lg font-medium text-white mb-3">Сообщение</h3>
+              {/* Сообщение */}
+              <div className="bg-zinc-900 rounded-2xl p-4">
+                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-3">Сообщение</h3>
                 <textarea
                   value={broadcastMessage}
-                  onChange={(e) => setBroadcastMessage(e.target.value)}
-                  placeholder="Введите текст сообщения...&#10;&#10;Поддерживается HTML:&#10;<b>жирный</b>&#10;<i>курсив</i>&#10;<a href='url'>ссылка</a>"
-                  className="w-full h-40 px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#FFD700]/50 resize-none"
+                  onChange={e => setBroadcastMessage(e.target.value)}
+                  placeholder="Введите текст..."
+                  className="w-full h-32 bg-transparent text-white placeholder-white/30 focus:outline-none resize-none"
                 />
-                <div className="text-xs text-white/40 mt-2">
-                  Поддерживается HTML форматирование: &lt;b&gt;, &lt;i&gt;, &lt;a href="..."&gt;
-                </div>
               </div>
 
-              {/* Прогресс отправки */}
+              {/* Прогресс */}
               {sendingBroadcast && (
-                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                  <div className="flex justify-between text-white mb-2">
-                    <span>Отправка...</span>
-                    <span>{broadcastProgress.sent}/{broadcastProgress.total}</span>
+                <div className="bg-zinc-900 rounded-2xl p-4">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-white/40">Отправка</span>
+                    <span className="text-white">{broadcastProgress.sent}/{broadcastProgress.total}</span>
                   </div>
-                  <div className="w-full bg-zinc-700 rounded-full h-2">
+                  <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
                     <div
-                      className="bg-[#FFD700] h-2 rounded-full transition-all"
+                      className="h-full bg-white transition-all"
                       style={{ width: `${(broadcastProgress.sent / broadcastProgress.total) * 100}%` }}
                     />
                   </div>
-                  {broadcastProgress.failed > 0 && (
-                    <div className="text-red-400 text-sm mt-2">Ошибок: {broadcastProgress.failed}</div>
-                  )}
                 </div>
               )}
 
-              {/* Кнопка отправки */}
+              {/* Кнопка */}
               <button
                 onClick={handleBroadcast}
                 disabled={sendingBroadcast || !broadcastMessage.trim()}
-                className="w-full py-4 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform text-lg"
+                className="w-full py-4 bg-white text-black font-semibold rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
-                {sendingBroadcast ? 'Отправка...' : 'Отправить рассылку'}
+                {sendingBroadcast ? 'Отправка...' : 'Отправить'}
               </button>
             </div>
           )}
