@@ -13,13 +13,15 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVE
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
 const BOT_TOKEN = '***REMOVED***';
 
-// Маппинг суммы USD на период подписки (круглые суммы)
+// Маппинг суммы USD на период подписки
+// ТЕСТОВЫЕ ЦЕНЫ: $50=Classic, $60=Gold, $70=Platinum, $80=Private
 const AMOUNT_TO_PERIOD = [
+  // Тестовые суммы (USD)
   { min: 1, max: 5, days: 30, tariff: 'test', name: 'TEST' },             // $3 тест
-  { min: 45, max: 55, days: 30, tariff: 'classic', name: 'CLASSIC' },     // $50
-  { min: 95, max: 105, days: 90, tariff: 'gold', name: 'GOLD' },          // $100
-  { min: 195, max: 205, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // $200
-  { min: 395, max: 410, days: 365, tariff: 'private', name: 'PRIVATE' }   // $400
+  { min: 48, max: 52, days: 30, tariff: 'classic', name: 'CLASSIC' },     // $50
+  { min: 58, max: 62, days: 90, tariff: 'gold', name: 'GOLD' },           // $60
+  { min: 68, max: 72, days: 180, tariff: 'platinum', name: 'PLATINUM' },  // $70
+  { min: 78, max: 82, days: 365, tariff: 'private', name: 'PRIVATE' }     // $80
 ];
 
 // Supabase клиент
