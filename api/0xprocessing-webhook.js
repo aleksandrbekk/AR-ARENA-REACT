@@ -80,8 +80,8 @@ async function sendTelegramMessage(telegramId, text, replyMarkup = null) {
   }
 }
 
-// Создать invite-ссылку через Edge Function
-async function createInviteLink(telegramId) {
+// Создать invite-ссылки через Edge Function (канал + чат)
+async function createInviteLinks(telegramId) {
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-channel`, {
       method: 'POST',
@@ -95,14 +95,13 @@ async function createInviteLink(telegramId) {
     const result = await response.json();
     log('📨 Invite response', result);
 
-    if (result.success && result.results?.channel?.result?.invite_link) {
-      return result.results.channel.result.invite_link;
-    }
+    const channelLink = result.results?.channel?.result?.invite_link || null;
+    const chatLink = result.results?.chat?.result?.invite_link || null;
 
-    return null;
+    return { channelLink, chatLink };
   } catch (error) {
     log('❌ Create invite error', { error: error.message });
-    return null;
+    return { channelLink: null, chatLink: null };
   }
 }
 
@@ -323,26 +322,31 @@ export default async function handler(req, res) {
       await sendTelegramMessage(finalTelegramId, welcomeMessage);
       log('✅ Welcome message sent');
 
-      // Пробуем создать invite link
-      const inviteLink = await createInviteLink(finalTelegramId);
+      // Пробуем создать invite links (канал + чат)
+      const { channelLink, chatLink } = await createInviteLinks(finalTelegramId);
 
-      if (inviteLink) {
-        log(`🔗 Invite link created: ${inviteLink}`);
+      if (channelLink || chatLink) {
+        log(`🔗 Invite links: channel=${channelLink}, chat=${chatLink}`);
 
         await supabase
           .from('premium_clients')
-          .update({ in_channel: true, in_chat: true })
+          .update({ in_channel: !!channelLink, in_chat: !!chatLink })
           .eq('id', clientId);
 
-        const replyMarkup = {
-          inline_keyboard: [
-            [{ text: '📢 Присоединиться к каналу', url: inviteLink }],
-            [{ text: '🎮 Открыть AR ARENA', web_app: { url: 'https://ararena.pro' } }]
-          ]
-        };
+        // Формируем кнопки
+        const buttons = [];
+        if (channelLink) {
+          buttons.push([{ text: '📢 Присоединиться к каналу', url: channelLink }]);
+        }
+        if (chatLink) {
+          buttons.push([{ text: '💬 Присоединиться к чату', url: chatLink }]);
+        }
+        buttons.push([{ text: '🎮 Открыть AR ARENA', web_app: { url: 'https://ararena.pro' } }]);
 
-        await sendTelegramMessage(finalTelegramId, '📢 Нажмите кнопку ниже, чтобы присоединиться к Premium каналу:', replyMarkup);
-        log('✅ Invite link message sent');
+        const replyMarkup = { inline_keyboard: buttons };
+
+        await sendTelegramMessage(finalTelegramId, '📢 Нажмите кнопки ниже, чтобы присоединиться к Premium:', replyMarkup);
+        log('✅ Invite links message sent');
       }
     }
 
