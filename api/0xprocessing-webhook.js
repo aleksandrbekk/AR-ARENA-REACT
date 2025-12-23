@@ -13,13 +13,13 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciO
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
 const BOT_TOKEN = '8265126337:AAHBKYlU6fQA09nkJwsMaBQtP16CXSq1Cnc';
 
-// Маппинг суммы USD на период подписки
+// Маппинг суммы USD на период подписки (круглые суммы)
 const AMOUNT_TO_PERIOD = [
   { min: 0, max: 10, days: 30, tariff: 'test', name: 'TEST' },
-  { min: 50, max: 60, days: 30, tariff: 'classic', name: 'CLASSIC' },
-  { min: 100, max: 130, days: 90, tariff: 'trader', name: 'TRADER' },
-  { min: 180, max: 220, days: 180, tariff: 'platinum', name: 'PLATINUM' },
-  { min: 350, max: 420, days: 365, tariff: 'private', name: 'PRIVATE' }
+  { min: 45, max: 55, days: 30, tariff: 'classic', name: 'CLASSIC' },     // $50
+  { min: 95, max: 105, days: 90, tariff: 'trader', name: 'TRADER' },      // $100
+  { min: 195, max: 205, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // $200
+  { min: 395, max: 405, days: 365, tariff: 'private', name: 'PRIVATE' }   // $400
 ];
 
 // Supabase клиент
