@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, telegramId, telegramUsername, amount, currency = 'RUB', offerId, periodicity } = req.body;
+    const { email, telegramId, telegramUsername, amount, currency = 'RUB', offerId, periodicity, streamUtmSource } = req.body;
 
     // Валидация
     if (!offerId) {
@@ -41,6 +41,10 @@ export default async function handler(req, res) {
       clientUTM = `telegram_id=${telegramId}`;
     } else if (telegramUsername) {
       clientUTM = `username=${telegramUsername}`;
+    }
+    // Добавляем stream_utm если есть
+    if (streamUtmSource) {
+      clientUTM = clientUTM ? `${clientUTM}&stream_utm=${streamUtmSource}` : `stream_utm=${streamUtmSource}`;
     }
 
     console.log('Creating invoice:', { email, telegramId, amount, offerId, periodicity });

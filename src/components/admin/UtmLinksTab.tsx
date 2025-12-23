@@ -16,7 +16,9 @@ interface UtmToolLink {
   slug: string
   tool_type: string
   clicks: number
+  conversions: number
   created_at: string
+  last_click_at: string | null
 }
 
 type TabType = 'payment' | 'tools'
@@ -192,6 +194,22 @@ export function UtmLinksTab() {
       month: '2-digit',
       year: 'numeric'
     })
+  }
+
+  const formatRelativeTime = (date: string | null) => {
+    if (!date) return 'никогда'
+    const now = new Date()
+    const then = new Date(date)
+    const diffMs = now.getTime() - then.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'только что'
+    if (diffMins < 60) return `${diffMins} мин назад`
+    if (diffHours < 24) return `${diffHours} ч назад`
+    if (diffDays < 7) return `${diffDays} дн назад`
+    return formatDate(date)
   }
 
   // Конверсия в процентах
@@ -379,37 +397,56 @@ export function UtmLinksTab() {
                 className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden"
               >
                 {/* Шапка карточки */}
-                <div className="p-4 pb-3">
-                  <div className="text-white font-semibold text-base mb-1">{link.name}</div>
-                  <div className="text-white/40 text-xs font-mono">
+                <div className="px-4 pt-4 pb-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="text-white font-semibold">{link.name}</div>
+                    <div className="text-white/30 text-xs">
+                      {formatDate(link.created_at)}
+                    </div>
+                  </div>
+                  <div className="text-white/40 text-xs font-mono truncate">
                     ararena.pro/stream?utm_source=<span className="text-white/60">{link.slug}</span>
                   </div>
                 </div>
 
-                {/* Статистика и действия */}
-                <div className="flex items-center justify-between px-4 py-3 bg-zinc-800/50 border-t border-white/5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#FFD700] font-bold text-xl">{link.clicks}</span>
-                    <span className="text-white/40 text-sm">переходов</span>
+                {/* Статистика */}
+                <div className="grid grid-cols-4 gap-2 px-4 py-3 bg-zinc-800/30">
+                  <div className="text-center">
+                    <div className="text-[#FFD700] font-bold text-lg">{link.clicks}</div>
+                    <div className="text-white/40 text-[10px]">переходов</div>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => copyToClipboard(getToolUrl(link), `tool-${link.id}`)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        copiedId === `tool-${link.id}`
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-zinc-700 text-white active:scale-95'
-                      }`}
-                    >
-                      {copiedId === `tool-${link.id}` ? '✓' : 'Копировать'}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteLink(link.id, link.name, true)}
-                      className="px-3 py-2 text-red-400/70 text-sm rounded-lg hover:text-red-400 active:scale-95 transition-all"
-                    >
-                      Удалить
-                    </button>
+                  <div className="text-center">
+                    <div className="text-green-400 font-bold text-lg">{link.conversions}</div>
+                    <div className="text-white/40 text-[10px]">конверсий</div>
                   </div>
+                  <div className="text-center">
+                    <div className="text-white font-bold text-lg">{getConversionRate(link.clicks, link.conversions)}</div>
+                    <div className="text-white/40 text-[10px]">CR</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-white/70 font-medium text-xs leading-tight">{formatRelativeTime(link.last_click_at)}</div>
+                    <div className="text-white/40 text-[10px]">посл. визит</div>
+                  </div>
+                </div>
+
+                {/* Действия */}
+                <div className="flex gap-2 px-4 py-3 border-t border-white/5">
+                  <button
+                    onClick={() => copyToClipboard(getToolUrl(link), `tool-${link.id}`)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                      copiedId === `tool-${link.id}`
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-zinc-700 text-white active:scale-95'
+                    }`}
+                  >
+                    {copiedId === `tool-${link.id}` ? '✓ Скопировано' : 'Копировать'}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteLink(link.id, link.name, true)}
+                    className="px-4 py-2 text-red-400/70 text-sm rounded-lg hover:text-red-400 active:scale-95 transition-all"
+                  >
+                    Удалить
+                  </button>
                 </div>
               </div>
             ))
