@@ -57,10 +57,8 @@ export default async function handler(req, res) {
     // Создаём платёж через 0xProcessing
     const formData = new URLSearchParams();
     formData.append('AmountUSD', amountUSD.toString());
-    // Currency опционально - если не указан, пользователь выберет сеть на странице оплаты
-    if (currency) {
-      formData.append('Currency', currency);
-    }
+    // TRX сеть - дешёвая комиссия
+    formData.append('Currency', currency || 'TRX');
     formData.append('Email', finalEmail);
     formData.append('ClientId', clientId);
     formData.append('MerchantId', MERCHANT_ID);
