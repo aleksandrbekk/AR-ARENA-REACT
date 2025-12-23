@@ -26,16 +26,8 @@ const PERIODICITY_TO_PERIOD = {
   'PERIOD_YEAR': { days: 365, tariff: 'private', name: 'PRIVATE' }
 };
 
-// Маппинг суммы на период
-// Поддерживает тестовые суммы (USD) и реальные (RUB)
+// Маппинг суммы на период (RUB) - fallback если periodicity не пришёл
 const AMOUNT_TO_PERIOD = [
-  // Тестовые суммы (USD) - для тестирования
-  { min: 48, max: 52, days: 30, tariff: 'classic', name: 'CLASSIC' },    // $50
-  { min: 58, max: 62, days: 90, tariff: 'gold', name: 'GOLD' },          // $60
-  { min: 68, max: 72, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // $70
-  { min: 78, max: 82, days: 365, tariff: 'private', name: 'PRIVATE' },   // $80
-
-  // Реальные цены (RUB) - продакшн
   { min: 3500, max: 4500, days: 30, tariff: 'classic', name: 'CLASSIC' },     // 4000 RUB
   { min: 9500, max: 12500, days: 90, tariff: 'gold', name: 'GOLD' },          // 9900-12000 RUB
   { min: 17000, max: 25000, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // 17900-24000 RUB
