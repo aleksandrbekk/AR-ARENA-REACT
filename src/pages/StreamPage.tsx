@@ -18,13 +18,21 @@ export function StreamPage() {
     button_url: 'https://t.me/ARARENA_BOT?start=premium_01'
   })
 
-  // Трекинг просмотров + Presence для онлайн счётчика
+  // Трекинг просмотров, уников + Presence для онлайн счётчика
   useEffect(() => {
-    // Увеличиваем счётчик просмотров (один раз при загрузке)
+    // Получаем или создаём visitor_id
+    let visitorId = localStorage.getItem('stream_visitor_id')
+    if (!visitorId) {
+      visitorId = Math.random().toString(36).substring(2) + Date.now().toString(36)
+      localStorage.setItem('stream_visitor_id', visitorId)
+    }
+
+    // Трекаем просмотры и уников
     const trackView = async () => {
+      // Увеличиваем total_views
       const { data } = await supabase
         .from('stream_settings')
-        .select('total_views')
+        .select('total_views, unique_views')
         .eq('id', 1)
         .single()
 
@@ -34,20 +42,56 @@ export function StreamPage() {
           .update({ total_views: (data.total_views || 0) + 1 })
           .eq('id', 1)
       }
+
+      // Проверяем уникальность посетителя
+      const { data: existingVisitor } = await supabase
+        .from('stream_visitors')
+        .select('id')
+        .eq('visitor_id', visitorId)
+        .single()
+
+      if (!existingVisitor) {
+        // Новый уникальный посетитель
+        await supabase
+          .from('stream_visitors')
+          .insert({ visitor_id: visitorId })
+
+        // Увеличиваем счётчик уников
+        if (data) {
+          await supabase
+            .from('stream_settings')
+            .update({ unique_views: (data.unique_views || 0) + 1 })
+            .eq('id', 1)
+        }
+      }
     }
     trackView()
 
     // Присоединяемся к Presence каналу для отслеживания онлайн
-    const uniqueId = Math.random().toString(36).substring(7)
     const presenceChannel = supabase.channel('stream_viewers')
 
     presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        // Синхронизация - ничего не делаем на клиенте
+      .on('presence', { event: 'sync' }, async () => {
+        // Обновляем пик если текущее онлайн больше
+        const state = presenceChannel.presenceState()
+        const currentOnline = Object.keys(state).length
+
+        const { data } = await supabase
+          .from('stream_settings')
+          .select('peak_viewers')
+          .eq('id', 1)
+          .single()
+
+        if (data && currentOnline > (data.peak_viewers || 0)) {
+          await supabase
+            .from('stream_settings')
+            .update({ peak_viewers: currentOnline })
+            .eq('id', 1)
+        }
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await presenceChannel.track({ id: uniqueId })
+          await presenceChannel.track({ id: visitorId })
         }
       })
 

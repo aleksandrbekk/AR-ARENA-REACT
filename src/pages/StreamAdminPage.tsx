@@ -10,31 +10,39 @@ export function StreamAdminPage() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [onlineCount, setOnlineCount] = useState(0)
   const [totalViews, setTotalViews] = useState(0)
+  const [uniqueViews, setUniqueViews] = useState(0)
+  const [peakViewers, setPeakViewers] = useState(0)
 
-  // Загрузка настроек и просмотров
+  // Загрузка настроек и статистики
   useEffect(() => {
     const loadSettings = async () => {
       const { data } = await supabase
         .from('stream_settings')
-        .select('show_premium_button, total_views')
+        .select('show_premium_button, total_views, unique_views, peak_viewers')
         .eq('id', 1)
         .single()
 
       if (data) {
         setShowPremiumButton(data.show_premium_button)
         setTotalViews(data.total_views || 0)
+        setUniqueViews(data.unique_views || 0)
+        setPeakViewers(data.peak_viewers || 0)
       }
     }
     loadSettings()
 
-    // Polling для просмотров каждые 5 секунд
+    // Polling для статистики каждые 5 секунд
     const pollInterval = setInterval(async () => {
       const { data } = await supabase
         .from('stream_settings')
-        .select('total_views')
+        .select('total_views, unique_views, peak_viewers')
         .eq('id', 1)
         .single()
-      if (data) setTotalViews(data.total_views || 0)
+      if (data) {
+        setTotalViews(data.total_views || 0)
+        setUniqueViews(data.unique_views || 0)
+        setPeakViewers(data.peak_viewers || 0)
+      }
     }, 5000)
 
     return () => clearInterval(pollInterval)
@@ -110,32 +118,62 @@ export function StreamAdminPage() {
         </header>
 
         {/* Admin: Статистика зрителей */}
-        <div className="mb-6 grid grid-cols-2 gap-4">
-          <div className="p-4 bg-zinc-900/80 border border-green-500/30 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
-                <span className="relative flex h-3 w-3">
+        <div className="mb-6 grid grid-cols-2 gap-3">
+          {/* Онлайн сейчас */}
+          <div className="p-3 bg-zinc-900/80 border border-green-500/30 rounded-xl">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+                <span className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
                 </span>
               </div>
               <div>
-                <p className="text-white/50 text-sm">Онлайн сейчас</p>
-                <p className="text-2xl font-bold text-green-400">{onlineCount}</p>
+                <p className="text-white/40 text-xs">Онлайн</p>
+                <p className="text-xl font-bold text-green-400">{onlineCount}</p>
               </div>
             </div>
           </div>
-          <div className="p-4 bg-zinc-900/80 border border-blue-500/30 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {/* Пик онлайн */}
+          <div className="p-3 bg-zinc-900/80 border border-orange-500/30 rounded-xl">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-white/40 text-xs">Пик</p>
+                <p className="text-xl font-bold text-orange-400">{peakViewers}</p>
+              </div>
+            </div>
+          </div>
+          {/* Уникальные */}
+          <div className="p-3 bg-zinc-900/80 border border-purple-500/30 rounded-xl">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-white/40 text-xs">Уники</p>
+                <p className="text-xl font-bold text-purple-400">{uniqueViews}</p>
+              </div>
+            </div>
+          </div>
+          {/* Всего просмотров */}
+          <div className="p-3 bg-zinc-900/80 border border-blue-500/30 rounded-xl">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               </div>
               <div>
-                <p className="text-white/50 text-sm">Всего просмотров</p>
-                <p className="text-2xl font-bold text-blue-400">{totalViews}</p>
+                <p className="text-white/40 text-xs">Просмотры</p>
+                <p className="text-xl font-bold text-blue-400">{totalViews}</p>
               </div>
             </div>
           </div>
