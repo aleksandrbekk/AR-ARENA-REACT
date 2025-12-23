@@ -142,17 +142,14 @@ export function FullCrmPage() {
         .select('*')
         .order('expires_at', { ascending: true })
 
-      // Подтягиваем аватарки из users
-      const premiumWithAvatars = await Promise.all(
-        (premiumClientsData || []).map(async (client) => {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('avatar_url')
-            .eq('telegram_id', client.telegram_id)
-            .single()
-          return { ...client, avatar_url: userData?.avatar_url || null }
-        })
-      )
+      // Подтягиваем аватарки из уже загруженных users (без доп. запросов)
+      const avatarMap = new Map<number, string | null>()
+      usersWithStatus.forEach(u => avatarMap.set(u.telegram_id, u.avatar_url))
+
+      const premiumWithAvatars = (premiumClientsData || []).map(client => ({
+        ...client,
+        avatar_url: avatarMap.get(client.telegram_id) || null
+      }))
 
       setPremiumClients(premiumWithAvatars as PremiumClient[])
     } catch (err) {
