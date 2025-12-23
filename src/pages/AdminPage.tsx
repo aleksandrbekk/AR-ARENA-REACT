@@ -18,6 +18,8 @@ interface DashboardStats {
   utmLinksCount: number
 }
 
+const ADMIN_PASSWORD = 'arena2024'
+
 export function AdminPage() {
   const { telegramUser, isLoading } = useAuth()
   const navigate = useNavigate()
@@ -25,16 +27,42 @@ export function AdminPage() {
   const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0, utmLinksCount: 0 })
   const [loadingStats, setLoadingStats] = useState(true)
 
+  // Защита паролем для браузера
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [passwordError, setPasswordError] = useState(false)
+
   // Проверка admin-only
   const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
+  const isTelegramWebApp = !!window.Telegram?.WebApp?.initData
   const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
+
+  // Проверка авторизации при загрузке
+  useEffect(() => {
+    if (isTelegramWebApp) {
+      setIsAuthenticated(isAdmin)
+    } else {
+      const saved = localStorage.getItem('admin_auth')
+      if (saved === 'true') setIsAuthenticated(true)
+    }
+  }, [isTelegramWebApp, isAdmin])
+
+  const handlePasswordSubmit = () => {
+    if (passwordInput === ADMIN_PASSWORD) {
+      setIsAuthenticated(true)
+      localStorage.setItem('admin_auth', 'true')
+      setPasswordError(false)
+    } else {
+      setPasswordError(true)
+    }
+  }
 
   // Загрузка статистики для дашборда
   useEffect(() => {
-    if (activeSection === 'dashboard' && isAdmin) {
+    if (activeSection === 'dashboard' && isAuthenticated) {
       loadDashboardStats()
     }
-  }, [activeSection, isAdmin])
+  }, [activeSection, isAuthenticated])
 
   const loadDashboardStats = async () => {
     try {
@@ -80,26 +108,61 @@ export function AdminPage() {
     }
   }, [navigate, activeSection])
 
-  // Access denied
-  if (!isLoading && !isAdmin) {
-    return (
-      <Layout hideNavbar>
-        <div
-          className="flex flex-col items-center justify-center min-h-screen px-4"
-          style={{ paddingTop: '80px' }}
-        >
-          <div className="text-white/40 text-lg text-center font-bold tracking-widest uppercase">
-            Доступ запрещён
+  // Access denied / Password form
+  if (!isLoading && !isAuthenticated) {
+    // В Telegram и не админ - запрещаем
+    if (isTelegramWebApp && !isAdmin) {
+      return (
+        <Layout hideNavbar>
+          <div className="flex flex-col items-center justify-center min-h-screen px-4" style={{ paddingTop: '80px' }}>
+            <div className="text-white/40 text-lg text-center font-bold tracking-widest uppercase">
+              Доступ запрещён
+            </div>
+            <button
+              onClick={() => navigate('/')}
+              className="mt-6 px-6 py-3 bg-zinc-800 text-white rounded-xl active:scale-95 transition-transform font-medium"
+            >
+              На главную
+            </button>
           </div>
-          <button
-            onClick={() => navigate('/')}
-            className="mt-6 px-6 py-3 bg-zinc-800 text-white rounded-xl active:scale-95 transition-transform font-medium"
-          >
-            На главную
-          </button>
-        </div>
-      </Layout>
-    )
+        </Layout>
+      )
+    }
+
+    // В браузере - форма пароля
+    if (!isTelegramWebApp) {
+      return (
+        <Layout hideNavbar>
+          <div className="min-h-screen bg-[#000] flex items-center justify-center px-4">
+            <div className="w-full max-w-sm">
+              <h1 className="text-2xl font-bold text-[#FFD700] text-center mb-8">Admin Panel</h1>
+              <div className="space-y-4">
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={e => { setPasswordInput(e.target.value); setPasswordError(false) }}
+                  onKeyDown={e => e.key === 'Enter' && handlePasswordSubmit()}
+                  placeholder="Пароль"
+                  className={`w-full px-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 ${
+                    passwordError ? 'ring-2 ring-red-500' : 'focus:ring-white/20'
+                  }`}
+                  autoFocus
+                />
+                {passwordError && (
+                  <p className="text-red-400 text-sm text-center">Неверный пароль</p>
+                )}
+                <button
+                  onClick={handlePasswordSubmit}
+                  className="w-full py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl active:scale-[0.98] transition-transform"
+                >
+                  Войти
+                </button>
+              </div>
+            </div>
+          </div>
+        </Layout>
+      )
+    }
   }
 
   // ДАШБОРД - Сетка карточек
