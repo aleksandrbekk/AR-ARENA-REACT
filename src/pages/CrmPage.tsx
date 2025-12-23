@@ -13,18 +13,18 @@ interface CrmStats {
 }
 
 interface PremiumClient {
-  id: number
-  telegram_id: string
+  id: string
+  telegram_id: number
   username: string | null
-  tariff: string
-  start_date: string
+  plan: string // было tariff
+  started_at: string // было start_date
   expires_at: string
   days_left: number
   in_channel: boolean
   in_chat: boolean
   tags: string[]
   source: string
-  total_paid: number
+  total_paid_usd: number // было total_paid
   payments_count: number
   note: string | null
 }
@@ -158,7 +158,7 @@ export function CrmPage() {
   }
 
   // Загрузка истории платежей
-  const loadPaymentHistory = async (telegramId: string) => {
+  const loadPaymentHistory = async (telegramId: number) => {
     try {
       const { data, error } = await supabase
         .from('payment_history')
@@ -320,7 +320,7 @@ export function CrmPage() {
     setActionLoading('kick')
 
     try {
-      const telegramId = parseInt(selectedClient.telegram_id)
+      const telegramId = selectedClient.telegram_id
       const response = await fetch('https://syxjkircmiwpnpagznay.supabase.co/functions/v1/telegram-channel', {
         method: 'POST',
         headers: {
@@ -364,7 +364,7 @@ export function CrmPage() {
     setActionLoading('invite')
 
     try {
-      const telegramId = parseInt(selectedClient.telegram_id)
+      const telegramId = selectedClient.telegram_id
       const response = await fetch('https://syxjkircmiwpnpagznay.supabase.co/functions/v1/telegram-channel', {
         method: 'POST',
         headers: {
@@ -508,7 +508,8 @@ export function CrmPage() {
   }
 
   // Получить русское название тарифа
-  const getTariffLabel = (tariff: string) => {
+  const getTariffLabel = (plan: string | null | undefined) => {
+    if (!plan) return 'N/A'
     const labels: Record<string, string> = {
       'test': 'ТЕСТ',
       'classic': 'CLASSIC',
@@ -516,7 +517,7 @@ export function CrmPage() {
       'platinum': 'PLATINUM',
       'private': 'PRIVATE'
     }
-    return labels[tariff] || tariff.toUpperCase()
+    return labels[plan] || plan.toUpperCase()
   }
 
   // Доступ запрещён
@@ -627,7 +628,7 @@ export function CrmPage() {
                           <span className="text-xs text-[#FFD700]">[VIP]</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-white/80">{getTariffLabel(client.tariff)}</td>
+                      <td className="px-4 py-3 text-white/80">{getTariffLabel(client.plan)}</td>
                       <td className="px-4 py-3 text-white/80">{formatDate(client.expires_at)}</td>
                       <td className="px-4 py-3">
                         <span className={client.days_left < 7 ? 'text-red-500 font-bold' : 'text-white/80'}>
@@ -662,7 +663,7 @@ export function CrmPage() {
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-b from-[#FFD700] to-[#FFA500] rounded-full flex items-center justify-center text-black font-bold text-lg">
-                    {(selectedClient.username || selectedClient.telegram_id)[0]?.toUpperCase()}
+                    {(selectedClient.username || String(selectedClient.telegram_id))[0]?.toUpperCase()}
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-white">
@@ -699,7 +700,7 @@ export function CrmPage() {
                     </div>
                     <div>
                       <span className="text-white/40">Тариф:</span>{' '}
-                      <span className="text-white">{getTariffLabel(selectedClient.tariff)}</span>
+                      <span className="text-white">{getTariffLabel(selectedClient.plan)}</span>
                     </div>
                   </div>
                 </div>
@@ -720,7 +721,7 @@ export function CrmPage() {
                 <div className="p-3 bg-zinc-800/50 rounded-xl">
                   <div className="flex justify-between items-center">
                     <span className="text-white/60 text-sm">Всего оплачено</span>
-                    <span className="text-[#FFD700] font-bold text-lg">${selectedClient.total_paid || 0}</span>
+                    <span className="text-[#FFD700] font-bold text-lg">${selectedClient.total_paid_usd || 0}</span>
                   </div>
                 </div>
 
