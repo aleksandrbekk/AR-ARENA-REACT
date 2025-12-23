@@ -13,6 +13,11 @@ try {
       persistSession: false,
       autoRefreshToken: false,
     },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
+    }
   })
 } catch (error) {
   console.error('Failed to create Supabase client with options, trying without:', error)
