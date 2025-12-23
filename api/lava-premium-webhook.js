@@ -26,13 +26,20 @@ const PERIODICITY_TO_PERIOD = {
   'PERIOD_YEAR': { days: 365, tariff: 'private', name: 'PRIVATE' }
 };
 
-// Fallback: маппинг суммы на период (в RUB)
+// Маппинг суммы на период
+// Поддерживает тестовые суммы (USD) и реальные (RUB)
 const AMOUNT_TO_PERIOD = [
-  { min: 40, max: 60, days: 30, tariff: 'test', name: 'TEST' }, // Тестовый 50 RUB
-  { min: 3000, max: 5000, days: 30, tariff: 'classic', name: 'CLASSIC' },
-  { min: 9000, max: 11000, days: 90, tariff: 'gold', name: 'GOLD' },
-  { min: 17000, max: 19000, days: 180, tariff: 'platinum', name: 'PLATINUM' },
-  { min: 32000, max: 36000, days: 365, tariff: 'private', name: 'PRIVATE' }
+  // Тестовые суммы (USD) - для тестирования
+  { min: 48, max: 52, days: 30, tariff: 'classic', name: 'CLASSIC' },    // $50
+  { min: 58, max: 62, days: 90, tariff: 'gold', name: 'GOLD' },          // $60
+  { min: 68, max: 72, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // $70
+  { min: 78, max: 82, days: 365, tariff: 'private', name: 'PRIVATE' },   // $80
+
+  // Реальные цены (RUB) - продакшн
+  { min: 3500, max: 4500, days: 30, tariff: 'classic', name: 'CLASSIC' },     // 4000 RUB
+  { min: 9500, max: 12500, days: 90, tariff: 'gold', name: 'GOLD' },          // 9900-12000 RUB
+  { min: 17000, max: 25000, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // 17900-24000 RUB
+  { min: 34000, max: 50000, days: 365, tariff: 'private', name: 'PRIVATE' }   // 34900-48000 RUB
 ];
 
 // Supabase клиент
