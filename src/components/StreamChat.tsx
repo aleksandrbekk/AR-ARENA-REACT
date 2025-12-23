@@ -53,7 +53,7 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
   useEffect(() => {
     loadMessages()
 
-    // Подписка на новые сообщения (realtime)
+    // Подписка на изменения (realtime)
     const channel = supabase
       .channel('stream_messages')
       .on(
@@ -66,6 +66,36 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
         (payload) => {
           const newMsg = payload.new as Message
           setMessages(prev => [...prev, newMsg])
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'stream_messages'
+        },
+        (payload) => {
+          const deletedId = payload.old.id as number
+          setMessages(prev => prev.filter(m => m.id !== deletedId))
+          setPinnedMessage(prev => prev?.id === deletedId ? null : prev)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'stream_messages'
+        },
+        (payload) => {
+          const updatedMsg = payload.new as Message
+          setMessages(prev => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m))
+          if (updatedMsg.is_pinned) {
+            setPinnedMessage(updatedMsg)
+          } else {
+            setPinnedMessage(prev => prev?.id === updatedMsg.id ? null : prev)
+          }
         }
       )
       .subscribe()
