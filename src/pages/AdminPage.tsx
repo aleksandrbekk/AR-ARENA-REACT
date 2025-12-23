@@ -6,21 +6,23 @@ import { UsersTab } from '../components/admin/UsersTab'
 import { GiveawaysTab } from '../components/admin/GiveawaysTab'
 import { TransactionsTab } from '../components/admin/TransactionsTab'
 import { SettingsTab } from '../components/admin/SettingsTab'
+import { UtmLinksTab } from '../components/admin/UtmLinksTab'
 import { supabase } from '../lib/supabase'
 
-type AdminSection = 'dashboard' | 'users' | 'giveaways' | 'transactions' | 'settings'
+type AdminSection = 'dashboard' | 'users' | 'giveaways' | 'transactions' | 'settings' | 'utm'
 
 interface DashboardStats {
   usersCount: number
   activeGiveawaysCount: number
   activePremiumClientsCount: number
+  utmLinksCount: number
 }
 
 export function AdminPage() {
   const { telegramUser, isLoading } = useAuth()
   const navigate = useNavigate()
   const [activeSection, setActiveSection] = useState<AdminSection>('dashboard')
-  const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0 })
+  const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0, utmLinksCount: 0 })
   const [loadingStats, setLoadingStats] = useState(true)
 
   // Проверка admin-only
@@ -37,16 +39,18 @@ export function AdminPage() {
   const loadDashboardStats = async () => {
     try {
       setLoadingStats(true)
-      const [usersRes, giveawaysRes, premiumClientsRes] = await Promise.all([
+      const [usersRes, giveawaysRes, premiumClientsRes, utmLinksRes] = await Promise.all([
         supabase.from('users').select('*', { count: 'exact', head: true }),
         supabase.from('giveaways').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('premium_clients').select('*', { count: 'exact', head: true }).gt('expires_at', new Date().toISOString())
+        supabase.from('premium_clients').select('*', { count: 'exact', head: true }).gt('expires_at', new Date().toISOString()),
+        supabase.from('utm_links').select('*', { count: 'exact', head: true })
       ])
 
       setStats({
         usersCount: usersRes.count || 0,
         activeGiveawaysCount: giveawaysRes.count || 0,
-        activePremiumClientsCount: premiumClientsRes.count || 0
+        activePremiumClientsCount: premiumClientsRes.count || 0,
+        utmLinksCount: utmLinksRes.count || 0
       })
     } catch (err) {
       console.error('Error loading dashboard stats:', err)
@@ -206,6 +210,32 @@ export function AdminPage() {
                   <div className="text-white font-medium">Настройки</div>
                 </div>
               </button>
+
+              {/* 7. UTM LINKS */}
+              <button
+                onClick={() => setActiveSection('utm')}
+                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3 col-span-2"
+              >
+                <svg
+                  className="w-8 h-8 text-[#FFD700]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                  />
+                </svg>
+                <div className="text-center">
+                  <div className="text-white font-medium">UTM-ссылки</div>
+                  <div className="text-white/60 text-sm">
+                    {loadingStats ? '...' : `${stats.utmLinksCount} ссылок`}
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -254,6 +284,7 @@ export function AdminPage() {
               {activeSection === 'giveaways' && <GiveawaysTab />}
               {activeSection === 'transactions' && <TransactionsTab />}
               {activeSection === 'settings' && <SettingsTab />}
+              {activeSection === 'utm' && <UtmLinksTab />}
             </div>
           )}
         </div>
