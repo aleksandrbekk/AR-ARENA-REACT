@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { StreamChat } from '../components/StreamChat'
 
 export function StreamPage() {
   const [searchParams] = useSearchParams()
@@ -7,9 +8,6 @@ export function StreamPage() {
 
   // YouTube Video ID (заменить на актуальный при запуске стрима)
   const YOUTUBE_VIDEO_ID = 'YOUR_VIDEO_ID'
-
-  // Telegram канал для комментариев
-  const TELEGRAM_CHANNEL = 'ARARENA_CHAT'
 
   useEffect(() => {
     // Ловим UTM source и сохраняем
@@ -20,27 +18,6 @@ export function StreamPage() {
     } else {
       const savedSource = localStorage.getItem('traffic_source')
       setSource(savedSource || 'organic')
-    }
-
-    // Скрипт для Telegram виджета комментариев
-    const script = document.createElement('script')
-    script.src = 'https://telegram.org/js/telegram-widget.js?22'
-    script.setAttribute('data-telegram-discussion', TELEGRAM_CHANNEL)
-    script.setAttribute('data-comments-limit', '50')
-    script.setAttribute('data-color', 'F7AB1B')
-    script.setAttribute('data-dark', '1')
-    script.async = true
-
-    const container = document.getElementById('telegram-comments')
-    if (container) {
-      container.innerHTML = ''
-      container.appendChild(script)
-    }
-
-    return () => {
-      if (container) {
-        container.innerHTML = ''
-      }
     }
   }, [searchParams])
 
@@ -99,7 +76,7 @@ export function StreamPage() {
         </div>
 
         {/* CTA Button */}
-        <div className="mb-10">
+        <div className="mb-8">
           <a
             href={botLink}
             target="_blank"
@@ -111,6 +88,11 @@ export function StreamPage() {
           <p className="text-center text-white/40 text-sm mt-3">
             Эксклюзивные сигналы, закрытый чат, персональное сопровождение
           </p>
+        </div>
+
+        {/* Live Chat */}
+        <div className="mb-8">
+          <StreamChat />
         </div>
 
         {/* Features */}
@@ -127,31 +109,6 @@ export function StreamPage() {
               <div className="text-white/50 text-sm">{item.desc}</div>
             </div>
           ))}
-        </div>
-
-        {/* Telegram Comments */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <svg className="w-6 h-6 text-[#26A5E4]" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
-            </svg>
-            Комментарии
-          </h2>
-
-          <div
-            id="telegram-comments"
-            className="bg-zinc-900/30 rounded-xl border border-white/10 min-h-[300px] overflow-hidden"
-          >
-            {/* Telegram widget загрузится сюда */}
-            <div className="flex items-center justify-center h-[300px] text-white/40">
-              <div className="text-center">
-                <svg className="w-12 h-12 mx-auto mb-3 text-[#26A5E4] animate-pulse" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
-                </svg>
-                <div>Загрузка комментариев...</div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Footer CTA */}
