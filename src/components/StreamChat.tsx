@@ -200,8 +200,11 @@ export function StreamChat() {
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
           <span className="text-white font-medium">Чат трансляции</span>
+          {isAdmin && <span className="text-xs text-yellow-500 ml-2">★ ADMIN</span>}
         </div>
-        <span className="text-white/40 text-sm">{messages.length} сообщений</span>
+        <span className="text-white/40 text-sm">
+          {adminUserId ? `ID: ${adminUserId}` : 'Guest'} • {messages.length}
+        </span>
       </div>
 
       {/* Pinned Message */}
