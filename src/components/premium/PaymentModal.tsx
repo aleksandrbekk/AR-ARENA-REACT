@@ -46,16 +46,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
     // Маппинг тарифа на periodicity (Lava API)
     const TARIFF_PERIODICITY: Record<string, string> = {
-        'classic': 'MONTHLY',         // 1 месяц - 3400 RUB
-        'trader': 'PERIOD_90_DAYS',   // 3 месяца - 9600 RUB
-        'platinum': 'PERIOD_180_DAYS', // 6 месяцев - 18000 RUB
-        'private': 'PERIOD_YEAR'      // 12 месяцев - 33600 RUB
+        'classic': 'MONTHLY',         // 1 месяц
+        'gold': 'PERIOD_90_DAYS',     // 3 месяца
+        'platinum': 'PERIOD_180_DAYS', // 6 месяцев
+        'private': 'PERIOD_YEAR'      // 12 месяцев
     }
 
     // Цены в USD для крипто-оплаты
     const TARIFF_USD_PRICES: Record<string, number> = {
         'classic': 3,     // ТЕСТ (прод: 50, минимум 0xProcessing = $3)
-        'trader': 100,    // 3 мес
+        'gold': 100,      // 3 мес
         'platinum': 200,  // 6 мес
         'private': 400    // 12 мес
     }
@@ -202,9 +202,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const getTariffColor = (t?: Tariff) => {
         if (!t) return 'text-white'
         switch (t.id) {
+            case 'gold': return 'text-[#FFD700]'
             case 'platinum': return 'text-[#8B5CF6]'
             case 'private': return 'text-[#F43F5E]'
-            case 'trader': return 'text-[#10b981]'
             default: return 'text-yellow-400'
         }
     }
