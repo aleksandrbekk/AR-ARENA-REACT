@@ -82,17 +82,21 @@ export function StreamPage() {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
-          table: 'stream_settings',
-          filter: 'id=eq.1'
+          table: 'stream_settings'
         },
         (payload) => {
-          const newSettings = payload.new as StreamSettings
-          setSettings(newSettings)
+          console.log('Realtime update received:', payload)
+          if (payload.new) {
+            const newSettings = payload.new as StreamSettings
+            setSettings(newSettings)
+          }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status)
+      })
 
     return () => {
       supabase.removeChannel(channel)
