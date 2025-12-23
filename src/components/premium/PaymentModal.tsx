@@ -120,8 +120,78 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         }
     }
 
-    const handleCryptoBuy = () => {
-        alert('Скоро подключим! (Оплата криптовалютой)')
+    const [cryptoLoading, setCryptoLoading] = useState(false)
+
+    // Цены в USD для крипто-оплаты
+    const TARIFF_USD_PRICES: Record<string, number> = {
+        'classic': 55,    // ~5000 RUB
+        'trader': 110,    // ~10000 RUB
+        'platinum': 200,  // ~18000 RUB
+        'private': 380    // ~34000 RUB
+    }
+
+    const handleCryptoBuy = async () => {
+        // @ts-ignore
+        const tg = window.Telegram?.WebApp
+        const telegramId = tg?.initDataUnsafe?.user?.id
+        const tgUsername = username.trim().replace('@', '')
+
+        if (!telegramId && !tgUsername) {
+            alert('Пожалуйста, введите ваш Telegram username')
+            return
+        }
+
+        if (!tariff) {
+            alert('Ошибка: не выбран тариф')
+            return
+        }
+
+        setCryptoLoading(true)
+
+        try {
+            const tariffKey = tariff.id.toLowerCase()
+            const amountUSD = TARIFF_USD_PRICES[tariffKey] || 55
+
+            console.log('[PaymentModal] Creating crypto payment:', {
+                telegramId,
+                tgUsername,
+                tariffId: tariff.id,
+                amountUSD
+            })
+
+            const response = await fetch('/api/0xprocessing-create-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    telegramId: telegramId || undefined,
+                    telegramUsername: tgUsername || undefined,
+                    email: `${telegramId || tgUsername}@premium.ararena.pro`,
+                    amountUSD,
+                    currency: 'USDT',
+                    tariff: tariffKey
+                })
+            })
+
+            const data = await response.json()
+            console.log('[PaymentModal] Crypto API response:', data)
+
+            if (data.ok && data.paymentUrl) {
+                // @ts-ignore
+                if (window.Telegram?.WebApp?.openLink) {
+                    // @ts-ignore
+                    window.Telegram.WebApp.openLink(data.paymentUrl)
+                } else {
+                    window.open(data.paymentUrl, '_blank')
+                }
+            } else {
+                alert('Ошибка создания платежа: ' + (data.error || 'Неизвестная ошибка'))
+            }
+        } catch (error) {
+            console.error('[PaymentModal] Crypto Error:', error)
+            alert('Ошибка сети. Попробуйте ещё раз.')
+        } finally {
+            setCryptoLoading(false)
+        }
     }
 
     // Determine title color based on tariff name or aurora colors
@@ -230,7 +300,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                             {/* Crypto Payment */}
                             <button
                                 onClick={handleCryptoBuy}
-                                className="w-full group relative overflow-hidden rounded-xl p-4 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+                                disabled={cryptoLoading}
+                                className="w-full group relative overflow-hidden rounded-xl p-4 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
                             >
                                 {/* Background Gradient */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-600 opacity-90 group-hover:opacity-100 transition-opacity" />
@@ -246,7 +317,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
                                     <div className="text-left">
                                         <div className="text-white font-bold text-lg leading-tight">
-                                            Криптовалюта
+                                            {cryptoLoading ? 'Создаём платёж...' : 'Криптовалюта'}
                                         </div>
                                         <div className="text-white/80 text-xs font-medium">
                                             USDT / BTC / ETH
