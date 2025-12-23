@@ -59,9 +59,9 @@ export function StreamPage() {
     }
   }, [])
 
-  // Загрузка настроек и подписка на Realtime
+  // Загрузка настроек + polling каждые 3 секунды (резерв для Realtime)
   useEffect(() => {
-    // Загружаем начальные настройки
+    // Функция загрузки настроек
     const loadSettings = async () => {
       const { data } = await supabase
         .from('stream_settings')
@@ -70,13 +70,25 @@ export function StreamPage() {
         .single()
 
       if (data) {
-        setSettings(data)
+        // Обновляем только если данные изменились
+        setSettings(prev => {
+          if (prev.show_premium_button !== data.show_premium_button ||
+              prev.button_text !== data.button_text ||
+              prev.button_url !== data.button_url) {
+            return data
+          }
+          return prev
+        })
       }
     }
 
+    // Загружаем сразу
     loadSettings()
 
-    // Подписываемся на изменения в реалтайме
+    // Polling каждые 3 секунды как резерв
+    const pollInterval = setInterval(loadSettings, 3000)
+
+    // Realtime как основной способ (если работает - быстрее)
     const channel = supabase
       .channel('stream_settings_changes')
       .on(
@@ -87,18 +99,16 @@ export function StreamPage() {
           table: 'stream_settings'
         },
         (payload) => {
-          console.log('Realtime update received:', payload)
           if (payload.new) {
             const newSettings = payload.new as StreamSettings
             setSettings(newSettings)
           }
         }
       )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status)
-      })
+      .subscribe()
 
     return () => {
+      clearInterval(pollInterval)
       supabase.removeChannel(channel)
     }
   }, [])
