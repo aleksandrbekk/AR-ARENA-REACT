@@ -15,7 +15,7 @@ const BOT_TOKEN = '8265126337:AAHBKYlU6fQA09nkJwsMaBQtP16CXSq1Cnc';
 
 // Маппинг суммы USD на период подписки (круглые суммы)
 const AMOUNT_TO_PERIOD = [
-  { min: 0, max: 10, days: 30, tariff: 'test', name: 'TEST' },
+  { min: 1, max: 5, days: 30, tariff: 'test', name: 'TEST' },             // $2 тест
   { min: 45, max: 55, days: 30, tariff: 'classic', name: 'CLASSIC' },     // $50
   { min: 95, max: 105, days: 90, tariff: 'trader', name: 'TRADER' },      // $100
   { min: 195, max: 205, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // $200
