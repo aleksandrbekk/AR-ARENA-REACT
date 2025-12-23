@@ -173,6 +173,37 @@ export function FullCrmPage() {
   const premiumUsers = users.filter(u => u.status === 'premium')
   const nonPremiumUsers = users.filter(u => u.status !== 'premium')
 
+  // ============ ДОБАВИТЬ ДНИ ============
+  const addDays = async (clientId: string, telegramId: number, currentExpires: string, days: number) => {
+    try {
+      const currentDate = new Date(currentExpires)
+      const now = new Date()
+      // Если подписка истекла, добавляем от сегодня
+      const baseDate = currentDate > now ? currentDate : now
+      const newExpires = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000)
+
+      const { error } = await supabase
+        .from('premium_clients')
+        .update({ expires_at: newExpires.toISOString() })
+        .eq('id', clientId)
+
+      if (error) throw error
+
+      // Обновляем локальный стейт
+      setPremiumClients(prev => prev.map(c =>
+        c.id === clientId ? { ...c, expires_at: newExpires.toISOString() } : c
+      ))
+
+      showToast({ variant: 'success', title: `+${days} дней добавлено` })
+
+      // Уведомляем пользователя
+      await sendMessage(telegramId, `🎁 Вам начислено <b>${days} бонусных дней</b> подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')}`)
+    } catch (err) {
+      console.error('Error adding days:', err)
+      showToast({ variant: 'error', title: 'Ошибка добавления дней' })
+    }
+  }
+
   // ============ СООБЩЕНИЯ ============
   const sendMessage = async (telegramId: number, message: string): Promise<boolean> => {
     try {
@@ -596,6 +627,20 @@ export function FullCrmPage() {
                             {client.last_payment_method === 'lava.top' ? '💳' : '🪙'} {client.last_payment_method}
                           </div>
                         )}
+                      </div>
+
+                      {/* Кнопки добавления дней */}
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-white/5">
+                        <span className="text-xs text-white/30 self-center mr-1">Добавить:</span>
+                        {[7, 14, 30, 90].map(days => (
+                          <button
+                            key={days}
+                            onClick={() => addDays(client.id, client.telegram_id, client.expires_at, days)}
+                            className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 active:scale-95 rounded-lg text-xs font-medium text-white/70 hover:text-white transition-all"
+                          >
+                            +{days}д
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )
