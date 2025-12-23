@@ -244,21 +244,19 @@ export function UtmLinksTab() {
       </div>
 
       {/* Инструкция */}
-      <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl p-4 border border-yellow-500/20">
-        <div className="flex items-start gap-3">
-          <div className="text-2xl">💡</div>
-          <div>
-            <div className="text-white font-semibold mb-1">
-              {activeTab === 'payment' ? 'Как работают UTM-ссылки на оплату' : 'Как работают ссылки на инструменты'}
-            </div>
-            <div className="text-white/60 text-sm">
-              {activeTab === 'payment'
-                ? 'Создайте ссылку для каждого источника трафика. Когда человек переходит по ссылке — засчитывается клик. Когда покупает подписку — конверсия.'
-                : 'Ссылки ведут на стрим или другие инструменты. Отслеживайте откуда приходит трафик. UTM сохраняется и передается дальше при покупке.'}
+      {activeTab === 'payment' && (
+        <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl p-4 border border-yellow-500/20">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">💡</div>
+            <div>
+              <div className="text-white font-semibold mb-1">Как работают UTM-ссылки</div>
+              <div className="text-white/60 text-sm">
+                Создайте ссылку для каждого источника трафика. Переход по ссылке = клик. Покупка подписки = конверсия.
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Кнопка создать */}
       <button
@@ -365,85 +363,58 @@ export function UtmLinksTab() {
 
       {/* === БЛОК ССЫЛОК НА ИНСТРУМЕНТЫ === */}
       {activeTab === 'tools' && (
-        <>
-          {/* Статистика */}
-          {toolLinks.length > 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
-                <div className="text-white/50 text-xs mb-1">Всего ссылок</div>
-                <div className="text-white font-bold text-lg">{toolLinks.length}</div>
-              </div>
-              <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
-                <div className="text-white/50 text-xs mb-1">Всего переходов</div>
-                <div className="text-[#FFD700] font-bold text-lg">
-                  {toolLinks.reduce((sum, l) => sum + l.clicks, 0)}
-                </div>
+        <div className="space-y-2">
+          {toolLinks.length === 0 ? (
+            <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl p-8 border border-white/5 text-center">
+              <div className="text-4xl mb-3">🔗</div>
+              <div className="text-white/40">Нет ссылок</div>
+              <div className="text-white/30 text-sm mt-1">
+                Создайте ссылку для отслеживания трафика
               </div>
             </div>
-          )}
+          ) : (
+            toolLinks.map((link) => (
+              <div
+                key={link.id}
+                className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10"
+              >
+                {/* Верхняя строка: название + переходы */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-white font-semibold">{link.name}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#FFD700] font-bold text-lg">{link.clicks}</span>
+                    <span className="text-white/40 text-xs">переходов</span>
+                  </div>
+                </div>
 
-          {/* Список ссылок на инструменты */}
-          <div className="space-y-3">
-            {toolLinks.length === 0 ? (
-              <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl p-8 border border-white/5 text-center">
-                <div className="text-4xl mb-3">🛠</div>
-                <div className="text-white/40">Нет ссылок на инструменты</div>
-                <div className="text-white/30 text-sm mt-1">
-                  Создайте ссылку для отслеживания трафика на стрим
+                {/* Ссылка */}
+                <div className="text-white/30 text-xs font-mono mb-3 truncate">
+                  {getToolUrl(link)}
+                </div>
+
+                {/* Кнопки */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => copyToClipboard(getToolUrl(link), `tool-${link.id}`)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                      copiedId === `tool-${link.id}`
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        : 'bg-zinc-800 text-white/80 active:scale-[0.98]'
+                    }`}
+                  >
+                    {copiedId === `tool-${link.id}` ? '✓ Скопировано' : 'Копировать ссылку'}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteLink(link.id, link.name, true)}
+                    className="px-4 py-2 bg-zinc-800 text-red-400 text-sm rounded-lg active:scale-[0.98] transition-transform"
+                  >
+                    Удалить
+                  </button>
                 </div>
               </div>
-            ) : (
-              toolLinks.map((link) => (
-                <div
-                  key={link.id}
-                  className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-4 border border-white/10"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="text-white font-bold">{link.name}</div>
-                        <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
-                          {link.tool_type}
-                        </span>
-                      </div>
-                      <div className="text-white/40 text-xs font-mono break-all">
-                        {getToolUrl(link)}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => copyToClipboard(getToolUrl(link), `tool-${link.id}`)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex-shrink-0 ml-2 ${
-                        copiedId === `tool-${link.id}`
-                          ? 'bg-green-500/20 text-green-500 border border-green-500/30'
-                          : 'bg-zinc-700 text-white/80 active:scale-95'
-                      }`}
-                    >
-                      {copiedId === `tool-${link.id}` ? '✓' : 'Копировать'}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-zinc-800/50 rounded-lg px-3 py-1.5">
-                        <span className="text-white/50 text-xs">Переходов: </span>
-                        <span className="text-[#FFD700] font-semibold">{link.clicks}</span>
-                      </div>
-                      <div className="text-white/40 text-xs">
-                        {formatDate(link.created_at)}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteLink(link.id, link.name, true)}
-                      className="px-3 py-1.5 bg-red-500/10 text-red-500 text-xs font-semibold rounded-lg border border-red-500/20 active:scale-95 transition-transform"
-                    >
-                      Удалить
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </>
+            ))
+          )}
+        </div>
       )}
 
       {/* Модалка создания ссылки */}
@@ -483,18 +454,6 @@ export function UtmLinksTab() {
                 </div>
               </div>
 
-              {activeTab === 'tools' && (
-                <div>
-                  <label className="text-white/60 text-sm mb-2 block">Тип инструмента:</label>
-                  <select
-                    value={formData.tool_type}
-                    onChange={(e) => setFormData({ ...formData, tool_type: e.target.value })}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/30"
-                  >
-                    <option value="stream">Стрим (stream)</option>
-                  </select>
-                </div>
-              )}
             </div>
 
             <div className="flex gap-3 mt-6">
