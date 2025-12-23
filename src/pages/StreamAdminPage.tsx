@@ -1,9 +1,33 @@
+import { useState } from 'react'
 import { StreamChat } from '../components/StreamChat'
 import { TapGame } from '../components/TapGame'
 
 // Admin stream page with forced admin mode
 export function StreamAdminPage() {
   const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
+  const [utmSource, setUtmSource] = useState('')
+  const [copiedLink, setCopiedLink] = useState(false)
+
+  const streamLink = utmSource
+    ? `https://ararena.pro/stream?utm_source=${encodeURIComponent(utmSource)}`
+    : 'https://ararena.pro/stream'
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(streamLink)
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    } catch {
+      const textArea = document.createElement('textarea')
+      textArea.value = streamLink
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -37,6 +61,36 @@ export function StreamAdminPage() {
             Разбираем год, планируем 2026
           </p>
         </header>
+
+        {/* UTM Link Generator */}
+        <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">🔗</span>
+            <span className="text-white font-medium">Ссылка на трансляцию</span>
+          </div>
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              placeholder="utm_source (instagram, telegram, youtube...)"
+              value={utmSource}
+              onChange={(e) => setUtmSource(e.target.value.replace(/\s/g, '_').toLowerCase())}
+              className="flex-1 px-3 py-2 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 text-sm focus:outline-none focus:border-yellow-500/30"
+            />
+            <button
+              onClick={copyLink}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                copiedLink
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'bg-[#FFD700] text-black'
+              }`}
+            >
+              {copiedLink ? '✓ Скопировано' : 'Копировать'}
+            </button>
+          </div>
+          <div className="text-white/40 text-xs font-mono break-all bg-zinc-800/50 px-3 py-2 rounded-lg">
+            {streamLink}
+          </div>
+        </div>
 
         {/* YouTube Player */}
         <div className="relative mb-8 group">
