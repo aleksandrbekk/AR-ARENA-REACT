@@ -203,11 +203,11 @@ export function TapGame({ userName, isAdmin = false }: TapGameProps) {
       <button
         onClick={handleTap}
         disabled={!userName}
-        className={`relative w-14 h-14 rounded-full bg-gradient-to-b from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-lg transition-transform active:scale-90 ${
+        className={`relative w-14 h-14 rounded-full bg-gradient-to-b from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-lg shadow-yellow-500/30 transition-transform active:scale-90 ${
           isAnimating ? 'scale-95' : ''
         } ${!userName ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        <span className="text-2xl">🪙</span>
+        <img src="/icons/arcoin.png" alt="coin" className="w-10 h-10 object-contain" />
         {isAnimating && (
           <span className="absolute -top-2 text-[#FFD700] text-sm font-bold animate-ping">+1</span>
         )}
