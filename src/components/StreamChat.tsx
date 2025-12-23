@@ -274,7 +274,7 @@ export function StreamChat() {
 
                     {/* Admin controls */}
                     {isAdmin && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handlePin(msg)}
                           className={`p-1 rounded ${pinnedMessage?.id === msg.id ? 'text-yellow-500' : 'text-white/40 hover:text-yellow-500'}`}
