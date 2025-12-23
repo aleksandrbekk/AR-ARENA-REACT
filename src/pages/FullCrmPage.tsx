@@ -13,7 +13,6 @@ interface User {
   first_name: string | null
   last_name: string | null
   avatar_url: string | null
-  balance_ar: number
   created_at: string
   status: 'new' | 'active' | 'premium' | 'expired'
   premium_expires?: string | null
@@ -34,6 +33,7 @@ type TabType = 'users' | 'premium' | 'broadcast'
 
 // ============ КОНСТАНТЫ ============
 const BOT_TOKEN = '8265126337:AAHBKYlU6fQA09nkJwsMaBQtP16CXSq1Cnc'
+const ADMIN_PASSWORD = 'arena2024'
 
 // ============ КОМПОНЕНТ ============
 export function FullCrmPage() {
@@ -52,20 +52,55 @@ export function FullCrmPage() {
   const [broadcastProgress, setBroadcastProgress] = useState({ sent: 0, total: 0 })
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
+  // Модалка для отправки сообщения
+  const [showMessageModal, setShowMessageModal] = useState(false)
+  const [messageText, setMessageText] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
+
+  // Защита паролем для браузера
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [passwordError, setPasswordError] = useState(false)
+
   const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
+  const isTelegramWebApp = !!window.Telegram?.WebApp?.initData
   const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
+
+  // Проверка авторизации при загрузке
+  useEffect(() => {
+    if (isTelegramWebApp) {
+      // В Telegram - проверяем по ID
+      setIsAuthenticated(isAdmin)
+    } else {
+      // В браузере - проверяем localStorage
+      const saved = localStorage.getItem('admin_auth')
+      if (saved === 'true') {
+        setIsAuthenticated(true)
+      }
+    }
+  }, [isTelegramWebApp, isAdmin])
+
+  const handlePasswordSubmit = () => {
+    if (passwordInput === ADMIN_PASSWORD) {
+      setIsAuthenticated(true)
+      localStorage.setItem('admin_auth', 'true')
+      setPasswordError(false)
+    } else {
+      setPasswordError(true)
+    }
+  }
 
   // ============ ЗАГРУЗКА ============
   useEffect(() => {
-    if (isAdmin) loadData()
-  }, [isAdmin])
+    if (isAuthenticated) loadData()
+  }, [isAuthenticated])
 
   const loadData = async () => {
     try {
       setLoading(true)
       const { data: usersData } = await supabase
         .from('users')
-        .select('id, telegram_id, username, first_name, last_name, avatar_url, balance_ar, created_at')
+        .select('id, telegram_id, username, first_name, last_name, avatar_url, created_at')
         .order('created_at', { ascending: false })
 
       const { data: premiumData } = await supabase
@@ -182,14 +217,53 @@ export function FullCrmPage() {
   }, [navigate, selectedUser])
 
   // ============ ДОСТУП ============
-  if (!isLoading && !isAdmin) {
-    return (
-      <Layout hideNavbar>
-        <div className="flex flex-col items-center justify-center min-h-screen">
-          <div className="text-white/40 text-lg">Доступ запрещён</div>
-        </div>
-      </Layout>
-    )
+  // В Telegram - проверяем ID, в браузере - показываем форму пароля
+  if (!isLoading && !isAuthenticated) {
+    // Если в Telegram и не админ - запрещаем
+    if (isTelegramWebApp && !isAdmin) {
+      return (
+        <Layout hideNavbar>
+          <div className="flex flex-col items-center justify-center min-h-screen">
+            <div className="text-white/40 text-lg">Доступ запрещён</div>
+          </div>
+        </Layout>
+      )
+    }
+
+    // Если в браузере - показываем форму пароля
+    if (!isTelegramWebApp) {
+      return (
+        <Layout hideNavbar>
+          <div className="min-h-screen bg-[#000] flex items-center justify-center px-4">
+            <div className="w-full max-w-sm">
+              <h1 className="text-2xl font-bold text-white text-center mb-8">Admin CRM</h1>
+              <div className="space-y-4">
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={e => { setPasswordInput(e.target.value); setPasswordError(false) }}
+                  onKeyDown={e => e.key === 'Enter' && handlePasswordSubmit()}
+                  placeholder="Пароль"
+                  className={`w-full px-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 ${
+                    passwordError ? 'ring-2 ring-red-500' : 'focus:ring-white/20'
+                  }`}
+                  autoFocus
+                />
+                {passwordError && (
+                  <p className="text-red-400 text-sm text-center">Неверный пароль</p>
+                )}
+                <button
+                  onClick={handlePasswordSubmit}
+                  className="w-full py-3 bg-white text-black font-semibold rounded-xl active:scale-[0.98] transition-transform"
+                >
+                  Войти
+                </button>
+              </div>
+            </div>
+          </div>
+        </Layout>
+      )
+    }
   }
 
   if (loading) {
@@ -234,10 +308,6 @@ export function FullCrmPage() {
             {/* Информация */}
             <div className="bg-zinc-900/50 rounded-2xl overflow-hidden mb-6">
               <div className="px-4 py-3 flex justify-between border-b border-white/5">
-                <span className="text-white/50">Баланс AR</span>
-                <span className="text-[#FFD700] font-medium">{selectedUser.balance_ar || 0}</span>
-              </div>
-              <div className="px-4 py-3 flex justify-between border-b border-white/5">
                 <span className="text-white/50">Регистрация</span>
                 <span className="text-white">{formatDate(selectedUser.created_at)}</span>
               </div>
@@ -251,16 +321,53 @@ export function FullCrmPage() {
 
             {/* Действия */}
             <button
-              onClick={async () => {
-                const msg = prompt('Сообщение:')
-                if (msg && await sendMessage(selectedUser.telegram_id, msg)) {
-                  showToast({ variant: 'success', title: 'Отправлено' })
-                }
-              }}
+              onClick={() => { setMessageText(''); setShowMessageModal(true) }}
               className="w-full py-4 bg-white/10 hover:bg-white/15 rounded-2xl text-white font-medium transition-colors"
             >
               Написать сообщение
             </button>
+
+            {/* Модалка сообщения */}
+            {showMessageModal && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end justify-center z-50">
+                <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Сообщение</h3>
+                    <button
+                      onClick={() => setShowMessageModal(false)}
+                      className="w-8 h-8 flex items-center justify-center text-white/60 text-2xl"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <textarea
+                    value={messageText}
+                    onChange={e => setMessageText(e.target.value)}
+                    placeholder="Введите сообщение..."
+                    className="w-full h-32 bg-zinc-800 rounded-xl p-4 text-white placeholder-white/30 focus:outline-none resize-none mb-4"
+                    autoFocus
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!messageText.trim()) return
+                      setSendingMessage(true)
+                      const success = await sendMessage(selectedUser.telegram_id, messageText)
+                      setSendingMessage(false)
+                      if (success) {
+                        showToast({ variant: 'success', title: 'Сообщение отправлено' })
+                        setShowMessageModal(false)
+                      } else {
+                        showToast({ variant: 'error', title: 'Ошибка отправки' })
+                      }
+                    }}
+                    disabled={sendingMessage || !messageText.trim()}
+                    className="w-full py-4 bg-white text-black font-semibold rounded-xl disabled:opacity-30 active:scale-[0.98] transition-transform"
+                  >
+                    {sendingMessage ? 'Отправка...' : 'Отправить'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Layout>
