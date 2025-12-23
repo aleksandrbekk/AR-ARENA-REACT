@@ -479,7 +479,11 @@ export function FullCrmPage() {
             <div className="bg-zinc-900 rounded-2xl overflow-hidden mb-4">
               <div className="px-4 py-3 flex justify-between border-b border-white/5">
                 <span className="text-white/50">Всего оплачено</span>
-                <span className="text-white font-medium">${client.total_paid_usd || 0}</span>
+                <span className="text-white font-medium">
+                  {client.source === 'lava.top'
+                    ? `${(client.total_paid_usd || 0).toLocaleString('ru-RU')} ₽`
+                    : `$${client.total_paid_usd || 0}`}
+                </span>
               </div>
               <div className="px-4 py-3 flex justify-between border-b border-white/5">
                 <span className="text-white/50">Платежей</span>
@@ -776,6 +780,39 @@ export function FullCrmPage() {
           {/* ============ PREMIUM ============ */}
           {activeTab === 'premium' && (
             <div className="space-y-4">
+              {/* Статистика */}
+              {(() => {
+                const totalRub = premiumClients
+                  .filter(c => c.source === 'lava.top')
+                  .reduce((sum, c) => sum + (c.total_paid_usd || 0), 0)
+                const totalUsd = premiumClients
+                  .filter(c => c.source === '0xprocessing')
+                  .reduce((sum, c) => sum + (c.total_paid_usd || 0), 0)
+                const activeClients = premiumClients.filter(c => getDaysRemaining(c.expires_at) > 0).length
+                const totalPayments = premiumClients.reduce((sum, c) => sum + (c.payments_count || 1), 0)
+
+                return (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-zinc-900 rounded-xl p-4">
+                      <div className="text-white/40 text-xs mb-1">Выручка (RUB)</div>
+                      <div className="text-xl font-bold text-white">{totalRub.toLocaleString('ru-RU')} ₽</div>
+                    </div>
+                    <div className="bg-zinc-900 rounded-xl p-4">
+                      <div className="text-white/40 text-xs mb-1">Выручка (USD)</div>
+                      <div className="text-xl font-bold text-white">${totalUsd.toLocaleString('en-US')}</div>
+                    </div>
+                    <div className="bg-zinc-900 rounded-xl p-4">
+                      <div className="text-white/40 text-xs mb-1">Активных</div>
+                      <div className="text-xl font-bold text-green-400">{activeClients}</div>
+                    </div>
+                    <div className="bg-zinc-900 rounded-xl p-4">
+                      <div className="text-white/40 text-xs mb-1">Платежей</div>
+                      <div className="text-xl font-bold text-white">{totalPayments}</div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Поиск */}
               <div className="relative">
                 <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -904,7 +941,11 @@ export function FullCrmPage() {
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
                           <span className="text-white/40">Оплачено</span>
-                          <span className="text-white font-medium">${client.total_paid_usd || 0}</span>
+                          <span className="text-white font-medium">
+                            {client.source === 'lava.top'
+                              ? `${(client.total_paid_usd || 0).toLocaleString('ru-RU')} ₽`
+                              : `$${client.total_paid_usd || 0}`}
+                          </span>
                         </div>
                         <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
                           <span className="text-white/40">Платежей</span>
