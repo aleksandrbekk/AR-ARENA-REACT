@@ -15,7 +15,11 @@ interface Message {
 // Админы трансляции
 const STREAM_ADMINS = [190202791, 288542643, 288475216]
 
-export function StreamChat() {
+interface StreamChatProps {
+  forceAdmin?: boolean
+}
+
+export function StreamChat({ forceAdmin = false }: StreamChatProps) {
   const { telegramUser } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -40,9 +44,9 @@ export function StreamChat() {
   const currentUser = telegramWebUser || telegramUser || (isNameSet ? { id: null, first_name: guestName, username: null } : null)
   const canWrite = !!currentUser
 
-  // Проверка админа (Telegram WebApp или useAuth)
+  // Проверка админа (Telegram WebApp, useAuth, или forceAdmin)
   const adminUserId = telegramWebUser?.id || telegramUser?.id
-  const isAdmin = adminUserId ? STREAM_ADMINS.includes(adminUserId) : false
+  const isAdmin = forceAdmin || (adminUserId ? STREAM_ADMINS.includes(adminUserId) : false)
   const isMessageAdmin = (msg: Message) => msg.telegram_id && STREAM_ADMINS.includes(msg.telegram_id)
 
   // Загрузка сообщений
