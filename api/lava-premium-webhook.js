@@ -230,9 +230,30 @@ async function sendTelegramMessage(telegramId, text, replyMarkup = null) {
   }
 }
 
-// Создать invite-ссылки через Edge Function (канал + чат)
+// Бот KIKER для управления каналом/чатом
+const KIKER_BOT_TOKEN = '***REMOVED***';
+const CHANNEL_ID = '-1001634734020';
+const CHAT_ID = '-1001828659569';
+
+// Создать invite-ссылку напрямую через Telegram API
+async function createDirectInviteLink(chatId) {
+  try {
+    const expireDate = Math.floor(Date.now() / 1000) + 86400; // 24 часа
+    const response = await fetch(
+      `https://api.telegram.org/bot${KIKER_BOT_TOKEN}/createChatInviteLink?chat_id=${chatId}&member_limit=1&expire_date=${expireDate}`
+    );
+    const result = await response.json();
+    return result.ok ? result.result.invite_link : null;
+  } catch (error) {
+    log('❌ Direct invite link error', { error: error.message });
+    return null;
+  }
+}
+
+// Создать invite-ссылки (канал + чат)
 async function createInviteLinks(telegramId) {
   try {
+    // Пробуем через Edge Function
     const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-channel`, {
       method: 'POST',
       headers: {
@@ -245,13 +266,26 @@ async function createInviteLinks(telegramId) {
     const result = await response.json();
     log('📨 Invite response', result);
 
-    const channelLink = result.results?.channel?.result?.invite_link || null;
-    const chatLink = result.results?.chat?.result?.invite_link || null;
+    let channelLink = result.results?.channel?.result?.invite_link || null;
+    let chatLink = result.results?.chat?.result?.invite_link || null;
+
+    // Fallback: если Edge Function не вернула ссылки, создаём напрямую
+    if (!channelLink) {
+      log('⚠️ Channel link missing, creating directly');
+      channelLink = await createDirectInviteLink(CHANNEL_ID);
+    }
+    if (!chatLink) {
+      log('⚠️ Chat link missing, creating directly');
+      chatLink = await createDirectInviteLink(CHAT_ID);
+    }
 
     return { channelLink, chatLink };
   } catch (error) {
-    log('❌ Create invite error', { error: error.message });
-    return { channelLink: null, chatLink: null };
+    log('❌ Create invite error, trying direct', { error: error.message });
+    // Полный fallback
+    const channelLink = await createDirectInviteLink(CHANNEL_ID);
+    const chatLink = await createDirectInviteLink(CHAT_ID);
+    return { channelLink, chatLink };
   }
 }
 

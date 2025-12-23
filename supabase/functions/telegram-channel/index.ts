@@ -78,7 +78,7 @@ serve(async (req) => {
 
     if (action === 'invite') {
       // Создаём одноразовую ссылку на канал
-      const linkRes = await fetch(
+      const channelLinkRes = await fetch(
         `https://api.telegram.org/bot${BOT_TOKEN}/createChatInviteLink`,
         {
           method: 'POST',
@@ -90,7 +90,22 @@ serve(async (req) => {
           })
         }
       )
-      results.channel = await linkRes.json()
+      results.channel = await channelLinkRes.json()
+
+      // Создаём одноразовую ссылку на чат
+      const chatLinkRes = await fetch(
+        `https://api.telegram.org/bot${BOT_TOKEN}/createChatInviteLink`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + 86400 // 24 часа
+          })
+        }
+      )
+      results.chat = await chatLinkRes.json()
     }
 
     return new Response(JSON.stringify({ success: true, results }), {
