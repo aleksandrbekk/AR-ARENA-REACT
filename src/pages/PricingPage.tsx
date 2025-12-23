@@ -102,10 +102,10 @@ const tariffs: Tariff[] = [
     discount: null,
     badge: 'ХИТ',
     cardImage: '/cards/platinum.png',
-    auroraColors: ['#8B5CF6', '#3B82F6'], // Violet + Blue
-    auroraOpacity: 0.9,
-    auroraBlur: 10,
-    auroraSpeed: 4,
+    auroraColors: ['#E5E4E2', '#A8A8A8'], // Platinum silver
+    auroraOpacity: 0.7,
+    auroraBlur: 12,
+    auroraSpeed: 5,
     isFeatured: false,
     baseFeatures: [],
     bonuses: [
@@ -117,7 +117,7 @@ const tariffs: Tariff[] = [
       'AMA-сессии с Алексеем'
     ],
     buttonStyle: 'outline',
-    buttonColor: '#7B68EE'
+    buttonColor: '#E5E4E2' // Platinum
   },
   {
     id: 'private',
