@@ -37,11 +37,12 @@ export function StreamChat() {
 
   // Текущий пользователь (из Telegram WebApp или гость)
   const telegramWebUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-  const currentUser = telegramWebUser || (isNameSet ? { id: null, first_name: guestName, username: null } : null)
+  const currentUser = telegramWebUser || telegramUser || (isNameSet ? { id: null, first_name: guestName, username: null } : null)
   const canWrite = !!currentUser
 
-  // Проверка админа (только для Telegram пользователей)
-  const isAdmin = telegramWebUser && STREAM_ADMINS.includes(telegramWebUser.id)
+  // Проверка админа (Telegram WebApp или useAuth)
+  const adminUserId = telegramWebUser?.id || telegramUser?.id
+  const isAdmin = adminUserId ? STREAM_ADMINS.includes(adminUserId) : false
   const isMessageAdmin = (msg: Message) => msg.telegram_id && STREAM_ADMINS.includes(msg.telegram_id)
 
   // Загрузка сообщений
