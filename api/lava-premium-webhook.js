@@ -81,6 +81,53 @@ function getPeriodByPeriodicityOrAmount(periodicity, amount) {
   return { days: 30, tariff: 'unknown', name: 'UNKNOWN' };
 }
 
+// Извлечь stream_utm из clientUtm и увеличить conversions
+async function trackStreamConversion(payload) {
+  const clientUtm = payload.clientUtm || {};
+
+  // Ищем stream_utm во всех utm полях
+  const utmValues = [
+    clientUtm.utm_source,
+    clientUtm.utm_medium,
+    clientUtm.utm_campaign,
+    clientUtm.utm_term,
+    clientUtm.utm_content
+  ].filter(Boolean);
+
+  for (const value of utmValues) {
+    // Формат: "telegram_id=123&stream_utm=slug" или просто "stream_utm=slug"
+    const streamUtmMatch = value.match(/stream_utm[=:]([a-zA-Z0-9_-]+)/i);
+    if (streamUtmMatch) {
+      const streamUtmSlug = streamUtmMatch[1];
+      log(`📊 Found stream_utm: ${streamUtmSlug}`);
+
+      // Увеличиваем conversions в utm_tool_links
+      const { data: link } = await supabase
+        .from('utm_tool_links')
+        .select('id, conversions')
+        .eq('slug', streamUtmSlug)
+        .single();
+
+      if (link) {
+        await supabase
+          .from('utm_tool_links')
+          .update({
+            conversions: (link.conversions || 0) + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', link.id);
+
+        log(`✅ Stream conversion tracked for slug: ${streamUtmSlug}`);
+      } else {
+        log(`⚠️ Stream UTM link not found: ${streamUtmSlug}`);
+      }
+      return;
+    }
+  }
+
+  log('ℹ️ No stream_utm found in payload');
+}
+
 // Извлечь telegram_id или username из clientUtm (объект от Lava.top)
 async function extractTelegramIdOrUsername(payload) {
   log('🔍 Extracting telegram info from payload');
@@ -654,6 +701,9 @@ export default async function handler(req, res) {
     if (finalTelegramId) {
       await trackUtmConversion(finalTelegramId);
     }
+
+    // Трекинг конверсии для stream UTM ссылок
+    await trackStreamConversion(payload);
 
     // ============================================
     // 9. УСПЕШНЫЙ ОТВЕТ
