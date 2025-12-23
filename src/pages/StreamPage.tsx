@@ -6,6 +6,17 @@ export function StreamPage() {
   const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
   const [guestName, setGuestName] = useState('')
 
+  // Сохранение UTM из URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const utmSource = params.get('utm_source')
+    if (utmSource) {
+      localStorage.setItem('stream_utm_source', utmSource)
+      // Убираем UTM из URL без перезагрузки
+      window.history.replaceState({}, '', '/stream')
+    }
+  }, [])
+
   // Загрузка имени из localStorage
   useEffect(() => {
     const saved = localStorage.getItem('stream_guest_name')
