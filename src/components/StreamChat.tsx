@@ -24,8 +24,12 @@ export function StreamChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
+  // Проверка реального Telegram пользователя (не mock)
+  const isRealTelegramUser = !!window.Telegram?.WebApp?.initDataUnsafe?.user
+  const canWrite = isRealTelegramUser && telegramUser
+
   // Проверка админа
-  const isAdmin = telegramUser && STREAM_ADMINS.includes(telegramUser.id)
+  const isAdmin = canWrite && telegramUser && STREAM_ADMINS.includes(telegramUser.id)
   const isMessageAdmin = (msg: Message) => msg.telegram_id && STREAM_ADMINS.includes(msg.telegram_id)
 
   // Загрузка сообщений
@@ -295,14 +299,14 @@ export function StreamChat() {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={telegramUser ? 'Написать сообщение...' : 'Войдите через Telegram...'}
-            disabled={!telegramUser}
+            placeholder={canWrite ? 'Написать сообщение...' : 'Откройте через Telegram чтобы писать'}
+            disabled={!canWrite}
             className="flex-1 px-4 py-2.5 bg-zinc-800 border border-white/10 rounded-xl text-white placeholder-white/40 text-sm focus:outline-none focus:border-yellow-500/30 disabled:opacity-50"
             maxLength={500}
           />
           <button
             onClick={handleSend}
-            disabled={!newMessage.trim() || sending || !telegramUser}
+            disabled={!newMessage.trim() || sending || !canWrite}
             className="px-4 py-2.5 bg-[#FFD700] text-black font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform"
           >
             {sending ? (
@@ -317,9 +321,9 @@ export function StreamChat() {
             )}
           </button>
         </div>
-        {!telegramUser && (
+        {!canWrite && (
           <p className="text-white/40 text-xs mt-2 text-center">
-            Откройте через Telegram чтобы писать в чат
+            Откройте страницу через Telegram чтобы писать в чат
           </p>
         )}
       </div>
