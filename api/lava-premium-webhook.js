@@ -235,6 +235,28 @@ const KIKER_BOT_TOKEN = '***REMOVED***';
 const CHANNEL_ID = '-1001634734020';
 const CHAT_ID = '-1001828659569';
 
+// Трекинг UTM конверсии
+async function trackUtmConversion(telegramId) {
+  if (!telegramId) return;
+
+  try {
+    // Ищем источник пользователя
+    const { data: userSource } = await supabase
+      .from('user_sources')
+      .select('source')
+      .eq('telegram_id', telegramId)
+      .single();
+
+    if (userSource?.source) {
+      // Инкрементируем конверсию
+      await supabase.rpc('increment_utm_conversion', { p_slug: userSource.source });
+      log(`📊 UTM conversion tracked: ${userSource.source} for user ${telegramId}`);
+    }
+  } catch (err) {
+    log('⚠️ trackUtmConversion error (non-critical)', { error: err.message });
+  }
+}
+
 // Создать invite-ссылку напрямую через Telegram API
 async function createDirectInviteLink(chatId) {
   try {
@@ -617,6 +639,13 @@ export default async function handler(req, res) {
       log('⚠️ Failed to record payment history', paymentError);
     } else {
       log('📝 Payment history recorded');
+    }
+
+    // ============================================
+    // 8.1. ТРЕКИНГ UTM КОНВЕРСИИ
+    // ============================================
+    if (finalTelegramId) {
+      await trackUtmConversion(finalTelegramId);
     }
 
     // ============================================

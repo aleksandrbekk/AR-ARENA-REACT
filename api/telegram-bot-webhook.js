@@ -127,11 +127,64 @@ function getTariffName(plan) {
 }
 
 // ============================================
+// UTM TRACKING
+// ============================================
+
+// Записать клик по UTM-ссылке
+async function trackUtmClick(slug) {
+  if (!slug) return;
+
+  try {
+    // Инкрементируем clicks для этого slug
+    const { error } = await supabase.rpc('increment_utm_clicks', { p_slug: slug });
+
+    if (error) {
+      // Если функции нет, пробуем обычный update
+      await supabase
+        .from('utm_links')
+        .update({ clicks: supabase.sql`clicks + 1` })
+        .eq('slug', slug);
+    }
+
+    log(`📊 UTM click tracked: ${slug}`);
+  } catch (err) {
+    log('❌ trackUtmClick error', { error: err.message });
+  }
+}
+
+// Сохранить источник для пользователя (для последующего трекинга конверсий)
+async function saveUserSource(telegramId, source) {
+  if (!source) return;
+
+  try {
+    // Сохраняем в таблицу user_sources (если нет - создаём)
+    const { error } = await supabase
+      .from('user_sources')
+      .upsert({
+        telegram_id: telegramId,
+        source: source,
+        created_at: new Date().toISOString()
+      }, { onConflict: 'telegram_id' });
+
+    if (error && error.code !== '42P01') { // Игнорируем "table does not exist"
+      log('❌ saveUserSource error', { error: error.message });
+    }
+  } catch (err) {
+    log('❌ saveUserSource error', { error: err.message });
+  }
+}
+
+// ============================================
 // ОБРАБОТЧИКИ КОМАНД
 // ============================================
 
 // /start premium — приветствие для покупки
-async function handleStartPremium(chatId, telegramId) {
+async function handleStartPremium(chatId, telegramId, utmSource = null) {
+  // Трекаем UTM клик если есть источник
+  if (utmSource) {
+    await trackUtmClick(utmSource);
+    await saveUserSource(telegramId, utmSource);
+  }
   // Проверяем есть ли уже подписка
   const subscription = await checkSubscription(telegramId);
 
@@ -241,9 +294,12 @@ export default async function handler(req, res) {
       const args = text.split(' ').slice(1);
       const param = args[0] || '';
 
-      if (param === 'premium') {
-        log(`👤 /start premium from ${telegramId}`);
-        await handleStartPremium(chatId, telegramId);
+      // Парсим UTM: premium_SOURCE или просто premium
+      if (param.startsWith('premium')) {
+        // Извлекаем источник: premium_instagram -> instagram
+        const utmSource = param.includes('_') ? param.split('_').slice(1).join('_') : null;
+        log(`👤 /start premium from ${telegramId}`, { utmSource });
+        await handleStartPremium(chatId, telegramId, utmSource);
       } else {
         log(`👤 /start from ${telegramId}`);
         await handleStart(chatId);
