@@ -159,10 +159,6 @@ export function FullCrmPage() {
   }
 
   // ============ ВЫБОР ============
-  const toggleSelect = (id: number) => {
-    setSelectedUsers(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-  }
-
   const selectAll = (list: User[]) => {
     const ids = list.map(u => u.telegram_id)
     const allSelected = ids.every(id => selectedUsers.includes(id))
