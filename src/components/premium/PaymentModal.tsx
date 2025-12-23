@@ -168,7 +168,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     telegramUsername: tgUsername || undefined,
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
                     amountUSD,
-                    currency: 'USDT',
+                    // Без currency - пользователь выберет сеть сам (TRC20/TON/BEP20)
                     tariff: tariffKey
                 })
             })
@@ -182,7 +182,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     // @ts-ignore
                     window.Telegram.WebApp.openLink(data.paymentUrl)
                 } else {
-                    window.open(data.paymentUrl, '_blank')
+                    // Редирект вместо popup (обходит блокировку Safari)
+                    window.location.href = data.paymentUrl
                 }
             } else {
                 alert('Ошибка создания платежа: ' + (data.error || 'Неизвестная ошибка'))
