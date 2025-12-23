@@ -50,6 +50,45 @@ function getPeriodByAmount(amountUSD) {
   return { days: 30, tariff: 'unknown', name: 'UNKNOWN' };
 }
 
+// Маппинг тарифа на URL картинки
+const TARIFF_CARD_IMAGES = {
+  'classic': 'https://ararena.pro/cards/classic.png',
+  'gold': 'https://ararena.pro/cards/gold.png',
+  'platinum': 'https://ararena.pro/cards/platinum.png',
+  'private': 'https://ararena.pro/cards/PRIVATE.png'
+};
+
+// Отправить фото с подписью в Telegram
+async function sendTelegramPhoto(telegramId, photoUrl, caption, replyMarkup = null) {
+  try {
+    const body = {
+      chat_id: telegramId,
+      photo: photoUrl,
+      caption,
+      parse_mode: 'HTML'
+    };
+
+    if (replyMarkup) {
+      body.reply_markup = replyMarkup;
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const result = await response.json();
+    if (!result.ok) {
+      log('❌ Telegram sendPhoto failed', result);
+    }
+    return result;
+  } catch (error) {
+    log('❌ Telegram sendPhoto error', { error: error.message });
+    return null;
+  }
+}
+
 // Отправить сообщение в Telegram
 async function sendTelegramMessage(telegramId, text, replyMarkup = null) {
   try {
@@ -346,8 +385,20 @@ export default async function handler(req, res) {
 
       const replyMarkup = { inline_keyboard: buttons };
 
-      await sendTelegramMessage(finalTelegramId, welcomeText, replyMarkup);
-      log('✅ Welcome message with buttons sent');
+      // Получаем картинку карты для тарифа
+      const cardImageUrl = TARIFF_CARD_IMAGES[period.tariff] || TARIFF_CARD_IMAGES['classic'];
+
+      // Отправляем сообщение с картинкой карты
+      const photoResult = await sendTelegramPhoto(finalTelegramId, cardImageUrl, welcomeText, replyMarkup);
+
+      if (photoResult?.ok) {
+        log('✅ Welcome message with card image sent');
+      } else {
+        // Fallback на текстовое сообщение если фото не отправилось
+        log('⚠️ Photo failed, sending text message');
+        await sendTelegramMessage(finalTelegramId, welcomeText, replyMarkup);
+        log('✅ Welcome text message sent');
+      }
     }
 
     // ============================================

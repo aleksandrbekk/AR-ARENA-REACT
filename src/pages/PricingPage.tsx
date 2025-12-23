@@ -49,21 +49,21 @@ const tariffs: Tariff[] = [
     discount: null, // No discount badge for manual old price handling
     badge: null,
     cardImage: '/cards/classic.png',
-    auroraColors: ['#6b7280', '#4b5563'], // Gray
+    auroraColors: ['#FFFFFF', '#E5E5E5'], // White
     auroraOpacity: 0.3,
     auroraBlur: 15,
     auroraSpeed: 10,
     isFeatured: false,
     baseFeatures: [
-      'Полный доступ к публикациям канала',
-      'Доступ к Premium таблице',
-      'Бот-навигатор по материалам',
-      'Общение в тематических чатах',
-      'Поддержка от команды AR'
+      'Закрытый канал с аналитикой',
+      'Таблица сигналов',
+      'Бот-навигатор',
+      'Общий чат клуба',
+      'Поддержка 24/7'
     ],
     bonuses: [],
     buttonStyle: 'outline',
-    buttonColor: '#9ca3af' // gray-400
+    buttonColor: '#FFFFFF' // white
   },
   {
     id: 'gold',
@@ -75,22 +75,21 @@ const tariffs: Tariff[] = [
     discount: null,
     badge: null,
     cardImage: '/cards/gold.png',
-    auroraColors: ['#FFD700', '#FFA500'], // Gold
-    auroraOpacity: 0.5,
-    auroraBlur: 20,
+    auroraColors: ['#F5A623', '#E69500'], // Rich gold
+    auroraOpacity: 0.6,
+    auroraBlur: 18,
     auroraSpeed: 8,
     isFeatured: false,
     baseFeatures: [],
-    bonuses: [ // "Everything in CLASSIC + ..." logic handled in render? No, previousTariff map handles it.
-      // Prompt says: "Deals with explanations...", "Directions SPOT...", "Podcasts", "Voting bot", "Highlights"
-      'Сделки с объяснениями и входом',
-      'Направления SPOT TRADE + Фьючерсы',
-      'Видео и аудио подкасты',
-      'Бот голосования за монеты',
-      'Подсветки сделок от команды'
+    bonuses: [
+      'Разборы сделок с точками входа',
+      'SPOT + Фьючерсы',
+      'Видео и аудио контент',
+      'Голосование за монеты',
+      'Live-оповещения о сделках'
     ],
     buttonStyle: 'outline',
-    buttonColor: '#FFD700' // gold
+    buttonColor: '#F5A623' // rich gold
   },
   {
     id: 'platinum',
@@ -102,22 +101,21 @@ const tariffs: Tariff[] = [
     discount: null,
     badge: 'ХИТ',
     cardImage: '/cards/platinum.png',
-    auroraColors: ['#E5E4E2', '#A8A8A8'], // Platinum silver
-    auroraOpacity: 0.7,
+    auroraColors: ['#8A8A8A', '#6B6B6B'], // Dark platinum metal
+    auroraOpacity: 0.8,
     auroraBlur: 12,
     auroraSpeed: 5,
     isFeatured: false,
     baseFeatures: [],
     bonuses: [
-      'Торговая стратегия X3 со сценариями',
-      'Авторские инвестиционные портфели',
-      'SPOT INVEST направление',
-      'Глубокая аналитика и ончейн метрики',
-      'Психология рынка, понимание циклов',
-      'AMA-сессии с Алексеем'
+      'Инвестиционные портфели',
+      'Долгосрочные стратегии',
+      'Ончейн-аналитика',
+      'Психология трейдинга',
+      'AMA с основателем'
     ],
     buttonStyle: 'outline',
-    buttonColor: '#E5E4E2' // Platinum
+    buttonColor: '#8A8A8A' // Dark platinum
   },
   {
     id: 'private',
@@ -129,22 +127,21 @@ const tariffs: Tariff[] = [
     discount: null,
     badge: 'VIP',
     cardImage: '/cards/PRIVATE.png',
-    auroraColors: ['#FFD700', '#FFA500'], // Gold/Amber
+    auroraColors: ['#9B2335', '#7B1E2D'], // Rich burgundy
     auroraOpacity: 0.8,
     auroraBlur: 22,
     auroraSpeed: 7,
     isFeatured: false,
     baseFeatures: [],
     bonuses: [
-      'Закрытая AMA с разбором',
+      'Личный разбор портфеля',
       'Приоритетная поддержка',
-      'Бонусы за активность в чате',
-      'Ранний доступ к новым продуктам',
-      'МИНИ АП В ТЕЛЕГРАМ',
-      'VIP ЗНАЧЕК В ПРИЛОЖЕНИИ'
+      'Ранний доступ к продуктам',
+      'Закрытый VIP-чат',
+      'VIP-статус в приложении'
     ],
     buttonStyle: 'outline',
-    buttonColor: '#FFD700'
+    buttonColor: '#9B2335' // burgundy
   }
 ]
 
@@ -303,46 +300,30 @@ function PricingCard({ tariff, index, onBuy }: PricingCardProps) {
 
         {/* Content */}
         <div className="relative z-[2] p-5 md:p-6 h-full flex flex-col">
-          {/* Badge - скидка + старая цена */}
-          {(tariff.discount || tariff.badge) && (
-            <div
-              className="absolute top-3 right-3 md:top-4 md:right-4 flex items-center gap-2 z-10"
-            >
-              {tariff.discount && (
-                <span
-                  className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold"
-                  style={{
-                    background: `${tariff.auroraColors[0]}20`,
-                    color: tariff.auroraColors[0]
-                  }}
-                >
-                  {tariff.discount}
-                </span>
-              )}
-              {tariff.badge && (
-                <span
-                  className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold border"
-                  style={{
-                    borderColor: `${tariff.auroraColors[0]}40`,
-                    color: tariff.auroraColors[0]
-                  }}
-                >
-                  {tariff.badge}
-                </span>
-              )}
+          {/* Верхняя строка: Название + Карта */}
+          <div className="flex items-start justify-between mb-4 md:mb-5">
+            <div>
+              {/* Название */}
+              <h3
+                className="text-lg md:text-xl font-bold tracking-wider"
+                style={{
+                  color: tariff.auroraColors[0],
+                  textShadow: `0 0 20px ${tariff.auroraColors[0]}80, 0 0 40px ${tariff.auroraColors[0]}40`
+                }}
+              >
+                {tariff.name}
+              </h3>
+              {/* Срок */}
+              <div className="text-gray-500 text-xs md:text-sm mt-1">{tariff.duration}</div>
             </div>
-          )}
 
-          {/* Название */}
-          <h3
-            className="text-lg md:text-xl font-semibold tracking-wider mb-1"
-            style={{ color: tariff.auroraColors[0] }}
-          >
-            {tariff.name}
-          </h3>
-
-          {/* Срок */}
-          <div className="text-gray-500 text-xs md:text-sm mb-4 md:mb-6">{tariff.duration}</div>
+            {/* Карточка */}
+            <img
+              src={tariff.cardImage}
+              alt={`${tariff.name} card`}
+              className="w-14 md:w-16 h-auto rounded-md opacity-90 flex-shrink-0"
+            />
+          </div>
 
           {/* Цена (с фиксированным отступом для старой цены) */}
           <div className="mb-4 md:mb-6">
@@ -523,6 +504,15 @@ export function PricingPage() {
             >
               <Timer deadline={deadline} />
             </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="text-white/60 text-sm md:text-base mt-4"
+            >
+              Оформите клубную карту по лучшим условиям
+            </motion.p>
           </header>
 
           {/* Карточки тарифов */}

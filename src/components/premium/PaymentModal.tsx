@@ -119,13 +119,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             console.log('[PaymentModal] API response:', data)
 
             if (data.ok && data.paymentUrl) {
-                // @ts-ignore
-                if (window.Telegram?.WebApp?.openLink) {
-                    // @ts-ignore
-                    window.Telegram.WebApp.openLink(data.paymentUrl)
-                } else {
-                    window.open(data.paymentUrl, '_blank')
-                }
+                // Редирект на страницу оплаты (без popup)
+                window.location.href = data.paymentUrl
             } else {
                 alert('Ошибка создания платежа: ' + (data.error || 'Неизвестная ошибка'))
             }
