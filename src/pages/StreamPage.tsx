@@ -6,8 +6,8 @@ export function StreamPage() {
   const [searchParams] = useSearchParams()
   const [source, setSource] = useState('organic')
 
-  // YouTube Video ID (заменить на актуальный при запуске стрима)
-  const YOUTUBE_VIDEO_ID = 'YOUR_VIDEO_ID'
+  // YouTube Video ID
+  const YOUTUBE_VIDEO_ID = 'TT_xndt5yq4'
 
   useEffect(() => {
     // Ловим UTM source и сохраняем
