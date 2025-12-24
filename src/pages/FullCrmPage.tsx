@@ -220,6 +220,28 @@ export function FullCrmPage() {
     return true
   })
 
+  // ============ УДАЛИТЬ КЛИЕНТА ============
+  const deletePremiumClient = async (clientId: string, telegramId: number) => {
+    if (!confirm(`Удалить клиента ${telegramId} из Premium?`)) return
+
+    try {
+      const { error } = await supabase
+        .from('premium_clients')
+        .delete()
+        .eq('id', clientId)
+
+      if (error) throw error
+
+      // Удаляем из локального стейта
+      setPremiumClients(prev => prev.filter(c => c.id !== clientId))
+      setSelectedPremiumClient(null)
+      showToast({ variant: 'success', title: 'Клиент удалён' })
+    } catch (err) {
+      console.error('Error deleting client:', err)
+      showToast({ variant: 'error', title: 'Ошибка удаления' })
+    }
+  }
+
   // ============ ДОБАВИТЬ ДНИ ============
   const addDays = async (clientId: string, telegramId: number, currentExpires: string, days: number) => {
     try {
@@ -536,6 +558,14 @@ export function FullCrmPage() {
               className="w-full py-4 bg-white/10 hover:bg-white/15 rounded-2xl text-white font-medium transition-colors mb-3"
             >
               💬 Написать сообщение
+            </button>
+
+            {/* Кнопка удаления */}
+            <button
+              onClick={() => deletePremiumClient(client.id, client.telegram_id)}
+              className="w-full py-4 bg-red-500/10 hover:bg-red-500/20 rounded-2xl text-red-400 font-medium transition-colors mb-3"
+            >
+              🗑 Удалить клиента
             </button>
 
             {/* Модалка сообщения */}
