@@ -112,7 +112,7 @@ const tariffs: Tariff[] = [
     auroraSpeed: 5,
     isFeatured: false,
     baseFeatures: commonFeatures,
-    bonuses: [],
+    bonuses: ['Групповые разборы портфелей'],
     buttonStyle: 'outline',
     buttonColor: '#8A8A8A'
   },
