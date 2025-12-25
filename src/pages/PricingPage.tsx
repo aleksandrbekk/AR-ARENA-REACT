@@ -135,7 +135,6 @@ const tariffs: Tariff[] = [
     isFeatured: false,
     baseFeatures: [],
     bonuses: [
-      'Личный разбор портфеля',
       'Приоритетная поддержка',
       'Ранний доступ к продуктам',
       'Закрытый VIP-чат',
