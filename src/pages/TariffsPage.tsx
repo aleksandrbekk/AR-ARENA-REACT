@@ -58,7 +58,7 @@ const tariffs: Tariff[] = [
     price: 17900,
     oldPrice: 24000,
     discount: null,
-    gifts: commonFeatures,
+    gifts: [...commonFeatures, 'Групповые разборы портфелей'],
     isFeatured: true
   },
   {
@@ -271,7 +271,7 @@ const TariffCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
           {/* Список преимуществ */}
           <div className="space-y-3 mb-8 flex-grow">
             {tariff.gifts.map((gift, i) => {
-              const isVipBonus = gift.includes('Личный разбор')
+              const isVipBonus = gift.includes('Личный разбор') || gift.includes('Групповые разборы')
               return (
                 <div key={i} className={`flex items-start gap-3 text-sm ${isVipBonus ? 'mt-4 pt-4 border-t border-white/10' : ''}`}>
                   {isVipBonus ? (
