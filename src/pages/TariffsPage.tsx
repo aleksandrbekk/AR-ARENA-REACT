@@ -52,7 +52,7 @@ const tariffs: Tariff[] = [
     price: 33600,
     oldPrice: 48000,
     discount: '-30%',
-    gifts: ['+2 месяца бонусом', 'VIP-чат', 'Созвон 15 мин', 'Разбор портфеля'],
+    gifts: ['+2 месяца бонусом', 'Созвон 15 мин'],
     isFeatured: false
   }
 ]
