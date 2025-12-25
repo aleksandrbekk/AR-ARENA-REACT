@@ -89,8 +89,16 @@ const AuroraCard = ({
                         {bonuses && bonuses.length > 0 && (
                             <div className="pt-4 mt-4 border-t border-white/5 space-y-3">
                                 {bonuses.map((b, i) => (
-                                    <div key={i} className="flex items-start gap-3">
-                                        <span className="text-lg">🎁</span>
+                                    <div key={i} className="flex items-center gap-2">
+                                        <span
+                                            className="px-1.5 py-0.5 text-[10px] font-bold rounded"
+                                            style={{
+                                                background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`,
+                                                color: '#fff'
+                                            }}
+                                        >
+                                            VIP
+                                        </span>
                                         <span className="text-sm text-white font-medium">{b}</span>
                                     </div>
                                 ))}
@@ -251,7 +259,7 @@ export const PricingPage2 = () => {
                             'AMA со мной каждые 2 недели'
                         ]}
                         bonuses={[
-                            '🎯 Личный разбор портфеля в Zoom'
+                            'Личный разбор портфеля в Zoom'
                         ]}
                     />
                 </div>
