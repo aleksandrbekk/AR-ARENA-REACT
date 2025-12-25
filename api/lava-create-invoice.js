@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, telegramId, telegramUsername, amount, currency = 'RUB', offerId, periodicity, streamUtmSource } = req.body;
+    const { email, telegramId, telegramUsername, amount, currency, offerId, periodicity, streamUtmSource } = req.body;
 
     // Валидация
     if (!offerId) {
@@ -54,11 +54,15 @@ export default async function handler(req, res) {
     const invoiceBody = {
       email: finalEmail,
       offerId,
-      currency,
       buyerLanguage: 'RU',
       clientUTM,
       successUrl: 'https://ararena.pro/payment-success'
     };
+
+    // Добавляем currency только если передан (иначе Lava покажет выбор валюты)
+    if (currency) {
+      invoiceBody.currency = currency;
+    }
 
     // Добавляем amount только если передан (для AR покупок)
     if (amount && amount > 0) {
