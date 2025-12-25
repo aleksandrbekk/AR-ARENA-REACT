@@ -14,6 +14,14 @@ interface Tariff {
 }
 
 // ============ ДАННЫЕ ТАРИФОВ ============
+const commonFeatures = [
+  'Закрытый канал с аналитикой',
+  'Таблица сигналов',
+  'Бот-навигатор',
+  'Общий чат клуба',
+  'Поддержка 24/7'
+]
+
 const tariffs: Tariff[] = [
   {
     id: 'classic',
@@ -22,7 +30,7 @@ const tariffs: Tariff[] = [
     price: 4000,
     oldPrice: null,
     discount: null,
-    gifts: ['Базовый доступ к каналу', 'Сигналы и аналитика'],
+    gifts: commonFeatures,
     isFeatured: false
   },
   {
@@ -32,7 +40,7 @@ const tariffs: Tariff[] = [
     price: 10200,
     oldPrice: 12000,
     discount: '-15%',
-    gifts: ['+1 неделя бонусом', 'Запись эфира', 'Портфель 2025'],
+    gifts: commonFeatures,
     isFeatured: false
   },
   {
@@ -42,7 +50,7 @@ const tariffs: Tariff[] = [
     price: 19200,
     oldPrice: 24000,
     discount: '-20%',
-    gifts: ['+1 месяц бонусом', 'Чек-лист антискам', 'Шаблон РМ'],
+    gifts: commonFeatures,
     isFeatured: true
   },
   {
@@ -52,7 +60,7 @@ const tariffs: Tariff[] = [
     price: 33600,
     oldPrice: 48000,
     discount: '-30%',
-    gifts: ['+2 месяца бонусом', 'Созвон 15 мин'],
+    gifts: commonFeatures,
     isFeatured: false
   }
 ]
