@@ -38,20 +38,6 @@ export interface Tariff {
   buttonColor: string
 }
 
-// ============ ОБЩИЕ ФИЧИ ДЛЯ ВСЕХ ТАРИФОВ ============
-const commonFeatures = [
-  'Закрытый канал с аналитикой',
-  'Таблица сигналов',
-  'Бот-навигатор',
-  'Общий чат клуба',
-  'Поддержка 24/7',
-  'Запись эфира',
-  'Портфель 2025',
-  'Чек-лист антискам',
-  'Шаблон РМ',
-  'Созвон с аналитиком 15 мин'
-]
-
 // ============ ДАННЫЕ ТАРИФОВ ============
 const tariffs: Tariff[] = [
   {
@@ -61,18 +47,24 @@ const tariffs: Tariff[] = [
     durationShort: '/мес',
     price: 4000,
     oldPrice: null,
-    discount: null,
+    discount: null, // No discount badge for manual old price handling
     badge: null,
     cardImage: '/cards/classic.png',
-    auroraColors: ['#FFFFFF', '#E5E5E5'],
+    auroraColors: ['#FFFFFF', '#E5E5E5'], // White
     auroraOpacity: 0.3,
     auroraBlur: 15,
     auroraSpeed: 10,
     isFeatured: false,
-    baseFeatures: commonFeatures,
+    baseFeatures: [
+      'Закрытый канал с аналитикой',
+      'Таблица сигналов',
+      'Бот-навигатор',
+      'Общий чат клуба',
+      'Поддержка 24/7'
+    ],
     bonuses: [],
     buttonStyle: 'outline',
-    buttonColor: '#FFFFFF'
+    buttonColor: '#FFFFFF' // white
   },
   {
     id: 'gold',
@@ -84,15 +76,21 @@ const tariffs: Tariff[] = [
     discount: null,
     badge: null,
     cardImage: '/cards/gold.png',
-    auroraColors: ['#F5A623', '#E69500'],
+    auroraColors: ['#F5A623', '#E69500'], // Rich gold
     auroraOpacity: 0.6,
     auroraBlur: 18,
     auroraSpeed: 8,
     isFeatured: false,
-    baseFeatures: commonFeatures,
-    bonuses: [],
+    baseFeatures: [],
+    bonuses: [
+      'Разборы сделок с точками входа',
+      'SPOT + Фьючерсы',
+      'Видео и аудио контент',
+      'Голосование за монеты',
+      'Live-оповещения о сделках'
+    ],
     buttonStyle: 'outline',
-    buttonColor: '#F5A623'
+    buttonColor: '#F5A623' // rich gold
   },
   {
     id: 'platinum',
@@ -104,15 +102,21 @@ const tariffs: Tariff[] = [
     discount: null,
     badge: 'ХИТ',
     cardImage: '/cards/platinum.png',
-    auroraColors: ['#8A8A8A', '#6B6B6B'],
+    auroraColors: ['#8A8A8A', '#6B6B6B'], // Dark platinum metal
     auroraOpacity: 0.8,
     auroraBlur: 12,
     auroraSpeed: 5,
     isFeatured: false,
-    baseFeatures: commonFeatures,
-    bonuses: [],
+    baseFeatures: [],
+    bonuses: [
+      'Инвестиционные портфели',
+      'Долгосрочные стратегии',
+      'Ончейн-аналитика',
+      'Психология трейдинга',
+      'AMA с основателем'
+    ],
     buttonStyle: 'outline',
-    buttonColor: '#8A8A8A'
+    buttonColor: '#8A8A8A' // Dark platinum
   },
   {
     id: 'private',
@@ -124,15 +128,21 @@ const tariffs: Tariff[] = [
     discount: null,
     badge: 'VIP',
     cardImage: '/cards/PRIVATE.png',
-    auroraColors: ['#9B2335', '#7B1E2D'],
+    auroraColors: ['#9B2335', '#7B1E2D'], // Rich burgundy
     auroraOpacity: 0.8,
     auroraBlur: 22,
     auroraSpeed: 7,
     isFeatured: false,
-    baseFeatures: commonFeatures,
-    bonuses: [],
+    baseFeatures: [],
+    bonuses: [
+      'Личный разбор портфеля',
+      'Приоритетная поддержка',
+      'Ранний доступ к продуктам',
+      'Закрытый VIP-чат',
+      'VIP-статус в приложении'
+    ],
     buttonStyle: 'outline',
-    buttonColor: '#9B2335'
+    buttonColor: '#9B2335' // burgundy
   }
 ]
 
