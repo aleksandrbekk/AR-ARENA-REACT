@@ -102,6 +102,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             }
 
             // Создаём invoice через API с единым offerId + periodicity
+            // Без currency — Lava сама покажет выбор валюты (RUB/USD/EUR)
             const response = await fetch('/api/lava-create-invoice', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -109,7 +110,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     telegramId: telegramId || undefined,
                     telegramUsername: tgUsername || undefined,
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
-                    currency: 'RUB',
                     offerId: PREMIUM_OFFER_ID,
                     periodicity: periodicity,
                     streamUtmSource: streamUtmSource || undefined
