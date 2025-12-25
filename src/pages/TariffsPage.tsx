@@ -68,7 +68,7 @@ const tariffs: Tariff[] = [
     price: 34900,
     oldPrice: 44000,
     discount: null,
-    gifts: [...commonFeatures, '🎯 Личный разбор портфеля в Zoom'],
+    gifts: [...commonFeatures, 'Личный разбор портфеля в Zoom'],
     isFeatured: false
   }
 ]
@@ -270,16 +270,25 @@ const TariffCard = ({ tariff, index }: { tariff: Tariff; index: number }) => {
 
           {/* Список преимуществ */}
           <div className="space-y-3 mb-8 flex-grow">
-            {tariff.gifts.map((gift, i) => (
-              <div key={i} className="flex items-start gap-3 text-sm">
-                <svg className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                  isFeatured ? 'text-violet-400' : 'text-white/40'
-                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-white/70">{gift}</span>
-              </div>
-            ))}
+            {tariff.gifts.map((gift, i) => {
+              const isVipBonus = gift.includes('Личный разбор')
+              return (
+                <div key={i} className={`flex items-start gap-3 text-sm ${isVipBonus ? 'mt-4 pt-4 border-t border-white/10' : ''}`}>
+                  {isVipBonus ? (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-gradient-to-r from-violet-500 to-pink-500 text-white flex-shrink-0">
+                      VIP
+                    </span>
+                  ) : (
+                    <svg className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                      isFeatured ? 'text-violet-400' : 'text-white/40'
+                    }`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  <span className={isVipBonus ? 'text-white font-medium' : 'text-white/70'}>{gift}</span>
+                </div>
+              )
+            })}
           </div>
 
           {/* Кнопка */}

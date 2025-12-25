@@ -132,18 +132,12 @@ const tariffs: Tariff[] = [
     auroraSpeed: 7,
     isFeatured: false,
     baseFeatures: commonFeatures,
-    bonuses: ['🎯 Личный разбор портфеля в Zoom'],
+    bonuses: ['Личный разбор портфеля в Zoom'],
     buttonStyle: 'outline',
     buttonColor: '#9B2335'
   }
 ]
 
-// Названия предыдущих тарифов для каскада
-const previousTariffMap: Record<string, string> = {
-  gold: 'CLASSIC',
-  platinum: 'GOLD',
-  private: 'PLATINUM'
-}
 
 // ============ ТАЙМЕР ============
 const Timer = ({ deadline }: { deadline: string }) => {
@@ -243,7 +237,6 @@ const Snowflakes = () => {
 interface PricingCardProps {
   tariff: Tariff
   index: number
-  previousTariff: Record<string, string>
   onBuy: (tariff: Tariff) => void
 }
 
@@ -361,44 +354,27 @@ function PricingCard({ tariff, index, onBuy }: PricingCardProps) {
             </div>
           )}
 
-          {/* Каскадная структура: "Всё из [тарифа] +" */}
-          {previousTariffMap[tariff.id] && (
-            <div className="mb-4 md:mb-5 relative">
-              {/* Линия слева */}
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-full rounded-full"
-                style={{ background: `linear-gradient(180deg, transparent, ${tariff.auroraColors[0]}40, transparent)` }}
-              />
-              <div className="pl-3 flex items-center gap-1.5 text-xs md:text-sm">
-                <span className="text-white/50">Всё из</span>
-                <span className="font-medium text-white/80">{previousTariffMap[tariff.id]}</span>
-                <span style={{ color: tariff.auroraColors[0] }} className="font-semibold">+</span>
-              </div>
-            </div>
-          )}
-
-          {/* Дополнительные бонусы в плашке */}
+          {/* VIP бонус для PRIVATE */}
           {tariff.bonuses.length > 0 && (
             <div
-              className="space-y-2 mb-4 md:mb-6 p-3 md:p-4 rounded-lg"
+              className="mb-4 md:mb-6 p-3 md:p-4 rounded-lg"
               style={{
-                background: `${tariff.auroraColors[0]}08`,
-                border: `1px solid ${tariff.auroraColors[0]}15`
+                background: `linear-gradient(135deg, ${tariff.auroraColors[0]}15, ${tariff.auroraColors[1]}10)`,
+                border: `1px solid ${tariff.auroraColors[0]}30`
               }}
             >
               {tariff.bonuses.map((bonus, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs md:text-sm">
-                  <svg
-                    className="w-4 h-4 mt-0.5 flex-shrink-0"
-                    style={{ color: tariff.auroraColors[0] }}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
+                <div key={i} className="flex items-center gap-2 text-xs md:text-sm">
+                  <span
+                    className="px-1.5 py-0.5 text-[10px] font-bold rounded"
+                    style={{
+                      background: `linear-gradient(135deg, ${tariff.auroraColors[0]}, ${tariff.auroraColors[1]})`,
+                      color: '#fff'
+                    }}
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span className="text-gray-300">{bonus}</span>
+                    VIP
+                  </span>
+                  <span className="text-white font-medium">{bonus}</span>
                 </div>
               ))}
             </div>
@@ -538,7 +514,6 @@ export function PricingPage() {
                 key={tariff.id}
                 tariff={tariff}
                 index={index}
-                previousTariff={previousTariffMap}
                 onBuy={handleBuyClick}
               />
             ))}
