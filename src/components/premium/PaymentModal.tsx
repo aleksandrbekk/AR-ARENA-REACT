@@ -24,15 +24,23 @@ const CRYPTO_NETWORKS = [
     { id: 'TRC20', name: 'Tron', currency: 'USDT (TRC20)', fee: '~$4', color: 'from-red-500 to-red-600' },
 ]
 
+// Card payment currencies
+const CARD_CURRENCIES = [
+    { id: 'RUB', name: 'Рубли', symbol: '₽', color: 'from-blue-500 to-blue-600' },
+    { id: 'USD', name: 'Доллары', symbol: '$', color: 'from-green-500 to-green-600' },
+    { id: 'EUR', name: 'Евро', symbol: '€', color: 'from-purple-500 to-purple-600' },
+]
+
 export const PaymentModal: React.FC<PaymentModalProps> = ({
     isOpen,
     onClose,
     tariff
 }) => {
     const [username, setUsername] = useState('')
-    const [loading, setLoading] = useState(false)
     const [showNetworkSelect, setShowNetworkSelect] = useState(false)
+    const [showCurrencySelect, setShowCurrencySelect] = useState(false)
     const [cryptoLoading, setCryptoLoading] = useState<string | null>(null)
+    const [cardLoading, setCardLoading] = useState<string | null>(null)
 
     // Check if we have a Telegram ID available
     // @ts-ignore
@@ -64,7 +72,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         return price ? price.toLocaleString('ru-RU') + ' ₽' : '...'
     }
 
-    const handleCardBuy = async () => {
+    const handleCardCurrencySelect = async (currency: typeof CARD_CURRENCIES[0]) => {
         // @ts-ignore
         const tg = window.Telegram?.WebApp
         const telegramId = tg?.initDataUnsafe?.user?.id
@@ -82,14 +90,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             return
         }
 
-        setLoading(true)
+        setCardLoading(currency.id)
 
         try {
             console.log('[PaymentModal] Creating invoice via API:', {
                 telegramId,
                 tgUsername,
                 tariffId: tariff.id,
-                price: tariff.price
+                currency: currency.id
             })
 
             // Получаем periodicity для выбранного тарифа
@@ -101,8 +109,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 return
             }
 
-            // Создаём invoice через API с единым offerId + periodicity
-            // Без currency — Lava сама покажет выбор валюты (RUB/USD/EUR)
+            // Создаём invoice через API с выбранной валютой
             const response = await fetch('/api/lava-create-invoice', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -110,6 +117,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     telegramId: telegramId || undefined,
                     telegramUsername: tgUsername || undefined,
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
+                    currency: currency.id,
                     offerId: PREMIUM_OFFER_ID,
                     periodicity: periodicity,
                     streamUtmSource: streamUtmSource || undefined
@@ -120,7 +128,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             console.log('[PaymentModal] API response:', data)
 
             if (data.ok && data.paymentUrl) {
-                // Редирект на страницу оплаты (без popup)
+                // Редирект на страницу оплаты
                 window.location.href = data.paymentUrl
             } else {
                 alert('Ошибка создания платежа: ' + (data.error || 'Неизвестная ошибка'))
@@ -129,7 +137,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             console.error('[PaymentModal] Error:', error)
             alert('Ошибка сети. Попробуйте ещё раз.')
         } finally {
-            setLoading(false)
+            setCardLoading(null)
         }
     }
 
@@ -207,14 +215,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         }
     }
 
-    // Reset network selection when modal closes
+    // Reset selections when modal closes
     const handleClose = () => {
         setShowNetworkSelect(false)
+        setShowCurrencySelect(false)
         onClose()
     }
 
     const handleBack = () => {
         setShowNetworkSelect(false)
+        setShowCurrencySelect(false)
     }
 
     return (
@@ -242,7 +252,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                         onClick={(e) => e.stopPropagation()}
                     >
                         <AnimatePresence mode="wait">
-                            {!showNetworkSelect ? (
+                            {!showNetworkSelect && !showCurrencySelect ? (
                                 // Main payment selection
                                 <motion.div
                                     key="main"
@@ -288,11 +298,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
                                     {/* Buttons Stack */}
                                     <div className="space-y-4">
-                                        {/* Card Payment (Lava) */}
+                                        {/* Card Payment - opens currency selection */}
                                         <button
-                                            onClick={handleCardBuy}
-                                            disabled={loading}
-                                            className="w-full group relative overflow-hidden rounded-xl p-4 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                                            onClick={() => setShowCurrencySelect(true)}
+                                            className="w-full group relative overflow-hidden rounded-xl p-4 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
                                         >
                                             <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-orange-500 opacity-90 group-hover:opacity-100 transition-opacity" />
                                             <div className="relative flex items-center gap-4">
@@ -301,14 +310,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                                                     </svg>
                                                 </div>
-                                                <div className="text-left">
+                                                <div className="text-left flex-1">
                                                     <div className="text-white font-bold text-lg leading-tight">
-                                                        {loading ? 'Создаём платёж...' : 'Банковская карта'}
+                                                        Банковская карта
                                                     </div>
                                                     <div className="text-white/80 text-xs font-medium">
-                                                        Visa, Mastercard, МИР
+                                                        ₽ / $ / € (выбор валюты)
                                                     </div>
                                                 </div>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                </svg>
                                             </div>
                                         </button>
 
@@ -349,8 +361,71 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                                         </button>
                                     </div>
                                 </motion.div>
+                            ) : showCurrencySelect ? (
+                                // Currency selection for card payment
+                                <motion.div
+                                    key="currency"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                >
+                                    {/* Header with back button */}
+                                    <div className="text-center mb-6">
+                                        <button
+                                            onClick={handleBack}
+                                            className="absolute left-4 top-6 text-gray-400 hover:text-white transition-colors p-2"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                            </svg>
+                                        </button>
+                                        <h3 className="text-xl font-bold text-white mb-2">
+                                            Выберите валюту
+                                        </h3>
+                                        <p className="text-sm text-gray-400">
+                                            Visa, Mastercard, МИР
+                                        </p>
+                                    </div>
+
+                                    {/* Currency buttons */}
+                                    <div className="space-y-3">
+                                        {CARD_CURRENCIES.map((currency) => (
+                                            <button
+                                                key={currency.id}
+                                                onClick={() => handleCardCurrencySelect(currency)}
+                                                disabled={cardLoading !== null}
+                                                className="w-full group relative overflow-hidden rounded-xl p-4 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                                            >
+                                                <div className={`absolute inset-0 bg-gradient-to-r ${currency.color} opacity-90 group-hover:opacity-100 transition-opacity`} />
+                                                <div className="relative flex items-center justify-between">
+                                                    <div className="text-left">
+                                                        <div className="text-white font-bold text-lg leading-tight">
+                                                            {cardLoading === currency.id ? 'Создаём...' : currency.name}
+                                                        </div>
+                                                        <div className="text-white/80 text-xs font-medium">
+                                                            {currency.id}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-white text-3xl font-bold">
+                                                        {currency.symbol}
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Cancel Button */}
+                                    <div className="mt-4 text-center">
+                                        <button
+                                            onClick={handleClose}
+                                            className="text-sm font-medium text-gray-400 hover:text-white transition-colors py-2 px-4"
+                                        >
+                                            Отмена
+                                        </button>
+                                    </div>
+                                </motion.div>
                             ) : (
-                                // Network selection
+                                // Network selection for crypto
                                 <motion.div
                                     key="network"
                                     initial={{ opacity: 0, x: 20 }}
