@@ -269,7 +269,7 @@ export function FullCrmPage() {
     if (days <= 3) return 'text-red-400'
     if (days <= 7) return 'text-orange-400'
     if (days <= 14) return 'text-yellow-400'
-    return 'text-green-400'
+    return 'text-[#FFD700]'
   }
 
   // Фильтрация Premium клиентов
@@ -696,7 +696,7 @@ export function FullCrmPage() {
                   )
                   setSelectedPremiumClient({ ...client, expires_at: newExpires.toISOString() })
                 }}
-                className="w-full py-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-xl font-medium transition-all active:scale-[0.98]"
+                className="w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all active:scale-[0.98]"
               >
                 + Добавить {daysToAdd} дней
               </button>
@@ -738,17 +738,17 @@ export function FullCrmPage() {
             <div className="bg-zinc-900 rounded-2xl p-4 mb-4">
               <div className="text-white/40 text-xs uppercase tracking-wide mb-3">Статус доступа</div>
               <div className="grid grid-cols-2 gap-3">
-                <div className={`p-3 rounded-xl text-center ${client.in_channel ? 'bg-green-500/20' : 'bg-zinc-800'}`}>
-                  <div className={`text-2xl mb-1 ${client.in_channel ? 'text-green-400' : 'text-white/30'}`}>
+                <div className={`p-3 rounded-xl text-center ${client.in_channel ? 'bg-white/10' : 'bg-zinc-800'}`}>
+                  <div className={`text-2xl mb-1 ${client.in_channel ? 'text-white' : 'text-white/30'}`}>
                     {client.in_channel ? '✓' : '✗'}
                   </div>
-                  <div className={`text-sm ${client.in_channel ? 'text-green-400' : 'text-white/30'}`}>Канал</div>
+                  <div className={`text-sm ${client.in_channel ? 'text-white' : 'text-white/30'}`}>Канал</div>
                 </div>
-                <div className={`p-3 rounded-xl text-center ${client.in_chat ? 'bg-green-500/20' : 'bg-zinc-800'}`}>
-                  <div className={`text-2xl mb-1 ${client.in_chat ? 'text-green-400' : 'text-white/30'}`}>
+                <div className={`p-3 rounded-xl text-center ${client.in_chat ? 'bg-white/10' : 'bg-zinc-800'}`}>
+                  <div className={`text-2xl mb-1 ${client.in_chat ? 'text-white' : 'text-white/30'}`}>
                     {client.in_chat ? '✓' : '✗'}
                   </div>
-                  <div className={`text-sm ${client.in_chat ? 'text-green-400' : 'text-white/30'}`}>Чат</div>
+                  <div className={`text-sm ${client.in_chat ? 'text-white' : 'text-white/30'}`}>Чат</div>
                 </div>
               </div>
             </div>
@@ -998,10 +998,10 @@ export function FullCrmPage() {
                       <div className="relative">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-white font-medium">Открыли App</span>
-                          <span className="text-green-400 font-bold">{appOpenedFromBot}</span>
+                          <span className="text-[#FFD700] font-bold">{appOpenedFromBot}</span>
                         </div>
-                        <div className="h-3 bg-green-500/30 rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500 rounded-full" style={{ width: `${appRate}%` }} />
+                        <div className="h-3 bg-[#FFD700]/20 rounded-full overflow-hidden">
+                          <div className="h-full bg-[#FFD700] rounded-full" style={{ width: `${appRate}%` }} />
                         </div>
                       </div>
 
@@ -1054,14 +1054,14 @@ export function FullCrmPage() {
                             <span className="text-white/40 text-sm">({stat.users})</span>
                           </div>
                           <div className="flex items-center gap-3 text-sm">
-                            <span className="text-green-400">{stat.appOpened} app</span>
+                            <span className="text-[#FFD700]">{stat.appOpened} app</span>
                             <span className="text-[#FFD700]">{stat.purchased} paid</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-blue-500 via-green-500 to-[#FFD700] rounded-full"
+                              className="h-full bg-gradient-to-r from-white/50 via-white to-[#FFD700] rounded-full"
                               style={{ width: `${Math.min(100, parseFloat(convRate) * 5)}%` }}
                             />
                           </div>
@@ -1171,8 +1171,8 @@ export function FullCrmPage() {
                             </div>
                             <div className="flex items-center gap-1">
                               {opened && (
-                                <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center" title="Открыл приложение">
-                                  <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-6 h-6 rounded-full bg-[#FFD700]/20 flex items-center justify-center" title="Открыл приложение">
+                                  <svg className="w-3.5 h-3.5 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                   </svg>
                                 </div>
@@ -1297,7 +1297,7 @@ export function FullCrmPage() {
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">USD</div>
-                        <div className="text-lg font-bold text-green-400">${totalUsd.toLocaleString('en-US')}</div>
+                        <div className="text-lg font-bold text-[#FFD700]">${totalUsd.toLocaleString('en-US')}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">EUR</div>
@@ -1334,7 +1334,7 @@ export function FullCrmPage() {
                 </div>
                 <button
                   onClick={() => setShowAddClientModal(true)}
-                  className="w-12 h-12 bg-green-500 hover:bg-green-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold transition-colors flex-shrink-0"
+                  className="w-12 h-12 bg-white hover:bg-white/90 rounded-xl flex items-center justify-center text-black text-2xl font-bold transition-colors flex-shrink-0"
                   title="Добавить клиента"
                 >
                   +
@@ -1473,15 +1473,15 @@ export function FullCrmPage() {
                       {/* Статус канал/чат */}
                       <div className="flex gap-2 mt-3">
                         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${
-                          client.in_channel ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-white/30'
+                          client.in_channel ? 'bg-white/10 text-white' : 'bg-zinc-800 text-white/30'
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_channel ? 'bg-green-400' : 'bg-white/30'}`}/>
+                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_channel ? 'bg-white' : 'bg-white/30'}`}/>
                           Канал
                         </div>
                         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${
-                          client.in_chat ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-white/30'
+                          client.in_chat ? 'bg-white/10 text-white' : 'bg-zinc-800 text-white/30'
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_chat ? 'bg-green-400' : 'bg-white/30'}`}/>
+                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_chat ? 'bg-white' : 'bg-white/30'}`}/>
                           Чат
                         </div>
                         {client.last_payment_method && (
@@ -1767,7 +1767,7 @@ export function FullCrmPage() {
                   <button
                     onClick={() => setSelectedUsers(users.map(u => u.telegram_id))}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedUsers.length === users.length && users.length > 0 ? 'bg-green-500 text-white' : 'bg-zinc-800 text-white/60'
+                      selectedUsers.length === users.length && users.length > 0 ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
                     }`}
                   >
                     Открыли App ({users.length})
