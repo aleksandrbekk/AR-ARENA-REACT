@@ -821,7 +821,12 @@ export function FullCrmPage() {
           <div className="py-4 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">CRM</h1>
-              <p className="text-white/40 mt-1">{users.length} пользователей</p>
+              <p className="text-white/40 mt-1">
+                {activeTab === 'leads' && `${botUsers.length} в боте`}
+                {activeTab === 'premium' && `${premiumClients.length} подписчиков`}
+                {activeTab === 'users' && `${users.length} в приложении`}
+                {activeTab === 'broadcast' && 'Рассылка сообщений'}
+              </p>
             </div>
             <button
               onClick={() => loadData()}
@@ -845,9 +850,9 @@ export function FullCrmPage() {
                   activeTab === tab ? 'bg-white text-black' : 'text-white/60'
                 }`}
               >
-                {tab === 'leads' && `База (${botUsers.length})`}
-                {tab === 'premium' && `Premium (${premiumClients.length})`}
-                {tab === 'users' && `App (${users.length})`}
+                {tab === 'leads' && 'База'}
+                {tab === 'premium' && 'Premium'}
+                {tab === 'users' && 'App'}
                 {tab === 'broadcast' && 'Рассылка'}
               </button>
             ))}
@@ -860,22 +865,22 @@ export function FullCrmPage() {
               {(() => {
                 const totalBot = botUsers.length
                 const appOpenedSet = new Set(users.map(u => u.telegram_id))
-                const appOpened = botUsers.filter(bu => appOpenedSet.has(bu.telegram_id)).length
+                const appOpenedFromBot = botUsers.filter(bu => appOpenedSet.has(bu.telegram_id)).length
                 const purchasedSet = new Set(premiumClients.map(p => p.telegram_id))
-                const purchased = botUsers.filter(bu => purchasedSet.has(bu.telegram_id)).length
+                const purchasedFromBot = botUsers.filter(bu => purchasedSet.has(bu.telegram_id)).length
 
-                const appRate = totalBot > 0 ? ((appOpened / totalBot) * 100).toFixed(1) : '0'
-                const purchaseRate = appOpened > 0 ? ((purchased / appOpened) * 100).toFixed(1) : '0'
-                const totalRate = totalBot > 0 ? ((purchased / totalBot) * 100).toFixed(1) : '0'
+                const appRate = totalBot > 0 ? ((appOpenedFromBot / totalBot) * 100).toFixed(1) : '0'
+                const purchaseRate = appOpenedFromBot > 0 ? ((purchasedFromBot / appOpenedFromBot) * 100).toFixed(1) : '0'
+                const totalRate = totalBot > 0 ? ((purchasedFromBot / totalBot) * 100).toFixed(1) : '0'
 
                 return (
                   <div className="bg-zinc-900 rounded-2xl p-4">
-                    <h3 className="text-sm text-white/40 uppercase tracking-wide mb-4">Воронка конверсий</h3>
+                    <h3 className="text-sm text-white/40 uppercase tracking-wide mb-4">Воронка (из бота)</h3>
                     <div className="space-y-3">
                       {/* Шаг 1: Бот */}
                       <div className="relative">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-white font-medium">Зашли в бота</span>
+                          <span className="text-white font-medium">Нажали /start</span>
                           <span className="text-white font-bold">{totalBot}</span>
                         </div>
                         <div className="h-3 bg-blue-500/30 rounded-full overflow-hidden">
@@ -888,14 +893,14 @@ export function FullCrmPage() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                         </svg>
-                        <span>{appRate}% открыли приложение</span>
+                        <span>{appRate}%</span>
                       </div>
 
                       {/* Шаг 2: Открыли приложение */}
                       <div className="relative">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-white font-medium">Открыли приложение</span>
-                          <span className="text-green-400 font-bold">{appOpened}</span>
+                          <span className="text-white font-medium">Открыли App</span>
+                          <span className="text-green-400 font-bold">{appOpenedFromBot}</span>
                         </div>
                         <div className="h-3 bg-green-500/30 rounded-full overflow-hidden">
                           <div className="h-full bg-green-500 rounded-full" style={{ width: `${appRate}%` }} />
@@ -907,14 +912,14 @@ export function FullCrmPage() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                         </svg>
-                        <span>{purchaseRate}% купили подписку</span>
+                        <span>{purchaseRate}%</span>
                       </div>
 
                       {/* Шаг 3: Купили */}
                       <div className="relative">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-white font-medium">Купили подписку</span>
-                          <span className="text-[#FFD700] font-bold">{purchased}</span>
+                          <span className="text-white font-medium">Купили Premium</span>
+                          <span className="text-[#FFD700] font-bold">{purchasedFromBot}</span>
                         </div>
                         <div className="h-3 bg-[#FFD700]/30 rounded-full overflow-hidden">
                           <div className="h-full bg-[#FFD700] rounded-full" style={{ width: `${totalRate}%` }} />
@@ -923,7 +928,7 @@ export function FullCrmPage() {
 
                       {/* Итоговая конверсия */}
                       <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                        <span className="text-white/50">Общая конверсия (бот → покупка)</span>
+                        <span className="text-white/50">Конверсия /start → Premium</span>
                         <span className="text-[#FFD700] font-bold text-lg">{totalRate}%</span>
                       </div>
                     </div>
