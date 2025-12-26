@@ -313,12 +313,17 @@ function PricingCard({ tariff, index, onBuy }: PricingCardProps) {
 
           {/* Цена (с фиксированным отступом для старой цены) */}
           <div className="mb-4 md:mb-6">
-            {/* Старая цена - placeholder всегда рендерится для выравнивания */}
-            <div className="h-4 md:h-5 mb-1 flex items-center">
+            {/* Старая цена + выгода - placeholder всегда рендерится для выравнивания */}
+            <div className="h-4 md:h-5 mb-1 flex items-center gap-2">
               {tariff.oldPrice ? (
-                <span className="text-gray-500 text-xs md:text-sm line-through decoration-white/30 decoration-1">
-                  {tariff.oldPrice.toLocaleString('ru-RU')} ₽
-                </span>
+                <>
+                  <span className="text-gray-500 text-xs md:text-sm line-through decoration-white/30 decoration-1">
+                    {tariff.oldPrice.toLocaleString('ru-RU')} ₽
+                  </span>
+                  <span className="text-green-400 text-xs md:text-sm font-medium">
+                    выгода {(tariff.oldPrice - tariff.price).toLocaleString('ru-RU')} ₽
+                  </span>
+                </>
               ) : <div />}
             </div>
 
