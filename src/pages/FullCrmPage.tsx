@@ -39,7 +39,25 @@ interface PremiumClient {
   tags: string[]
 }
 
-type TabType = 'users' | 'premium' | 'broadcast'
+interface BotUser {
+  id: number
+  telegram_id: number
+  username: string | null
+  first_name: string | null
+  source: string | null
+  created_at: string
+  last_seen_at: string
+}
+
+interface UtmStats {
+  source: string
+  users: number
+  appOpened: number
+  purchased: number
+  revenue: number
+}
+
+type TabType = 'leads' | 'premium' | 'users' | 'broadcast'
 
 // ============ КОНСТАНТЫ ============
 const BOT_TOKEN = '***REMOVED***'
@@ -51,9 +69,11 @@ export function FullCrmPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
 
-  const [activeTab, setActiveTab] = useState<TabType>('users')
+  const [activeTab, setActiveTab] = useState<TabType>('leads')
   const [users, setUsers] = useState<User[]>([])
   const [premiumClients, setPremiumClients] = useState<PremiumClient[]>([])
+  const [botUsers, setBotUsers] = useState<BotUser[]>([])
+  const [utmStats, setUtmStats] = useState<UtmStats[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedUsers, setSelectedUsers] = useState<number[]>([])
@@ -74,6 +94,11 @@ export function FullCrmPage() {
   const [monthFilter, setMonthFilter] = useState<string>('all')
   const [daysToAdd, setDaysToAdd] = useState(30)
   const [selectedPremiumClient, setSelectedPremiumClient] = useState<PremiumClient | null>(null)
+
+  // База пользователей (leads) фильтры
+  const [leadsSearch, setLeadsSearch] = useState('')
+  const [leadsSourceFilter, setLeadsSourceFilter] = useState<string>('all')
+  const [leadsStatusFilter, setLeadsStatusFilter] = useState<'all' | 'app_opened' | 'not_opened' | 'purchased'>('all')
 
   // Защита паролем для браузера
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -116,6 +141,8 @@ export function FullCrmPage() {
   const loadData = async () => {
     try {
       setLoading(true)
+
+      // Загружаем пользователей приложения
       const { data: usersData } = await supabase
         .from('users')
         .select('id, telegram_id, username, first_name, last_name, avatar_url, created_at')
@@ -147,6 +174,7 @@ export function FullCrmPage() {
 
       setUsers(usersWithStatus)
 
+      // Загружаем Premium клиентов
       const { data: premiumClientsData } = await supabase
         .from('premium_clients')
         .select('*')
@@ -162,6 +190,44 @@ export function FullCrmPage() {
       }))
 
       setPremiumClients(premiumWithAvatars as PremiumClient[])
+
+      // Загружаем пользователей бота
+      const { data: botUsersData } = await supabase
+        .from('bot_users')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      setBotUsers(botUsersData as BotUser[] || [])
+
+      // Считаем UTM статистику
+      const appOpenedSet = new Set(usersWithStatus.map(u => u.telegram_id))
+      const purchasedMap = new Map<number, number>()
+      premiumWithAvatars.forEach(p => {
+        purchasedMap.set(p.telegram_id, p.original_amount || p.total_paid_usd || 0)
+      })
+
+      // Группируем по источникам
+      const sourceStats = new Map<string, UtmStats>()
+      ;(botUsersData || []).forEach((bu: BotUser) => {
+        const src = bu.source || 'direct'
+        if (!sourceStats.has(src)) {
+          sourceStats.set(src, { source: src, users: 0, appOpened: 0, purchased: 0, revenue: 0 })
+        }
+        const stat = sourceStats.get(src)!
+        stat.users++
+        if (appOpenedSet.has(bu.telegram_id)) {
+          stat.appOpened++
+        }
+        if (purchasedMap.has(bu.telegram_id)) {
+          stat.purchased++
+          stat.revenue += purchasedMap.get(bu.telegram_id) || 0
+        }
+      })
+
+      // Сортируем по количеству пользователей
+      const stats = Array.from(sourceStats.values()).sort((a, b) => b.users - a.users)
+      setUtmStats(stats)
+
     } catch (err) {
       console.error('Error:', err)
     } finally {
@@ -771,7 +837,7 @@ export function FullCrmPage() {
 
           {/* Табы */}
           <div className="flex gap-1 p-1 bg-zinc-900 rounded-xl mb-6">
-            {(['users', 'premium', 'broadcast'] as TabType[]).map(tab => (
+            {(['leads', 'premium', 'users', 'broadcast'] as TabType[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -779,12 +845,263 @@ export function FullCrmPage() {
                   activeTab === tab ? 'bg-white text-black' : 'text-white/60'
                 }`}
               >
-                {tab === 'users' && `Все (${users.length})`}
+                {tab === 'leads' && `База (${botUsers.length})`}
                 {tab === 'premium' && `Premium (${premiumClients.length})`}
+                {tab === 'users' && `App (${users.length})`}
                 {tab === 'broadcast' && 'Рассылка'}
               </button>
             ))}
           </div>
+
+          {/* ============ БАЗА ПОЛЬЗОВАТЕЛЕЙ (LEADS) ============ */}
+          {activeTab === 'leads' && (
+            <div className="space-y-4">
+              {/* Воронка конверсий */}
+              {(() => {
+                const totalBot = botUsers.length
+                const appOpenedSet = new Set(users.map(u => u.telegram_id))
+                const appOpened = botUsers.filter(bu => appOpenedSet.has(bu.telegram_id)).length
+                const purchasedSet = new Set(premiumClients.map(p => p.telegram_id))
+                const purchased = botUsers.filter(bu => purchasedSet.has(bu.telegram_id)).length
+
+                const appRate = totalBot > 0 ? ((appOpened / totalBot) * 100).toFixed(1) : '0'
+                const purchaseRate = appOpened > 0 ? ((purchased / appOpened) * 100).toFixed(1) : '0'
+                const totalRate = totalBot > 0 ? ((purchased / totalBot) * 100).toFixed(1) : '0'
+
+                return (
+                  <div className="bg-zinc-900 rounded-2xl p-4">
+                    <h3 className="text-sm text-white/40 uppercase tracking-wide mb-4">Воронка конверсий</h3>
+                    <div className="space-y-3">
+                      {/* Шаг 1: Бот */}
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-white font-medium">Зашли в бота</span>
+                          <span className="text-white font-bold">{totalBot}</span>
+                        </div>
+                        <div className="h-3 bg-blue-500/30 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full" style={{ width: '100%' }} />
+                        </div>
+                      </div>
+
+                      {/* Стрелка */}
+                      <div className="flex items-center gap-2 text-white/30 text-xs pl-4">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                        <span>{appRate}% открыли приложение</span>
+                      </div>
+
+                      {/* Шаг 2: Открыли приложение */}
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-white font-medium">Открыли приложение</span>
+                          <span className="text-green-400 font-bold">{appOpened}</span>
+                        </div>
+                        <div className="h-3 bg-green-500/30 rounded-full overflow-hidden">
+                          <div className="h-full bg-green-500 rounded-full" style={{ width: `${appRate}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Стрелка */}
+                      <div className="flex items-center gap-2 text-white/30 text-xs pl-4">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                        <span>{purchaseRate}% купили подписку</span>
+                      </div>
+
+                      {/* Шаг 3: Купили */}
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-white font-medium">Купили подписку</span>
+                          <span className="text-[#FFD700] font-bold">{purchased}</span>
+                        </div>
+                        <div className="h-3 bg-[#FFD700]/30 rounded-full overflow-hidden">
+                          <div className="h-full bg-[#FFD700] rounded-full" style={{ width: `${totalRate}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Итоговая конверсия */}
+                      <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                        <span className="text-white/50">Общая конверсия (бот → покупка)</span>
+                        <span className="text-[#FFD700] font-bold text-lg">{totalRate}%</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* UTM Аналитика */}
+              <div className="bg-zinc-900 rounded-2xl p-4">
+                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-4">UTM-источники</h3>
+                <div className="space-y-2">
+                  {utmStats.map(stat => {
+                    const convRate = stat.users > 0 ? ((stat.purchased / stat.users) * 100).toFixed(1) : '0'
+                    return (
+                      <div
+                        key={stat.source}
+                        onClick={() => setLeadsSourceFilter(stat.source === leadsSourceFilter ? 'all' : stat.source)}
+                        className={`p-3 rounded-xl cursor-pointer transition-all ${
+                          leadsSourceFilter === stat.source ? 'bg-white/10 ring-1 ring-white/20' : 'bg-zinc-800/50 hover:bg-zinc-800'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-medium">{stat.source}</span>
+                            <span className="text-white/40 text-sm">({stat.users})</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            <span className="text-green-400">{stat.appOpened} app</span>
+                            <span className="text-[#FFD700]">{stat.purchased} paid</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 via-green-500 to-[#FFD700] rounded-full"
+                              style={{ width: `${Math.min(100, parseFloat(convRate) * 5)}%` }}
+                            />
+                          </div>
+                          <span className="text-white/50 text-xs w-12 text-right">{convRate}%</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {utmStats.length === 0 && (
+                    <div className="text-center text-white/30 py-4">Нет данных</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Фильтры */}
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {[
+                  { key: 'all', label: 'Все' },
+                  { key: 'app_opened', label: 'Открыли App' },
+                  { key: 'not_opened', label: 'Не открыли' },
+                  { key: 'purchased', label: 'Купили' }
+                ].map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setLeadsStatusFilter(f.key as typeof leadsStatusFilter)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                      leadsStatusFilter === f.key ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Поиск */}
+              <div className="relative">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={leadsSearch}
+                  onChange={e => setLeadsSearch(e.target.value)}
+                  placeholder="Поиск по имени или ID..."
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                />
+              </div>
+
+              {/* Список пользователей */}
+              {(() => {
+                const appOpenedSet = new Set(users.map(u => u.telegram_id))
+                const purchasedSet = new Set(premiumClients.map(p => p.telegram_id))
+
+                const filtered = botUsers.filter(bu => {
+                  // Поиск
+                  if (leadsSearch) {
+                    const q = leadsSearch.toLowerCase()
+                    const match = bu.username?.toLowerCase().includes(q) ||
+                      bu.first_name?.toLowerCase().includes(q) ||
+                      bu.telegram_id.toString().includes(q)
+                    if (!match) return false
+                  }
+
+                  // Фильтр по источнику
+                  if (leadsSourceFilter !== 'all') {
+                    if ((bu.source || 'direct') !== leadsSourceFilter) return false
+                  }
+
+                  // Фильтр по статусу
+                  const opened = appOpenedSet.has(bu.telegram_id)
+                  const purchased = purchasedSet.has(bu.telegram_id)
+
+                  if (leadsStatusFilter === 'app_opened' && !opened) return false
+                  if (leadsStatusFilter === 'not_opened' && opened) return false
+                  if (leadsStatusFilter === 'purchased' && !purchased) return false
+
+                  return true
+                })
+
+                return (
+                  <>
+                    <div className="text-sm text-white/40 mb-2">
+                      Показано: <span className="text-white">{filtered.length}</span> из {botUsers.length}
+                    </div>
+                    <div className="bg-zinc-900 rounded-2xl overflow-hidden">
+                      {filtered.slice(0, 100).map((bu, i) => {
+                        const opened = appOpenedSet.has(bu.telegram_id)
+                        const purchased = purchasedSet.has(bu.telegram_id)
+
+                        return (
+                          <div
+                            key={bu.id}
+                            className={`flex items-center gap-3 px-4 py-3 ${i !== 0 ? 'border-t border-white/5' : ''}`}
+                          >
+                            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white/60 font-medium">
+                              {(bu.first_name || bu.username || '?')[0]?.toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">
+                                {bu.username ? `@${bu.username}` : bu.first_name || bu.telegram_id}
+                              </div>
+                              <div className="text-sm text-white/40 truncate flex items-center gap-2">
+                                <span>{bu.source || 'direct'}</span>
+                                <span className="text-white/20">•</span>
+                                <span>{new Date(bu.created_at).toLocaleDateString('ru-RU')}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {opened && (
+                                <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center" title="Открыл приложение">
+                                  <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                              )}
+                              {purchased && (
+                                <div className="w-6 h-6 rounded-full bg-[#FFD700]/20 flex items-center justify-center" title="Купил подписку">
+                                  <span className="text-[#FFD700] text-xs">$</span>
+                                </div>
+                              )}
+                              {!opened && !purchased && (
+                                <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center" title="Не открыл приложение">
+                                  <span className="text-white/30 text-xs">—</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {filtered.length === 0 && (
+                        <div className="py-12 text-center text-white/30">Ничего не найдено</div>
+                      )}
+                      {filtered.length > 100 && (
+                        <div className="py-3 text-center text-white/30 text-sm border-t border-white/5">
+                          Показаны первые 100 из {filtered.length}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+          )}
 
           {/* ============ ВСЕ ЮЗЕРЫ ============ */}
           {activeTab === 'users' && (
