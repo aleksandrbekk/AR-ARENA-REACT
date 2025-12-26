@@ -249,6 +249,86 @@ async function handleStart(chatId) {
   await sendMessage(chatId, text, keyboard);
 }
 
+// /status — проверка подписки
+async function handleStatus(chatId, telegramId) {
+  const subscription = await checkSubscription(telegramId);
+
+  if (subscription) {
+    // Есть активная подписка
+    const tariffName = getTariffName(subscription.plan);
+    const expiresAt = new Date(subscription.expires_at);
+    const now = new Date();
+    const daysLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+    const expiresDate = formatDate(subscription.expires_at);
+
+    // Эмодзи в зависимости от оставшихся дней
+    let statusEmoji = '✅';
+    let urgencyText = '';
+    if (daysLeft <= 3) {
+      statusEmoji = '⚠️';
+      urgencyText = '\n\n<i>Осталось мало времени — продли подписку!</i>';
+    } else if (daysLeft <= 7) {
+      statusEmoji = '🔔';
+    }
+
+    // Карточка тарифа
+    const tariffEmoji = {
+      'classic': '🖤',
+      'gold': '🥇',
+      'platinum': '💎',
+      'private': '🍷'
+    };
+
+    const text = `${statusEmoji} <b>Твоя подписка Premium AR Club</b>
+
+${tariffEmoji[subscription.plan] || '💳'} Тариф: <b>${tariffName}</b>
+📅 Действует до: <b>${expiresDate}</b>
+⏳ Осталось: <b>${daysLeft} ${getDaysWord(daysLeft)}</b>${urgencyText}`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '📋 Продлить / Повысить', web_app: { url: PRICING_URL } }]
+      ]
+    };
+
+    await sendMessage(chatId, text, keyboard);
+  } else {
+    // Нет активной подписки
+    const text = `❌ <b>У тебя нет активной подписки</b>
+
+Присоединяйся к Premium AR Club и получи доступ к:
+• Ежедневной аналитике рынка
+• Фьючерсным сделкам с сопровождением
+• Закрытому чату трейдеров
+• И многому другому!`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '🎴 Выбрать тариф', web_app: { url: PRICING_URL } }]
+      ]
+    };
+
+    await sendMessage(chatId, text, keyboard);
+  }
+}
+
+// Склонение слова "день"
+function getDaysWord(days) {
+  const lastTwo = days % 100;
+  const lastOne = days % 10;
+
+  if (lastTwo >= 11 && lastTwo <= 19) {
+    return 'дней';
+  }
+  if (lastOne === 1) {
+    return 'день';
+  }
+  if (lastOne >= 2 && lastOne <= 4) {
+    return 'дня';
+  }
+  return 'дней';
+}
+
 // ============================================
 // MAIN HANDLER
 // ============================================
@@ -267,7 +347,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       status: 'ok',
       service: 'AR ARENA Bot Webhook',
-      commands: ['/start', '/start premium']
+      commands: ['/start', '/start premium', '/status', '/sub', '/подписка']
     });
   }
 
@@ -304,6 +384,12 @@ export default async function handler(req, res) {
         log(`👤 /start from ${telegramId}`);
         await handleStart(chatId);
       }
+    }
+
+    // Проверяем команду /status (или /подписка, /sub)
+    if (text === '/status' || text === '/подписка' || text === '/sub' || text === '/subscription') {
+      log(`👤 /status from ${telegramId}`);
+      await handleStatus(chatId, telegramId);
     }
 
     return res.status(200).json({ ok: true });
