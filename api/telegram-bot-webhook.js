@@ -130,6 +130,32 @@ function getTariffName(plan) {
 // UTM TRACKING
 // ============================================
 
+// Записать пользователя бота
+async function trackBotUser(telegramId, username, firstName, source = null) {
+  try {
+    const { error } = await supabase
+      .from('bot_users')
+      .upsert({
+        telegram_id: telegramId,
+        username: username || null,
+        first_name: firstName || null,
+        source: source,
+        last_seen_at: new Date().toISOString()
+      }, {
+        onConflict: 'telegram_id',
+        ignoreDuplicates: false
+      });
+
+    if (error) {
+      log('⚠️ trackBotUser error', { error: error.message });
+    } else {
+      log(`👤 Bot user tracked: ${telegramId}`);
+    }
+  } catch (err) {
+    log('⚠️ trackBotUser error', { error: err.message });
+  }
+}
+
 // Записать клик по UTM-ссылке
 async function trackUtmClick(slug) {
   if (!slug) return;
@@ -374,9 +400,21 @@ export default async function handler(req, res) {
       const args = text.split(' ').slice(1);
       const param = args[0] || '';
 
+      // Определяем источник
+      let source = 'direct'; // просто /start
+      if (param.startsWith('premium')) {
+        source = param.includes('_') ? param.split('_').slice(1).join('_') : 'premium';
+      } else if (param) {
+        source = param; // любой другой параметр
+      }
+
+      // Записываем пользователя в базу
+      const username = message.from.username;
+      const firstName = message.from.first_name;
+      await trackBotUser(telegramId, username, firstName, source);
+
       // Парсим UTM: premium_SOURCE или просто premium
       if (param.startsWith('premium')) {
-        // Извлекаем источник: premium_instagram -> instagram
         const utmSource = param.includes('_') ? param.split('_').slice(1).join('_') : null;
         log(`👤 /start premium from ${telegramId}`, { utmSource });
         await handleStartPremium(chatId, telegramId, utmSource);
