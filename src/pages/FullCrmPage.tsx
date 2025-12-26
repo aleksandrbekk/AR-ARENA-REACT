@@ -30,6 +30,8 @@ interface PremiumClient {
   in_channel: boolean
   in_chat: boolean
   total_paid_usd: number
+  currency: string | null
+  original_amount: number | null
   payments_count: number
   last_payment_at: string | null
   last_payment_method: string | null
@@ -69,6 +71,7 @@ export function FullCrmPage() {
   const [premiumSearch, setPremiumSearch] = useState('')
   const [premiumFilter, setPremiumFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [planFilter, setPlanFilter] = useState<string>('all')
+  const [monthFilter, setMonthFilter] = useState<string>('all')
   const [daysToAdd, setDaysToAdd] = useState(30)
   const [selectedPremiumClient, setSelectedPremiumClient] = useState<PremiumClient | null>(null)
 
@@ -147,7 +150,7 @@ export function FullCrmPage() {
       const { data: premiumClientsData } = await supabase
         .from('premium_clients')
         .select('*')
-        .order('expires_at', { ascending: true })
+        .order('last_payment_at', { ascending: false })
 
       // Подтягиваем аватарки из уже загруженных users (без доп. запросов)
       const avatarMap = new Map<number, string | null>()
@@ -211,6 +214,13 @@ export function FullCrmPage() {
     // Фильтр по плану
     if (planFilter !== 'all' && client.plan !== planFilter) return false
 
+    // Фильтр по месяцу (по дате последнего платежа)
+    if (monthFilter !== 'all' && client.last_payment_at) {
+      const paymentDate = new Date(client.last_payment_at)
+      const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+      if (paymentMonth !== monthFilter) return false
+    }
+
     // Фильтр по статусу
     const days = getDaysRemaining(client.expires_at)
     if (premiumFilter === 'active' && days <= 7) return false
@@ -219,6 +229,27 @@ export function FullCrmPage() {
 
     return true
   })
+
+  // Получаем уникальные месяцы для фильтра
+  const availableMonths = [...new Set(
+    premiumClients
+      .filter(c => c.last_payment_at)
+      .map(c => {
+        const d = new Date(c.last_payment_at!)
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      })
+  )].sort().reverse()
+
+  const monthNames: Record<string, string> = {
+    '01': 'Январь', '02': 'Февраль', '03': 'Март', '04': 'Апрель',
+    '05': 'Май', '06': 'Июнь', '07': 'Июль', '08': 'Август',
+    '09': 'Сентябрь', '10': 'Октябрь', '11': 'Ноябрь', '12': 'Декабрь'
+  }
+
+  const formatMonthLabel = (m: string) => {
+    const [year, month] = m.split('-')
+    return `${monthNames[month]} ${year}`
+  }
 
   // ============ УДАЛИТЬ КЛИЕНТА ============
   const deletePremiumClient = async (clientId: string, telegramId: number) => {
@@ -323,6 +354,16 @@ export function FullCrmPage() {
 
   const getInitial = (user: User) => (user.first_name || user.username || '?')[0]?.toUpperCase()
   const getPremiumInitial = (client: PremiumClient) => (client.first_name || client.username || '?')[0]?.toUpperCase()
+
+  // Форматирование суммы с валютой
+  const formatAmount = (client: PremiumClient) => {
+    const currency = client.currency || (client.source === '0xprocessing' ? 'USD' : 'RUB')
+    const amount = client.original_amount || client.total_paid_usd || 0
+
+    if (currency === 'USD') return `$${amount.toLocaleString('en-US')}`
+    if (currency === 'EUR') return `€${amount.toLocaleString('de-DE')}`
+    return `${amount.toLocaleString('ru-RU')} ₽`
+  }
 
   // ============ TELEGRAM BACK ============
   useEffect(() => {
@@ -501,11 +542,7 @@ export function FullCrmPage() {
             <div className="bg-zinc-900 rounded-2xl overflow-hidden mb-4">
               <div className="px-4 py-3 flex justify-between border-b border-white/5">
                 <span className="text-white/50">Всего оплачено</span>
-                <span className="text-white font-medium">
-                  {client.source === 'lava.top'
-                    ? `${(client.total_paid_usd || 0).toLocaleString('ru-RU')} ₽`
-                    : `$${client.total_paid_usd || 0}`}
-                </span>
+                <span className="text-white font-medium">{formatAmount(client)}</span>
               </div>
               <div className="px-4 py-3 flex justify-between border-b border-white/5">
                 <span className="text-white/50">Платежей</span>
@@ -812,32 +849,55 @@ export function FullCrmPage() {
             <div className="space-y-4">
               {/* Статистика */}
               {(() => {
+                // Считаем по валютам из currency поля
                 const totalRub = premiumClients
-                  .filter(c => c.source === 'lava.top')
-                  .reduce((sum, c) => sum + (c.total_paid_usd || 0), 0)
+                  .filter(c => c.currency === 'RUB' || (!c.currency && c.source === 'lava.top'))
+                  .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
                 const totalUsd = premiumClients
-                  .filter(c => c.source === '0xprocessing')
-                  .reduce((sum, c) => sum + (c.total_paid_usd || 0), 0)
+                  .filter(c => c.currency === 'USD' || (!c.currency && c.source === '0xprocessing'))
+                  .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
+                const totalEur = premiumClients
+                  .filter(c => c.currency === 'EUR')
+                  .reduce((sum, c) => sum + (c.original_amount || 0), 0)
+
                 const activeClients = premiumClients.filter(c => getDaysRemaining(c.expires_at) > 0).length
                 const totalPayments = premiumClients.reduce((sum, c) => sum + (c.payments_count || 1), 0)
 
+                // Средний чек в рублях (конвертируем USD и EUR)
+                const USD_TO_RUB = 90
+                const EUR_TO_RUB = 100
+                const totalInRub = totalRub + (totalUsd * USD_TO_RUB) + (totalEur * EUR_TO_RUB)
+                const avgCheck = totalPayments > 0 ? Math.round(totalInRub / totalPayments) : 0
+
                 return (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-zinc-900 rounded-xl p-4">
-                      <div className="text-white/40 text-xs mb-1">Выручка (RUB)</div>
-                      <div className="text-xl font-bold text-white">{totalRub.toLocaleString('ru-RU')} ₽</div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-zinc-900 rounded-xl p-3">
+                        <div className="text-white/40 text-[10px] mb-1">RUB</div>
+                        <div className="text-lg font-bold text-white">{totalRub.toLocaleString('ru-RU')} ₽</div>
+                      </div>
+                      <div className="bg-zinc-900 rounded-xl p-3">
+                        <div className="text-white/40 text-[10px] mb-1">USD</div>
+                        <div className="text-lg font-bold text-green-400">${totalUsd.toLocaleString('en-US')}</div>
+                      </div>
+                      <div className="bg-zinc-900 rounded-xl p-3">
+                        <div className="text-white/40 text-[10px] mb-1">EUR</div>
+                        <div className="text-lg font-bold text-blue-400">€{totalEur.toLocaleString('de-DE')}</div>
+                      </div>
                     </div>
-                    <div className="bg-zinc-900 rounded-xl p-4">
-                      <div className="text-white/40 text-xs mb-1">Выручка (USD)</div>
-                      <div className="text-xl font-bold text-white">${totalUsd.toLocaleString('en-US')}</div>
-                    </div>
-                    <div className="bg-zinc-900 rounded-xl p-4">
-                      <div className="text-white/40 text-xs mb-1">Активных</div>
-                      <div className="text-xl font-bold text-green-400">{activeClients}</div>
-                    </div>
-                    <div className="bg-zinc-900 rounded-xl p-4">
-                      <div className="text-white/40 text-xs mb-1">Платежей</div>
-                      <div className="text-xl font-bold text-white">{totalPayments}</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-zinc-900 rounded-xl p-3">
+                        <div className="text-white/40 text-[10px] mb-1">Активных</div>
+                        <div className="text-lg font-bold text-green-400">{activeClients}</div>
+                      </div>
+                      <div className="bg-zinc-900 rounded-xl p-3">
+                        <div className="text-white/40 text-[10px] mb-1">Платежей</div>
+                        <div className="text-lg font-bold text-white">{totalPayments}</div>
+                      </div>
+                      <div className="bg-zinc-900 rounded-xl p-3">
+                        <div className="text-white/40 text-[10px] mb-1">Ср. чек</div>
+                        <div className="text-lg font-bold text-[#FFD700]">{avgCheck.toLocaleString('ru-RU')} ₽</div>
+                      </div>
                     </div>
                   </div>
                 )
@@ -900,6 +960,31 @@ export function FullCrmPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Фильтр по месяцу */}
+              {availableMonths.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                  <button
+                    onClick={() => setMonthFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                      monthFilter === 'all' ? 'bg-white text-black' : 'bg-zinc-800 text-white/50'
+                    }`}
+                  >
+                    Все месяцы
+                  </button>
+                  {availableMonths.map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setMonthFilter(m)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                        monthFilter === m ? 'bg-white text-black' : 'bg-zinc-800 text-white/50'
+                      }`}
+                    >
+                      {formatMonthLabel(m)}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Счётчик */}
               <div className="text-sm text-white/40">
@@ -971,11 +1056,7 @@ export function FullCrmPage() {
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
                           <span className="text-white/40">Оплачено</span>
-                          <span className="text-white font-medium">
-                            {client.source === 'lava.top'
-                              ? `${(client.total_paid_usd || 0).toLocaleString('ru-RU')} ₽`
-                              : `$${client.total_paid_usd || 0}`}
-                          </span>
+                          <span className="text-white font-medium">{formatAmount(client)}</span>
                         </div>
                         <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
                           <span className="text-white/40">Платежей</span>
