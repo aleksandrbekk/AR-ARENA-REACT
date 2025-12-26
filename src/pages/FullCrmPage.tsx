@@ -69,6 +69,7 @@ export function FullCrmPage() {
   const [premiumSearch, setPremiumSearch] = useState('')
   const [premiumFilter, setPremiumFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [planFilter, setPlanFilter] = useState<string>('all')
+  const [monthFilter, setMonthFilter] = useState<string>('all') // Фильтр по месяцам
   const [daysToAdd, setDaysToAdd] = useState(30)
   const [selectedPremiumClient, setSelectedPremiumClient] = useState<PremiumClient | null>(null)
 
@@ -147,7 +148,7 @@ export function FullCrmPage() {
       const { data: premiumClientsData } = await supabase
         .from('premium_clients')
         .select('*')
-        .order('expires_at', { ascending: true })
+        .order('last_payment_at', { ascending: false })
 
       // Подтягиваем аватарки из уже загруженных users (без доп. запросов)
       const avatarMap = new Map<number, string | null>()
@@ -196,6 +197,25 @@ export function FullCrmPage() {
     return 'text-green-400'
   }
 
+  // Генерация списка месяцев для фильтра
+  const getAvailableMonths = () => {
+    const months = new Set<string>()
+    premiumClients.forEach(client => {
+      if (client.last_payment_at) {
+        const date = new Date(client.last_payment_at)
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        months.add(key)
+      }
+    })
+    return Array.from(months).sort().reverse()
+  }
+
+  const getMonthLabel = (monthKey: string) => {
+    const [year, month] = monthKey.split('-')
+    const monthNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
+    return `${monthNames[parseInt(month) - 1]} ${year}`
+  }
+
   // Фильтрация Premium клиентов
   const filteredPremiumClients = premiumClients.filter(client => {
     // Поиск
@@ -210,6 +230,13 @@ export function FullCrmPage() {
 
     // Фильтр по плану
     if (planFilter !== 'all' && client.plan !== planFilter) return false
+
+    // Фильтр по месяцу оплаты
+    if (monthFilter !== 'all' && client.last_payment_at) {
+      const date = new Date(client.last_payment_at)
+      const clientMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      if (clientMonth !== monthFilter) return false
+    }
 
     // Фильтр по статусу
     const days = getDaysRemaining(client.expires_at)
@@ -501,19 +528,13 @@ export function FullCrmPage() {
             <div className="bg-zinc-900 rounded-2xl overflow-hidden mb-4">
               <div className="px-4 py-3 flex justify-between border-b border-white/5">
                 <span className="text-white/50">Всего оплачено</span>
-                <span className="text-white font-medium">
-                  {client.source === 'lava.top'
-                    ? `${(client.total_paid_usd || 0).toLocaleString('ru-RU')} ₽`
-                    : `$${client.total_paid_usd || 0}`}
+                <span className="text-white font-medium text-green-400">
+                  ${(client.total_paid_usd || 0).toFixed(2)}
                 </span>
               </div>
               <div className="px-4 py-3 flex justify-between border-b border-white/5">
                 <span className="text-white/50">Платежей</span>
                 <span className="text-white font-medium">{client.payments_count || 1}</span>
-              </div>
-              <div className="px-4 py-3 flex justify-between border-b border-white/5">
-                <span className="text-white/50">Источник</span>
-                <span className="text-white font-medium">{client.source || '-'}</span>
               </div>
               <div className="px-4 py-3 flex justify-between border-b border-white/5">
                 <span className="text-white/50">Последний платёж</span>
@@ -524,7 +545,13 @@ export function FullCrmPage() {
               <div className="px-4 py-3 flex justify-between border-b border-white/5">
                 <span className="text-white/50">Метод оплаты</span>
                 <span className="text-white font-medium">
-                  {client.last_payment_method === 'lava.top' ? '💳 Карта' : client.last_payment_method === '0xprocessing' ? '🪙 Крипто' : client.last_payment_method || '-'}
+                  {client.source === 'lava.top' ? '💳 Карта' : client.source === '0xprocessing' ? '🪙 Крипто' : client.source || '-'}
+                </span>
+              </div>
+              <div className="px-4 py-3 flex justify-between border-b border-white/5">
+                <span className="text-white/50">Срок окончания</span>
+                <span className={`font-medium ${getDaysColor(daysRemaining)}`}>
+                  {formatFullDate(client.expires_at)}
                 </span>
               </div>
               <div className="px-4 py-3 flex justify-between">
@@ -812,49 +839,72 @@ export function FullCrmPage() {
             <div className="space-y-4">
               {/* Статистика */}
               {(() => {
-                const totalRub = premiumClients
-                  .filter(c => c.source === 'lava.top')
-                  .reduce((sum, c) => sum + (c.total_paid_usd || 0), 0)
-                const totalUsd = premiumClients
-                  .filter(c => c.source === '0xprocessing')
-                  .reduce((sum, c) => sum + (c.total_paid_usd || 0), 0)
+                // Фильтруем по выбранному месяцу для статистики
+                const statsClients = monthFilter === 'all'
+                  ? premiumClients
+                  : premiumClients.filter(c => {
+                      if (!c.last_payment_at) return false
+                      const date = new Date(c.last_payment_at)
+                      const clientMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+                      return clientMonth === monthFilter
+                    })
+
+                const totalUsd = statsClients.reduce((sum, c) => sum + (c.total_paid_usd || 0), 0)
                 const activeClients = premiumClients.filter(c => getDaysRemaining(c.expires_at) > 0).length
-                const totalPayments = premiumClients.reduce((sum, c) => sum + (c.payments_count || 1), 0)
+                const totalPayments = statsClients.reduce((sum, c) => sum + (c.payments_count || 1), 0)
+                const avgCheck = statsClients.length > 0 ? totalUsd / statsClients.length : 0
 
                 return (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-zinc-900 rounded-xl p-4">
-                      <div className="text-white/40 text-xs mb-1">Выручка (RUB)</div>
-                      <div className="text-xl font-bold text-white">{totalRub.toLocaleString('ru-RU')} ₽</div>
+                      <div className="text-white/40 text-xs mb-1">
+                        Выручка {monthFilter !== 'all' ? getMonthLabel(monthFilter) : 'всего'}
+                      </div>
+                      <div className="text-xl font-bold text-green-400">${totalUsd.toFixed(2)}</div>
                     </div>
                     <div className="bg-zinc-900 rounded-xl p-4">
-                      <div className="text-white/40 text-xs mb-1">Выручка (USD)</div>
-                      <div className="text-xl font-bold text-white">${totalUsd.toLocaleString('en-US')}</div>
+                      <div className="text-white/40 text-xs mb-1">Средний чек</div>
+                      <div className="text-xl font-bold text-white">${avgCheck.toFixed(2)}</div>
                     </div>
                     <div className="bg-zinc-900 rounded-xl p-4">
                       <div className="text-white/40 text-xs mb-1">Активных</div>
-                      <div className="text-xl font-bold text-green-400">{activeClients}</div>
+                      <div className="text-xl font-bold text-blue-400">{activeClients}</div>
                     </div>
                     <div className="bg-zinc-900 rounded-xl p-4">
-                      <div className="text-white/40 text-xs mb-1">Платежей</div>
+                      <div className="text-white/40 text-xs mb-1">
+                        Платежей {monthFilter !== 'all' ? getMonthLabel(monthFilter) : ''}
+                      </div>
                       <div className="text-xl font-bold text-white">{totalPayments}</div>
                     </div>
                   </div>
                 )
               })()}
 
-              {/* Поиск */}
-              <div className="relative">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={premiumSearch}
-                  onChange={e => setPremiumSearch(e.target.value)}
-                  placeholder="Поиск по имени или ID..."
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-                />
+              {/* Поиск и фильтр по месяцам */}
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={premiumSearch}
+                    onChange={e => setPremiumSearch(e.target.value)}
+                    placeholder="Поиск..."
+                    className="w-full pl-12 pr-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                  />
+                </div>
+                {/* Выбор месяца */}
+                <select
+                  value={monthFilter}
+                  onChange={e => setMonthFilter(e.target.value)}
+                  className="px-4 py-3 bg-zinc-900 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/20 cursor-pointer"
+                >
+                  <option value="all">Все месяцы</option>
+                  {getAvailableMonths().map(m => (
+                    <option key={m} value={m}>{getMonthLabel(m)}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Фильтры */}
@@ -972,9 +1022,7 @@ export function FullCrmPage() {
                         <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
                           <span className="text-white/40">Оплачено</span>
                           <span className="text-white font-medium">
-                            {client.source === 'lava.top'
-                              ? `${(client.total_paid_usd || 0).toLocaleString('ru-RU')} ₽`
-                              : `$${client.total_paid_usd || 0}`}
+                            ${(client.total_paid_usd || 0).toFixed(2)}
                           </span>
                         </div>
                         <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
@@ -982,12 +1030,14 @@ export function FullCrmPage() {
                           <span className="text-white font-medium">{client.payments_count || 1}</span>
                         </div>
                         <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
-                          <span className="text-white/40">Источник</span>
-                          <span className="text-white font-medium">{client.source || '-'}</span>
+                          <span className="text-white/40">Оплата</span>
+                          <span className="text-white font-medium">{formatDate(client.last_payment_at)}</span>
                         </div>
                         <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
-                          <span className="text-white/40">Начало</span>
-                          <span className="text-white font-medium">{formatDate(client.started_at)}</span>
+                          <span className="text-white/40">Источник</span>
+                          <span className="text-white font-medium">
+                            {client.source === 'lava.top' ? '💳 Карта' : client.source === '0xprocessing' ? '🪙 Крипто' : client.source || '-'}
+                          </span>
                         </div>
                       </div>
 
