@@ -1222,74 +1222,48 @@ export function FullCrmPage() {
                 />
               </div>
 
-              {/* Фильтры */}
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                {/* По статусу */}
-                {[
-                  { key: 'all', label: 'Все' },
-                  { key: 'active', label: '✓ Активные' },
-                  { key: 'expiring', label: '⚠️ Истекают' },
-                  { key: 'expired', label: '✗ Истекли' }
-                ].map(f => (
-                  <button
-                    key={f.key}
-                    onClick={() => setPremiumFilter(f.key as typeof premiumFilter)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                      premiumFilter === f.key ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
+              {/* Компактные фильтры */}
+              <div className="flex gap-2">
+                {/* Статус */}
+                <select
+                  value={premiumFilter}
+                  onChange={e => setPremiumFilter(e.target.value as typeof premiumFilter)}
+                  className="flex-1 px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '20px', paddingRight: '32px' }}
+                >
+                  <option value="all">Все статусы</option>
+                  <option value="active">✓ Активные</option>
+                  <option value="expiring">⚠️ Истекают</option>
+                  <option value="expired">✗ Истекли</option>
+                </select>
 
-              {/* По плану */}
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                {[
-                  { key: 'all', label: 'Все планы', color: 'bg-zinc-700' },
-                  { key: 'private', label: 'Private', color: 'bg-purple-500/30 text-purple-400' },
-                  { key: 'platinum', label: 'Platinum', color: 'bg-cyan-500/30 text-cyan-400' },
-                  { key: 'gold', label: 'Gold', color: 'bg-[#FFD700]/30 text-[#FFD700]' },
-                  { key: 'classic', label: 'Classic', color: 'bg-zinc-600' }
-                ].map(p => (
-                  <button
-                    key={p.key}
-                    onClick={() => setPlanFilter(p.key)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                      planFilter === p.key
-                        ? p.key === 'all' ? 'bg-white text-black' : p.color + ' ring-2 ring-white/30'
-                        : 'bg-zinc-800 text-white/50'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
+                {/* План */}
+                <select
+                  value={planFilter}
+                  onChange={e => setPlanFilter(e.target.value)}
+                  className="flex-1 px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '20px', paddingRight: '32px' }}
+                >
+                  <option value="all">Все планы</option>
+                  <option value="private">Private</option>
+                  <option value="platinum">Platinum</option>
+                  <option value="gold">Gold</option>
+                  <option value="classic">Classic</option>
+                </select>
 
-              {/* Фильтр по месяцу */}
-              {availableMonths.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                  <button
-                    onClick={() => setMonthFilter('all')}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                      monthFilter === 'all' ? 'bg-white text-black' : 'bg-zinc-800 text-white/50'
-                    }`}
-                  >
-                    Все месяцы
-                  </button>
+                {/* Месяц */}
+                <select
+                  value={monthFilter}
+                  onChange={e => setMonthFilter(e.target.value)}
+                  className="flex-1 px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '20px', paddingRight: '32px' }}
+                >
+                  <option value="all">Все месяцы</option>
                   {availableMonths.map(m => (
-                    <button
-                      key={m}
-                      onClick={() => setMonthFilter(m)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                        monthFilter === m ? 'bg-white text-black' : 'bg-zinc-800 text-white/50'
-                      }`}
-                    >
-                      {formatMonthLabel(m)}
-                    </button>
+                    <option key={m} value={m}>{formatMonthLabel(m)}</option>
                   ))}
-                </div>
-              )}
+                </select>
+              </div>
 
               {/* Счётчик */}
               <div className="text-sm text-white/40">
