@@ -115,8 +115,7 @@ export function FullCrmPage() {
   const [passwordError, setPasswordError] = useState(false)
 
   const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
-  // Проверяем наличие WebApp объекта, а не initData (initData может быть пустой строкой)
-  const isTelegramWebApp = !!window.Telegram?.WebApp
+  const isTelegramWebApp = !!window.Telegram?.WebApp?.initData
   const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
 
   // Проверка авторизации при загрузке
