@@ -55,6 +55,46 @@ const CURRENCY_TO_USD = {
   RUB: 0.011
 };
 
+// Известные цены продуктов по валютам (для определения реальной валюты)
+// Lava иногда присылает неправильную валюту, поэтому определяем по сумме
+const KNOWN_PRICES = {
+  USD: [50.8, 101.6, 152.4, 203.2, 254, 304.8, 355.6, 406.4, 445, 457.2, 508, 609.6], // monthly * 1-12
+  EUR: [43.2, 86.4, 129.6, 172.8, 216, 259.2, 302.4, 345.6, 376.92, 388.8, 432, 518.4],
+  RUB: [4000, 8000, 9900, 12000, 16000, 17900, 20000, 24000, 28000, 32000, 34900, 44000, 48000]
+};
+
+// Определить реальную валюту по сумме платежа
+function detectRealCurrency(amount, reportedCurrency) {
+  const amountNum = parseFloat(amount);
+  if (!amountNum) return reportedCurrency || 'RUB';
+
+  // Проверяем попадание в диапазоны цен для каждой валюты
+  for (const [currency, prices] of Object.entries(KNOWN_PRICES)) {
+    for (const price of prices) {
+      // Допуск 2% на погрешность
+      if (Math.abs(amountNum - price) / price < 0.02) {
+        if (currency !== reportedCurrency) {
+          console.log(`🔍 Currency mismatch detected: reported ${reportedCurrency} but amount ${amountNum} matches ${currency} price ${price}`);
+        }
+        return currency;
+      }
+    }
+  }
+
+  // Если не нашли точное совпадение, используем эвристику
+  if (amountNum >= 1000) {
+    return 'RUB';
+  } else if (amountNum >= 100) {
+    return 'USD'; // Большинство USD платежей > 100
+  } else if (amountNum >= 40 && amountNum <= 55) {
+    return 'USD'; // CLASSIC в USD
+  } else if (amountNum >= 35 && amountNum < 40) {
+    return 'EUR'; // CLASSIC в EUR
+  }
+
+  return reportedCurrency || 'USD';
+}
+
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -515,7 +555,7 @@ export default async function handler(req, res) {
     } = payload;
 
     // Определяем реальную валюту оплаты
-    // Приоритет: buyerCurrency > payment.currency > invoice.currency > rawCurrency > RUB
+    // Приоритет: buyerCurrency > payment.currency > invoice.currency > detectRealCurrency > rawCurrency
     let amount = rawAmount;
     let currency = rawCurrency || 'RUB';
 
@@ -534,6 +574,14 @@ export default async function handler(req, res) {
       currency = invoice.currency;
       log(`💱 Using invoice.currency: ${invoice.currency}`);
       if (invoice.amount) amount = invoice.amount;
+    } else {
+      // Lava.top иногда присылает неправильную валюту
+      // Определяем реальную валюту по сумме платежа
+      const detectedCurrency = detectRealCurrency(rawAmount, rawCurrency);
+      if (detectedCurrency !== rawCurrency) {
+        log(`⚠️ Currency corrected: ${rawCurrency} -> ${detectedCurrency} (based on amount ${rawAmount})`);
+        currency = detectedCurrency;
+      }
     }
 
     log(`📨 Event: ${eventType}, Status: ${status}, Amount: ${amount} ${currency}`);
