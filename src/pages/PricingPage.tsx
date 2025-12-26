@@ -407,7 +407,7 @@ function PricingCard({ tariff, index, onBuy }: PricingCardProps) {
 
 // ============ ГЛАВНАЯ СТРАНИЦА ============
 export function PricingPage() {
-  const deadline = '2025-12-27T18:00:00+03:00'
+  const deadline = '2025-12-29T00:00:00+03:00'
 
   // Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
