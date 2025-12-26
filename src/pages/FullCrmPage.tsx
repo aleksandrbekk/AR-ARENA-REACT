@@ -1506,7 +1506,7 @@ export function FullCrmPage() {
               {/* Модалка добавления клиента */}
               {showAddClientModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end justify-center z-50">
-                  <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
+                  <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8 max-h-[90vh] overflow-y-auto">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-xl font-bold text-white">Добавить подписчика</h3>
                       <button
@@ -1526,7 +1526,7 @@ export function FullCrmPage() {
                           value={newClientId}
                           onChange={e => setNewClientId(e.target.value)}
                           placeholder="123456789"
-                          className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                          className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
                           autoFocus
                         />
                       </div>
@@ -1547,7 +1547,7 @@ export function FullCrmPage() {
                               onClick={() => setNewClientPeriod(p.value as typeof newClientPeriod)}
                               className={`py-3 rounded-xl text-center transition-all ${
                                 newClientPeriod === p.value
-                                  ? 'bg-green-500 text-white'
+                                  ? 'bg-white text-black'
                                   : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
                               }`}
                             >
@@ -1557,33 +1557,144 @@ export function FullCrmPage() {
                           ))}
                         </div>
 
-                        {/* Календарь для точной даты */}
-                        {newClientPeriod === 'custom' && (
-                          <div className="mt-3">
-                            <input
-                              type="date"
-                              value={newClientCustomDate}
-                              onChange={e => setNewClientCustomDate(e.target.value)}
-                              min={new Date().toISOString().split('T')[0]}
-                              className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 [color-scheme:dark]"
-                            />
-                            {newClientCustomDate && (
-                              <div className="mt-2 text-sm text-white/50">
-                                Подписка до: <span className="text-white font-medium">
-                                  {new Date(newClientCustomDate).toLocaleDateString('ru-RU', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric'
-                                  })}
-                                </span>
-                                {' '}
-                                <span className="text-green-400">
-                                  ({Math.ceil((new Date(newClientCustomDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} дн.)
-                                </span>
+                        {/* Красивый календарь */}
+                        {newClientPeriod === 'custom' && (() => {
+                          const today = new Date()
+                          const viewYear = newClientCustomDate ? new Date(newClientCustomDate).getFullYear() : today.getFullYear()
+                          const viewMonth = newClientCustomDate ? new Date(newClientCustomDate).getMonth() : today.getMonth()
+
+                          const selectedDate = newClientCustomDate ? new Date(newClientCustomDate) : null
+                          const currentMonth = new Date(viewYear, viewMonth, 1)
+                          const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+                          const firstDayOfWeek = (currentMonth.getDay() + 6) % 7 // Понедельник = 0
+
+                          const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                                            'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+                          const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+
+                          const days = []
+                          for (let i = 0; i < firstDayOfWeek; i++) {
+                            days.push(null)
+                          }
+                          for (let i = 1; i <= daysInMonth; i++) {
+                            days.push(i)
+                          }
+
+                          const handlePrevMonth = () => {
+                            let m = viewMonth - 1
+                            let y = viewYear
+                            if (m < 0) { m = 11; y-- }
+                            const d = newClientCustomDate ? new Date(newClientCustomDate) : new Date()
+                            d.setFullYear(y)
+                            d.setMonth(m)
+                            d.setDate(1)
+                            setNewClientCustomDate(d.toISOString().split('T')[0])
+                          }
+
+                          const handleNextMonth = () => {
+                            let m = viewMonth + 1
+                            let y = viewYear
+                            if (m > 11) { m = 0; y++ }
+                            const d = newClientCustomDate ? new Date(newClientCustomDate) : new Date()
+                            d.setFullYear(y)
+                            d.setMonth(m)
+                            d.setDate(1)
+                            setNewClientCustomDate(d.toISOString().split('T')[0])
+                          }
+
+                          const selectDay = (day: number) => {
+                            const d = new Date(viewYear, viewMonth, day)
+                            setNewClientCustomDate(d.toISOString().split('T')[0])
+                          }
+
+                          const isToday = (day: number) => {
+                            return day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear()
+                          }
+
+                          const isSelected = (day: number) => {
+                            if (!selectedDate) return false
+                            return day === selectedDate.getDate() && viewMonth === selectedDate.getMonth() && viewYear === selectedDate.getFullYear()
+                          }
+
+                          const isPast = (day: number) => {
+                            const d = new Date(viewYear, viewMonth, day)
+                            d.setHours(23, 59, 59)
+                            return d < today
+                          }
+
+                          return (
+                            <div className="mt-4 bg-zinc-800 rounded-2xl p-4">
+                              {/* Навигация месяца */}
+                              <div className="flex items-center justify-between mb-4">
+                                <button
+                                  onClick={handlePrevMonth}
+                                  className="w-10 h-10 rounded-xl bg-zinc-700 hover:bg-zinc-600 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                  </svg>
+                                </button>
+                                <div className="text-white font-semibold text-lg">
+                                  {monthNames[viewMonth]} {viewYear}
+                                </div>
+                                <button
+                                  onClick={handleNextMonth}
+                                  className="w-10 h-10 rounded-xl bg-zinc-700 hover:bg-zinc-600 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                </button>
                               </div>
-                            )}
-                          </div>
-                        )}
+
+                              {/* Дни недели */}
+                              <div className="grid grid-cols-7 gap-1 mb-2">
+                                {dayNames.map(d => (
+                                  <div key={d} className="text-center text-xs text-white/40 py-1">{d}</div>
+                                ))}
+                              </div>
+
+                              {/* Дни месяца */}
+                              <div className="grid grid-cols-7 gap-1">
+                                {days.map((day, i) => (
+                                  <div key={i} className="aspect-square">
+                                    {day && (
+                                      <button
+                                        onClick={() => !isPast(day) && selectDay(day)}
+                                        disabled={isPast(day)}
+                                        className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-medium transition-all ${
+                                          isSelected(day)
+                                            ? 'bg-white text-black'
+                                            : isToday(day)
+                                              ? 'bg-zinc-600 text-white ring-1 ring-white/30'
+                                              : isPast(day)
+                                                ? 'text-white/20 cursor-not-allowed'
+                                                : 'text-white/70 hover:bg-zinc-700 hover:text-white'
+                                        }`}
+                                      >
+                                        {day}
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Выбранная дата */}
+                              {selectedDate && (
+                                <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                                  <div className="text-white/50 text-sm">
+                                    Подписка до: <span className="text-white font-medium">
+                                      {selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                    </span>
+                                  </div>
+                                  <div className="text-[#FFD700] font-medium">
+                                    {Math.ceil((selectedDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))} дн.
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </div>
 
                       {/* Оплата */}
@@ -1595,11 +1706,11 @@ export function FullCrmPage() {
                           <div
                             onClick={() => setNewClientNoPayment(!newClientNoPayment)}
                             className={`w-12 h-7 rounded-full relative transition-colors ${
-                              newClientNoPayment ? 'bg-green-500' : 'bg-zinc-700'
+                              newClientNoPayment ? 'bg-white' : 'bg-zinc-700'
                             }`}
                           >
-                            <div className={`w-5 h-5 rounded-full bg-white absolute top-1 transition-all ${
-                              newClientNoPayment ? 'left-6' : 'left-1'
+                            <div className={`w-5 h-5 rounded-full absolute top-1 transition-all ${
+                              newClientNoPayment ? 'left-6 bg-black' : 'left-1 bg-white'
                             }`} />
                           </div>
                           <span className="text-white">Без оплаты (бонус/перенос)</span>
@@ -1613,7 +1724,7 @@ export function FullCrmPage() {
                               value={newClientAmount}
                               onChange={e => setNewClientAmount(e.target.value)}
                               placeholder="0"
-                              className="w-full px-4 py-3 pr-20 bg-zinc-800 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                              className="w-full px-4 py-3 pr-20 bg-zinc-800 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
                             />
                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 font-medium">
                               USDT
@@ -1625,8 +1736,8 @@ export function FullCrmPage() {
                       {/* Кнопка */}
                       <button
                         onClick={addPremiumClient}
-                        disabled={addingClient || !newClientId.trim()}
-                        className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+                        disabled={addingClient || !newClientId.trim() || (newClientPeriod === 'custom' && !newClientCustomDate)}
+                        className="w-full py-4 bg-white hover:bg-white/90 text-black font-semibold rounded-xl disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
                       >
                         {addingClient ? 'Добавление...' : 'Добавить'}
                       </button>
