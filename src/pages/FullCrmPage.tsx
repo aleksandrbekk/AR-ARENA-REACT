@@ -105,7 +105,8 @@ export function FullCrmPage() {
   const [newClientId, setNewClientId] = useState('')
   const [newClientAmount, setNewClientAmount] = useState('')
   const [newClientNoPayment, setNewClientNoPayment] = useState(false)
-  const [newClientPeriod, setNewClientPeriod] = useState<'30' | '90' | '180' | '365'>('30')
+  const [newClientPeriod, setNewClientPeriod] = useState<'30' | '90' | '180' | '365' | 'custom'>('30')
+  const [newClientCustomDate, setNewClientCustomDate] = useState('')
   const [addingClient, setAddingClient] = useState(false)
 
   // Защита паролем для браузера
@@ -400,17 +401,34 @@ export function FullCrmPage() {
 
     try {
       const now = new Date()
-      const days = parseInt(newClientPeriod)
-      const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+      let expiresAt: Date
+      let plan: string
 
-      // Определяем план по сроку
-      const planMap: Record<string, string> = {
-        '30': 'classic',
-        '90': 'gold',
-        '180': 'platinum',
-        '365': 'private'
+      if (newClientPeriod === 'custom') {
+        if (!newClientCustomDate) {
+          showToast({ variant: 'error', title: 'Выберите дату' })
+          setAddingClient(false)
+          return
+        }
+        expiresAt = new Date(newClientCustomDate + 'T23:59:59')
+        // Определяем план по количеству дней до даты
+        const daysUntil = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        if (daysUntil <= 45) plan = 'classic'
+        else if (daysUntil <= 120) plan = 'gold'
+        else if (daysUntil <= 270) plan = 'platinum'
+        else plan = 'private'
+      } else {
+        const days = parseInt(newClientPeriod)
+        expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+        // Определяем план по сроку
+        const planMap: Record<string, string> = {
+          '30': 'classic',
+          '90': 'gold',
+          '180': 'platinum',
+          '365': 'private'
+        }
+        plan = planMap[newClientPeriod] || 'classic'
       }
-      const plan = planMap[newClientPeriod] || 'classic'
 
       // Сумма оплаты
       const amount = newClientNoPayment ? 0 : parseFloat(newClientAmount) || 0
@@ -448,6 +466,7 @@ export function FullCrmPage() {
       setNewClientAmount('')
       setNewClientNoPayment(false)
       setNewClientPeriod('30')
+      setNewClientCustomDate('')
       setShowAddClientModal(false)
 
       showToast({ variant: 'success', title: `Клиент ${telegramId} добавлен` })
@@ -1515,12 +1534,13 @@ export function FullCrmPage() {
                       {/* Срок подписки */}
                       <div>
                         <label className="text-white/50 text-sm mb-2 block">Срок подписки</label>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-5 gap-2">
                           {[
                             { value: '30', label: '1 мес', plan: 'Classic' },
                             { value: '90', label: '3 мес', plan: 'Gold' },
                             { value: '180', label: '6 мес', plan: 'Platinum' },
-                            { value: '365', label: '12 мес', plan: 'Private' }
+                            { value: '365', label: '12 мес', plan: 'Private' },
+                            { value: 'custom', label: '📅', plan: 'Дата' }
                           ].map(p => (
                             <button
                               key={p.value}
@@ -1536,6 +1556,34 @@ export function FullCrmPage() {
                             </button>
                           ))}
                         </div>
+
+                        {/* Календарь для точной даты */}
+                        {newClientPeriod === 'custom' && (
+                          <div className="mt-3">
+                            <input
+                              type="date"
+                              value={newClientCustomDate}
+                              onChange={e => setNewClientCustomDate(e.target.value)}
+                              min={new Date().toISOString().split('T')[0]}
+                              className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 [color-scheme:dark]"
+                            />
+                            {newClientCustomDate && (
+                              <div className="mt-2 text-sm text-white/50">
+                                Подписка до: <span className="text-white font-medium">
+                                  {new Date(newClientCustomDate).toLocaleDateString('ru-RU', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                  })}
+                                </span>
+                                {' '}
+                                <span className="text-green-400">
+                                  ({Math.ceil((new Date(newClientCustomDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} дн.)
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Оплата */}
