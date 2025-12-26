@@ -100,6 +100,14 @@ export function FullCrmPage() {
   const [leadsSourceFilter, setLeadsSourceFilter] = useState<string>('all')
   const [leadsStatusFilter, setLeadsStatusFilter] = useState<'all' | 'app_opened' | 'not_opened' | 'purchased'>('all')
 
+  // Модалка добавления клиента
+  const [showAddClientModal, setShowAddClientModal] = useState(false)
+  const [newClientId, setNewClientId] = useState('')
+  const [newClientAmount, setNewClientAmount] = useState('')
+  const [newClientNoPayment, setNewClientNoPayment] = useState(false)
+  const [newClientPeriod, setNewClientPeriod] = useState<'30' | '90' | '180' | '365'>('30')
+  const [addingClient, setAddingClient] = useState(false)
+
   // Защита паролем для браузера
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [passwordInput, setPasswordInput] = useState('')
@@ -365,6 +373,89 @@ export function FullCrmPage() {
     } catch (err) {
       console.error('Error adding days:', err)
       showToast({ variant: 'error', title: 'Ошибка добавления дней' })
+    }
+  }
+
+  // ============ ДОБАВИТЬ КЛИЕНТА ============
+  const addPremiumClient = async () => {
+    if (!newClientId.trim()) {
+      showToast({ variant: 'error', title: 'Введите Telegram ID' })
+      return
+    }
+
+    const telegramId = parseInt(newClientId.replace(/\D/g, ''))
+    if (!telegramId) {
+      showToast({ variant: 'error', title: 'Неверный Telegram ID' })
+      return
+    }
+
+    // Проверяем что клиент не существует
+    const exists = premiumClients.find(c => c.telegram_id === telegramId)
+    if (exists) {
+      showToast({ variant: 'error', title: 'Клиент уже существует' })
+      return
+    }
+
+    setAddingClient(true)
+
+    try {
+      const now = new Date()
+      const days = parseInt(newClientPeriod)
+      const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+
+      // Определяем план по сроку
+      const planMap: Record<string, string> = {
+        '30': 'classic',
+        '90': 'gold',
+        '180': 'platinum',
+        '365': 'private'
+      }
+      const plan = planMap[newClientPeriod] || 'classic'
+
+      // Сумма оплаты
+      const amount = newClientNoPayment ? 0 : parseFloat(newClientAmount) || 0
+
+      const { data, error } = await supabase
+        .from('premium_clients')
+        .insert({
+          telegram_id: telegramId,
+          plan,
+          started_at: now.toISOString(),
+          expires_at: expiresAt.toISOString(),
+          in_channel: false,
+          in_chat: false,
+          tags: ['migrated'],
+          source: 'manual',
+          total_paid_usd: amount,
+          currency: amount > 0 ? 'USDT' : null,
+          original_amount: amount > 0 ? amount : null,
+          payments_count: amount > 0 ? 1 : 0,
+          last_payment_at: amount > 0 ? now.toISOString() : null,
+          last_payment_method: amount > 0 ? 'manual' : null,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString()
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Добавляем в локальный стейт
+      setPremiumClients(prev => [data as PremiumClient, ...prev])
+
+      // Сбрасываем форму
+      setNewClientId('')
+      setNewClientAmount('')
+      setNewClientNoPayment(false)
+      setNewClientPeriod('30')
+      setShowAddClientModal(false)
+
+      showToast({ variant: 'success', title: `Клиент ${telegramId} добавлен` })
+    } catch (err) {
+      console.error('Error adding client:', err)
+      showToast({ variant: 'error', title: 'Ошибка добавления' })
+    } finally {
+      setAddingClient(false)
     }
   }
 
@@ -1208,18 +1299,27 @@ export function FullCrmPage() {
                 )
               })()}
 
-              {/* Поиск */}
-              <div className="relative">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={premiumSearch}
-                  onChange={e => setPremiumSearch(e.target.value)}
-                  placeholder="Поиск по имени или ID..."
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-                />
+              {/* Поиск + Кнопка добавления */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={premiumSearch}
+                    onChange={e => setPremiumSearch(e.target.value)}
+                    placeholder="Поиск по имени или ID..."
+                    className="w-full pl-12 pr-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowAddClientModal(true)}
+                  className="w-12 h-12 bg-green-500 hover:bg-green-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold transition-colors flex-shrink-0"
+                  title="Добавить клиента"
+                >
+                  +
+                </button>
               </div>
 
               {/* Компактные фильтры */}
@@ -1382,6 +1482,109 @@ export function FullCrmPage() {
                     </div>
                   )
                 })
+              )}
+
+              {/* Модалка добавления клиента */}
+              {showAddClientModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end justify-center z-50">
+                  <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-white">Добавить подписчика</h3>
+                      <button
+                        onClick={() => setShowAddClientModal(false)}
+                        className="w-8 h-8 flex items-center justify-center text-white/60 text-2xl hover:text-white"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div className="space-y-5">
+                      {/* Telegram ID */}
+                      <div>
+                        <label className="text-white/50 text-sm mb-2 block">Telegram ID</label>
+                        <input
+                          type="text"
+                          value={newClientId}
+                          onChange={e => setNewClientId(e.target.value)}
+                          placeholder="123456789"
+                          className="w-full px-4 py-3 bg-zinc-800 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                          autoFocus
+                        />
+                      </div>
+
+                      {/* Срок подписки */}
+                      <div>
+                        <label className="text-white/50 text-sm mb-2 block">Срок подписки</label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[
+                            { value: '30', label: '1 мес', plan: 'Classic' },
+                            { value: '90', label: '3 мес', plan: 'Gold' },
+                            { value: '180', label: '6 мес', plan: 'Platinum' },
+                            { value: '365', label: '12 мес', plan: 'Private' }
+                          ].map(p => (
+                            <button
+                              key={p.value}
+                              onClick={() => setNewClientPeriod(p.value as typeof newClientPeriod)}
+                              className={`py-3 rounded-xl text-center transition-all ${
+                                newClientPeriod === p.value
+                                  ? 'bg-green-500 text-white'
+                                  : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
+                              }`}
+                            >
+                              <div className="font-medium">{p.label}</div>
+                              <div className="text-xs opacity-70">{p.plan}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Оплата */}
+                      <div>
+                        <label className="text-white/50 text-sm mb-2 block">Оплата</label>
+
+                        {/* Переключатель без оплаты */}
+                        <label className="flex items-center gap-3 mb-3 cursor-pointer">
+                          <div
+                            onClick={() => setNewClientNoPayment(!newClientNoPayment)}
+                            className={`w-12 h-7 rounded-full relative transition-colors ${
+                              newClientNoPayment ? 'bg-green-500' : 'bg-zinc-700'
+                            }`}
+                          >
+                            <div className={`w-5 h-5 rounded-full bg-white absolute top-1 transition-all ${
+                              newClientNoPayment ? 'left-6' : 'left-1'
+                            }`} />
+                          </div>
+                          <span className="text-white">Без оплаты (бонус/перенос)</span>
+                        </label>
+
+                        {/* Поле суммы */}
+                        {!newClientNoPayment && (
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={newClientAmount}
+                              onChange={e => setNewClientAmount(e.target.value)}
+                              placeholder="0"
+                              className="w-full px-4 py-3 pr-20 bg-zinc-800 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 font-medium">
+                              USDT
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Кнопка */}
+                      <button
+                        onClick={addPremiumClient}
+                        disabled={addingClient || !newClientId.trim()}
+                        className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+                      >
+                        {addingClient ? 'Добавление...' : 'Добавить'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
