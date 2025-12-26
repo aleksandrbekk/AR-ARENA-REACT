@@ -860,14 +860,13 @@ export function FullCrmPage() {
                   .filter(c => c.currency === 'EUR')
                   .reduce((sum, c) => sum + (c.original_amount || 0), 0)
 
-                const activeClients = premiumClients.filter(c => getDaysRemaining(c.expires_at) > 0).length
-                const totalPayments = premiumClients.reduce((sum, c) => sum + (c.payments_count || 1), 0)
+                const clientsCount = premiumClients.length
 
                 // Средний чек в рублях (конвертируем USD и EUR)
-                const USD_TO_RUB = 90
-                const EUR_TO_RUB = 100
+                const USD_TO_RUB = 100
+                const EUR_TO_RUB = 110
                 const totalInRub = totalRub + (totalUsd * USD_TO_RUB) + (totalEur * EUR_TO_RUB)
-                const avgCheck = totalPayments > 0 ? Math.round(totalInRub / totalPayments) : 0
+                const avgCheck = clientsCount > 0 ? Math.round(totalInRub / clientsCount) : 0
 
                 return (
                   <div className="space-y-3">
@@ -885,14 +884,10 @@ export function FullCrmPage() {
                         <div className="text-lg font-bold text-blue-400">€{totalEur.toLocaleString('de-DE')}</div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">Активных</div>
-                        <div className="text-lg font-bold text-green-400">{activeClients}</div>
-                      </div>
-                      <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">Платежей</div>
-                        <div className="text-lg font-bold text-white">{totalPayments}</div>
+                        <div className="text-white/40 text-[10px] mb-1">Кол-во оплат</div>
+                        <div className="text-lg font-bold text-white">{clientsCount}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">Ср. чек</div>
