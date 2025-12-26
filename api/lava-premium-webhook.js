@@ -26,13 +26,34 @@ const PERIODICITY_TO_PERIOD = {
   'PERIOD_YEAR': { days: 365, tariff: 'private', name: 'PRIVATE' }
 };
 
-// Маппинг суммы на период (RUB) - fallback если periodicity не пришёл
-const AMOUNT_TO_PERIOD = [
-  { min: 3500, max: 4500, days: 30, tariff: 'classic', name: 'CLASSIC' },     // 4000 RUB
-  { min: 9500, max: 12500, days: 90, tariff: 'gold', name: 'GOLD' },          // 9900-12000 RUB
-  { min: 17000, max: 25000, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // 17900-24000 RUB
-  { min: 34000, max: 50000, days: 365, tariff: 'private', name: 'PRIVATE' }   // 34900-48000 RUB
-];
+// Маппинг суммы на период - по валютам
+const AMOUNT_TO_PERIOD = {
+  RUB: [
+    { min: 3500, max: 4500, days: 30, tariff: 'classic', name: 'CLASSIC' },     // 4000 RUB
+    { min: 9500, max: 12500, days: 90, tariff: 'gold', name: 'GOLD' },          // 9900-12000 RUB
+    { min: 17000, max: 25000, days: 180, tariff: 'platinum', name: 'PLATINUM' }, // 17900-24000 RUB
+    { min: 34000, max: 50000, days: 365, tariff: 'private', name: 'PRIVATE' }   // 34900-48000 RUB
+  ],
+  USD: [
+    { min: 40, max: 60, days: 30, tariff: 'classic', name: 'CLASSIC' },         // ~50 USD
+    { min: 100, max: 150, days: 90, tariff: 'gold', name: 'GOLD' },             // ~125 USD
+    { min: 180, max: 280, days: 180, tariff: 'platinum', name: 'PLATINUM' },    // ~225 USD
+    { min: 350, max: 500, days: 365, tariff: 'private', name: 'PRIVATE' }       // ~445 USD
+  ],
+  EUR: [
+    { min: 35, max: 55, days: 30, tariff: 'classic', name: 'CLASSIC' },         // ~45 EUR
+    { min: 90, max: 140, days: 90, tariff: 'gold', name: 'GOLD' },              // ~115 EUR
+    { min: 170, max: 260, days: 180, tariff: 'platinum', name: 'PLATINUM' },    // ~210 EUR
+    { min: 330, max: 480, days: 365, tariff: 'private', name: 'PRIVATE' }       // ~415 EUR
+  ]
+};
+
+// Примерные курсы для конвертации в USD
+const CURRENCY_TO_USD = {
+  USD: 1,
+  EUR: 1.08,
+  RUB: 0.011
+};
 
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -50,26 +71,41 @@ function log(message, data = null) {
   }
 }
 
-function getPeriodByPeriodicityOrAmount(periodicity, amount) {
+function getPeriodByPeriodicityOrAmount(periodicity, amount, currency = 'RUB') {
   // Сначала пробуем по periodicity
   if (periodicity && PERIODICITY_TO_PERIOD[periodicity]) {
     log(`✅ Period found by periodicity: ${periodicity}`);
     return PERIODICITY_TO_PERIOD[periodicity];
   }
 
-  // Fallback: по сумме
+  // Fallback: по сумме с учётом валюты
   if (amount) {
     const amountNum = parseFloat(amount);
-    for (const period of AMOUNT_TO_PERIOD) {
+    const currencyUpper = (currency || 'RUB').toUpperCase();
+    const periodsForCurrency = AMOUNT_TO_PERIOD[currencyUpper] || AMOUNT_TO_PERIOD['RUB'];
+
+    for (const period of periodsForCurrency) {
       if (amountNum >= period.min && amountNum <= period.max) {
-        log(`✅ Period found by amount: ${amountNum} RUB`);
+        log(`✅ Period found by amount: ${amountNum} ${currencyUpper}`);
+        return period;
+      }
+    }
+
+    // Если не нашли в диапазонах валюты, пробуем конвертировать в USD и искать
+    const usdRate = CURRENCY_TO_USD[currencyUpper] || 1;
+    const amountUsd = amountNum * usdRate;
+    log(`🔄 Trying USD conversion: ${amountNum} ${currencyUpper} = ${amountUsd.toFixed(2)} USD`);
+
+    for (const period of AMOUNT_TO_PERIOD['USD']) {
+      if (amountUsd >= period.min && amountUsd <= period.max) {
+        log(`✅ Period found by USD conversion: ${amountUsd.toFixed(2)} USD`);
         return period;
       }
     }
   }
 
   // Fallback: если не нашли — 30 дней
-  log(`⚠️ Unknown periodicity ${periodicity} and amount ${amount}, defaulting to 30 days`);
+  log(`⚠️ Unknown periodicity ${periodicity} and amount ${amount} ${currency}, defaulting to 30 days`);
   return { days: 30, tariff: 'unknown', name: 'UNKNOWN' };
 }
 
@@ -516,8 +552,8 @@ export default async function handler(req, res) {
     // 4. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ (по periodicity или amount)
     // ============================================
     const periodicity = payload.periodicity || payload.offer?.periodicity;
-    log(`🏷️ Periodicity: ${periodicity}, Amount: ${amount}`);
-    const period = getPeriodByPeriodicityOrAmount(periodicity, amount);
+    log(`🏷️ Periodicity: ${periodicity}, Amount: ${amount}, Currency: ${currency}`);
+    const period = getPeriodByPeriodicityOrAmount(periodicity, amount, currency);
     log(`📅 Period determined: ${period.days} days (${period.name})`);
 
     // ============================================
@@ -557,12 +593,17 @@ export default async function handler(req, res) {
         ? new Date(currentExpires.getTime() + period.days * 24 * 60 * 60 * 1000)
         : expiresAt;
 
+      // Конвертируем сумму в USD
+      const currencyUpper = (currency || 'RUB').toUpperCase();
+      const usdRate = CURRENCY_TO_USD[currencyUpper] || CURRENCY_TO_USD['RUB'];
+      const amountInUsd = parseFloat(amount) * usdRate;
+
       const { error: updateError } = await supabase
         .from('premium_clients')
         .update({
           plan: period.tariff,
           expires_at: newExpires.toISOString(),
-          total_paid_usd: (existingClient.total_paid_usd || 0) + parseFloat(amount),
+          total_paid_usd: (existingClient.total_paid_usd || 0) + amountInUsd,
           payments_count: (existingClient.payments_count || 0) + 1,
           last_payment_at: now.toISOString(),
           last_payment_method: 'lava.top',
@@ -596,6 +637,11 @@ export default async function handler(req, res) {
         }
       }
 
+      // Конвертируем сумму в USD для нового клиента
+      const currencyUpperNew = (currency || 'RUB').toUpperCase();
+      const usdRateNew = CURRENCY_TO_USD[currencyUpperNew] || CURRENCY_TO_USD['RUB'];
+      const amountInUsdNew = parseFloat(amount) * usdRateNew;
+
       const { data: newClient, error: insertError } = await supabase
         .from('premium_clients')
         .insert({
@@ -608,7 +654,7 @@ export default async function handler(req, res) {
           in_chat: false,
           tags: [],
           source: 'lava.top',
-          total_paid_usd: parseFloat(amount),
+          total_paid_usd: amountInUsdNew,
           payments_count: 1,
           last_payment_at: now.toISOString(),
           last_payment_method: 'lava.top',
