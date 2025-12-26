@@ -246,9 +246,7 @@ export function FullCrmPage() {
     )
   })
 
-  const premiumUsers = users.filter(u => u.status === 'premium')
-  const nonPremiumUsers = users.filter(u => u.status !== 'premium')
-
+  
   // Вспомогательные функции (перенесены выше для использования в фильтрах)
   const getDaysRemaining = (expiresAt: string) => {
     const now = new Date()
@@ -384,34 +382,24 @@ export function FullCrmPage() {
 
   const handleBroadcast = async () => {
     if (!broadcastMessage.trim()) return showToast({ variant: 'error', title: 'Введите сообщение' })
+    if (selectedUsers.length === 0) return showToast({ variant: 'error', title: 'Выберите получателей' })
 
-    const targets = selectedUsers.length > 0
-      ? users.filter(u => selectedUsers.includes(u.telegram_id))
-      : filteredUsers
-
-    if (!confirm(`Отправить ${targets.length} пользователям?`)) return
+    if (!confirm(`Отправить ${selectedUsers.length} пользователям?`)) return
 
     setSendingBroadcast(true)
-    setBroadcastProgress({ sent: 0, total: targets.length })
+    setBroadcastProgress({ sent: 0, total: selectedUsers.length })
 
     let sent = 0
-    for (const user of targets) {
-      if (await sendMessage(user.telegram_id, broadcastMessage)) sent++
-      setBroadcastProgress({ sent, total: targets.length })
-      await new Promise(r => setTimeout(r, 50))
+    for (const telegramId of selectedUsers) {
+      if (await sendMessage(telegramId, broadcastMessage)) sent++
+      setBroadcastProgress({ sent, total: selectedUsers.length })
+      await new Promise(r => setTimeout(r, 50)) // Задержка чтобы не забанили
     }
 
     setSendingBroadcast(false)
     setBroadcastMessage('')
     setSelectedUsers([])
-    showToast({ variant: 'success', title: `Отправлено: ${sent}/${targets.length}` })
-  }
-
-  // ============ ВЫБОР ============
-  const selectAll = (list: User[]) => {
-    const ids = list.map(u => u.telegram_id)
-    const allSelected = ids.every(id => selectedUsers.includes(id))
-    setSelectedUsers(allSelected ? [] : ids)
+    showToast({ variant: 'success', title: `Отправлено: ${sent}/${selectedUsers.length}` })
   }
 
   // ============ ФОРМАТЫ ============
@@ -1431,38 +1419,49 @@ export function FullCrmPage() {
               <div className="bg-zinc-900 rounded-2xl p-4">
                 <h3 className="text-sm text-white/40 uppercase tracking-wide mb-3">Получатели</h3>
                 <div className="flex flex-wrap gap-2">
+                  {/* База бота - главная кнопка */}
                   <button
-                    onClick={() => { setSelectedUsers([]); setSearchQuery('') }}
+                    onClick={() => setSelectedUsers(botUsers.map(bu => bu.telegram_id))}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedUsers.length === 0 ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
+                      selectedUsers.length === botUsers.length ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-white/60'
                     }`}
                   >
-                    Все ({users.length})
+                    База бота ({botUsers.length})
                   </button>
                   <button
-                    onClick={() => selectAll(premiumUsers)}
+                    onClick={() => setSelectedUsers(users.map(u => u.telegram_id))}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      premiumUsers.every(u => selectedUsers.includes(u.telegram_id)) && selectedUsers.length > 0
-                        ? 'bg-[#FFD700] text-black' : 'bg-zinc-800 text-white/60'
+                      selectedUsers.length === users.length && users.length > 0 ? 'bg-green-500 text-white' : 'bg-zinc-800 text-white/60'
                     }`}
                   >
-                    Premium ({premiumUsers.length})
+                    Открыли App ({users.length})
                   </button>
                   <button
-                    onClick={() => selectAll(nonPremiumUsers)}
+                    onClick={() => setSelectedUsers(premiumClients.map(p => p.telegram_id))}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      nonPremiumUsers.every(u => selectedUsers.includes(u.telegram_id)) && selectedUsers.length > 0
-                        ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
+                      selectedUsers.length === premiumClients.length && premiumClients.length > 0 ? 'bg-[#FFD700] text-black' : 'bg-zinc-800 text-white/60'
                     }`}
                   >
-                    Без Premium ({nonPremiumUsers.length})
+                    Premium ({premiumClients.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Те кто в боте, но не купил Premium
+                      const premiumIds = new Set(premiumClients.map(p => p.telegram_id))
+                      const notPremium = botUsers.filter(bu => !premiumIds.has(bu.telegram_id))
+                      setSelectedUsers(notPremium.map(bu => bu.telegram_id))
+                    }}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      selectedUsers.length === botUsers.length - premiumClients.length && selectedUsers.length > 0
+                        ? 'bg-orange-500 text-white' : 'bg-zinc-800 text-white/60'
+                    }`}
+                  >
+                    Без Premium ({botUsers.length - premiumClients.length})
                   </button>
                 </div>
-                {selectedUsers.length > 0 && (
-                  <p className="text-sm text-white/40 mt-3">
-                    Выбрано: <span className="text-white">{selectedUsers.length}</span>
-                  </p>
-                )}
+                <p className="text-sm text-white/40 mt-3">
+                  Выбрано: <span className="text-white font-medium">{selectedUsers.length}</span>
+                </p>
               </div>
 
               {/* Сообщение */}
