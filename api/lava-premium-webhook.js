@@ -427,6 +427,24 @@ export default async function handler(req, res) {
     console.log('=== LAVA WEBHOOK RECEIVED ===');
     console.log('Headers:', JSON.stringify(req.headers, null, 2));
     console.log('Body:', JSON.stringify(req.body, null, 2));
+    console.log('=== ALL PAYLOAD KEYS ===');
+    console.log('Root keys:', Object.keys(req.body));
+    if (req.body.buyer) console.log('Buyer keys:', Object.keys(req.body.buyer));
+    if (req.body.product) console.log('Product keys:', Object.keys(req.body.product));
+    if (req.body.payment) console.log('Payment keys:', Object.keys(req.body.payment));
+    if (req.body.invoice) console.log('Invoice keys:', Object.keys(req.body.invoice));
+
+    // Сохраняем полный payload в таблицу для анализа
+    try {
+      await supabase.from('webhook_logs').insert({
+        source: 'lava.top',
+        event_type: req.body.eventType,
+        payload: req.body,
+        created_at: new Date().toISOString()
+      });
+    } catch (logError) {
+      console.log('⚠️ Could not save webhook log (table may not exist)');
+    }
 
     const payload = req.body;
 
@@ -482,16 +500,44 @@ export default async function handler(req, res) {
       eventType,
       contractId,
       parentContractId,
-      amount,
-      currency = 'RUB',
+      amount: rawAmount,
+      currency: rawCurrency,
       status,
       timestamp,
       product,
       buyer,
-      clientUtm
+      clientUtm,
+      // Возможные дополнительные поля с реальной валютой оплаты
+      buyerCurrency,
+      buyerAmount,
+      payment,
+      invoice
     } = payload;
 
+    // Определяем реальную валюту оплаты
+    // Приоритет: buyerCurrency > payment.currency > invoice.currency > rawCurrency > RUB
+    let amount = rawAmount;
+    let currency = rawCurrency || 'RUB';
+
+    if (buyerCurrency) {
+      currency = buyerCurrency;
+      log(`💱 Using buyerCurrency: ${buyerCurrency}`);
+      if (buyerAmount) {
+        amount = buyerAmount;
+        log(`💰 Using buyerAmount: ${buyerAmount}`);
+      }
+    } else if (payment?.currency) {
+      currency = payment.currency;
+      log(`💱 Using payment.currency: ${payment.currency}`);
+      if (payment.amount) amount = payment.amount;
+    } else if (invoice?.currency) {
+      currency = invoice.currency;
+      log(`💱 Using invoice.currency: ${invoice.currency}`);
+      if (invoice.amount) amount = invoice.amount;
+    }
+
     log(`📨 Event: ${eventType}, Status: ${status}, Amount: ${amount} ${currency}`);
+    log(`📊 Raw values: amount=${rawAmount}, currency=${rawCurrency}`);
 
     // Проверяем тип события и статус
     const successEvents = ['payment.success', 'subscription.recurring.payment.success'];
