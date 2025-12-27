@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Minus, Plus, Ticket, AlertCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { RequirementsCheck } from './RequirementsCheck'
 import type { Giveaway } from '../../types'
 
 interface BuyTicketModalProps {
@@ -17,15 +18,35 @@ export function BuyTicketModal({ isOpen, onClose, giveaway, onSuccess }: BuyTick
   const [count, setCount] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [requirementsMet, setRequirementsMet] = useState(true)
+
+  // Проверяем есть ли требования
+  const hasRequirements = !!(
+    giveaway.requirements?.telegram_channel_id ||
+    giveaway.requirements?.min_friends
+  )
+
+  // Сбрасываем состояние при открытии/закрытии
+  useEffect(() => {
+    if (isOpen) {
+      setCount(1)
+      setError(null)
+      // Если нет требований, считаем что все выполнено
+      if (!hasRequirements) {
+        setRequirementsMet(true)
+      }
+    }
+  }, [isOpen, hasRequirements])
 
   const totalCost = count * (giveaway.price || 0)
-  const userBalance = giveaway.currency === 'ar' 
-    ? (gameState?.balance_ar || 0) 
+  const userBalance = giveaway.currency === 'ar'
+    ? (gameState?.balance_ar || 0)
     : (gameState?.balance_bul || 0)
   const canAfford = userBalance >= totalCost
+  const canBuy = canAfford && requirementsMet
 
   const handleBuy = async () => {
-    if (!telegramUser || !canAfford) return
+    if (!telegramUser || !canBuy) return
 
     setLoading(true)
     setError(null)
@@ -87,6 +108,15 @@ export function BuyTicketModal({ isOpen, onClose, giveaway, onSuccess }: BuyTick
                 <p className="text-sm text-white/70">{giveaway.title}</p>
                 <p className="text-xs text-white/40">Цена билета: {giveaway.price} {giveaway.currency?.toUpperCase()}</p>
               </div>
+
+              {/* Requirements Check */}
+              {hasRequirements && telegramUser && (
+                <RequirementsCheck
+                  giveaway={giveaway}
+                  telegramId={telegramUser.id.toString()}
+                  onStatusChange={setRequirementsMet}
+                />
+              )}
 
               {/* Quantity Selector */}
               <div className="mb-4">
@@ -159,16 +189,16 @@ export function BuyTicketModal({ isOpen, onClose, giveaway, onSuccess }: BuyTick
               {/* Buy Button */}
               <button
                 onClick={handleBuy}
-                disabled={loading || !canAfford}
+                disabled={loading || !canBuy}
                 className="w-full py-4 rounded-xl font-bold text-black flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  background: canAfford 
-                    ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' 
+                  background: canBuy
+                    ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'
                     : '#333'
                 }}
               >
                 <Ticket size={20} />
-                {loading ? 'Покупка...' : 'Купить билеты'}
+                {loading ? 'Покупка...' : !requirementsMet ? 'Выполните условия' : 'Купить билеты'}
               </button>
             </div>
           </motion.div>

@@ -10,6 +10,7 @@ import { FarmPage } from './pages/FarmPage'
 // import { FarmPageGemini } from './pages/FarmPageGemini'
 import { GiveawaysPage } from './pages/GiveawaysPage'
 import { GiveawayDetailsPage } from './pages/GiveawayDetailsPage'
+import { GiveawayResultsPage } from './pages/GiveawayResultsPage'
 import { LiveArenaPage } from './pages/LiveArenaPage'
 import { AdminPage } from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
@@ -59,6 +60,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/giveaways" element={<GiveawaysPage />} />
             <Route path="/giveaway/:id" element={<GiveawayDetailsPage />} />
+            <Route path="/giveaway/:id/results" element={<GiveawayResultsPage />} />
             <Route path="/live-arena/:id" element={<LiveArenaPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/payment-success" element={<PaymentSuccessPage />} />

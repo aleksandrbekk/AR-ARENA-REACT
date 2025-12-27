@@ -6,25 +6,35 @@ import { Layout } from '../components/layout/Layout'
 import { BuyTicketModal } from '../components/giveaways/BuyTicketModal'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
 
 export function GiveawayDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { telegramUser } = useAuth()
-  
+  const { getGiveawayStats } = useGiveaways()
+
   const [giveaway, setGiveaway] = useState<Giveaway | null>(null)
   const [loading, setLoading] = useState(true)
   const [myTickets, setMyTickets] = useState(0)
+  const [participantsCount, setParticipantsCount] = useState(0)
   const [showModal, setShowModal] = useState(false)
   const [timeLeft, setTimeLeft] = useState('')
 
   useEffect(() => {
     if (id) {
       fetchGiveaway()
+      fetchStats()
       if (telegramUser) fetchMyTickets()
     }
   }, [id, telegramUser])
+
+  const fetchStats = async () => {
+    if (!id) return
+    const stats = await getGiveawayStats(Number(id))
+    setParticipantsCount(stats.participants_count)
+  }
 
   useEffect(() => {
     if (!giveaway?.end_date) return
@@ -79,6 +89,7 @@ export function GiveawayDetailsPage() {
   const handleBuySuccess = () => {
     fetchGiveaway()
     fetchMyTickets()
+    fetchStats()
   }
 
   if (loading) {
@@ -192,7 +203,7 @@ export function GiveawayDetailsPage() {
               </div>
               <div>
                 <p className="text-xs text-white/40">Участников</p>
-                <p className="text-lg font-bold text-white">—</p>
+                <p className="text-lg font-bold text-white">{participantsCount}</p>
               </div>
             </div>
           </div>
@@ -268,8 +279,8 @@ export function GiveawayDetailsPage() {
         )}
 
         {/* Sticky Footer */}
-        {isActive && (
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a] to-transparent">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a] to-transparent">
+          {isActive ? (
             <button
               onClick={() => setShowModal(true)}
               className="w-full py-4 rounded-xl font-bold text-black flex items-center justify-center gap-2 active:scale-95 transition-transform"
@@ -281,8 +292,24 @@ export function GiveawayDetailsPage() {
               <Ticket size={20} />
               Купить билет — {giveaway.price} {giveaway.currency?.toUpperCase()}
             </button>
-          </div>
-        )}
+          ) : giveaway.status === 'completed' ? (
+            <button
+              onClick={() => navigate(`/giveaway/${id}/results`)}
+              className="w-full py-4 rounded-xl font-bold text-black flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              style={{
+                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                boxShadow: '0 4px 20px rgba(255, 215, 0, 0.3)'
+              }}
+            >
+              <Trophy size={20} />
+              Смотреть результаты
+            </button>
+          ) : (
+            <div className="text-center py-4 text-white/50">
+              Розыгрыш {giveaway.status === 'cancelled' ? 'отменён' : 'завершён'}
+            </div>
+          )}
+        </div>
 
         {/* Modal */}
         <BuyTicketModal
