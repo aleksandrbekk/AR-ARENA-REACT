@@ -41,25 +41,34 @@ export function GiveawayDetailsPage() {
 
     const calculateTimeLeft = () => {
       const difference = +new Date(giveaway.end_date) - +new Date()
-      
+
       if (difference > 0) {
         const days = Math.floor(difference / (1000 * 60 * 60 * 24))
         const hours = Math.floor((difference / (1000 * 60 * 60)) % 24)
         const minutes = Math.floor((difference / 1000 / 60) % 60)
         const seconds = Math.floor((difference / 1000) % 60)
-        
+
         return `${days}д ${hours}ч ${minutes}м ${seconds}с`
       }
       return 'Завершён'
     }
 
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft())
+      const newTimeLeft = calculateTimeLeft()
+      setTimeLeft(newTimeLeft)
+
+      // Автоматический редирект когда таймер закончился
+      if (newTimeLeft === 'Завершён' && giveaway.status === 'active') {
+        // Даём серверу 3 секунды на обработку розыгрыша
+        setTimeout(() => {
+          navigate(`/giveaway/${id}/results`)
+        }, 3000)
+      }
     }, 1000)
 
     setTimeLeft(calculateTimeLeft())
     return () => clearInterval(timer)
-  }, [giveaway?.end_date])
+  }, [giveaway?.end_date, giveaway?.status, id, navigate])
 
   const fetchGiveaway = async () => {
     setLoading(true)

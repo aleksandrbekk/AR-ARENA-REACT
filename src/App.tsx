@@ -22,6 +22,7 @@ import { PricingPage2 } from './pages/PricingPage2'
 import { PricingPageGate } from './pages/PricingPageGate'
 import { StreamPage } from './pages/StreamPage'
 import { StreamAdminPage } from './pages/StreamAdminPage'
+import { InboxPage } from './pages/InboxPage'
 
 function App() {
   useEffect(() => {
@@ -74,6 +75,7 @@ function App() {
             <Route path="/stream" element={<StreamPage />} />
             <Route path="/live" element={<StreamPage />} />
             <Route path="/stream-admin" element={<StreamAdminPage />} />
+            <Route path="/inbox" element={<InboxPage />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>
