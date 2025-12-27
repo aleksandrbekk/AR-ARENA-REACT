@@ -115,14 +115,15 @@ export function GiveawayManager() {
     return labels[status] || status
   }
 
-  const handleGenerateResults = async (giveawayId: number) => {
-    if (!confirm('ВНИМАНИЕ!\n\nЭто действие НЕОБРАТИМО.\nБудут определены победители и розыгрыш будет завершён.\n\nПродолжить?')) {
+  const handleRunDraw = async (giveawayId: number) => {
+    if (!confirm('ВНИМАНИЕ!\n\nЭто действие НЕОБРАТИМО.\nБудут определены победители, выплачены призы и розыгрыш будет завершён.\n\nПродолжить?')) {
       return
     }
 
     setLoading(true)
     try {
-      const { data, error } = await supabase.rpc('generate_giveaway_result', {
+      // Используем новую функцию run_giveaway_draw (генерация + выплата)
+      const { data, error } = await supabase.rpc('run_giveaway_draw', {
         p_giveaway_id: giveawayId
       })
 
@@ -131,10 +132,63 @@ export function GiveawayManager() {
       }
 
       if (!data?.success) {
-        throw new Error(data?.error || 'Ошибка генерации')
+        throw new Error(data?.draw?.error || data?.error || 'Ошибка генерации')
       }
 
-      alert(`Розыгрыш завершён!\n\nУчастников: ${data.total_participants}\nБилетов: ${data.total_tickets}\n\nПобедители определены!`)
+      const drawData = data.draw
+      const prizesData = data.prizes
+
+      let message = `Розыгрыш завершён!\n\n`
+      message += `Участников: ${drawData?.total_participants || 'N/A'}\n`
+      message += `Билетов: ${drawData?.total_tickets || 'N/A'}\n\n`
+
+      if (prizesData?.success) {
+        message += `Призы выплачены!\n`
+        message += `Всего выплачено: ${prizesData.total_paid} ${prizesData.currency?.toUpperCase()}`
+      } else {
+        message += `Внимание: призы не выплачены.\n${prizesData?.error || ''}`
+      }
+
+      alert(message)
+      await fetchGiveaways()
+    } catch (error: any) {
+      alert('Ошибка: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDistributePrizes = async (giveawayId: number) => {
+    if (!confirm('Выплатить призы победителям?\n\nЭто действие начислит AR/BUL на балансы победителей.')) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.rpc('distribute_giveaway_prizes', {
+        p_giveaway_id: giveawayId
+      })
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Ошибка выплаты')
+      }
+
+      let message = `Призы выплачены!\n\n`
+      message += `Джекпот: ${data.jackpot} ${data.currency?.toUpperCase()}\n`
+      message += `Всего выплачено: ${data.total_paid} ${data.currency?.toUpperCase()}\n\n`
+
+      if (data.prizes_paid && data.prizes_paid.length > 0) {
+        message += `Победители:\n`
+        for (const prize of data.prizes_paid) {
+          message += `${prize.place} место: ${prize.first_name || prize.username || prize.telegram_id} — ${prize.total_prize} ${data.currency?.toUpperCase()}\n`
+        }
+      }
+
+      alert(message)
       await fetchGiveaways()
     } catch (error: any) {
       alert('Ошибка: ' + error.message)
@@ -201,20 +255,42 @@ export function GiveawayManager() {
                     <h3 className="font-bold">{g.title}</h3>
                   </div>
                   <p className="text-sm text-white/50">{g.subtitle}</p>
-                  <div className="text-xs text-white/30 mt-1 flex gap-4">
+                  <div className="text-xs text-white/30 mt-1 flex gap-4 flex-wrap">
                     <span>ID: {g.id}</span>
                     <span>Конец: {new Date(g.end_date).toLocaleDateString('ru-RU')}</span>
                     <span>Джекпот: {g.jackpot_current_amount}</span>
+                    {g.status === 'completed' && (
+                      <span className={(g as any).prizes_distributed ? 'text-green-400' : 'text-yellow-400'}>
+                        {(g as any).prizes_distributed ? '✓ Выплачено' : '⏳ Не выплачено'}
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-end">
                   {g.status === 'active' && (
                     <button
-                      onClick={() => handleGenerateResults(g.id)}
+                      onClick={() => handleRunDraw(g.id)}
                       disabled={loading}
-                      className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs font-medium flex items-center gap-1"
+                      className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs font-medium"
                     >
-                      STOP & GENERATE
+                      ПРОВЕСТИ
+                    </button>
+                  )}
+                  {g.status === 'completed' && !(g as any).prizes_distributed && (
+                    <button
+                      onClick={() => handleDistributePrizes(g.id)}
+                      disabled={loading}
+                      className="px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors text-xs font-medium"
+                    >
+                      ВЫПЛАТИТЬ
+                    </button>
+                  )}
+                  {g.status === 'completed' && (
+                    <button
+                      onClick={() => window.open(`/giveaway/${g.id}/results`, '_blank')}
+                      className="px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors text-xs font-medium"
+                    >
+                      РЕЗУЛЬТАТЫ
                     </button>
                   )}
                   <button

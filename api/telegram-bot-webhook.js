@@ -1,6 +1,6 @@
 // Telegram Bot Webhook для AR ARENA
-// Обрабатывает /start команды
-// 2025-12-23
+// Обрабатывает все сообщения и сохраняет в Inbox
+// 2025-12-27
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -15,7 +15,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVE
 const WEB_APP_URL = 'https://ararena.pro';
 const PRICING_URL = 'https://ararena.pro/pricing';
 
-// File ID для welcome картинки (быстрее чем URL)
+// File ID для welcome картинки
 const WELCOME_IMAGE_FILE_ID = 'AgACAgIAAxkDAAIBgmlKOHkPSECVGl5g6uKX7gnzOTaGAALkC2sb-DpYSqPtt60_I9skAQADAgADeAADNgQ';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -33,7 +33,184 @@ function log(message, data = null) {
   }
 }
 
-// Отправить фото
+// ============================================
+// INBOX FUNCTIONS - Сохранение сообщений
+// ============================================
+
+// Получить или создать conversation
+async function getOrCreateConversation(telegramId, username, firstName, lastName) {
+  try {
+    // Проверяем premium статус
+    let isPremium = false;
+    let premiumPlan = null;
+
+    const { data: premiumData } = await supabase
+      .from('premium_clients')
+      .select('plan')
+      .eq('telegram_id', telegramId)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (premiumData) {
+      isPremium = true;
+      premiumPlan = premiumData.plan;
+    }
+
+    // Ищем существующий диалог
+    const { data: existing } = await supabase
+      .from('chat_conversations')
+      .select('id')
+      .eq('telegram_id', telegramId)
+      .single();
+
+    if (existing) {
+      // Обновляем данные
+      await supabase
+        .from('chat_conversations')
+        .update({
+          username: username || undefined,
+          first_name: firstName || undefined,
+          last_name: lastName || undefined,
+          is_premium: isPremium,
+          premium_plan: premiumPlan,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existing.id);
+
+      return existing.id;
+    }
+
+    // Создаём новый
+    const { data: newConv, error } = await supabase
+      .from('chat_conversations')
+      .insert({
+        telegram_id: telegramId,
+        username,
+        first_name: firstName,
+        last_name: lastName,
+        is_premium: isPremium,
+        premium_plan: premiumPlan
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      log('❌ Create conversation error', error);
+      return null;
+    }
+
+    return newConv.id;
+  } catch (err) {
+    log('❌ getOrCreateConversation error', { error: err.message });
+    return null;
+  }
+}
+
+// Сохранить входящее сообщение
+async function saveIncomingMessage(conversationId, telegramId, message) {
+  try {
+    const text = message.text || message.caption || '';
+    const isCommand = text.startsWith('/');
+    const commandName = isCommand ? text.split(' ')[0] : null;
+
+    // Определяем тип сообщения
+    let messageType = 'text';
+    let mediaFileId = null;
+
+    if (message.photo) {
+      messageType = 'photo';
+      mediaFileId = message.photo[message.photo.length - 1].file_id;
+    } else if (message.video) {
+      messageType = 'video';
+      mediaFileId = message.video.file_id;
+    } else if (message.document) {
+      messageType = 'document';
+      mediaFileId = message.document.file_id;
+    } else if (message.voice) {
+      messageType = 'voice';
+      mediaFileId = message.voice.file_id;
+    } else if (message.sticker) {
+      messageType = 'sticker';
+      mediaFileId = message.sticker.file_id;
+    } else if (message.location) {
+      messageType = 'location';
+    } else if (message.contact) {
+      messageType = 'contact';
+    } else if (isCommand) {
+      messageType = 'command';
+    }
+
+    const { error } = await supabase
+      .from('chat_messages')
+      .insert({
+        conversation_id: conversationId,
+        telegram_id: telegramId,
+        message_id: message.message_id,
+        text: text || null,
+        direction: 'incoming',
+        message_type: messageType,
+        media_file_id: mediaFileId,
+        caption: message.caption || null,
+        is_command: isCommand,
+        command_name: commandName
+      });
+
+    if (error) {
+      log('❌ Save message error', error);
+    }
+
+    // Обновляем conversation
+    await supabase
+      .from('chat_conversations')
+      .update({
+        last_message_at: new Date().toISOString(),
+        last_message_text: text || '[media]',
+        last_message_from: 'user',
+        unread_count: supabase.sql`unread_count + 1`,
+        is_read: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId);
+
+  } catch (err) {
+    log('❌ saveIncomingMessage error', { error: err.message });
+  }
+}
+
+// Сохранить исходящее сообщение (ответ бота)
+async function saveOutgoingMessage(conversationId, telegramId, text, sentBy = 'bot') {
+  try {
+    await supabase
+      .from('chat_messages')
+      .insert({
+        conversation_id: conversationId,
+        telegram_id: telegramId,
+        text,
+        direction: 'outgoing',
+        message_type: 'text',
+        sent_by: sentBy
+      });
+
+    // Обновляем conversation
+    await supabase
+      .from('chat_conversations')
+      .update({
+        last_message_at: new Date().toISOString(),
+        last_message_text: text.substring(0, 100),
+        last_message_from: 'bot',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId);
+
+  } catch (err) {
+    log('❌ saveOutgoingMessage error', { error: err.message });
+  }
+}
+
+// ============================================
+// TELEGRAM API FUNCTIONS
+// ============================================
+
 async function sendPhoto(chatId, photo, caption, replyMarkup = null) {
   try {
     const body = {
@@ -60,7 +237,6 @@ async function sendPhoto(chatId, photo, caption, replyMarkup = null) {
   }
 }
 
-// Отправить сообщение
 async function sendMessage(chatId, text, replyMarkup = null) {
   try {
     const body = {
@@ -86,7 +262,6 @@ async function sendMessage(chatId, text, replyMarkup = null) {
   }
 }
 
-// Проверить подписку пользователя
 async function checkSubscription(telegramId) {
   try {
     const { data, error } = await supabase
@@ -107,7 +282,6 @@ async function checkSubscription(telegramId) {
   }
 }
 
-// Форматировать дату
 function formatDate(dateStr) {
   const date = new Date(dateStr);
   const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
@@ -115,7 +289,6 @@ function formatDate(dateStr) {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-// Название тарифа
 function getTariffName(plan) {
   const names = {
     'classic': 'CLASSIC',
@@ -130,7 +303,6 @@ function getTariffName(plan) {
 // UTM TRACKING
 // ============================================
 
-// Записать пользователя бота
 async function trackBotUser(telegramId, username, firstName, source = null) {
   try {
     const { error } = await supabase
@@ -156,16 +328,13 @@ async function trackBotUser(telegramId, username, firstName, source = null) {
   }
 }
 
-// Записать клик по UTM-ссылке
 async function trackUtmClick(slug) {
   if (!slug) return;
 
   try {
-    // Инкрементируем clicks для этого slug
     const { error } = await supabase.rpc('increment_utm_clicks', { p_slug: slug });
 
     if (error) {
-      // Если функции нет, пробуем обычный update
       await supabase
         .from('utm_links')
         .update({ clicks: supabase.sql`clicks + 1` })
@@ -178,12 +347,10 @@ async function trackUtmClick(slug) {
   }
 }
 
-// Сохранить источник для пользователя (для последующего трекинга конверсий)
 async function saveUserSource(telegramId, source) {
   if (!source) return;
 
   try {
-    // Сохраняем в таблицу user_sources (если нет - создаём)
     const { error } = await supabase
       .from('user_sources')
       .upsert({
@@ -192,7 +359,7 @@ async function saveUserSource(telegramId, source) {
         created_at: new Date().toISOString()
       }, { onConflict: 'telegram_id' });
 
-    if (error && error.code !== '42P01') { // Игнорируем "table does not exist"
+    if (error && error.code !== '42P01') {
       log('❌ saveUserSource error', { error: error.message });
     }
   } catch (err) {
@@ -204,18 +371,15 @@ async function saveUserSource(telegramId, source) {
 // ОБРАБОТЧИКИ КОМАНД
 // ============================================
 
-// /start premium — приветствие для покупки
-async function handleStartPremium(chatId, telegramId, utmSource = null) {
-  // Трекаем UTM клик если есть источник
+async function handleStartPremium(chatId, telegramId, conversationId, utmSource = null) {
   if (utmSource) {
     await trackUtmClick(utmSource);
     await saveUserSource(telegramId, utmSource);
   }
-  // Проверяем есть ли уже подписка
+
   const subscription = await checkSubscription(telegramId);
 
   if (subscription) {
-    // Уже есть активная подписка
     const tariffName = getTariffName(subscription.plan);
     const expiresDate = formatDate(subscription.expires_at);
 
@@ -232,8 +396,8 @@ async function handleStartPremium(chatId, telegramId, utmSource = null) {
     };
 
     await sendMessage(chatId, text, keyboard);
+    await saveOutgoingMessage(conversationId, telegramId, text);
   } else {
-    // Нет подписки — показываем приветствие с картинкой
     const caption = `🔐 <b>Добро пожаловать в Premium AR Club</b>
 
 Закрытое сообщество трейдеров и инвесторов.
@@ -255,11 +419,11 @@ async function handleStartPremium(chatId, telegramId, utmSource = null) {
     };
 
     await sendPhoto(chatId, WELCOME_IMAGE_FILE_ID, caption, keyboard);
+    await saveOutgoingMessage(conversationId, telegramId, caption);
   }
 }
 
-// /start (обычный) — стандартное приветствие
-async function handleStart(chatId) {
+async function handleStart(chatId, telegramId, conversationId) {
   const text = `🎮 <b>Добро пожаловать в AR ARENA!</b>
 
 Это твоя персональная арена для роста в крипте.
@@ -273,21 +437,19 @@ async function handleStart(chatId) {
   };
 
   await sendMessage(chatId, text, keyboard);
+  await saveOutgoingMessage(conversationId, telegramId, text);
 }
 
-// /status — проверка подписки
-async function handleStatus(chatId, telegramId) {
+async function handleStatus(chatId, telegramId, conversationId) {
   const subscription = await checkSubscription(telegramId);
 
   if (subscription) {
-    // Есть активная подписка
     const tariffName = getTariffName(subscription.plan);
     const expiresAt = new Date(subscription.expires_at);
     const now = new Date();
     const daysLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
     const expiresDate = formatDate(subscription.expires_at);
 
-    // Эмодзи в зависимости от оставшихся дней
     let statusEmoji = '✅';
     let urgencyText = '';
     if (daysLeft <= 3) {
@@ -297,7 +459,6 @@ async function handleStatus(chatId, telegramId) {
       statusEmoji = '🔔';
     }
 
-    // Карточка тарифа
     const tariffEmoji = {
       'classic': '🖤',
       'gold': '🥇',
@@ -318,8 +479,8 @@ ${tariffEmoji[subscription.plan] || '💳'} Тариф: <b>${tariffName}</b>
     };
 
     await sendMessage(chatId, text, keyboard);
+    await saveOutgoingMessage(conversationId, telegramId, text);
   } else {
-    // Нет активной подписки
     const text = `❌ <b>У тебя нет активной подписки</b>
 
 Присоединяйся к Premium AR Club и получи доступ к:
@@ -335,10 +496,10 @@ ${tariffEmoji[subscription.plan] || '💳'} Тариф: <b>${tariffName}</b>
     };
 
     await sendMessage(chatId, text, keyboard);
+    await saveOutgoingMessage(conversationId, telegramId, text);
   }
 }
 
-// Склонение слова "день"
 function getDaysWord(days) {
   const lastTwo = days % 100;
   const lastOne = days % 10;
@@ -372,8 +533,9 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return res.status(200).json({
       status: 'ok',
-      service: 'AR ARENA Bot Webhook',
-      commands: ['/start', '/start premium', '/status', '/sub', '/подписка']
+      service: 'AR ARENA Bot Webhook with Inbox',
+      commands: ['/start', '/start premium', '/status', '/sub', '/подписка'],
+      features: ['inbox', 'message_history', 'realtime']
     });
   }
 
@@ -393,47 +555,59 @@ export default async function handler(req, res) {
     const message = update.message;
     const chatId = message.chat.id;
     const telegramId = message.from.id;
+    const username = message.from.username;
+    const firstName = message.from.first_name;
+    const lastName = message.from.last_name;
     const text = message.text || '';
 
-    // Проверяем команду /start
+    // ============================================
+    // СОХРАНЯЕМ ВСЕ СООБЩЕНИЯ В INBOX
+    // ============================================
+    const conversationId = await getOrCreateConversation(telegramId, username, firstName, lastName);
+
+    if (conversationId) {
+      await saveIncomingMessage(conversationId, telegramId, message);
+      log(`💬 Message saved to inbox: ${telegramId}`);
+    }
+
+    // ============================================
+    // ОБРАБОТКА КОМАНД
+    // ============================================
+
+    // /start
     if (text.startsWith('/start')) {
       const args = text.split(' ').slice(1);
       const param = args[0] || '';
 
-      // Определяем источник
-      let source = 'direct'; // просто /start
+      let source = 'direct';
       if (param.startsWith('premium')) {
         source = param.includes('_') ? param.split('_').slice(1).join('_') : 'premium';
       } else if (param) {
-        source = param; // любой другой параметр
+        source = param;
       }
 
-      // Записываем пользователя в базу
-      const username = message.from.username;
-      const firstName = message.from.first_name;
       await trackBotUser(telegramId, username, firstName, source);
 
-      // Парсим UTM: premium_SOURCE или просто premium
       if (param.startsWith('premium')) {
         const utmSource = param.includes('_') ? param.split('_').slice(1).join('_') : null;
         log(`👤 /start premium from ${telegramId}`, { utmSource });
-        await handleStartPremium(chatId, telegramId, utmSource);
+        await handleStartPremium(chatId, telegramId, conversationId, utmSource);
       } else {
         log(`👤 /start from ${telegramId}`);
-        await handleStart(chatId);
+        await handleStart(chatId, telegramId, conversationId);
       }
     }
 
-    // Проверяем команду /status (или /подписка, /sub)
+    // /status
     if (text === '/status' || text === '/подписка' || text === '/sub' || text === '/subscription') {
       log(`👤 /status from ${telegramId}`);
-      await handleStatus(chatId, telegramId);
+      await handleStatus(chatId, telegramId, conversationId);
     }
 
     return res.status(200).json({ ok: true });
 
   } catch (error) {
     log('❌ Webhook error', { error: error.message, stack: error.stack });
-    return res.status(200).json({ ok: true }); // Всегда 200 для Telegram
+    return res.status(200).json({ ok: true });
   }
 }
