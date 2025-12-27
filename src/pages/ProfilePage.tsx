@@ -1,8 +1,11 @@
 import { Layout } from '../components/layout/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { useSkins } from '../hooks/useSkins'
+import { useGiveaways } from '../hooks/useGiveaways'
 import { supabase } from '../lib/supabase'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import type { GiveawayHistory } from '../types'
 
 interface ProfileStats {
   total_taps: number
@@ -10,11 +13,37 @@ interface ProfileStats {
   created_at: string
 }
 
+// SVG иконки
+const TicketIcon = ({ className = '' }: { className?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M2 9a3 3 0 0 1 3 3 3 3 0 0 1-3 3v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a3 3 0 0 1-3-3 3 3 0 0 1 3-3V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+  </svg>
+)
+
+const TrophyIcon = ({ className = '' }: { className?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M12 17V14M12 14C14.2091 14 16 12.2091 16 10V4H8V10C8 12.2091 9.79086 14 12 14Z" />
+    <path d="M16 5H18C19.1046 5 20 5.89543 20 7V8C20 9.65685 18.6569 11 17 11H16" />
+    <path d="M8 5H6C4.89543 5 4 5.89543 4 7V8C4 9.65685 5.34315 11 7 11H8" />
+    <path d="M8 21H16M12 17V21" />
+  </svg>
+)
+
+const ChevronRightIcon = ({ className = '' }: { className?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M9 18l6-6-6-6" />
+  </svg>
+)
+
 export function ProfilePage() {
+  const navigate = useNavigate()
   const { telegramUser, gameState, isLoading } = useAuth()
   const { activeSkin } = useSkins()
+  const { getMyGiveawayHistory } = useGiveaways()
   const [stats, setStats] = useState<ProfileStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
+  const [giveawayHistory, setGiveawayHistory] = useState<GiveawayHistory[]>([])
+  const [loadingGiveaways, setLoadingGiveaways] = useState(true)
 
   console.log('=== PROFILE PAGE RENDER ===')
   console.log('isLoading:', isLoading)
@@ -83,6 +112,27 @@ export function ProfilePage() {
 
     loadStats()
   }, [telegramUser])
+
+  // Загрузка истории розыгрышей
+  useEffect(() => {
+    async function loadGiveaways() {
+      if (!telegramUser) {
+        setLoadingGiveaways(false)
+        return
+      }
+
+      try {
+        const history = await getMyGiveawayHistory()
+        setGiveawayHistory(history as GiveawayHistory[])
+      } catch (err) {
+        console.error('Error loading giveaway history:', err)
+      } finally {
+        setLoadingGiveaways(false)
+      }
+    }
+
+    loadGiveaways()
+  }, [telegramUser, getMyGiveawayHistory])
 
   // Форматирование даты
   const formatDate = (dateString: string) => {
@@ -220,11 +270,101 @@ export function ProfilePage() {
         </div>
 
         {/* Дата регистрации */}
-        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 mb-6">
           <div className="text-white/60 text-xs mb-1">Дата регистрации</div>
           <div className="text-white text-base">
             {formatDate(stats.created_at)}
           </div>
+        </div>
+
+        {/* Мои розыгрыши */}
+        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-white text-lg font-bold flex items-center gap-2">
+              <TicketIcon className="text-[#FFD700]" />
+              Мои розыгрыши
+            </h2>
+            {giveawayHistory.length > 0 && (
+              <span className="text-white/40 text-sm">{giveawayHistory.length}</span>
+            )}
+          </div>
+
+          {loadingGiveaways ? (
+            <div className="text-center py-8">
+              <div className="w-6 h-6 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : giveawayHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-white/5 flex items-center justify-center">
+                <TicketIcon className="text-white/20" />
+              </div>
+              <p className="text-white/40 text-sm">Вы ещё не участвовали в розыгрышах</p>
+              <button
+                onClick={() => navigate('/giveaways')}
+                className="mt-3 text-[#FFD700] text-sm font-medium"
+              >
+                Посмотреть розыгрыши
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {giveawayHistory.slice(0, 5).map((g) => (
+                <div
+                  key={g.id}
+                  onClick={() => navigate(`/giveaway/${g.id}`)}
+                  className="flex items-center gap-3 p-3 bg-black/20 rounded-xl cursor-pointer hover:bg-black/30 transition-colors"
+                >
+                  {/* Статус */}
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    g.is_winner
+                      ? 'bg-[#FFD700]/20'
+                      : g.status === 'active'
+                      ? 'bg-green-500/20'
+                      : 'bg-white/5'
+                  }`}>
+                    {g.is_winner ? (
+                      <TrophyIcon className="text-[#FFD700]" />
+                    ) : g.status === 'active' ? (
+                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    ) : (
+                      <TicketIcon className="text-white/30" />
+                    )}
+                  </div>
+
+                  {/* Инфо */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium truncate ${g.is_winner ? 'text-[#FFD700]' : 'text-white'}`}>
+                      {g.title}
+                    </p>
+                    <div className="flex items-center gap-3 text-xs text-white/40">
+                      <span>{g.my_tickets} билет{g.my_tickets === 1 ? '' : g.my_tickets < 5 ? 'а' : 'ов'}</span>
+                      {g.is_winner && g.winner_place && (
+                        <span className="text-[#FFD700]">#{g.winner_place} место</span>
+                      )}
+                      {g.status === 'active' && (
+                        <span className="text-green-400">Активен</span>
+                      )}
+                      {g.status === 'completed' && !g.is_winner && (
+                        <span className="text-white/30">Завершён</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Стрелка */}
+                  <ChevronRightIcon className="text-white/20" />
+                </div>
+              ))}
+
+              {giveawayHistory.length > 5 && (
+                <button
+                  onClick={() => navigate('/giveaways')}
+                  className="w-full py-3 text-center text-[#FFD700] text-sm font-medium hover:bg-white/5 rounded-xl transition-colors"
+                >
+                  Показать все ({giveawayHistory.length})
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Layout>

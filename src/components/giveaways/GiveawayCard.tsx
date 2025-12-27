@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Timer, Ticket, Trophy, Gift, GraduationCap } from 'lucide-react'
-import type { Giveaway } from '../../types'
+import { Timer, Ticket, Trophy, Gift, GraduationCap, Users } from 'lucide-react'
+import type { GiveawayWithStats } from '../../types'
 
 interface GiveawayCardProps {
-  giveaway: Giveaway
+  giveaway: GiveawayWithStats
 }
 
 export function GiveawayCard({ giveaway }: GiveawayCardProps) {
@@ -83,9 +83,15 @@ export function GiveawayCard({ giveaway }: GiveawayCardProps) {
 
       {/* Footer */}
       <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5 text-white/50">
-          <Timer className="w-3.5 h-3.5" />
-          <span>{timeLeft}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-white/50">
+            <Timer className="w-3.5 h-3.5" />
+            <span>{timeLeft}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-white/50">
+            <Users className="w-3.5 h-3.5" />
+            <span>{giveaway.participants_count || 0}</span>
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
           <Ticket className="w-3.5 h-3.5 text-[#FFD700]" />
