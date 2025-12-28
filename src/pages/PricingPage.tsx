@@ -139,60 +139,6 @@ const tariffs: Tariff[] = [
 ]
 
 
-// ============ ТАЙМЕР ============
-const Timer = ({ deadline }: { deadline: string }) => {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
-
-  useEffect(() => {
-    const target = new Date(deadline).getTime()
-
-    const updateTimer = () => {
-      const now = Date.now()
-      const diff = Math.max(0, target - now)
-
-      setTimeLeft({
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((diff % (1000 * 60)) / 1000)
-      })
-    }
-
-    updateTimer()
-    const interval = setInterval(updateTimer, 1000)
-    return () => clearInterval(interval)
-  }, [deadline])
-
-  const pad = (n: number) => n.toString().padStart(2, '0')
-
-  const timeString = timeLeft.days > 0
-    ? `${timeLeft.days}д ${pad(timeLeft.hours)}:${pad(timeLeft.minutes)}:${pad(timeLeft.seconds)}`
-    : `${pad(timeLeft.hours)}:${pad(timeLeft.minutes)}:${pad(timeLeft.seconds)}`
-
-  return (
-    <div className="flex items-center justify-center gap-3 sm:gap-4">
-      <div className="h-px w-8 sm:w-12 md:w-16 bg-gradient-to-r from-transparent to-white/20" />
-      <div className="text-center">
-        <div
-          className="text-2xl sm:text-3xl md:text-4xl font-light tracking-[0.15em] sm:tracking-[0.2em]"
-          style={{
-            background: 'linear-gradient(180deg, #ffffff 0%, #999999 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}
-        >
-          {timeString}
-        </div>
-        <div className="text-[10px] sm:text-xs text-white/30 tracking-[0.3em] uppercase mt-1">
-          до конца акции
-        </div>
-      </div>
-      <div className="h-px w-8 sm:w-12 md:w-16 bg-gradient-to-l from-transparent to-white/20" />
-    </div>
-  )
-}
-
 // ============ СНЕЖИНКИ ============
 const Snowflakes = () => {
   const flakes = Array.from({ length: 6 }, (_, i) => ({
@@ -412,8 +358,6 @@ function PricingCard({ tariff, index, onBuy }: PricingCardProps) {
 
 // ============ ГЛАВНАЯ СТРАНИЦА ============
 export function PricingPage() {
-  const deadline = '2025-12-29T00:00:00+03:00'
-
   // Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedTariffForPayment, setSelectedTariffForPayment] = useState<Tariff | null>(null)
@@ -486,29 +430,27 @@ export function PricingPage() {
             </motion.div>
 
             <motion.h1
-              className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 sm:mb-5 md:mb-6"
+              className="text-4xl sm:text-5xl md:text-6xl font-light tracking-[0.15em] sm:tracking-[0.2em] mb-4 sm:mb-5 md:mb-6"
+              style={{
+                background: 'linear-gradient(180deg, #ffffff 0%, #999999 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              АКЦИЯ ГОДА
+              ТАРИФЫ
             </motion.h1>
-
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Timer deadline={deadline} />
-            </motion.div>
 
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="text-white/60 text-sm md:text-base mt-4"
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-white/60 text-sm md:text-base"
             >
-              Оформите клубную карту по лучшим условиям
+              Оформите клубную карту AR Premium Club
             </motion.p>
           </header>
 
