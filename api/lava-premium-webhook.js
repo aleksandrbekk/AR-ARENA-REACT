@@ -620,25 +620,20 @@ export default async function handler(req, res) {
     log(`👤 Telegram ID: ${telegramId || 'N/A'}, Username: ${extractedUsername || 'N/A'}`);
 
     // ============================================
-    // ПРОВЕРКА НА ДУБЛИКАТ (по времени последнего платежа)
+    // ПРОВЕРКА НА ДУБЛИКАТ (по contractId - уникальный ID платежа от Lava)
     // ============================================
-    // Если тот же клиент платил в последние 5 минут — это retry, игнорируем
-    if (telegramId) {
-      const { data: recentClient } = await supabase
-        .from('premium_clients')
-        .select('last_payment_at')
-        .eq('telegram_id', parseInt(telegramId))
+    // Проверяем по contractId чтобы не обрабатывать один и тот же платёж дважды
+    // Но разрешаем несколько разных платежей от одного пользователя (апгрейд, продление)
+    if (contractId) {
+      const { data: existingPayment } = await supabase
+        .from('payment_history')
+        .select('id')
+        .eq('contract_id', contractId)
         .single();
 
-      if (recentClient?.last_payment_at) {
-        const lastPayment = new Date(recentClient.last_payment_at);
-        const now = new Date();
-        const minutesSinceLastPayment = (now - lastPayment) / 1000 / 60;
-
-        if (minutesSinceLastPayment < 5) {
-          log(`⚠️ Duplicate payment detected: last payment was ${minutesSinceLastPayment.toFixed(1)} min ago - ignoring`);
-          return res.status(200).json({ message: 'Payment already processed (duplicate)' });
-        }
+      if (existingPayment) {
+        log(`⚠️ Duplicate payment detected: contractId ${contractId} already processed - ignoring`);
+        return res.status(200).json({ message: 'Payment already processed (duplicate contractId)' });
       }
     }
 
@@ -845,7 +840,8 @@ export default async function handler(req, res) {
         telegram_id: telegramIdInt ? String(telegramIdInt) : extractedUsername,
         amount: parseFloat(amount),
         currency: currency,
-        source: 'lava.top'
+        source: 'lava.top',
+        contract_id: contractId || null  // Уникальный ID платежа для проверки дубликатов
       });
 
     if (paymentError) {
