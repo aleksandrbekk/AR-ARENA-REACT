@@ -521,8 +521,18 @@ export function FullCrmPage() {
 
   // Форматирование суммы с валютой
   const formatAmount = (client: PremiumClient) => {
-    const currency = client.currency || (client.source === '0xprocessing' ? 'USD' : 'RUB')
+    const rawCurrency = client.currency || (client.source === '0xprocessing' ? 'USD' : 'RUB')
     const amount = client.original_amount || client.total_paid_usd || 0
+
+    // Нормализация валюты: все крипто → USD
+    const upperCurrency = rawCurrency.toUpperCase()
+    let currency = rawCurrency
+    if (upperCurrency.includes('USDT') || upperCurrency.includes('USDC') ||
+        upperCurrency.includes('USD') || upperCurrency.includes('BTC') ||
+        upperCurrency.includes('ETH') || upperCurrency.includes('TON') ||
+        upperCurrency.includes('CRYPTO') || client.source === '0xprocessing') {
+      currency = 'USD'
+    }
 
     if (currency === 'USD') return `$${amount.toLocaleString('en-US')}`
     if (currency === 'EUR') return `€${amount.toLocaleString('de-DE')}`
@@ -1269,15 +1279,28 @@ export function FullCrmPage() {
             <div className="space-y-4">
               {/* Статистика */}
               {(() => {
-                // Считаем по валютам из currency поля
+                // Хелпер для определения типа валюты
+                const isUsdCurrency = (c: PremiumClient) => {
+                  const cur = (c.currency || '').toUpperCase()
+                  return cur.includes('USD') || cur.includes('USDT') || cur.includes('USDC') ||
+                         cur.includes('BTC') || cur.includes('ETH') || cur.includes('TON') ||
+                         cur.includes('CRYPTO') || c.source === '0xprocessing'
+                }
+                const isEurCurrency = (c: PremiumClient) => (c.currency || '').toUpperCase() === 'EUR'
+                const isRubCurrency = (c: PremiumClient) => {
+                  const cur = (c.currency || '').toUpperCase()
+                  return cur === 'RUB' || (!c.currency && c.source === 'lava.top' && !isUsdCurrency(c) && !isEurCurrency(c))
+                }
+
+                // Считаем по валютам
                 const totalRub = premiumClients
-                  .filter(c => c.currency === 'RUB' || (!c.currency && c.source === 'lava.top'))
+                  .filter(c => isRubCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
                 const totalUsd = premiumClients
-                  .filter(c => c.currency === 'USD' || (!c.currency && c.source === '0xprocessing'))
+                  .filter(c => isUsdCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
                 const totalEur = premiumClients
-                  .filter(c => c.currency === 'EUR')
+                  .filter(c => isEurCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || 0), 0)
 
                 const clientsCount = premiumClients.length
