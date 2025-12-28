@@ -564,7 +564,22 @@ export default async function handler(req, res) {
     await trackStreamConversion(BillingId);
 
     // ============================================
-    // 7. УСПЕШНЫЙ ОТВЕТ (200 OK без body для 0xProcessing)
+    // 7. УВЕДОМЛЕНИЕ АДМИНУ
+    // ============================================
+    const ADMIN_ID = '190202791';
+    const adminMessage = `💰 <b>Новый платёж 0xProcessing (крипта)!</b>\n\n` +
+      `👤 ID: <code>${finalTelegramId || 'N/A'}</code>\n` +
+      `📋 Тариф: <b>${period.name}</b>\n` +
+      `💵 Сумма: <b>$${amountUSD}</b>\n` +
+      `🪙 Валюта: ${Currency || 'CRYPTO'}\n` +
+      `📅 Дней: ${period.days}\n` +
+      `🆕 Новый: ${isNewClient ? 'Да' : 'Нет (продление)'}`;
+
+    await sendTelegramMessage(ADMIN_ID, adminMessage);
+    log('📨 Admin notification sent');
+
+    // ============================================
+    // 8. УСПЕШНЫЙ ОТВЕТ (200 OK без body для 0xProcessing)
     // ============================================
     log('✅ 0xProcessing webhook processed successfully');
 

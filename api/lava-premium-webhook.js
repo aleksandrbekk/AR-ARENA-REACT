@@ -853,7 +853,22 @@ export default async function handler(req, res) {
     await trackStreamConversion(payload);
 
     // ============================================
-    // 9. УСПЕШНЫЙ ОТВЕТ
+    // 9. УВЕДОМЛЕНИЕ АДМИНУ
+    // ============================================
+    const ADMIN_ID = '190202791';
+    const adminMessage = `💰 <b>Новый платёж Lava.top!</b>\n\n` +
+      `👤 ID: <code>${finalTelegramId || 'N/A'}</code>\n` +
+      `📋 Тариф: <b>${period.name}</b>\n` +
+      `💵 Сумма: <b>${amount} ${currency}</b>\n` +
+      `💲 В USD: <b>$${(parseFloat(amount) * (CURRENCY_TO_USD[currency] || 1)).toFixed(2)}</b>\n` +
+      `📅 Дней: ${period.days}\n` +
+      `🆕 Новый: ${isNewClient ? 'Да' : 'Нет (продление)'}`;
+
+    await sendTelegramMessage(ADMIN_ID, adminMessage);
+    log('📨 Admin notification sent');
+
+    // ============================================
+    // 10. УСПЕШНЫЙ ОТВЕТ
     // ============================================
     log('✅ Premium webhook processed successfully');
 
