@@ -50,6 +50,21 @@ function getPeriodByAmount(amountUSD) {
   return { days: 30, tariff: 'unknown', name: 'UNKNOWN' };
 }
 
+// Нормализация валюты для крипто-платежей
+// Все крипто-валюты (USDT, USDC, BTC, ETH, TON и т.д.) считаются как USD
+function normalizeCurrency(currency) {
+  if (!currency) return 'USD';
+  const upper = currency.toUpperCase();
+  // Все криптовалюты и стейблкоины → USD
+  if (upper.includes('USDT') || upper.includes('USDC') || upper.includes('USD') ||
+      upper.includes('BTC') || upper.includes('ETH') || upper.includes('TON') ||
+      upper.includes('TRX') || upper.includes('BNB') || upper.includes('SOL') ||
+      upper.includes('CRYPTO')) {
+    return 'USD';
+  }
+  return 'USD'; // Для 0xprocessing всегда USD
+}
+
 // Маппинг тарифа на URL картинки
 const TARIFF_CARD_IMAGES = {
   'classic': 'https://ararena.pro/cards/classic.png',
@@ -415,7 +430,7 @@ export default async function handler(req, res) {
           last_payment_at: now.toISOString(),
           last_payment_method: '0xprocessing',
           source: '0xprocessing',
-          currency: Currency || 'USD',
+          currency: normalizeCurrency(Currency),
           original_amount: parseFloat(amountUSD),
           updated_at: now.toISOString()
         })
@@ -448,7 +463,7 @@ export default async function handler(req, res) {
           payments_count: 1,
           last_payment_at: now.toISOString(),
           last_payment_method: '0xprocessing',
-          currency: Currency || 'USD',
+          currency: normalizeCurrency(Currency),
           original_amount: parseFloat(amountUSD),
           created_at: now.toISOString(),
           updated_at: now.toISOString()
