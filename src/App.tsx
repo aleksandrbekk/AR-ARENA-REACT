@@ -20,6 +20,7 @@ import { TariffsPage } from './pages/TariffsPage'
 import { PricingPage } from './pages/PricingPage'
 import { PricingPage2 } from './pages/PricingPage2'
 import { PricingPageGate } from './pages/PricingPageGate'
+import { PricingPage3 } from './pages/PricingPage3'
 import { StreamPage } from './pages/StreamPage'
 import { StreamAdminPage } from './pages/StreamAdminPage'
 import { InboxPage } from './pages/InboxPage'
@@ -72,6 +73,7 @@ function App() {
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/pricing2" element={<PricingPage2 />} />
             <Route path="/pricing-gate" element={<PricingPageGate />} />
+            <Route path="/pricing3" element={<PricingPage3 />} />
             <Route path="/stream" element={<StreamPage />} />
             <Route path="/live" element={<StreamPage />} />
             <Route path="/stream-admin" element={<StreamAdminPage />} />
