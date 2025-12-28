@@ -415,6 +415,8 @@ export default async function handler(req, res) {
           last_payment_at: now.toISOString(),
           last_payment_method: '0xprocessing',
           source: '0xprocessing',
+          currency: Currency || 'USD',
+          original_amount: parseFloat(amountUSD),
           updated_at: now.toISOString()
         })
         .eq('id', existingClient.id);
@@ -446,6 +448,8 @@ export default async function handler(req, res) {
           payments_count: 1,
           last_payment_at: now.toISOString(),
           last_payment_method: '0xprocessing',
+          currency: Currency || 'USD',
+          original_amount: parseFloat(amountUSD),
           created_at: now.toISOString(),
           updated_at: now.toISOString()
         })
