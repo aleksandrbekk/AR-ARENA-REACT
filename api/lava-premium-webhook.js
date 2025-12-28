@@ -55,44 +55,67 @@ const CURRENCY_TO_USD = {
   RUB: 0.011
 };
 
-// Известные цены продуктов по валютам (для определения реальной валюты)
-// Lava иногда присылает неправильную валюту, поэтому определяем по сумме
-const KNOWN_PRICES = {
-  USD: [50.8, 101.6, 152.4, 203.2, 254, 304.8, 355.6, 406.4, 445, 457.2, 508, 609.6], // monthly * 1-12
-  EUR: [43.2, 86.4, 129.6, 172.8, 216, 259.2, 302.4, 345.6, 376.92, 388.8, 432, 518.4],
-  RUB: [4000, 8000, 9900, 12000, 16000, 17900, 20000, 24000, 28000, 32000, 34900, 44000, 48000]
-};
+// Получить валюту из payload Lava - доверяем API, не угадываем по суммам!
+function getCurrencyFromPayload(payload) {
+  // Приоритет полей Lava API:
+  // 1. buyerCurrency - валюта в которой покупатель реально платил
+  // 2. payment.currency - валюта платежа
+  // 3. invoice.currency - валюта инвойса
+  // 4. currency - общее поле
 
-// Определить реальную валюту по сумме платежа
-function detectRealCurrency(amount, reportedCurrency) {
-  const amountNum = parseFloat(amount);
-  if (!amountNum) return reportedCurrency || 'RUB';
+  const { buyerCurrency, payment, invoice, currency: rawCurrency } = payload;
 
-  // Проверяем попадание в диапазоны цен для каждой валюты
-  for (const [currency, prices] of Object.entries(KNOWN_PRICES)) {
-    for (const price of prices) {
-      // Допуск 2% на погрешность
-      if (Math.abs(amountNum - price) / price < 0.02) {
-        if (currency !== reportedCurrency) {
-          console.log(`🔍 Currency mismatch detected: reported ${reportedCurrency} but amount ${amountNum} matches ${currency} price ${price}`);
-        }
-        return currency;
-      }
-    }
+  if (buyerCurrency) {
+    console.log(`💱 Using buyerCurrency from API: ${buyerCurrency}`);
+    return buyerCurrency.toUpperCase();
   }
 
-  // Если не нашли точное совпадение, используем эвристику
-  if (amountNum >= 1000) {
-    return 'RUB';
-  } else if (amountNum >= 100) {
-    return 'USD'; // Большинство USD платежей > 100
-  } else if (amountNum >= 40 && amountNum <= 55) {
-    return 'USD'; // CLASSIC в USD
-  } else if (amountNum >= 35 && amountNum < 40) {
-    return 'EUR'; // CLASSIC в EUR
+  if (payment?.currency) {
+    console.log(`💱 Using payment.currency from API: ${payment.currency}`);
+    return payment.currency.toUpperCase();
   }
 
-  return reportedCurrency || 'USD';
+  if (invoice?.currency) {
+    console.log(`💱 Using invoice.currency from API: ${invoice.currency}`);
+    return invoice.currency.toUpperCase();
+  }
+
+  if (rawCurrency) {
+    console.log(`💱 Using currency from API: ${rawCurrency}`);
+    return rawCurrency.toUpperCase();
+  }
+
+  // Fallback только если Lava не прислала валюту вообще
+  console.log(`⚠️ No currency in payload, defaulting to RUB`);
+  return 'RUB';
+}
+
+// Получить сумму из payload Lava
+function getAmountFromPayload(payload) {
+  const { buyerAmount, payment, invoice, amount: rawAmount } = payload;
+
+  // buyerAmount - реальная сумма которую заплатил покупатель
+  if (buyerAmount) {
+    console.log(`💰 Using buyerAmount from API: ${buyerAmount}`);
+    return parseFloat(buyerAmount);
+  }
+
+  if (payment?.amount) {
+    console.log(`💰 Using payment.amount from API: ${payment.amount}`);
+    return parseFloat(payment.amount);
+  }
+
+  if (invoice?.amount) {
+    console.log(`💰 Using invoice.amount from API: ${invoice.amount}`);
+    return parseFloat(invoice.amount);
+  }
+
+  if (rawAmount) {
+    console.log(`💰 Using amount from API: ${rawAmount}`);
+    return parseFloat(rawAmount);
+  }
+
+  return 0;
 }
 
 // Supabase клиент
@@ -554,35 +577,9 @@ export default async function handler(req, res) {
       invoice
     } = payload;
 
-    // Определяем реальную валюту оплаты
-    // Приоритет: buyerCurrency > payment.currency > invoice.currency > detectRealCurrency > rawCurrency
-    let amount = rawAmount;
-    let currency = rawCurrency || 'RUB';
-
-    if (buyerCurrency) {
-      currency = buyerCurrency;
-      log(`💱 Using buyerCurrency: ${buyerCurrency}`);
-      if (buyerAmount) {
-        amount = buyerAmount;
-        log(`💰 Using buyerAmount: ${buyerAmount}`);
-      }
-    } else if (payment?.currency) {
-      currency = payment.currency;
-      log(`💱 Using payment.currency: ${payment.currency}`);
-      if (payment.amount) amount = payment.amount;
-    } else if (invoice?.currency) {
-      currency = invoice.currency;
-      log(`💱 Using invoice.currency: ${invoice.currency}`);
-      if (invoice.amount) amount = invoice.amount;
-    } else {
-      // Lava.top иногда присылает неправильную валюту
-      // Определяем реальную валюту по сумме платежа
-      const detectedCurrency = detectRealCurrency(rawAmount, rawCurrency);
-      if (detectedCurrency !== rawCurrency) {
-        log(`⚠️ Currency corrected: ${rawCurrency} -> ${detectedCurrency} (based on amount ${rawAmount})`);
-        currency = detectedCurrency;
-      }
-    }
+    // Получаем валюту и сумму напрямую из API Lava - без угадывания по суммам!
+    const currency = getCurrencyFromPayload(payload);
+    const amount = getAmountFromPayload(payload) || rawAmount;
 
     log(`📨 Event: ${eventType}, Status: ${status}, Amount: ${amount} ${currency}`);
     log(`📊 Raw values: amount=${rawAmount}, currency=${rawCurrency}`);
