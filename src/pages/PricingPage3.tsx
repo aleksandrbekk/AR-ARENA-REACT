@@ -164,7 +164,7 @@ function PricingCard({ tariff, index, onBuy }: PricingCardProps) {
 
       {/* Card container */}
       <div
-        className="relative rounded-xl overflow-hidden h-full border border-white/10"
+        className={`relative rounded-xl overflow-hidden h-full ${hasGlow ? '' : 'border border-white/10'}`}
         style={{ background: '#0C0C0C' }}
       >
         {/* Content */}
