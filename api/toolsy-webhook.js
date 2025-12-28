@@ -341,11 +341,8 @@ export default async function handler(req, res) {
     if (inviteLink) {
       log(`🔗 Invite link created: ${inviteLink}`);
 
-      // Обновляем статус в БД
-      await supabase
-        .from('premium_clients')
-        .update({ in_channel: true, in_chat: true })
-        .eq('id', clientId);
+      // НЕ обновляем in_channel/in_chat здесь!
+      // Статус обновится через telegram-member-webhook когда юзер РЕАЛЬНО вступит
 
       // Отправляем invite link
       const replyMarkup = {

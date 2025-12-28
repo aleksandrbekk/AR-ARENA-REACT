@@ -783,13 +783,8 @@ export default async function handler(req, res) {
       const { channelLink, chatLink } = await createInviteLinks(String(finalTelegramId));
       log(`🔗 Invite links: channel=${channelLink}, chat=${chatLink}`);
 
-      // Обновляем статус в БД
-      if (channelLink || chatLink) {
-        await supabase
-          .from('premium_clients')
-          .update({ in_channel: !!channelLink, in_chat: !!chatLink })
-          .eq('id', clientId);
-      }
+      // НЕ обновляем in_channel/in_chat здесь!
+      // Статус обновится через telegram-member-webhook когда юзер РЕАЛЬНО вступит
 
       // Формируем ОДНО сообщение с приветствием и кнопками
       const welcomeText = isNewClient
