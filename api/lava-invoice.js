@@ -2,8 +2,14 @@
 // Native fetch (Node.js 18+, Vercel runtime supports it)
 // UPDATED: 2025-12-09T12:00 - force cache bust, use offerId from request
 
-const LAVA_API_KEY = '2q3qBOCGh0nOt1w4rvn8rzH0XwkvTr93rEfiY78h2MaRM8Vmd6jimSeECprrsnTF';
+// SECURITY: All secrets from environment variables (set in Vercel)
+const LAVA_API_KEY = process.env.LAVA_API_KEY;
 const LAVA_API_URL = 'https://gate.lava.top/api/v2/invoice';
+
+// Validate required env vars
+if (!LAVA_API_KEY) {
+  console.error('CRITICAL: Missing LAVA_API_KEY environment variable');
+}
 
 export default async function handler(req, res) {
   // CORS headers

@@ -9,12 +9,16 @@ import { createClient } from '@supabase/supabase-js';
 // КОНФИГУРАЦИЯ
 // ============================================
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://syxjkircmiwpnpagznay.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVED***';
+// SECURITY: All secrets from environment variables (set in Vercel)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const KIKER_BOT_TOKEN = process.env.KIKER_BOT_TOKEN;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-// Бот KIKER для кика из канала/чата
-const KIKER_BOT_TOKEN = '***REMOVED***';
-const BOT_TOKEN = '***REMOVED***';
+// Validate required env vars
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN || !KIKER_BOT_TOKEN) {
+  console.error('CRITICAL: Missing required environment variables');
+}
 
 // ID канала и чата
 const CHANNEL_ID = '-1001634734020';

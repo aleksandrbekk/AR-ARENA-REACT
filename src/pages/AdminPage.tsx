@@ -18,7 +18,8 @@ interface DashboardStats {
   utmLinksCount: number
 }
 
-const ADMIN_PASSWORD = 'arena2024'
+// SECURITY: Password from env variable (set in Vercel)
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
 
 export function AdminPage() {
   const { telegramUser, isLoading } = useAuth()

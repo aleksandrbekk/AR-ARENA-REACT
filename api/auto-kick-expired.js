@@ -8,11 +8,16 @@ import { createClient } from '@supabase/supabase-js';
 // КОНФИГУРАЦИЯ
 // ============================================
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://syxjkircmiwpnpagznay.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVED***';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
-const BOT_TOKEN = '8265126337:AAHBKYfU6fQA09nkJwsMaBQtP16CXSq1Cnc';
+// SECURITY: All secrets from environment variables (set in Vercel)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_TELEGRAM_ID = 190202791;
+
+// Validate required env vars
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
+  console.error('CRITICAL: Missing required environment variables');
+}
 
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

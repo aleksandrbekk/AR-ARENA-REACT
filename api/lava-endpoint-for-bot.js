@@ -6,9 +6,15 @@
 // В начало файла добавить (если нет):
 // const fetch = require('node-fetch');
 
-const LAVA_API_KEY = '2q3qBOCGh0nOt1w4rvn8rzH0XwkvTr93rEfiY78h2MaRM8Vmd6jimSeECprrsnTF';
-const LAVA_OFFER_ID = '836adba6-5365-40f6-a646-aef9621f3af4';
+// SECURITY: All secrets from environment variables (set in Vercel)
+const LAVA_API_KEY = process.env.LAVA_API_KEY;
+const LAVA_OFFER_ID = process.env.LAVA_OFFER_ID || '836adba6-5365-40f6-a646-aef9621f3af4';
 const LAVA_API_URL = 'https://gate.lava.top/api/v2/invoice';
+
+// Validate required env vars
+if (!LAVA_API_KEY) {
+  console.error('CRITICAL: Missing LAVA_API_KEY environment variable');
+}
 
 app.post('/api/lava-create-invoice', async (req, res) => {
   // CORS

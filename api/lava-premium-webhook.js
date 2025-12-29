@@ -8,15 +8,18 @@ import { createClient } from '@supabase/supabase-js';
 // КОНФИГУРАЦИЯ
 // ============================================
 
-const LAVA_API_KEY = process.env.LAVA_API_KEY || '2q3qBOCGh0nOt1w4rvn8rzH0XwkvTr93rEfiY78h2MaRM8Vmd6jimSeECprrsnTF';
+// SECURITY: All secrets from environment variables (set in Vercel)
+const LAVA_API_KEY = process.env.LAVA_API_KEY;
+const BASIC_AUTH_LOGIN = process.env.LAVA_WEBHOOK_LOGIN;
+const BASIC_AUTH_PASSWORD = process.env.LAVA_WEBHOOK_PASSWORD;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-// Basic Auth credentials for Lava.top webhook
-const BASIC_AUTH_LOGIN = 'Lexius10@ukr.net';
-const BASIC_AUTH_PASSWORD = process.env.LAVA_WEBHOOK_PASSWORD || 'your_password_here'; // Замени на реальный пароль
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://syxjkircmiwpnpagznay.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVED***';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
-const BOT_TOKEN = '***REMOVED***'; // AR ARENA основной бот
+// Validate required env vars
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
+  console.error('CRITICAL: Missing required environment variables');
+}
 
 // Маппинг periodicity на период подписки
 const PERIODICITY_TO_PERIOD = {
@@ -376,7 +379,8 @@ async function sendTelegramMessage(telegramId, text, replyMarkup = null) {
 }
 
 // Бот KIKER для управления каналом/чатом
-const KIKER_BOT_TOKEN = '***REMOVED***';
+// SECURITY: Token from environment variable
+const KIKER_BOT_TOKEN = process.env.KIKER_BOT_TOKEN;
 const CHANNEL_ID = '-1001634734020';
 const CHAT_ID = '-1001828659569';
 

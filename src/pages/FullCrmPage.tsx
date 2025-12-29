@@ -60,8 +60,9 @@ interface UtmStats {
 type TabType = 'leads' | 'premium' | 'users' | 'broadcast'
 
 // ============ КОНСТАНТЫ ============
-const BOT_TOKEN = '***REMOVED***'
-const ADMIN_PASSWORD = 'arena2024'
+// SECURITY: Secrets from environment variables
+const BOT_TOKEN = import.meta.env.VITE_BOT_TOKEN || ''
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
 
 // ============ КОМПОНЕНТ ============
 export function FullCrmPage() {

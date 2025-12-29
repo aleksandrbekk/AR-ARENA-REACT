@@ -8,21 +8,27 @@ import { createClient } from '@supabase/supabase-js';
 // КОНФИГУРАЦИЯ
 // ============================================
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://syxjkircmiwpnpagznay.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVED***';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
-const BOT_TOKEN = '***REMOVED***';
+// SECURITY: All secrets from environment variables (set in Vercel)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+// Validate required env vars
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
+  console.error('CRITICAL: Missing required environment variables');
+}
 
 // MerchantId для верификации
 const MERCHANT_ID = '0xMR3389551';
 
 // Маппинг суммы USD на период подписки
 // ПРОДАКШН ЦЕНЫ (крипто) - курс 80₽/$
+// Широкие диапазоны чтобы учитывать комиссии сети (могут быть $5-25)
 const AMOUNT_TO_PERIOD = [
-  { min: 48, max: 52, days: 30, tariff: 'classic', name: 'CLASSIC' },       // $50
-  { min: 130, max: 142, days: 90, tariff: 'gold', name: 'GOLD' },           // $136
-  { min: 243, max: 255, days: 180, tariff: 'platinum', name: 'PLATINUM' },  // $249
-  { min: 468, max: 480, days: 365, tariff: 'private', name: 'PRIVATE' }     // $474
+  { min: 45, max: 80, days: 30, tariff: 'classic', name: 'CLASSIC' },       // $50 (±комиссии)
+  { min: 120, max: 180, days: 90, tariff: 'gold', name: 'GOLD' },           // $136 (±комиссии)
+  { min: 200, max: 300, days: 180, tariff: 'platinum', name: 'PLATINUM' },  // $249 (±комиссии)
+  { min: 400, max: 550, days: 365, tariff: 'private', name: 'PRIVATE' }     // $474 (±комиссии)
 ];
 
 // Supabase клиент
@@ -138,7 +144,8 @@ async function sendTelegramMessage(telegramId, text, replyMarkup = null) {
 }
 
 // Бот KIKER для управления каналом/чатом
-const KIKER_BOT_TOKEN = '***REMOVED***';
+// SECURITY: Token from environment variable
+const KIKER_BOT_TOKEN = process.env.KIKER_BOT_TOKEN;
 const CHANNEL_ID = '-1001634734020';
 const CHAT_ID = '-1001828659569';
 

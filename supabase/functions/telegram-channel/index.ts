@@ -1,8 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const BOT_TOKEN = "***REMOVED***"
+// SECURITY: Token from environment variable
+const BOT_TOKEN = Deno.env.get("KIKER_BOT_TOKEN")
 const CHANNEL_ID = "-1001634734020"
 const CHAT_ID = "-1001828659569"
+
+if (!BOT_TOKEN) {
+  console.error("CRITICAL: Missing KIKER_BOT_TOKEN environment variable")
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

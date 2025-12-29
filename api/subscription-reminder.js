@@ -8,9 +8,15 @@ import { createClient } from '@supabase/supabase-js';
 // КОНФИГУРАЦИЯ
 // ============================================
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://syxjkircmiwpnpagznay.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVED***';
-const BOT_TOKEN = '***REMOVED***';
+// SECURITY: All secrets from environment variables (set in Vercel)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+// Validate required env vars
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
+  console.error('CRITICAL: Missing required environment variables');
+}
 
 // Админ для уведомлений и тестов
 const ADMIN_ID = '190202791';

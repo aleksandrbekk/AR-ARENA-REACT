@@ -23,4 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
-.env*.local
+
+# Environment files - NEVER commit secrets!
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Backup files with potential secrets
+*.backup
+*.bak

@@ -116,16 +116,10 @@ export function useAuth(): UseAuthReturn {
         const tg = window.Telegram?.WebApp
 
         if (!tg) {
-          // Fallback для разработки (когда нет Telegram)
-          console.warn('Telegram WebApp not available, using mock user')
-          const mockUser: TelegramUser = {
-            id: 190202791, // Admin ID для тестирования
-            first_name: 'Developer',
-            username: 'dev_user'
-          }
-          setTelegramUser(mockUser)
-          console.log('Telegram user (mock):', mockUser)
-          await loadGameState(mockUser.id)
+          // SECURITY: No mock user in production - app only works in Telegram
+          console.error('Telegram WebApp not available. This app only works in Telegram.')
+          setError('This app only works in Telegram Mini App')
+          setIsLoading(false)
           return
         }
 
@@ -137,16 +131,10 @@ export function useAuth(): UseAuthReturn {
         const user = tg.initDataUnsafe?.user
 
         if (!user) {
-          // Fallback если WebApp есть, но user нет (разработка вне Telegram)
-          console.warn('Telegram WebApp exists but no user data, using mock user')
-          const mockUser: TelegramUser = {
-            id: 190202791,
-            first_name: 'Developer',
-            username: 'dev_user'
-          }
-          setTelegramUser(mockUser)
-          console.log('Telegram user (mock):', mockUser)
-          await loadGameState(mockUser.id)
+          // SECURITY: No mock user - require valid Telegram user
+          console.error('Telegram WebApp exists but no user data. Invalid session.')
+          setError('Invalid Telegram session')
+          setIsLoading(false)
           return
         }
 
@@ -166,28 +154,8 @@ export function useAuth(): UseAuthReturn {
         await loadGameState(user.id)
       } catch (err) {
         console.error('useAuth initialization error:', err)
-        
-        // При ошибке инициализации тоже используем mock данные
-        const mockUser: TelegramUser = {
-          id: 190202791,
-          first_name: 'Developer',
-          username: 'dev_user'
-        }
-        setTelegramUser(mockUser)
-        
-        const mockState: GameState = {
-          balance_bul: 1000,
-          balance_ar: 50,
-          energy: 100,
-          energy_max: 100,
-          level: 1,
-          xp: 0,
-          xp_to_next: 1000,
-          active_skin: 'Bull1.png',
-          last_energy_update: new Date().toISOString()
-        }
-        setGameState(mockState)
-        setError(null) // Не показываем ошибку, используем mock данные
+        // SECURITY: Show error, do not use mock data
+        setError('Authentication failed')
         setIsLoading(false)
       }
     }

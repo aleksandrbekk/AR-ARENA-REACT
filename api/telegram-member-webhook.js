@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase
-const supabaseUrl = 'https://syxjkircmiwpnpagznay.supabase.co';
-const supabaseKey = '***REMOVED***';
+// SECURITY: All secrets from environment variables (set in Vercel)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+// Validate required env vars
+if (!supabaseUrl || !supabaseKey || !BOT_TOKEN) {
+  console.error('CRITICAL: Missing required environment variables');
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // IDs каналов и чатов
@@ -11,7 +18,6 @@ const CHAT_ID = '-1001828659569';
 
 // Админ для уведомлений
 const ADMIN_ID = '190202791';
-const BOT_TOKEN = '***REMOVED***';
 
 async function notifyAdmin(message) {
   try {
