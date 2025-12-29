@@ -2,7 +2,7 @@
 // Запуск: node scripts/import-legacy-users.js
 
 const SUPABASE_URL = 'https://syxjkircmiwpnpagznay.supabase.co';
-const SUPABASE_KEY = '***REMOVED***';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzc2NDQxMSwiZXhwIjoyMDczMzQwNDExfQ.7ueEYBhFrxKU3_RJi_iJEDj6EQqWBy3gAXiM4YIALqs';
 
 // Данные из Google Sheets
 const csvData = `tg_id,username,expires_date,days_remaining,payment_method,days_to_add,note

@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 // SECURITY: All secrets from environment variables (set in Vercel)
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 // Validate required env vars

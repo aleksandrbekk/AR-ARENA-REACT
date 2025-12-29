@@ -14,6 +14,7 @@ const BASIC_AUTH_LOGIN = process.env.LAVA_WEBHOOK_LOGIN;
 const BASIC_AUTH_PASSWORD = process.env.LAVA_WEBHOOK_PASSWORD;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 // Validate required env vars
