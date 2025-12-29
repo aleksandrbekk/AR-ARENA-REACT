@@ -24,7 +24,7 @@ const CHAT_ID = '-1001828659569';
 const ADMIN_ID = '190202791';
 
 // ТЕСТОВЫЙ РЕЖИМ - только логировать, не кикать
-const TEST_MODE = true;
+const TEST_MODE = false;
 
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

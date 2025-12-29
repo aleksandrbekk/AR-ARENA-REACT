@@ -16,7 +16,7 @@ const BOT_TOKEN = '***REMOVED***';
 const ADMIN_ID = '190202791';
 
 // ТЕСТОВЫЙ РЕЖИМ - отправлять только админу
-const TEST_MODE = true;
+const TEST_MODE = false;
 
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
