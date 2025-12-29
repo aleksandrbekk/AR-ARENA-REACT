@@ -13,13 +13,16 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '***REMOVE
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
 const BOT_TOKEN = '***REMOVED***';
 
+// MerchantId для верификации
+const MERCHANT_ID = '0xMR3389551';
+
 // Маппинг суммы USD на период подписки
-// ПРОДАКШН ЦЕНЫ (крипто)
+// ПРОДАКШН ЦЕНЫ (крипто) - курс 80₽/$
 const AMOUNT_TO_PERIOD = [
   { min: 48, max: 52, days: 30, tariff: 'classic', name: 'CLASSIC' },       // $50
-  { min: 120, max: 130, days: 90, tariff: 'gold', name: 'GOLD' },           // $125
-  { min: 220, max: 230, days: 180, tariff: 'platinum', name: 'PLATINUM' },  // $225
-  { min: 440, max: 450, days: 365, tariff: 'private', name: 'PRIVATE' }     // $445
+  { min: 130, max: 142, days: 90, tariff: 'gold', name: 'GOLD' },           // $136
+  { min: 243, max: 255, days: 180, tariff: 'platinum', name: 'PLATINUM' },  // $249
+  { min: 468, max: 480, days: 365, tariff: 'private', name: 'PRIVATE' }     // $474
 ];
 
 // Supabase клиент
@@ -310,10 +313,20 @@ export default async function handler(req, res) {
       Currency,
       BillingId,
       TransactionHash,
-      WalletAddress
+      WalletAddress,
+      MerchantId,
+      PaymentId,
+      Signature
     } = payload;
 
     log(`📨 Payment status: ${Status}, ClientId: ${ClientId}, Amount: ${AmountUSD || Amount} ${Currency}`);
+    log(`🏪 MerchantId: ${MerchantId}, PaymentId: ${PaymentId}`);
+
+    // Проверяем MerchantId
+    if (MerchantId && MerchantId !== MERCHANT_ID) {
+      log(`❌ Invalid MerchantId: ${MerchantId}, expected: ${MERCHANT_ID}`);
+      return res.status(200).json({ message: 'Invalid merchant' });
+    }
 
     // Проверяем статус платежа
     if (Status !== 'Success' && Status !== 'Completed') {
