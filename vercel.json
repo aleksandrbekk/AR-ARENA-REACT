@@ -11,7 +11,11 @@
   ],
   "crons": [
     {
-      "path": "/api/auto-kick-expired",
+      "path": "/api/subscription-reminder",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/subscription-cleanup",
       "schedule": "0 9 * * *"
     }
   ]
