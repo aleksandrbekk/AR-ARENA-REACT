@@ -185,10 +185,13 @@ export function FullCrmPage() {
       setUsers(usersWithStatus)
 
       // Загружаем Premium клиентов
+      // Сортировка: сначала по дате последнего платежа (новые вверху),
+      // затем по дате создания (для тех у кого нет платежа)
       const { data: premiumClientsData } = await supabase
         .from('premium_clients')
         .select('*')
-        .order('last_payment_at', { ascending: false })
+        .order('last_payment_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
 
       // Подтягиваем аватарки из уже загруженных users (без доп. запросов)
       const avatarMap = new Map<number, string | null>()
