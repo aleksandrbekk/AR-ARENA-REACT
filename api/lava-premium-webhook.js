@@ -408,11 +408,11 @@ async function trackUtmConversion(telegramId) {
 }
 
 // Создать invite-ссылку напрямую через Telegram API
+// Ссылка бессрочная, но одноразовая (member_limit=1)
 async function createDirectInviteLink(chatId) {
   try {
-    const expireDate = Math.floor(Date.now() / 1000) + 86400; // 24 часа
     const response = await fetch(
-      `https://api.telegram.org/bot${KIKER_BOT_TOKEN}/createChatInviteLink?chat_id=${chatId}&member_limit=1&expire_date=${expireDate}`
+      `https://api.telegram.org/bot${KIKER_BOT_TOKEN}/createChatInviteLink?chat_id=${chatId}&member_limit=1`
     );
     const result = await response.json();
     return result.ok ? result.result.invite_link : null;
