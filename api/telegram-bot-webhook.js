@@ -555,23 +555,18 @@ export default async function handler(req, res) {
 
     log('📨 Received update', { update_id: updateId, message_id: update.message?.message_id });
 
-    // Защита от дублей - проверяем update_id в БД
+    // Защита от дублей - атомарная вставка update_id
+    // Если уже есть - получим ошибку unique constraint и выйдем
     if (updateId) {
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from('processed_updates')
-        .select('id')
-        .eq('update_id', updateId)
-        .single();
+        .insert({ update_id: updateId });
 
-      if (existing) {
+      // Ошибка 23505 = unique_violation (уже обработано)
+      if (error && error.code === '23505') {
         log('⚠️ Duplicate update_id, skipping', { update_id: updateId });
         return res.status(200).json({ ok: true, duplicate: true });
       }
-
-      // Сохраняем update_id (ignore errors if duplicate)
-      await supabase
-        .from('processed_updates')
-        .insert({ update_id: updateId });
     }
 
     // Обрабатываем только сообщения
