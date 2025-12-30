@@ -55,7 +55,7 @@ export function BuyTicketModal({ isOpen, onClose, giveaway, onSuccess }: BuyTick
       const { error: rpcError } = await supabase.rpc('buy_giveaway_ticket_v2', {
         p_telegram_id: telegramUser.id.toString(),
         p_giveaway_id: giveaway.id,
-        p_ticket_count: count
+        p_count: count
       })
 
       if (rpcError) throw rpcError

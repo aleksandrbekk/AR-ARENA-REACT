@@ -7,7 +7,7 @@ export function GiveawayManager() {
   const [mode, setMode] = useState<'list' | 'edit'>('list')
   const [giveaways, setGiveaways] = useState<Giveaway[]>([])
   const [loading, setLoading] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   // Form State
   const [formData, setFormData] = useState<Partial<Giveaway>>({
@@ -115,7 +115,7 @@ export function GiveawayManager() {
     return labels[status] || status
   }
 
-  const handleRunDraw = async (giveawayId: number) => {
+  const handleRunDraw = async (giveawayId: string) => {
     if (!confirm('ВНИМАНИЕ!\n\nЭто действие НЕОБРАТИМО.\nБудут определены победители, выплачены призы и розыгрыш будет завершён.\n\nПродолжить?')) {
       return
     }
@@ -158,7 +158,7 @@ export function GiveawayManager() {
     }
   }
 
-  const handleDistributePrizes = async (giveawayId: number) => {
+  const handleDistributePrizes = async (giveawayId: string) => {
     if (!confirm('Выплатить призы победителям?\n\nЭто действие начислит AR/BUL на балансы победителей.')) {
       return
     }
@@ -197,7 +197,7 @@ export function GiveawayManager() {
     }
   }
 
-  const handleDelete = async (giveawayId: number, title: string) => {
+  const handleDelete = async (giveawayId: string, title: string) => {
     if (!confirm(`Удалить розыгрыш?\n\n"${title}"\n\nЭто действие удалит розыгрыш и все связанные билеты!`)) {
       return
     }

@@ -93,14 +93,35 @@ export function RequirementsCheck({ giveaway, telegramId, onStatusChange }: Requ
     const updatedReqs = await Promise.all(
       reqs.map(async (req) => {
         if (req.type === 'channel') {
-          // Проверка подписки на канал через API бота
-          // В реальности это делается через Telegram Bot API
-          // Пока что считаем что подписан
-          return {
-            ...req,
-            current: 'Да',
-            met: true,
-            loading: false
+          // Проверка подписки на канал через API
+          try {
+            const response = await fetch('/api/check-subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                telegram_id: telegramId,
+                channel_id: giveaway.requirements?.telegram_channel_id
+              })
+            })
+
+            const data = await response.json()
+            const isMember = data.success && data.is_member
+
+            return {
+              ...req,
+              current: isMember ? 'Да' : 'Нет',
+              met: isMember,
+              loading: false
+            }
+          } catch (error) {
+            console.error('Failed to check subscription:', error)
+            // При ошибке проверки — разрешаем участие
+            return {
+              ...req,
+              current: 'Да',
+              met: true,
+              loading: false
+            }
           }
         }
 

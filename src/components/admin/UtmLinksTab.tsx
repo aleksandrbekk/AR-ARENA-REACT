@@ -35,7 +35,7 @@ export function UtmLinksTab() {
   const [toolLinks, setToolLinks] = useState<UtmToolLink[]>([])
   const [loadingToolLinks, setLoadingToolLinks] = useState(true)
 
-  // Папки
+  // Папки и навигация
   const [folders, setFolders] = useState<string[]>([])
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const [showFolderModal, setShowFolderModal] = useState(false)
@@ -114,12 +114,13 @@ export function UtmLinksTab() {
       setCreating(true)
 
       if (activeTab === 'payment') {
+        const folderToSave = formData.folder || activeFolder || null
         const { error } = await supabase
           .from('utm_links')
           .insert({
             name: formData.name,
             slug: formData.slug.toLowerCase(),
-            folder: formData.folder || null
+            folder: folderToSave
           })
 
         if (error) {
@@ -201,12 +202,29 @@ export function UtmLinksTab() {
 
   const handleCreateFolder = () => {
     if (!newFolderName.trim()) return
-
-    // Папка создастся автоматически при добавлении первой ссылки в неё
     setFolders(prev => [...prev, newFolderName.trim()].sort())
     setShowFolderModal(false)
-    setNewFolderName('')
     setActiveFolder(newFolderName.trim())
+    setNewFolderName('')
+  }
+
+  const handleDeleteFolder = async (folderName: string) => {
+    if (!confirm(`Удалить папку "${folderName}"? Все ссылки внутри станут "без папки".`)) return
+
+    try {
+      // Убираем папку у всех ссылок в ней
+      const { error } = await supabase
+        .from('utm_links')
+        .update({ folder: null })
+        .eq('folder', folderName)
+
+      if (error) throw error
+      setActiveFolder(null)
+      fetchLinks()
+    } catch (err: any) {
+      console.error('Error deleting folder:', err)
+      alert(`Ошибка: ${err.message}`)
+    }
   }
 
   const copyToClipboard = async (url: string, id: string) => {
@@ -229,13 +247,12 @@ export function UtmLinksTab() {
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('ru-RU', {
       day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+      month: '2-digit'
     })
   }
 
   const formatRelativeTime = (date: string | null) => {
-    if (!date) return 'никогда'
+    if (!date) return '-'
     const now = new Date()
     const then = new Date(date)
     const diffMs = now.getTime() - then.getTime()
@@ -243,10 +260,10 @@ export function UtmLinksTab() {
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 1) return 'только что'
-    if (diffMins < 60) return `${diffMins} мин назад`
-    if (diffHours < 24) return `${diffHours} ч назад`
-    if (diffDays < 7) return `${diffDays} дн назад`
+    if (diffMins < 1) return 'сейчас'
+    if (diffMins < 60) return `${diffMins}м`
+    if (diffHours < 24) return `${diffHours}ч`
+    if (diffDays < 7) return `${diffDays}д`
     return formatDate(date)
   }
 
@@ -262,252 +279,329 @@ export function UtmLinksTab() {
     return `https://ararena.pro/?utm_source=${link.slug}`
   }
 
-  // Фильтрация ссылок по активной папке
-  const filteredLinks = activeFolder === null
-    ? links
-    : activeFolder === '__no_folder__'
-      ? links.filter(l => !l.folder)
-      : links.filter(l => l.folder === activeFolder)
+  // Ссылки без папки (для раздела "Общие")
+  const linksWithoutFolder = links.filter(l => !l.folder)
 
-  // Подсчёт ссылок без папки
-  const linksWithoutFolder = links.filter(l => !l.folder).length
+  // Ссылки в текущей папке
+  const linksInFolder = activeFolder ? links.filter(l => l.folder === activeFolder) : []
+
+  // Статистика папки
+  const getFolderStats = (folderName: string) => {
+    const folderLinks = links.filter(l => l.folder === folderName)
+    return {
+      count: folderLinks.length,
+      clicks: folderLinks.reduce((sum, l) => sum + l.clicks, 0),
+      conversions: folderLinks.reduce((sum, l) => sum + l.conversions, 0)
+    }
+  }
 
   const loading = activeTab === 'payment' ? loadingLinks : loadingToolLinks
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-white/40">Загрузка ссылок...</div>
+        <div className="text-white/40">Загрузка...</div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-2">
       {/* Переключатель табов */}
       <div className="flex gap-2 p-1 bg-zinc-900/50 rounded-xl border border-white/10">
         <button
-          onClick={() => setActiveTab('payment')}
+          onClick={() => { setActiveTab('payment'); setActiveFolder(null) }}
           className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
             activeTab === 'payment'
               ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-              : 'text-white/60 hover:text-white'
+              : 'text-white/60'
           }`}
         >
-          💳 Оплата
+          Оплата
         </button>
         <button
           onClick={() => setActiveTab('tools')}
           className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
             activeTab === 'tools'
               ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-              : 'text-white/60 hover:text-white'
+              : 'text-white/60'
           }`}
         >
-          🛠 Инструменты
+          Инструменты
         </button>
       </div>
 
       {/* === БЛОК ССЫЛОК НА ОПЛАТУ === */}
       {activeTab === 'payment' && (
         <>
-          {/* Папки */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-white/50 text-xs font-medium uppercase tracking-wider">Папки</div>
+          {/* РЕЖИМ: ВНУТРИ ПАПКИ */}
+          {activeFolder ? (
+            <div className="space-y-4">
+              {/* Шапка папки */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setActiveFolder(null)}
+                  className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span className="text-sm">Назад</span>
+                </button>
+                <button
+                  onClick={() => handleDeleteFolder(activeFolder)}
+                  className="text-red-400/60 hover:text-red-400 text-xs transition-colors"
+                >
+                  Удалить папку
+                </button>
+              </div>
+
+              {/* Название папки и статистика */}
+              <div className="bg-zinc-900/50 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#FFD700]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-white font-bold text-lg">{activeFolder}</div>
+                    <div className="text-white/40 text-xs">{linksInFolder.length} ссылок</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
+                    <div className="text-white/50 text-[10px] uppercase tracking-wider">Клики</div>
+                    <div className="text-white font-bold">{linksInFolder.reduce((s, l) => s + l.clicks, 0)}</div>
+                  </div>
+                  <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
+                    <div className="text-white/50 text-[10px] uppercase tracking-wider">Конверсии</div>
+                    <div className="text-green-400 font-bold">{linksInFolder.reduce((s, l) => s + l.conversions, 0)}</div>
+                  </div>
+                  <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
+                    <div className="text-white/50 text-[10px] uppercase tracking-wider">CR</div>
+                    <div className="text-[#FFD700] font-bold">
+                      {getConversionRate(
+                        linksInFolder.reduce((s, l) => s + l.clicks, 0),
+                        linksInFolder.reduce((s, l) => s + l.conversions, 0)
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Кнопка добавить */}
+              <button
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, folder: activeFolder }))
+                  setShowCreateModal(true)
+                }}
+                className="w-full px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors border border-white/10 flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Добавить ссылку
+              </button>
+
+              {/* Список ссылок в папке */}
+              <div className="space-y-2">
+                {linksInFolder.length === 0 ? (
+                  <div className="bg-zinc-900/30 rounded-xl p-8 text-center border border-white/5">
+                    <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                    </div>
+                    <div className="text-white/40 text-sm">Папка пуста</div>
+                  </div>
+                ) : (
+                  linksInFolder.map((link) => (
+                    <div
+                      key={link.id}
+                      className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-medium text-sm truncate">{link.name}</div>
+                          <div className="text-white/30 text-xs font-mono truncate">
+                            premium_{link.slug}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(`https://t.me/ARARENA_BOT?start=premium_${link.slug}`, `p-${link.id}`)}
+                          className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
+                            copiedId === `p-${link.id}`
+                              ? 'bg-green-500/20 text-green-400'
+                              : 'bg-zinc-700 text-white/70'
+                          }`}
+                        >
+                          {copiedId === `p-${link.id}` ? 'OK' : 'Copy'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="text-white/50">{link.clicks} кл.</span>
+                          <span className="text-green-400/70">{link.conversions} конв.</span>
+                          <span className="text-[#FFD700]/70">{getConversionRate(link.clicks, link.conversions)}</span>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteLink(link.id, link.name, false)}
+                          className="text-red-400/40 hover:text-red-400 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            /* РЕЖИМ: КАТАЛОГ ПАПОК */
+            <div className="space-y-4">
+              {/* Общая статистика */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Всего</div>
+                  <div className="text-white font-bold text-lg">{links.length}</div>
+                </div>
+                <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Кликов</div>
+                  <div className="text-[#FFD700] font-bold text-lg">{links.reduce((s, l) => s + l.clicks, 0)}</div>
+                </div>
+                <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Конверсий</div>
+                  <div className="text-green-400 font-bold text-lg">{links.reduce((s, l) => s + l.conversions, 0)}</div>
+                </div>
+              </div>
+
+              {/* Кнопка создать папку */}
               <button
                 onClick={() => setShowFolderModal(true)}
-                className="text-[#FFD700] text-xs font-medium"
+                className="w-full px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl active:scale-[0.98] transition-transform"
               >
-                + Создать папку
-              </button>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {/* Все ссылки */}
-              <button
-                onClick={() => setActiveFolder(null)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  activeFolder === null
-                    ? 'bg-[#FFD700] text-black'
-                    : 'bg-zinc-800 text-white/60 hover:text-white'
-                }`}
-              >
-                Все ({links.length})
+                Создать папку
               </button>
 
-              {/* Без папки */}
-              {linksWithoutFolder > 0 && (
-                <button
-                  onClick={() => setActiveFolder('__no_folder__')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    activeFolder === '__no_folder__'
-                      ? 'bg-[#FFD700] text-black'
-                      : 'bg-zinc-800 text-white/60 hover:text-white'
-                  }`}
-                >
-                  Без папки ({linksWithoutFolder})
-                </button>
-              )}
+              {/* Список папок */}
+              <div className="space-y-2">
+                {folders.map(folder => {
+                  const stats = getFolderStats(folder)
+                  return (
+                    <button
+                      key={folder}
+                      onClick={() => setActiveFolder(folder)}
+                      className="w-full bg-zinc-900/50 backdrop-blur-md rounded-xl p-4 border border-white/10 hover:border-yellow-500/30 transition-all text-left group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center group-hover:from-yellow-500/30 group-hover:to-orange-500/30 transition-colors">
+                          <svg className="w-5 h-5 text-[#FFD700]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-medium">{folder}</div>
+                          <div className="text-white/40 text-xs">{stats.count} ссылок</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-white/60 text-sm">{stats.clicks} кл.</div>
+                          <div className="text-green-400/60 text-xs">{stats.conversions} конв.</div>
+                        </div>
+                        <svg className="w-5 h-5 text-white/30 group-hover:text-white/50 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </button>
+                  )
+                })}
 
-              {/* Папки */}
-              {folders.map(folder => {
-                const count = links.filter(l => l.folder === folder).length
-                return (
-                  <button
-                    key={folder}
-                    onClick={() => setActiveFolder(folder)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      activeFolder === folder
-                        ? 'bg-[#FFD700] text-black'
-                        : 'bg-zinc-800 text-white/60 hover:text-white'
-                    }`}
-                  >
-                    📁 {folder} ({count})
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+                {/* Ссылки без папки */}
+                {linksWithoutFolder.length > 0 && (
+                  <div className="mt-4">
+                    <div className="text-white/30 text-xs uppercase tracking-wider mb-2 px-1">Без категории</div>
+                    {linksWithoutFolder.map((link) => (
+                      <div
+                        key={link.id}
+                        className="bg-zinc-900/30 rounded-xl p-3 border border-white/5 mb-2"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white/70 font-medium text-sm truncate">{link.name}</div>
+                            <div className="text-white/20 text-xs font-mono truncate">premium_{link.slug}</div>
+                          </div>
+                          <button
+                            onClick={() => copyToClipboard(`https://t.me/ARARENA_BOT?start=premium_${link.slug}`, `p-${link.id}`)}
+                            className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
+                              copiedId === `p-${link.id}`
+                                ? 'bg-green-500/20 text-green-400'
+                                : 'bg-zinc-800 text-white/50'
+                            }`}
+                          >
+                            {copiedId === `p-${link.id}` ? 'OK' : 'Copy'}
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 text-xs">
+                            <span className="text-white/40">{link.clicks} кл.</span>
+                            <span className="text-green-400/50">{link.conversions} конв.</span>
+                          </div>
+                          <select
+                            value=""
+                            onChange={(e) => handleMoveToFolder(link.id, e.target.value || null)}
+                            className="bg-zinc-800 text-white/50 text-xs rounded px-2 py-1 border border-white/10 focus:outline-none"
+                          >
+                            <option value="">Переместить...</option>
+                            {folders.map(f => (
+                              <option key={f} value={f}>{f}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-          {/* Статистика для выбранной папки */}
-          {filteredLinks.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
-                <div className="text-white/50 text-xs mb-1">Ссылок</div>
-                <div className="text-white font-bold text-lg">{filteredLinks.length}</div>
-              </div>
-              <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
-                <div className="text-white/50 text-xs mb-1">Кликов</div>
-                <div className="text-[#FFD700] font-bold text-lg">
-                  {filteredLinks.reduce((sum, l) => sum + l.clicks, 0)}
-                </div>
-              </div>
-              <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
-                <div className="text-white/50 text-xs mb-1">Конверсий</div>
-                <div className="text-green-500 font-bold text-lg">
-                  {filteredLinks.reduce((sum, l) => sum + l.conversions, 0)}
-                </div>
+                {folders.length === 0 && linksWithoutFolder.length === 0 && (
+                  <div className="bg-zinc-900/30 rounded-xl p-8 text-center border border-white/5">
+                    <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-white/30" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                      </svg>
+                    </div>
+                    <div className="text-white/40 text-sm mb-1">Нет папок</div>
+                    <div className="text-white/30 text-xs">Создайте первую папку для UTM-ссылок</div>
+                  </div>
+                )}
               </div>
             </div>
           )}
-
-          {/* Кнопка создать */}
-          <button
-            onClick={() => {
-              setFormData(prev => ({ ...prev, folder: activeFolder === '__no_folder__' ? '' : (activeFolder || '') }))
-              setShowCreateModal(true)
-            }}
-            className="w-full px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl active:scale-95 transition-transform"
-          >
-            + Создать ссылку
-          </button>
-
-          {/* Список ссылок */}
-          <div className="space-y-3">
-            {filteredLinks.length === 0 ? (
-              <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl p-8 border border-white/5 text-center">
-                <div className="text-4xl mb-3">🔗</div>
-                <div className="text-white/40">
-                  {activeFolder ? 'Нет ссылок в этой папке' : 'Нет созданных ссылок'}
-                </div>
-              </div>
-            ) : (
-              filteredLinks.map((link) => (
-                <div
-                  key={link.id}
-                  className="bg-zinc-900/50 backdrop-blur-md rounded-xl p-4 border border-white/10"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="text-white font-bold">{link.name}</div>
-                        {link.folder && (
-                          <span className="px-2 py-0.5 bg-zinc-700 rounded text-[10px] text-white/50">
-                            {link.folder}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-white/40 text-xs font-mono">
-                        t.me/ARARENA_BOT?start=premium_{link.slug}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => copyToClipboard(`https://t.me/ARARENA_BOT?start=premium_${link.slug}`, `payment-${link.id}`)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        copiedId === `payment-${link.id}`
-                          ? 'bg-green-500/20 text-green-500 border border-green-500/30'
-                          : 'bg-zinc-700 text-white/80 active:scale-95'
-                      }`}
-                    >
-                      {copiedId === `payment-${link.id}` ? '✓' : 'Копировать'}
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 mb-3">
-                    <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-                      <div className="text-white/50 text-xs">Клики</div>
-                      <div className="text-white font-semibold">{link.clicks}</div>
-                    </div>
-                    <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-                      <div className="text-white/50 text-xs">Конверсии</div>
-                      <div className="text-green-500 font-semibold">{link.conversions}</div>
-                    </div>
-                    <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-                      <div className="text-white/50 text-xs">CR</div>
-                      <div className="text-[#FFD700] font-semibold">
-                        {getConversionRate(link.clicks, link.conversions)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="text-white/40 text-xs">
-                        {formatDate(link.created_at)}
-                      </div>
-                      {/* Выбор папки */}
-                      <select
-                        value={link.folder || ''}
-                        onChange={(e) => handleMoveToFolder(link.id, e.target.value || null)}
-                        className="bg-zinc-800 text-white/60 text-xs rounded px-2 py-1 border border-white/10 focus:outline-none"
-                      >
-                        <option value="">Без папки</option>
-                        {folders.map(f => (
-                          <option key={f} value={f}>{f}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteLink(link.id, link.name, false)}
-                      className="px-3 py-1.5 bg-red-500/10 text-red-500 text-xs font-semibold rounded-lg border border-red-500/20 active:scale-95 transition-transform"
-                    >
-                      Удалить
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         </>
       )}
 
       {/* === БЛОК ССЫЛОК НА ИНСТРУМЕНТЫ === */}
       {activeTab === 'tools' && (
-        <>
-          {/* Кнопка создать */}
+        <div className="space-y-4">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="w-full px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl active:scale-95 transition-transform"
+            className="w-full px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl active:scale-[0.98] transition-transform"
           >
-            + Создать ссылку
+            Создать ссылку
           </button>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {toolLinks.length === 0 ? (
-              <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl p-8 border border-white/5 text-center">
-                <div className="text-4xl mb-3">🔗</div>
-                <div className="text-white/40">Нет ссылок</div>
+              <div className="bg-zinc-900/30 rounded-xl p-8 text-center border border-white/5">
+                <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <div className="text-white/40 text-sm">Нет ссылок</div>
               </div>
             ) : (
               toolLinks.map((link) => (
@@ -515,60 +609,64 @@ export function UtmLinksTab() {
                   key={link.id}
                   className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden"
                 >
-                  <div className="px-4 pt-4 pb-3">
+                  <div className="p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <div className="text-white font-semibold">{link.name}</div>
-                      <div className="text-white/30 text-xs">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white font-medium truncate">{link.name}</div>
+                        <div className="text-white/30 text-xs font-mono truncate">
+                          utm_source={link.slug}
+                        </div>
+                      </div>
+                      <div className="text-white/30 text-xs shrink-0 ml-2">
                         {formatDate(link.created_at)}
                       </div>
                     </div>
-                    <div className="text-white/40 text-xs font-mono truncate">
-                      ararena.pro/stream?utm_source=<span className="text-white/60">{link.slug}</span>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-4 gap-2 px-4 py-3 bg-zinc-800/30">
-                    <div className="text-center">
-                      <div className="text-[#FFD700] font-bold text-lg">{link.clicks}</div>
-                      <div className="text-white/40 text-[10px]">переходов</div>
+                    <div className="grid grid-cols-4 gap-2 mb-3">
+                      <div className="text-center">
+                        <div className="text-[#FFD700] font-bold">{link.clicks}</div>
+                        <div className="text-white/30 text-[10px]">клики</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-green-400 font-bold">{link.conversions}</div>
+                        <div className="text-white/30 text-[10px]">конв.</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-white font-bold">{getConversionRate(link.clicks, link.conversions)}</div>
+                        <div className="text-white/30 text-[10px]">CR</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-white/60 font-medium text-sm">{formatRelativeTime(link.last_click_at)}</div>
+                        <div className="text-white/30 text-[10px]">визит</div>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-green-400 font-bold text-lg">{link.conversions}</div>
-                      <div className="text-white/40 text-[10px]">конверсий</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-white font-bold text-lg">{getConversionRate(link.clicks, link.conversions)}</div>
-                      <div className="text-white/40 text-[10px]">CR</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-white/70 font-medium text-xs leading-tight">{formatRelativeTime(link.last_click_at)}</div>
-                      <div className="text-white/40 text-[10px]">посл. визит</div>
-                    </div>
-                  </div>
 
-                  <div className="flex gap-2 px-4 py-3 border-t border-white/5">
-                    <button
-                      onClick={() => copyToClipboard(getToolUrl(link), `tool-${link.id}`)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                        copiedId === `tool-${link.id}`
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-zinc-700 text-white active:scale-95'
-                      }`}
-                    >
-                      {copiedId === `tool-${link.id}` ? '✓ Скопировано' : 'Копировать'}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteLink(link.id, link.name, true)}
-                      className="px-4 py-2 text-red-400/70 text-sm rounded-lg hover:text-red-400 active:scale-95 transition-all"
-                    >
-                      Удалить
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => copyToClipboard(getToolUrl(link), `t-${link.id}`)}
+                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                          copiedId === `t-${link.id}`
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-zinc-700 text-white'
+                        }`}
+                      >
+                        {copiedId === `t-${link.id}` ? 'Скопировано' : 'Копировать'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLink(link.id, link.name, true)}
+                        className="px-4 py-2 text-red-400/60 hover:text-red-400 transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </>
+        </div>
       )}
 
       {/* Модалка создания ссылки */}
@@ -576,31 +674,32 @@ export function UtmLinksTab() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
           <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
             <h3 className="text-white text-lg font-bold mb-4">
-              {activeTab === 'payment' ? 'Создать UTM-ссылку' : 'Создать ссылку на инструмент'}
+              {activeTab === 'payment' ? 'Новая UTM-ссылка' : 'Ссылка на инструмент'}
             </h3>
 
             <div className="space-y-4">
               <div>
-                <label className="text-white/60 text-sm mb-2 block">Название:</label>
+                <label className="text-white/60 text-sm mb-2 block">Название</label>
                 <input
                   type="text"
-                  placeholder="Например: Instagram Reels"
+                  placeholder="Instagram Reels"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-yellow-500/30"
+                  autoFocus
                 />
               </div>
 
               <div>
-                <label className="text-white/60 text-sm mb-2 block">Slug:</label>
+                <label className="text-white/60 text-sm mb-2 block">Slug</label>
                 <input
                   type="text"
                   placeholder="instagram_reels"
                   value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value.replace(/\s/g, '_') })}
-                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30 font-mono"
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value.replace(/\s/g, '_').toLowerCase() })}
+                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-yellow-500/30 font-mono"
                 />
-                <div className="text-white/40 text-xs mt-2 font-mono break-all">
+                <div className="text-white/30 text-xs mt-2 font-mono">
                   {activeTab === 'payment'
                     ? `t.me/ARARENA_BOT?start=premium_${formData.slug || 'slug'}`
                     : `ararena.pro/stream?utm_source=${formData.slug || 'slug'}`
@@ -608,13 +707,13 @@ export function UtmLinksTab() {
                 </div>
               </div>
 
-              {activeTab === 'payment' && (
+              {activeTab === 'payment' && !activeFolder && folders.length > 0 && (
                 <div>
-                  <label className="text-white/60 text-sm mb-2 block">Папка:</label>
+                  <label className="text-white/60 text-sm mb-2 block">Папка</label>
                   <select
                     value={formData.folder}
                     onChange={(e) => setFormData({ ...formData, folder: e.target.value })}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/30"
+                    className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-yellow-500/30"
                   >
                     <option value="">Без папки</option>
                     {folders.map(f => (
@@ -631,16 +730,16 @@ export function UtmLinksTab() {
                   setShowCreateModal(false)
                   setFormData({ name: '', slug: '', folder: '', tool_type: 'stream' })
                 }}
-                className="flex-1 px-4 py-3 bg-zinc-800 text-white rounded-xl active:scale-95 transition-transform"
+                className="flex-1 px-4 py-3 bg-zinc-800 text-white rounded-xl"
               >
                 Отмена
               </button>
               <button
                 onClick={handleCreateLink}
                 disabled={creating || !formData.name || !formData.slug}
-                className="flex-1 px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl disabled:opacity-50"
               >
-                {creating ? 'Создание...' : 'Создать'}
+                {creating ? '...' : 'Создать'}
               </button>
             </div>
           </div>
@@ -659,7 +758,7 @@ export function UtmLinksTab() {
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-              className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
+              className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-yellow-500/30"
               autoFocus
             />
 
@@ -669,14 +768,14 @@ export function UtmLinksTab() {
                   setShowFolderModal(false)
                   setNewFolderName('')
                 }}
-                className="flex-1 px-4 py-3 bg-zinc-800 text-white rounded-xl active:scale-95 transition-transform"
+                className="flex-1 px-4 py-3 bg-zinc-800 text-white rounded-xl"
               >
                 Отмена
               </button>
               <button
                 onClick={handleCreateFolder}
                 disabled={!newFolderName.trim()}
-                className="flex-1 px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl active:scale-95 transition-transform disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl disabled:opacity-50"
               >
                 Создать
               </button>

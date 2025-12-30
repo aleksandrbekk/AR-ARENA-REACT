@@ -149,7 +149,7 @@ export interface UserSkin {
 }
 
 export interface Giveaway {
-  id: number
+  id: string
   title: string
   subtitle: string | null
   description: string | null

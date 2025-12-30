@@ -32,7 +32,7 @@ export function GiveawayDetailsPage() {
 
   const fetchStats = async () => {
     if (!id) return
-    const stats = await getGiveawayStats(Number(id))
+    const stats = await getGiveawayStats(id)
     setParticipantsCount(stats.participants_count)
   }
 

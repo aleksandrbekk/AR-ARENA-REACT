@@ -39,7 +39,7 @@ export function useGiveaways() {
     }
   }, [])
 
-  const getGiveawayStats = useCallback(async (giveawayId: number) => {
+  const getGiveawayStats = useCallback(async (giveawayId: string) => {
     try {
       // Получаем количество уникальных участников
       const { data: ticketData, error: ticketError } = await supabase
@@ -63,7 +63,7 @@ export function useGiveaways() {
     }
   }, [])
 
-  const buyTickets = useCallback(async (giveawayId: number, count: number) => {
+  const buyTickets = useCallback(async (giveawayId: string, count: number) => {
     if (!telegramUser?.id) throw new Error('User not authenticated')
 
     try {
@@ -82,7 +82,7 @@ export function useGiveaways() {
     }
   }, [telegramUser])
 
-  const getMyTickets = useCallback(async (giveawayId: number) => {
+  const getMyTickets = useCallback(async (giveawayId: string) => {
     if (!telegramUser?.id) return 0
 
     try {
