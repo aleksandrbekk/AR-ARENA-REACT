@@ -593,6 +593,9 @@ export default async function handler(req, res) {
         isPremium: param.startsWith('premium')
       });
 
+      // TEMP DEBUG: отправляем debug в чат (удалить после отладки!)
+      await sendMessage(chatId, `🔍 DEBUG:\ntext: "${text}"\nparam: "${param}"\nisPremium: ${param.startsWith('premium')}`);
+
       let source = 'direct';
       if (param.startsWith('premium')) {
         source = param.includes('_') ? param.split('_').slice(1).join('_') : 'premium';
