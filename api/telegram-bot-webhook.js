@@ -601,24 +601,20 @@ export default async function handler(req, res) {
       const args = text.split(' ').slice(1);
       const param = args[0] || '';
 
-      // Дедупликация: проверяем был ли /start от этого юзера за последние 10 сек
-      const tenSecondsAgo = new Date(Date.now() - 10000).toISOString();
-      const { data: recentStart } = await supabase
-        .from('chat_messages')
-        .select('id')
-        .eq('telegram_id', telegramId)
-        .eq('command_name', '/start')
-        .gt('created_at', tenSecondsAgo)
-        .neq('message_id', message.message_id)
-        .limit(1)
-        .single();
+      // Атомарная дедупликация: ключ = telegram_id + 10-секундное окно
+      const timeBucket = Math.floor(Date.now() / 10000);
+      const lockKey = `start_${telegramId}_${timeBucket}`;
 
-      if (recentStart) {
-        log(`⏭️ Skipping duplicate /start from ${telegramId} (recent command exists)`);
+      const { error: lockError } = await supabase
+        .from('command_locks')
+        .insert({ lock_key: lockKey });
+
+      if (lockError && lockError.code === '23505') {
+        log(`⏭️ Skipping duplicate /start from ${telegramId} (lock exists: ${lockKey})`);
         return res.status(200).json({ ok: true, skipped: 'duplicate_start' });
       }
 
-      log(`🔍 /start command`, { param });
+      log(`🔍 /start command`, { param, lockKey });
 
       let source = 'direct';
       if (param.startsWith('premium')) {
