@@ -719,8 +719,8 @@ export function UtmLinksTab() {
 
       {/* Модалка создания ссылки */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-20 pb-8 overflow-y-auto">
-          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-sm border border-white/10 my-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-sm border border-white/10">
             <h3 className="text-white text-lg font-bold mb-4">
               {activeTab === 'payment' ? 'Новая UTM-ссылка' : 'Ссылка на инструмент'}
             </h3>
@@ -796,8 +796,8 @@ export function UtmLinksTab() {
 
       {/* Модалка создания папки */}
       {showFolderModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-20 pb-8 overflow-y-auto">
-          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-sm border border-white/10 my-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-sm border border-white/10">
             <h3 className="text-white text-lg font-bold mb-4">Новая папка</h3>
 
             <input
@@ -834,8 +834,8 @@ export function UtmLinksTab() {
 
       {/* Модалка редактирования папки */}
       {editingFolder && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-20 pb-8 overflow-y-auto">
-          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-sm border border-white/10 my-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-sm border border-white/10">
             <h3 className="text-white text-lg font-bold mb-4">Переименовать папку</h3>
 
             <input
