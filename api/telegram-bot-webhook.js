@@ -585,6 +585,14 @@ export default async function handler(req, res) {
       const args = text.split(' ').slice(1);
       const param = args[0] || '';
 
+      // DEBUG: логируем всё что получили
+      log(`🔍 DEBUG /start`, {
+        fullText: text,
+        args: args,
+        param: param,
+        isPremium: param.startsWith('premium')
+      });
+
       let source = 'direct';
       if (param.startsWith('premium')) {
         source = param.includes('_') ? param.split('_').slice(1).join('_') : 'premium';
@@ -596,10 +604,10 @@ export default async function handler(req, res) {
 
       if (param.startsWith('premium')) {
         const utmSource = param.includes('_') ? param.split('_').slice(1).join('_') : null;
-        log(`👤 /start premium from ${telegramId}`, { utmSource });
+        log(`👤 /start premium from ${telegramId}`, { utmSource, param });
         await handleStartPremium(chatId, telegramId, conversationId, utmSource);
       } else {
-        log(`👤 /start from ${telegramId}`);
+        log(`👤 /start regular from ${telegramId}`, { param });
         await handleStart(chatId, telegramId, conversationId);
       }
     }
