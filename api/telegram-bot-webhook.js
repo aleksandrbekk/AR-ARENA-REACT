@@ -601,20 +601,33 @@ export default async function handler(req, res) {
       const args = text.split(' ').slice(1);
       const param = args[0] || '';
 
-      // Атомарная дедупликация: ключ = telegram_id + 10-секундное окно
-      const timeBucket = Math.floor(Date.now() / 10000);
-      const lockKey = `start_${telegramId}_${timeBucket}`;
+      // Надёжная дедупликация: 30-секундные окна + проверка соседнего бакета
+      const timeBucket = Math.floor(Date.now() / 30000);
+      const currentKey = `start_${telegramId}_${timeBucket}`;
+      const prevKey = `start_${telegramId}_${timeBucket - 1}`;
 
-      const { error: lockError } = await supabase
+      // Проверяем оба бакета (текущий и предыдущий) для защиты от границ
+      const { data: existingLocks } = await supabase
         .from('command_locks')
-        .insert({ lock_key: lockKey });
+        .select('lock_key')
+        .in('lock_key', [currentKey, prevKey]);
 
-      if (lockError && lockError.code === '23505') {
-        log(`⏭️ Skipping duplicate /start from ${telegramId} (lock exists: ${lockKey})`);
+      if (existingLocks && existingLocks.length > 0) {
+        log(`⏭️ Skipping duplicate /start from ${telegramId} (existing lock found)`);
         return res.status(200).json({ ok: true, skipped: 'duplicate_start' });
       }
 
-      log(`🔍 /start command`, { param, lockKey });
+      // Атомарная вставка текущего ключа
+      const { error: lockError } = await supabase
+        .from('command_locks')
+        .insert({ lock_key: currentKey });
+
+      if (lockError && lockError.code === '23505') {
+        log(`⏭️ Skipping duplicate /start from ${telegramId} (lock exists: ${currentKey})`);
+        return res.status(200).json({ ok: true, skipped: 'duplicate_start' });
+      }
+
+      log(`🔍 /start command`, { param, currentKey });
 
       let source = 'direct';
       if (param.startsWith('premium')) {
