@@ -43,76 +43,38 @@ function log(message, data = null) {
 // INBOX FUNCTIONS - Сохранение сообщений
 // ============================================
 
-// Получить или создать conversation
+// Получить или создать conversation (оптимизированная версия)
 async function getOrCreateConversation(telegramId, username, firstName, lastName) {
   try {
-    // Проверяем premium статус
-    let isPremium = false;
-    let premiumPlan = null;
-
-    const { data: premiumData } = await supabase
-      .from('premium_clients')
-      .select('plan')
-      .eq('telegram_id', telegramId)
-      .gt('expires_at', new Date().toISOString())
-      .single();
-
-    if (premiumData) {
-      isPremium = true;
-      premiumPlan = premiumData.plan;
-    }
-
-    // Ищем существующий диалог
-    const { data: existing } = await supabase
+    // Используем upsert для атомарной операции
+    const { data, error } = await supabase
       .from('chat_conversations')
-      .select('id')
-      .eq('telegram_id', telegramId)
-      .single();
-
-    if (existing) {
-      // Обновляем данные
-      await supabase
-        .from('chat_conversations')
-        .update({
-          username: username || undefined,
-          first_name: firstName || undefined,
-          last_name: lastName || undefined,
-          is_premium: isPremium,
-          premium_plan: premiumPlan,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existing.id);
-
-      return existing.id;
-    }
-
-    // Создаём новый
-    const { data: newConv, error } = await supabase
-      .from('chat_conversations')
-      .insert({
+      .upsert({
         telegram_id: telegramId,
-        username,
-        first_name: firstName,
-        last_name: lastName,
-        is_premium: isPremium,
-        premium_plan: premiumPlan
+        username: username || null,
+        first_name: firstName || null,
+        last_name: lastName || null,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'telegram_id',
+        ignoreDuplicates: false
       })
       .select('id')
       .single();
 
     if (error) {
-      log('❌ Create conversation error', error);
+      log('❌ getOrCreateConversation error', error);
       return null;
     }
 
-    return newConv.id;
+    return data?.id || null;
   } catch (err) {
     log('❌ getOrCreateConversation error', { error: err.message });
     return null;
   }
 }
 
-// Сохранить входящее сообщение
+// Сохранить входящее сообщение (оптимизированная версия)
 async function saveIncomingMessage(conversationId, telegramId, message) {
   try {
     const text = message.text || message.caption || '';
@@ -146,9 +108,9 @@ async function saveIncomingMessage(conversationId, telegramId, message) {
       messageType = 'command';
     }
 
-    const { error } = await supabase
-      .from('chat_messages')
-      .insert({
+    // Параллельно: сохраняем сообщение + обновляем conversation
+    await Promise.all([
+      supabase.from('chat_messages').insert({
         conversation_id: conversationId,
         telegram_id: telegramId,
         message_id: message.message_id,
@@ -159,58 +121,41 @@ async function saveIncomingMessage(conversationId, telegramId, message) {
         caption: message.caption || null,
         is_command: isCommand,
         command_name: commandName
-      });
-
-    if (error) {
-      log('❌ Save message error', error);
-    }
-
-    // Обновляем conversation
-    await supabase
-      .from('chat_conversations')
-      .update({
+      }),
+      supabase.from('chat_conversations').update({
         last_message_at: new Date().toISOString(),
         last_message_text: text || '[media]',
         last_message_from: 'user',
         unread_count: supabase.sql`unread_count + 1`,
         is_read: false,
         updated_at: new Date().toISOString()
-      })
-      .eq('id', conversationId);
+      }).eq('id', conversationId)
+    ]);
 
   } catch (err) {
     log('❌ saveIncomingMessage error', { error: err.message });
   }
 }
 
-// Сохранить исходящее сообщение (ответ бота)
-async function saveOutgoingMessage(conversationId, telegramId, text, sentBy = 'bot') {
-  try {
-    await supabase
-      .from('chat_messages')
-      .insert({
-        conversation_id: conversationId,
-        telegram_id: telegramId,
-        text,
-        direction: 'outgoing',
-        message_type: 'text',
-        sent_by: sentBy
-      });
-
-    // Обновляем conversation
-    await supabase
-      .from('chat_conversations')
-      .update({
-        last_message_at: new Date().toISOString(),
-        last_message_text: text.substring(0, 100),
-        last_message_from: 'bot',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', conversationId);
-
-  } catch (err) {
-    log('❌ saveOutgoingMessage error', { error: err.message });
-  }
+// Сохранить исходящее сообщение (оптимизированная версия, fire-and-forget)
+function saveOutgoingMessage(conversationId, telegramId, text, sentBy = 'bot') {
+  // Не используем await - fire and forget
+  Promise.all([
+    supabase.from('chat_messages').insert({
+      conversation_id: conversationId,
+      telegram_id: telegramId,
+      text,
+      direction: 'outgoing',
+      message_type: 'text',
+      sent_by: sentBy
+    }),
+    supabase.from('chat_conversations').update({
+      last_message_at: new Date().toISOString(),
+      last_message_text: text.substring(0, 100),
+      last_message_from: 'bot',
+      updated_at: new Date().toISOString()
+    }).eq('id', conversationId)
+  ]).catch(err => log('❌ saveOutgoingMessage error', { error: err.message }));
 }
 
 // ============================================
@@ -377,13 +322,12 @@ async function saveUserSource(telegramId, source) {
 // ОБРАБОТЧИКИ КОМАНД
 // ============================================
 
-async function handleStartPremium(chatId, telegramId, conversationId, utmSource = null) {
+async function handleStartPremium(chatId, telegramId, conversationId, utmSource = null, subscription = null) {
+  // UTM-трекинг в фоне (не ждём)
   if (utmSource) {
-    await trackUtmClick(utmSource);
-    await saveUserSource(telegramId, utmSource);
+    trackUtmClick(utmSource);
+    saveUserSource(telegramId, utmSource);
   }
-
-  const subscription = await checkSubscription(telegramId);
 
   if (subscription) {
     const tariffName = getTariffName(subscription.plan);
@@ -402,7 +346,7 @@ async function handleStartPremium(chatId, telegramId, conversationId, utmSource 
     };
 
     await sendMessage(chatId, text, keyboard);
-    await saveOutgoingMessage(conversationId, telegramId, text);
+    saveOutgoingMessage(conversationId, telegramId, text); // fire-and-forget
   } else {
     const caption = `🔐 <b>Добро пожаловать в Premium AR Club</b>
 
@@ -425,7 +369,7 @@ async function handleStartPremium(chatId, telegramId, conversationId, utmSource 
     };
 
     await sendPhoto(chatId, WELCOME_IMAGE_FILE_ID, caption, keyboard);
-    await saveOutgoingMessage(conversationId, telegramId, caption);
+    saveOutgoingMessage(conversationId, telegramId, caption); // fire-and-forget
   }
 }
 
@@ -443,7 +387,7 @@ async function handleStart(chatId, telegramId, conversationId) {
   };
 
   await sendMessage(chatId, text, keyboard);
-  await saveOutgoingMessage(conversationId, telegramId, text);
+  saveOutgoingMessage(conversationId, telegramId, text); // fire-and-forget
 }
 
 async function handleStatus(chatId, telegramId, conversationId) {
@@ -485,7 +429,7 @@ ${tariffEmoji[subscription.plan] || '💳'} Тариф: <b>${tariffName}</b>
     };
 
     await sendMessage(chatId, text, keyboard);
-    await saveOutgoingMessage(conversationId, telegramId, text);
+    saveOutgoingMessage(conversationId, telegramId, text); // fire-and-forget
   } else {
     const text = `❌ <b>У тебя нет активной подписки</b>
 
@@ -502,7 +446,7 @@ ${tariffEmoji[subscription.plan] || '💳'} Тариф: <b>${tariffName}</b>
     };
 
     await sendMessage(chatId, text, keyboard);
-    await saveOutgoingMessage(conversationId, telegramId, text);
+    saveOutgoingMessage(conversationId, telegramId, text); // fire-and-forget
   }
 }
 
@@ -600,19 +544,22 @@ export default async function handler(req, res) {
     if (text.startsWith('/start')) {
       const args = text.split(' ').slice(1);
       const param = args[0] || '';
+      const isPremiumStart = param.startsWith('premium');
+      const utmSource = isPremiumStart && param.includes('_') ? param.split('_').slice(1).join('_') : null;
 
       // Надёжная дедупликация: 30-секундные окна + проверка соседнего бакета
       const timeBucket = Math.floor(Date.now() / 30000);
       const currentKey = `start_${telegramId}_${timeBucket}`;
       const prevKey = `start_${telegramId}_${timeBucket - 1}`;
 
-      // Проверяем оба бакета (текущий и предыдущий) для защиты от границ
-      const { data: existingLocks } = await supabase
-        .from('command_locks')
-        .select('lock_key')
-        .in('lock_key', [currentKey, prevKey]);
+      // ПАРАЛЛЕЛЬНО: проверка дубликата + проверка подписки (если premium)
+      const [locksResult, subscriptionResult] = await Promise.all([
+        supabase.from('command_locks').select('lock_key').in('lock_key', [currentKey, prevKey]),
+        isPremiumStart ? checkSubscription(telegramId) : Promise.resolve(null)
+      ]);
 
-      if (existingLocks && existingLocks.length > 0) {
+      // Проверяем дубликат
+      if (locksResult.data && locksResult.data.length > 0) {
         log(`⏭️ Skipping duplicate /start from ${telegramId} (existing lock found)`);
         return res.status(200).json({ ok: true, skipped: 'duplicate_start' });
       }
@@ -629,19 +576,18 @@ export default async function handler(req, res) {
 
       log(`🔍 /start command`, { param, currentKey });
 
+      // Трекинг юзера в фоне (не ждём)
       let source = 'direct';
-      if (param.startsWith('premium')) {
-        source = param.includes('_') ? param.split('_').slice(1).join('_') : 'premium';
+      if (isPremiumStart) {
+        source = utmSource || 'premium';
       } else if (param) {
         source = param;
       }
+      trackBotUser(telegramId, username, firstName, source);
 
-      await trackBotUser(telegramId, username, firstName, source);
-
-      if (param.startsWith('premium')) {
-        const utmSource = param.includes('_') ? param.split('_').slice(1).join('_') : null;
+      if (isPremiumStart) {
         log(`👤 /start premium from ${telegramId}`, { utmSource, param });
-        await handleStartPremium(chatId, telegramId, conversationId, utmSource);
+        await handleStartPremium(chatId, telegramId, conversationId, utmSource, subscriptionResult);
       } else {
         log(`👤 /start regular from ${telegramId}`, { param });
         await handleStart(chatId, telegramId, conversationId);
