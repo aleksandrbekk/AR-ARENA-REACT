@@ -551,7 +551,28 @@ export default async function handler(req, res) {
 
   try {
     const update = req.body;
-    log('📨 Received update', update);
+    const updateId = update.update_id;
+
+    log('📨 Received update', { update_id: updateId, message_id: update.message?.message_id });
+
+    // Защита от дублей - проверяем update_id в БД
+    if (updateId) {
+      const { data: existing } = await supabase
+        .from('processed_updates')
+        .select('id')
+        .eq('update_id', updateId)
+        .single();
+
+      if (existing) {
+        log('⚠️ Duplicate update_id, skipping', { update_id: updateId });
+        return res.status(200).json({ ok: true, duplicate: true });
+      }
+
+      // Сохраняем update_id (ignore errors if duplicate)
+      await supabase
+        .from('processed_updates')
+        .insert({ update_id: updateId });
+    }
 
     // Обрабатываем только сообщения
     if (!update.message) {
