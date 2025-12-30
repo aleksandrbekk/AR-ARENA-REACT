@@ -170,10 +170,10 @@ export function AdminPage() {
   if (activeSection === 'dashboard') {
     return (
       <Layout hideNavbar>
-        <div className="min-h-screen bg-[#0a0a0a] text-white pt-[60px] pb-8 px-4">
+        <div className="min-h-screen bg-[#0a0a0a] text-white pt-[80px] pb-8 px-4">
           <div className="max-w-2xl mx-auto">
             {/* Заголовок */}
-            <h1 className="text-3xl font-bold text-center mb-8 text-[#FFD700]">Admin Panel</h1>
+            <h1 className="text-2xl font-bold text-center mb-6 text-[#FFD700]">Admin Panel</h1>
 
             {/* Сетка карточек */}
             <div className="grid grid-cols-2 gap-4">
@@ -225,31 +225,7 @@ export function AdminPage() {
                 </div>
               </button>
 
-              {/* 4. EVENT 22.12 */}
-              <button
-                onClick={() => navigate('/event-admin')}
-                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
-              >
-                <svg
-                  className="w-8 h-8 text-[#FFD700]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
-                  />
-                </svg>
-                <div className="text-center">
-                  <div className="text-white font-medium">Событие 22.12</div>
-                  <div className="text-white/60 text-sm">Крипто-итоги 2025</div>
-                </div>
-              </button>
-
-              {/* 5. FINANCE */}
+              {/* 4. FINANCE */}
               <button
                 onClick={() => setActiveSection('transactions')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
@@ -310,9 +286,9 @@ export function AdminPage() {
   // КОНТЕНТ РАЗДЕЛОВ
   return (
     <Layout hideNavbar>
-      <div className="flex flex-col min-h-screen bg-[#0a0a0a]">
+      <div className="flex flex-col min-h-screen bg-[#0a0a0a] pt-[60px]">
         {/* HEADER */}
-        <div className="sticky top-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/5">
+        <div className="sticky top-[60px] z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/5">
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button

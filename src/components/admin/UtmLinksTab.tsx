@@ -40,6 +40,8 @@ export function UtmLinksTab() {
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const [showFolderModal, setShowFolderModal] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+  const [editingFolder, setEditingFolder] = useState<string | null>(null)
+  const [editFolderName, setEditFolderName] = useState('')
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -227,6 +229,37 @@ export function UtmLinksTab() {
     }
   }
 
+  const handleRenameFolder = async () => {
+    if (!editingFolder || !editFolderName.trim()) return
+    if (editFolderName.trim() === editingFolder) {
+      setEditingFolder(null)
+      setEditFolderName('')
+      return
+    }
+
+    try {
+      // Обновляем имя папки у всех ссылок
+      const { error } = await supabase
+        .from('utm_links')
+        .update({ folder: editFolderName.trim() })
+        .eq('folder', editingFolder)
+
+      if (error) throw error
+
+      // Обновляем activeFolder если редактируем текущую
+      if (activeFolder === editingFolder) {
+        setActiveFolder(editFolderName.trim())
+      }
+
+      setEditingFolder(null)
+      setEditFolderName('')
+      fetchLinks()
+    } catch (err: any) {
+      console.error('Error renaming folder:', err)
+      alert(`Ошибка: ${err.message}`)
+    }
+  }
+
   const copyToClipboard = async (url: string, id: string) => {
     try {
       await navigator.clipboard.writeText(url)
@@ -348,12 +381,27 @@ export function UtmLinksTab() {
                   </svg>
                   <span className="text-sm">Назад</span>
                 </button>
-                <button
-                  onClick={() => handleDeleteFolder(activeFolder)}
-                  className="text-red-400/60 hover:text-red-400 text-xs transition-colors"
-                >
-                  Удалить папку
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setEditingFolder(activeFolder)
+                      setEditFolderName(activeFolder)
+                    }}
+                    className="text-white/40 hover:text-white text-xs transition-colors flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteFolder(activeFolder)}
+                    className="text-red-400/40 hover:text-red-400 text-xs transition-colors flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Название папки и статистика */}
@@ -671,35 +719,35 @@ export function UtmLinksTab() {
 
       {/* Модалка создания ссылки */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-20 pb-8 overflow-y-auto">
+          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-sm border border-white/10 my-auto">
             <h3 className="text-white text-lg font-bold mb-4">
               {activeTab === 'payment' ? 'Новая UTM-ссылка' : 'Ссылка на инструмент'}
             </h3>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="text-white/60 text-sm mb-2 block">Название</label>
+                <label className="text-white/60 text-xs mb-1.5 block">Название</label>
                 <input
                   type="text"
                   placeholder="Instagram Reels"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-yellow-500/30"
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-white/10 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:border-yellow-500/30"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="text-white/60 text-sm mb-2 block">Slug</label>
+                <label className="text-white/60 text-xs mb-1.5 block">Slug</label>
                 <input
                   type="text"
                   placeholder="instagram_reels"
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value.replace(/\s/g, '_').toLowerCase() })}
-                  className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-yellow-500/30 font-mono"
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-white/10 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:border-yellow-500/30 font-mono"
                 />
-                <div className="text-white/30 text-xs mt-2 font-mono">
+                <div className="text-white/30 text-[10px] mt-1.5 font-mono break-all">
                   {activeTab === 'payment'
                     ? `t.me/ARARENA_BOT?start=premium_${formData.slug || 'slug'}`
                     : `ararena.pro/stream?utm_source=${formData.slug || 'slug'}`
@@ -709,11 +757,11 @@ export function UtmLinksTab() {
 
               {activeTab === 'payment' && !activeFolder && folders.length > 0 && (
                 <div>
-                  <label className="text-white/60 text-sm mb-2 block">Папка</label>
+                  <label className="text-white/60 text-xs mb-1.5 block">Папка</label>
                   <select
                     value={formData.folder}
                     onChange={(e) => setFormData({ ...formData, folder: e.target.value })}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-yellow-500/30"
+                    className="w-full px-3 py-2.5 bg-zinc-800 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-yellow-500/30"
                   >
                     <option value="">Без папки</option>
                     {folders.map(f => (
@@ -724,20 +772,20 @@ export function UtmLinksTab() {
               )}
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-5">
               <button
                 onClick={() => {
                   setShowCreateModal(false)
                   setFormData({ name: '', slug: '', folder: '', tool_type: 'stream' })
                 }}
-                className="flex-1 px-4 py-3 bg-zinc-800 text-white rounded-xl"
+                className="flex-1 px-4 py-2.5 bg-zinc-800 text-white rounded-xl text-sm"
               >
                 Отмена
               </button>
               <button
                 onClick={handleCreateLink}
                 disabled={creating || !formData.name || !formData.slug}
-                className="flex-1 px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl text-sm disabled:opacity-50"
               >
                 {creating ? '...' : 'Создать'}
               </button>
@@ -748,8 +796,8 @@ export function UtmLinksTab() {
 
       {/* Модалка создания папки */}
       {showFolderModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-sm border border-white/10">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-20 pb-8 overflow-y-auto">
+          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-sm border border-white/10 my-auto">
             <h3 className="text-white text-lg font-bold mb-4">Новая папка</h3>
 
             <input
@@ -758,26 +806,64 @@ export function UtmLinksTab() {
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-              className="w-full px-4 py-3 bg-zinc-800 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-yellow-500/30"
+              className="w-full px-3 py-2.5 bg-zinc-800 border border-white/10 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:border-yellow-500/30"
               autoFocus
             />
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-5">
               <button
                 onClick={() => {
                   setShowFolderModal(false)
                   setNewFolderName('')
                 }}
-                className="flex-1 px-4 py-3 bg-zinc-800 text-white rounded-xl"
+                className="flex-1 px-4 py-2.5 bg-zinc-800 text-white rounded-xl text-sm"
               >
                 Отмена
               </button>
               <button
                 onClick={handleCreateFolder}
                 disabled={!newFolderName.trim()}
-                className="flex-1 px-4 py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl text-sm disabled:opacity-50"
               >
                 Создать
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модалка редактирования папки */}
+      {editingFolder && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-20 pb-8 overflow-y-auto">
+          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-sm border border-white/10 my-auto">
+            <h3 className="text-white text-lg font-bold mb-4">Переименовать папку</h3>
+
+            <input
+              type="text"
+              placeholder="Название папки"
+              value={editFolderName}
+              onChange={(e) => setEditFolderName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleRenameFolder()}
+              className="w-full px-3 py-2.5 bg-zinc-800 border border-white/10 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:border-yellow-500/30"
+              autoFocus
+            />
+
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => {
+                  setEditingFolder(null)
+                  setEditFolderName('')
+                }}
+                className="flex-1 px-4 py-2.5 bg-zinc-800 text-white rounded-xl text-sm"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleRenameFolder}
+                disabled={!editFolderName.trim()}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-semibold rounded-xl text-sm disabled:opacity-50"
+              >
+                Сохранить
               </button>
             </div>
           </div>

@@ -630,7 +630,7 @@ export function FullCrmPage() {
 
     return (
       <Layout hideNavbar>
-        <div className="min-h-screen bg-[#000] text-white pt-[60px] pb-8">
+        <div className="min-h-screen bg-[#000] text-white pt-[80px] pb-8">
           <div className="max-w-lg mx-auto px-4">
             {/* Кнопка назад */}
             <button
@@ -829,7 +829,7 @@ export function FullCrmPage() {
   if (selectedUser) {
     return (
       <Layout hideNavbar>
-        <div className="min-h-screen bg-[#000] text-white pt-[60px]">
+        <div className="min-h-screen bg-[#000] text-white pt-[80px]">
           <div className="max-w-lg mx-auto px-4 py-6">
             {/* Аватар и имя */}
             <div className="flex flex-col items-center mb-8">
@@ -926,7 +926,7 @@ export function FullCrmPage() {
   // ============ ГЛАВНЫЙ ЭКРАН ============
   return (
     <Layout hideNavbar>
-      <div className="min-h-screen bg-[#000] text-white pt-[60px] pb-24">
+      <div className="min-h-screen bg-[#000] text-white pt-[80px] pb-24">
         <div className="max-w-3xl mx-auto px-4">
 
           {/* Заголовок */}
