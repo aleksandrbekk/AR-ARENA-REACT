@@ -601,7 +601,23 @@ export default async function handler(req, res) {
       const args = text.split(' ').slice(1);
       const param = args[0] || '';
 
-      // Логируем для отладки (только в Vercel logs)
+      // Дедупликация: проверяем был ли /start от этого юзера за последние 10 сек
+      const tenSecondsAgo = new Date(Date.now() - 10000).toISOString();
+      const { data: recentStart } = await supabase
+        .from('chat_messages')
+        .select('id')
+        .eq('telegram_id', telegramId)
+        .eq('command_name', '/start')
+        .gt('created_at', tenSecondsAgo)
+        .neq('message_id', message.message_id)
+        .limit(1)
+        .single();
+
+      if (recentStart) {
+        log(`⏭️ Skipping duplicate /start from ${telegramId} (recent command exists)`);
+        return res.status(200).json({ ok: true, skipped: 'duplicate_start' });
+      }
+
       log(`🔍 /start command`, { param });
 
       let source = 'direct';
