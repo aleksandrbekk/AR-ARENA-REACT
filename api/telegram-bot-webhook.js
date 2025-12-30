@@ -585,16 +585,8 @@ export default async function handler(req, res) {
       const args = text.split(' ').slice(1);
       const param = args[0] || '';
 
-      // DEBUG: логируем всё что получили
-      log(`🔍 DEBUG /start`, {
-        fullText: text,
-        args: args,
-        param: param,
-        isPremium: param.startsWith('premium')
-      });
-
-      // TEMP DEBUG: отправляем debug в чат (удалить после отладки!)
-      await sendMessage(chatId, `🔍 DEBUG:\ntext: "${text}"\nparam: "${param}"\nisPremium: ${param.startsWith('premium')}`);
+      // Логируем для отладки (только в Vercel logs)
+      log(`🔍 /start command`, { param });
 
       let source = 'direct';
       if (param.startsWith('premium')) {

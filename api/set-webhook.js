@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not set' });
   }
 
-  const WEBHOOK_URL = 'https://ararena.pro/api/telegram-bot-webhook';
+  const WEBHOOK_URL = 'https://www.ararena.pro/api/telegram-bot-webhook';
 
   try {
     // Удаляем старый webhook
