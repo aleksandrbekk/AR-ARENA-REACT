@@ -339,7 +339,7 @@ export function UtmLinksTab() {
   }
 
   return (
-    <div className="space-y-4 pt-2">
+    <div className="space-y-4 pt-2 overflow-x-hidden">
       {/* Переключатель табов */}
       <div className="flex gap-2 p-1 bg-zinc-900/50 rounded-xl border border-white/10">
         <button

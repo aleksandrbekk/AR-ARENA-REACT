@@ -286,7 +286,7 @@ export function AdminPage() {
   // КОНТЕНТ РАЗДЕЛОВ
   return (
     <Layout hideNavbar>
-      <div className="flex flex-col min-h-screen bg-[#0a0a0a] pt-[60px]">
+      <div className="flex flex-col min-h-screen bg-[#0a0a0a] pt-[60px] overflow-x-hidden">
         {/* HEADER */}
         <div className="sticky top-[60px] z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/5">
           <div className="px-4 py-3 flex items-center justify-between">
@@ -313,13 +313,13 @@ export function AdminPage() {
         </div>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 px-4 py-4">
+        <div className="flex-1 px-4 py-4 overflow-x-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center h-40">
               <div className="text-[#FFD700] text-sm font-mono animate-pulse">LOADING SYSTEM...</div>
             </div>
           ) : (
-            <div>
+            <div className="overflow-x-hidden">
               {activeSection === 'users' && <UsersTab />}
               {activeSection === 'giveaways' && <GiveawaysTab />}
               {activeSection === 'transactions' && <TransactionsTab />}
