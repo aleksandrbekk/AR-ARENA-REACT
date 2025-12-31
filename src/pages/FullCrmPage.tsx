@@ -1337,7 +1337,6 @@ export function FullCrmPage() {
 
                 const totalSubscribers = premiumClients.length
                 const paidCount = paidClients.length
-                const migratedCount = premiumClients.filter(c => c.source === 'migration').length
 
                 // Средний чек (только по оплатившим)
                 const USD_TO_RUB = 100
@@ -1374,16 +1373,8 @@ export function FullCrmPage() {
                         <div className="text-lg font-bold text-emerald-400">{paidCount}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">Перенесены</div>
-                        <div className="text-lg font-bold text-white/50">{migratedCount}</div>
-                      </div>
-                    </div>
-
-                    {/* Средний чек */}
-                    <div className="bg-zinc-900 rounded-xl p-3">
-                      <div className="flex justify-between items-center">
-                        <div className="text-white/40 text-sm">Средний чек</div>
-                        <div className="text-xl font-bold text-[#FFD700]">{avgCheck.toLocaleString('ru-RU')} ₽</div>
+                        <div className="text-white/40 text-[10px] mb-1">Средний чек</div>
+                        <div className="text-lg font-bold text-[#FFD700]">{avgCheck.toLocaleString('ru-RU')} ₽</div>
                       </div>
                     </div>
                   </div>
