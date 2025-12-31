@@ -163,10 +163,12 @@ export function FullCrmPage() {
         .from('users')
         .select('id, telegram_id, username, first_name, last_name, avatar_url, created_at')
         .order('created_at', { ascending: false })
+        .limit(50000)
 
       const { data: premiumData } = await supabase
         .from('premium_clients')
         .select('telegram_id, expires_at')
+        .limit(50000)
 
       const premiumMap = new Map()
       premiumData?.forEach(p => premiumMap.set(p.telegram_id, p.expires_at))
@@ -198,6 +200,7 @@ export function FullCrmPage() {
         .select('*')
         .order('last_payment_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
+        .limit(50000)
 
       // Подтягиваем аватарки из уже загруженных users (без доп. запросов)
       const avatarMap = new Map<number, string | null>()
@@ -210,11 +213,12 @@ export function FullCrmPage() {
 
       setPremiumClients(premiumWithAvatars as PremiumClient[])
 
-      // Загружаем пользователей бота
+      // Загружаем пользователей бота (без лимита 1000)
       const { data: botUsersData } = await supabase
         .from('bot_users')
         .select('*')
         .order('created_at', { ascending: false })
+        .limit(50000)
 
       setBotUsers(botUsersData as BotUser[] || [])
 
