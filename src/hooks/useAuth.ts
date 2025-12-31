@@ -150,6 +150,27 @@ export function useAuth(): UseAuthReturn {
         setTelegramUser(telegramUserData)
         console.log('Telegram user:', telegramUserData)
 
+        // Записываем/обновляем пользователя в таблицу users (для статистики "Открыли App")
+        try {
+          await supabase
+            .from('users')
+            .upsert({
+              telegram_id: user.id,
+              username: user.username || null,
+              first_name: user.first_name || null,
+              last_name: user.last_name || null,
+              photo_url: user.photo_url || null,
+              language_code: user.language_code || null,
+              last_seen_at: new Date().toISOString()
+            }, {
+              onConflict: 'telegram_id',
+              ignoreDuplicates: false
+            })
+          console.log('User tracked in users table')
+        } catch (upsertErr) {
+          console.warn('Failed to track user (non-critical):', upsertErr)
+        }
+
         // Загружаем состояние игры
         await loadGameState(user.id)
       } catch (err) {
