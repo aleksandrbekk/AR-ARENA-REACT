@@ -3,6 +3,7 @@
 // 2025-12-27
 
 import { createClient } from '@supabase/supabase-js';
+import { sanitizeString } from './utils/sanitize.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -47,13 +48,14 @@ function log(message, data = null) {
 async function getOrCreateConversation(telegramId, username, firstName, lastName) {
   try {
     // Используем upsert для атомарной операции
+    // Санитизируем имена от битых emoji
     const { data, error } = await supabase
       .from('chat_conversations')
       .upsert({
         telegram_id: telegramId,
-        username: username || null,
-        first_name: firstName || null,
-        last_name: lastName || null,
+        username: sanitizeString(username) || null,
+        first_name: sanitizeString(firstName) || null,
+        last_name: sanitizeString(lastName) || null,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'telegram_id',
@@ -77,7 +79,8 @@ async function getOrCreateConversation(telegramId, username, firstName, lastName
 // Сохранить входящее сообщение (оптимизированная версия)
 async function saveIncomingMessage(conversationId, telegramId, message) {
   try {
-    const text = message.text || message.caption || '';
+    // Санитизируем текст от битых emoji и Unicode
+    const text = sanitizeString(message.text || message.caption || '');
     const isCommand = text.startsWith('/');
     const commandName = isCommand ? text.split(' ')[0] : null;
 
@@ -118,7 +121,7 @@ async function saveIncomingMessage(conversationId, telegramId, message) {
         direction: 'incoming',
         message_type: messageType,
         media_file_id: mediaFileId,
-        caption: message.caption || null,
+        caption: sanitizeString(message.caption || null),
         is_command: isCommand,
         command_name: commandName
       }),
@@ -139,19 +142,21 @@ async function saveIncomingMessage(conversationId, telegramId, message) {
 
 // Сохранить исходящее сообщение (оптимизированная версия, fire-and-forget)
 function saveOutgoingMessage(conversationId, telegramId, text, sentBy = 'bot') {
+  // Санитизируем текст
+  const sanitizedText = sanitizeString(text);
   // Не используем await - fire and forget
   Promise.all([
     supabase.from('chat_messages').insert({
       conversation_id: conversationId,
       telegram_id: telegramId,
-      text,
+      text: sanitizedText,
       direction: 'outgoing',
       message_type: 'text',
       sent_by: sentBy
     }),
     supabase.from('chat_conversations').update({
       last_message_at: new Date().toISOString(),
-      last_message_text: text.substring(0, 100),
+      last_message_text: sanitizedText.substring(0, 100),
       last_message_from: 'bot',
       updated_at: new Date().toISOString()
     }).eq('id', conversationId)

@@ -2,6 +2,7 @@
 // 2025-12-27
 
 import { createClient } from '@supabase/supabase-js';
+import { sanitizeString } from './utils/sanitize.js';
 
 // SECURITY: All secrets from environment variables (set in Vercel)
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -98,8 +99,11 @@ export default async function handler(req, res) {
   try {
     const { conversationId, telegramId, text, sentBy } = req.body;
 
+    // Санитизируем текст от битых Unicode
+    const sanitizedText = sanitizeString(text);
+
     // Валидация
-    if (!conversationId || !telegramId || !text) {
+    if (!conversationId || !telegramId || !sanitizedText) {
       return res.status(400).json({
         error: 'Missing required fields',
         required: ['conversationId', 'telegramId', 'text']
@@ -112,7 +116,7 @@ export default async function handler(req, res) {
     // }
 
     // Отправляем в Telegram
-    const result = await sendTelegramMessage(telegramId, text);
+    const result = await sendTelegramMessage(telegramId, sanitizedText);
 
     if (!result.ok) {
       return res.status(500).json({
@@ -122,7 +126,7 @@ export default async function handler(req, res) {
     }
 
     // Сохраняем в БД
-    const saved = await saveOutgoingMessage(conversationId, telegramId, text, sentBy || 'admin');
+    const saved = await saveOutgoingMessage(conversationId, telegramId, sanitizedText, sentBy || 'admin');
 
     return res.status(200).json({
       success: true,
