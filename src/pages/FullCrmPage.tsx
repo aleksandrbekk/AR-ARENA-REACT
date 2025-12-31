@@ -1883,6 +1883,11 @@ export function FullCrmPage() {
                 <div className="relative">
                   <input
                     type="text"
+                    inputMode="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     placeholder="Поиск по ID, @username или имени..."
                     value={broadcastSearch}
                     onChange={e => setBroadcastSearch(e.target.value)}
@@ -2058,6 +2063,10 @@ export function FullCrmPage() {
                 <textarea
                   value={broadcastMessage}
                   onChange={e => setBroadcastMessage(e.target.value)}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   placeholder={broadcastImage ? "Подпись к картинке..." : "Текст сообщения..."}
                   className="w-full h-28 bg-zinc-800 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20 resize-none"
                 />
