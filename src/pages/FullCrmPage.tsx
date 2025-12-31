@@ -1469,9 +1469,9 @@ export function FullCrmPage() {
                     className="w-full px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '28px' }}
                   >
-                    <option value="all">📊 Все активные</option>
-                    <option value="active">✅ Стабильные (8+ дн)</option>
-                    <option value="expiring">⚠️ Истекают (≤7 дн)</option>
+                    <option value="all">Все активные</option>
+                    <option value="active">Стабильные (8+ дн)</option>
+                    <option value="expiring">Истекают (≤7 дн)</option>
                   </select>
 
                   <select
@@ -1480,12 +1480,12 @@ export function FullCrmPage() {
                     className="w-full px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '28px' }}
                   >
-                    <option value="all">💎 Все планы</option>
-                    <option value="private">🟣 Private</option>
-                    <option value="platinum">🔵 Platinum</option>
-                    <option value="gold">🟡 Gold</option>
-                    <option value="classic">⚪ Classic</option>
-                    <option value="trader">🟢 Trader</option>
+                    <option value="all">Все планы</option>
+                    <option value="private">Private</option>
+                    <option value="platinum">Platinum</option>
+                    <option value="gold">Gold</option>
+                    <option value="classic">Classic</option>
+                    <option value="trader">Trader</option>
                   </select>
                 </div>
 
@@ -1497,7 +1497,7 @@ export function FullCrmPage() {
                     className="w-full px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '28px' }}
                   >
-                    <option value="all">📅 Все месяцы</option>
+                    <option value="all">Все месяцы</option>
                     {availableMonths.map(m => (
                       <option key={m} value={m}>{formatMonthLabel(m)}</option>
                     ))}
@@ -1673,7 +1673,7 @@ export function FullCrmPage() {
                             { value: '90', label: '3 мес', plan: 'Gold' },
                             { value: '180', label: '6 мес', plan: 'Platinum' },
                             { value: '365', label: '12 мес', plan: 'Private' },
-                            { value: 'custom', label: '📅', plan: 'Дата' }
+                            { value: 'custom', label: '...', plan: 'Дата' }
                           ].map(p => (
                             <button
                               key={p.value}
@@ -2011,10 +2011,10 @@ export function FullCrmPage() {
                       className="bg-zinc-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none cursor-pointer"
                     >
                       <option value="">Аудитория</option>
-                      <option value="bot">📢 Все из бота ({botUsers.length})</option>
-                      <option value="premium-active">✅ Активные Premium ({premiumClients.filter(p => new Date(p.expires_at) > new Date()).length})</option>
-                      <option value="premium-expired">📦 Были в Premium ({premiumClients.filter(p => new Date(p.expires_at) <= new Date()).length})</option>
-                      <option value="no-premium">🆕 Без Premium ({botUsers.length - premiumClients.length})</option>
+                      <option value="bot">Все из бота ({botUsers.length})</option>
+                      <option value="premium-active">Активные Premium ({premiumClients.filter(p => new Date(p.expires_at) > new Date()).length})</option>
+                      <option value="premium-expired">Были в Premium ({premiumClients.filter(p => new Date(p.expires_at) <= new Date()).length})</option>
+                      <option value="no-premium">Без Premium ({botUsers.length - premiumClients.length})</option>
                     </select>
 
                     <select
@@ -2107,56 +2107,6 @@ export function FullCrmPage() {
               >
                 {sendingBroadcast ? 'Отправка...' : broadcastImage ? 'Отправить картинку' : 'Отправить'}
               </button>
-
-              {/* Секция "Были в Premium" */}
-              {(() => {
-                const expiredClients = premiumClients.filter(c => new Date(c.expires_at) <= new Date())
-                if (expiredClients.length === 0) return null
-
-                return (
-                  <div className="bg-zinc-900 rounded-2xl p-4 mt-4">
-                    <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                      📦 Были в Premium
-                      <span className="text-white/40 text-sm font-normal">({expiredClients.length})</span>
-                    </h3>
-                    <div className="space-y-2 max-h-80 overflow-y-auto">
-                      {expiredClients.map(client => {
-                        const daysAgo = Math.floor((Date.now() - new Date(client.expires_at).getTime()) / (1000 * 60 * 60 * 24))
-                        const ltv = client.total_paid_usd || 0
-
-                        return (
-                          <div
-                            key={client.id}
-                            className="bg-zinc-800 rounded-xl p-3 flex items-center gap-3"
-                          >
-                            <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white/60 text-sm font-medium flex-shrink-0">
-                              {(client.first_name || client.username || '?')[0]?.toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-white text-sm font-medium truncate">
-                                {client.first_name || client.username || 'Без имени'}
-                              </div>
-                              <div className="text-white/40 text-xs">
-                                {client.username ? `@${client.username}` : `ID: ${client.telegram_id}`}
-                              </div>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <div className="text-[#FFD700] text-sm font-bold">${ltv}</div>
-                              <div className="text-white/30 text-[10px]">
-                                {daysAgo === 0 ? 'сегодня' : daysAgo === 1 ? 'вчера' : `${daysAgo} дн. назад`}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-white/10 flex justify-between text-xs text-white/40">
-                      <span>Общий LTV: <span className="text-[#FFD700]">${expiredClients.reduce((sum, c) => sum + (c.total_paid_usd || 0), 0)}</span></span>
-                      <span>Ср. LTV: <span className="text-white">${Math.round(expiredClients.reduce((sum, c) => sum + (c.total_paid_usd || 0), 0) / expiredClients.length)}</span></span>
-                    </div>
-                  </div>
-                )
-              })()}
             </div>
           )}
 
