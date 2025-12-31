@@ -92,7 +92,7 @@ export function FullCrmPage() {
 
   // Premium фильтры и поиск
   const [premiumSearch, setPremiumSearch] = useState('')
-  const [premiumFilter, setPremiumFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
+  const [premiumFilter, setPremiumFilter] = useState<'all' | 'active' | 'expiring'>('all')
   const [planFilter, setPlanFilter] = useState<string>('all')
   const [monthFilter, setMonthFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'last_payment' | 'expires' | 'total_paid' | 'created'>('last_payment')
@@ -270,9 +270,16 @@ export function FullCrmPage() {
     return 'text-emerald-400'
   }
 
-  // Фильтрация Premium клиентов
+  // Количество активных подписчиков (для заголовка)
+  const activePremiumCount = premiumClients.filter(c => getDaysRemaining(c.expires_at) > 0).length
+
+  // Фильтрация Premium клиентов (только активные — expires > now)
   const filteredPremiumClients = premiumClients
     .filter(client => {
+      // Базовый фильтр: только активные подписки
+      const days = getDaysRemaining(client.expires_at)
+      if (days <= 0) return false // Истёкшие не показываем
+
       // Поиск
       if (premiumSearch) {
         const q = premiumSearch.toLowerCase()
@@ -293,11 +300,9 @@ export function FullCrmPage() {
         if (paymentMonth !== monthFilter) return false
       }
 
-      // Фильтр по статусу
-      const days = getDaysRemaining(client.expires_at)
+      // Фильтр по статусу (только среди активных)
       if (premiumFilter === 'active' && days <= 7) return false
-      if (premiumFilter === 'expiring' && (days <= 0 || days > 7)) return false
-      if (premiumFilter === 'expired' && days > 0) return false
+      if (premiumFilter === 'expiring' && days > 7) return false
 
       return true
     })
@@ -1021,7 +1026,7 @@ export function FullCrmPage() {
               <h1 className="text-3xl font-bold">CRM</h1>
               <p className="text-white/40 mt-1">
                 {activeTab === 'leads' && `${botUsers.length} в боте`}
-                {activeTab === 'premium' && `${premiumClients.length} подписчиков`}
+                {activeTab === 'premium' && `${activePremiumCount} активных`}
                 {activeTab === 'broadcast' && 'Рассылка сообщений'}
               </p>
             </div>
@@ -1346,7 +1351,9 @@ export function FullCrmPage() {
                   .filter(c => isEurCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || 0), 0)
 
-                const totalSubscribers = premiumClients.length
+                // Активные подписчики (expires > now)
+                const now = new Date()
+                const activeSubscribers = premiumClients.filter(c => new Date(c.expires_at) > now).length
                 const paidCountThisMonth = paidClientsThisMonth.length
 
                 // Средний чек (только за выбранный месяц)
@@ -1413,8 +1420,8 @@ export function FullCrmPage() {
                     {/* Статистика подписчиков */}
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">В клубе</div>
-                        <div className="text-lg font-bold text-white">{totalSubscribers}</div>
+                        <div className="text-white/40 text-[10px] mb-1">Активных</div>
+                        <div className="text-lg font-bold text-white">{activeSubscribers}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">Оплат</div>
@@ -1462,10 +1469,9 @@ export function FullCrmPage() {
                     className="w-full px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '28px' }}
                   >
-                    <option value="all">📊 Все статусы</option>
-                    <option value="active">✅ Активные</option>
-                    <option value="expiring">⚠️ Истекают</option>
-                    <option value="expired">❌ Истекли</option>
+                    <option value="all">📊 Все активные</option>
+                    <option value="active">✅ Стабильные (8+ дн)</option>
+                    <option value="expiring">⚠️ Истекают (≤7 дн)</option>
                   </select>
 
                   <select
@@ -1513,7 +1519,7 @@ export function FullCrmPage() {
 
               {/* Счётчик */}
               <div className="text-sm text-white/40">
-                Найдено: <span className="text-white">{filteredPremiumClients.length}</span> из {premiumClients.length}
+                Найдено: <span className="text-white">{filteredPremiumClients.length}</span> из {activePremiumCount}
               </div>
 
               {/* Список */}
@@ -1988,22 +1994,27 @@ export function FullCrmPage() {
                         const v = e.target.value
                         if (v === 'bot') setSelectedUsers(botUsers.map(u => u.telegram_id))
                         else if (v === 'app') setSelectedUsers(users.map(u => u.telegram_id))
-                        else if (v === 'premium') setSelectedUsers(premiumClients.map(p => p.telegram_id))
+                        else if (v === 'premium-active') {
+                          const activeIds = premiumClients.filter(p => new Date(p.expires_at) > new Date()).map(p => p.telegram_id)
+                          setSelectedUsers(activeIds)
+                        }
+                        else if (v === 'premium-expired') {
+                          const expiredIds = premiumClients.filter(p => new Date(p.expires_at) <= new Date()).map(p => p.telegram_id)
+                          setSelectedUsers(expiredIds)
+                        }
                         else if (v === 'no-premium') {
                           const premiumIds = new Set(premiumClients.map(p => p.telegram_id))
                           setSelectedUsers(botUsers.filter(u => !premiumIds.has(u.telegram_id)).map(u => u.telegram_id))
                         }
-                        else if (v === 'in-channel') setSelectedUsers(premiumClients.filter(p => p.in_channel).map(p => p.telegram_id))
                         else setSelectedUsers([])
                       }}
                       className="bg-zinc-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none cursor-pointer"
                     >
                       <option value="">Аудитория</option>
-                      <option value="bot">База бота ({botUsers.length})</option>
-                      <option value="app">Открыли App ({users.length})</option>
-                      <option value="premium">Все Premium ({premiumClients.length})</option>
-                      <option value="no-premium">Без Premium ({botUsers.length - premiumClients.length})</option>
-                      <option value="in-channel">В канале ({premiumClients.filter(p => p.in_channel).length})</option>
+                      <option value="bot">📢 Все из бота ({botUsers.length})</option>
+                      <option value="premium-active">✅ Активные Premium ({premiumClients.filter(p => new Date(p.expires_at) > new Date()).length})</option>
+                      <option value="premium-expired">📦 Были в Premium ({premiumClients.filter(p => new Date(p.expires_at) <= new Date()).length})</option>
+                      <option value="no-premium">🆕 Без Premium ({botUsers.length - premiumClients.length})</option>
                     </select>
 
                     <select
@@ -2096,6 +2107,56 @@ export function FullCrmPage() {
               >
                 {sendingBroadcast ? 'Отправка...' : broadcastImage ? 'Отправить картинку' : 'Отправить'}
               </button>
+
+              {/* Секция "Были в Premium" */}
+              {(() => {
+                const expiredClients = premiumClients.filter(c => new Date(c.expires_at) <= new Date())
+                if (expiredClients.length === 0) return null
+
+                return (
+                  <div className="bg-zinc-900 rounded-2xl p-4 mt-4">
+                    <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                      📦 Были в Premium
+                      <span className="text-white/40 text-sm font-normal">({expiredClients.length})</span>
+                    </h3>
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {expiredClients.map(client => {
+                        const daysAgo = Math.floor((Date.now() - new Date(client.expires_at).getTime()) / (1000 * 60 * 60 * 24))
+                        const ltv = client.total_paid_usd || 0
+
+                        return (
+                          <div
+                            key={client.id}
+                            className="bg-zinc-800 rounded-xl p-3 flex items-center gap-3"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white/60 text-sm font-medium flex-shrink-0">
+                              {(client.first_name || client.username || '?')[0]?.toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-white text-sm font-medium truncate">
+                                {client.first_name || client.username || 'Без имени'}
+                              </div>
+                              <div className="text-white/40 text-xs">
+                                {client.username ? `@${client.username}` : `ID: ${client.telegram_id}`}
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="text-[#FFD700] text-sm font-bold">${ltv}</div>
+                              <div className="text-white/30 text-[10px]">
+                                {daysAgo === 0 ? 'сегодня' : daysAgo === 1 ? 'вчера' : `${daysAgo} дн. назад`}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-white/10 flex justify-between text-xs text-white/40">
+                      <span>Общий LTV: <span className="text-[#FFD700]">${expiredClients.reduce((sum, c) => sum + (c.total_paid_usd || 0), 0)}</span></span>
+                      <span>Ср. LTV: <span className="text-white">${Math.round(expiredClients.reduce((sum, c) => sum + (c.total_paid_usd || 0), 0) / expiredClients.length)}</span></span>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )}
 
