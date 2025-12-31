@@ -19,7 +19,6 @@ import { FullCrmPage } from './pages/FullCrmPage'
 import { PremiumPromoPage } from './pages/PremiumPromoPage'
 import { TariffsPage } from './pages/TariffsPage'
 import { PricingPage } from './pages/PricingPage'
-import { PricingPage2 } from './pages/PricingPage2'
 import { PricingPageGate } from './pages/PricingPageGate'
 import { PricingPage3 } from './pages/PricingPage3'
 import { StreamPage } from './pages/StreamPage'
@@ -72,7 +71,6 @@ function App() {
             <Route path="/premium-promo" element={<PremiumPromoPage />} />
             <Route path="/tariffs" element={<TariffsPage />} />
             <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/pricing2" element={<PricingPage2 />} />
             <Route path="/pricing-gate" element={<PricingPageGate />} />
             <Route path="/pricing3" element={<PricingPage3 />} />
             <Route path="/stream" element={<StreamPage />} />
