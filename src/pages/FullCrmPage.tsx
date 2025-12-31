@@ -158,25 +158,58 @@ export function FullCrmPage() {
     try {
       setLoading(true)
 
-      // Загружаем пользователей приложения
-      const { data: usersData } = await supabase
-        .from('users')
-        .select('id, telegram_id, username, first_name, last_name, avatar_url, created_at')
-        .order('created_at', { ascending: false })
-        .limit(50000)
+      // Вспомогательная функция для загрузки всех данных чанками
+      const fetchAllRows = async (tableName: string, selectQuery: string, orderBy = 'created_at', ascending = false) => {
+        let allData: any[] = []
+        let page = 0
+        const pageSize = 1000
+        let hasMore = true
 
-      const { data: premiumData } = await supabase
-        .from('premium_clients')
-        .select('telegram_id, expires_at')
-        .limit(50000)
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from(tableName)
+            .select(selectQuery)
+            .order(orderBy, { ascending, nullsFirst: false })
+            .range(page * pageSize, (page + 1) * pageSize - 1)
 
+          if (error) throw error
+
+          if (data) {
+            allData = [...allData, ...data]
+            hasMore = data.length === pageSize
+            page++
+          } else {
+            hasMore = false
+          }
+        }
+        return allData
+      }
+
+      // Загружаем пользователей приложения (всех)
+      const usersData = await fetchAllRows(
+        'users',
+        'id, telegram_id, username, first_name, last_name, avatar_url, created_at'
+      )
+
+      // Загружаем Premium клиентов (всех)
+      // Сортируем локально позже, здесь важно просто получить всех
+      const premiumDataRaw = await fetchAllRows(
+        'premium_clients',
+        '*',
+        'last_payment_at', // Сортировка для чанков
+        false
+      )
+
+      const premiumClientsData = premiumDataRaw as PremiumClient[]
+
+      // Создаем мапу для быстрой проверки статуса
       const premiumMap = new Map()
-      premiumData?.forEach(p => premiumMap.set(p.telegram_id, p.expires_at))
+      premiumClientsData.forEach(p => premiumMap.set(p.telegram_id, p.expires_at))
 
       const now = new Date()
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-      const usersWithStatus: User[] = (usersData || []).map(user => {
+      const usersWithStatus: User[] = (usersData || []).map((user: any) => {
         const premiumExpires = premiumMap.get(user.telegram_id)
         let status: User['status'] = 'active'
 
@@ -192,33 +225,22 @@ export function FullCrmPage() {
 
       setUsers(usersWithStatus)
 
-      // Загружаем Premium клиентов
-      // Сортировка: сначала по дате последнего платежа (новые вверху),
-      // затем по дате создания (для тех у кого нет платежа)
-      const { data: premiumClientsData } = await supabase
-        .from('premium_clients')
-        .select('*')
-        .order('last_payment_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(50000)
-
-      // Подтягиваем аватарки из уже загруженных users (без доп. запросов)
+      // Подтягиваем аватарки из уже загруженных users
       const avatarMap = new Map<number, string | null>()
       usersWithStatus.forEach(u => avatarMap.set(u.telegram_id, u.avatar_url))
 
-      const premiumWithAvatars = (premiumClientsData || []).map(client => ({
+      const premiumWithAvatars = premiumClientsData.map(client => ({
         ...client,
         avatar_url: avatarMap.get(client.telegram_id) || null
       }))
 
-      setPremiumClients(premiumWithAvatars as PremiumClient[])
+      setPremiumClients(premiumWithAvatars)
 
-      // Загружаем пользователей бота (без лимита 1000)
-      const { data: botUsersData } = await supabase
-        .from('bot_users')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50000)
+      // Загружаем пользователей бота (всех)
+      const botUsersData = await fetchAllRows(
+        'bot_users',
+        '*'
+      )
 
       setBotUsers(botUsersData as BotUser[] || [])
 
@@ -231,21 +253,21 @@ export function FullCrmPage() {
 
       // Группируем по источникам
       const sourceStats = new Map<string, UtmStats>()
-      ;(botUsersData || []).forEach((bu: BotUser) => {
-        const src = bu.source || 'direct'
-        if (!sourceStats.has(src)) {
-          sourceStats.set(src, { source: src, users: 0, appOpened: 0, purchased: 0, revenue: 0 })
-        }
-        const stat = sourceStats.get(src)!
-        stat.users++
-        if (appOpenedSet.has(bu.telegram_id)) {
-          stat.appOpened++
-        }
-        if (purchasedMap.has(bu.telegram_id)) {
-          stat.purchased++
-          stat.revenue += purchasedMap.get(bu.telegram_id) || 0
-        }
-      })
+        ; (botUsersData || []).forEach((bu: any) => {
+          const src = bu.source || 'direct'
+          if (!sourceStats.has(src)) {
+            sourceStats.set(src, { source: src, users: 0, appOpened: 0, purchased: 0, revenue: 0 })
+          }
+          const stat = sourceStats.get(src)!
+          stat.users++
+          if (appOpenedSet.has(bu.telegram_id)) {
+            stat.appOpened++
+          }
+          if (purchasedMap.has(bu.telegram_id)) {
+            stat.purchased++
+            stat.revenue += purchasedMap.get(bu.telegram_id) || 0
+          }
+        })
 
       // Сортируем по количеству пользователей
       const stats = Array.from(sourceStats.values()).sort((a, b) => b.users - a.users)
@@ -253,6 +275,7 @@ export function FullCrmPage() {
 
     } catch (err) {
       console.error('Error:', err)
+      showToast({ variant: 'error', title: 'Ошибка загрузки данных' })
     } finally {
       setLoading(false)
     }
@@ -627,9 +650,9 @@ export function FullCrmPage() {
     const upperCurrency = rawCurrency.toUpperCase()
     let currency = rawCurrency
     if (upperCurrency.includes('USDT') || upperCurrency.includes('USDC') ||
-        upperCurrency.includes('USD') || upperCurrency.includes('BTC') ||
-        upperCurrency.includes('ETH') || upperCurrency.includes('TON') ||
-        upperCurrency.includes('CRYPTO') || client.source === '0xprocessing') {
+      upperCurrency.includes('USD') || upperCurrency.includes('BTC') ||
+      upperCurrency.includes('ETH') || upperCurrency.includes('TON') ||
+      upperCurrency.includes('CRYPTO') || client.source === '0xprocessing') {
       currency = 'USD'
     }
 
@@ -685,9 +708,8 @@ export function FullCrmPage() {
                   onChange={e => { setPasswordInput(e.target.value); setPasswordError(false) }}
                   onKeyDown={e => e.key === 'Enter' && handlePasswordSubmit()}
                   placeholder="Пароль"
-                  className={`w-full px-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 ${
-                    passwordError ? 'ring-2 ring-red-500' : 'focus:ring-white/20'
-                  }`}
+                  className={`w-full px-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 ${passwordError ? 'ring-2 ring-red-500' : 'focus:ring-white/20'
+                    }`}
                   autoFocus
                 />
                 {passwordError && (
@@ -753,12 +775,11 @@ export function FullCrmPage() {
               <p className="text-white/40 font-mono text-sm mt-1">{client.telegram_id}</p>
 
               {/* Бейдж плана */}
-              <div className={`mt-3 px-4 py-1.5 rounded-full text-sm font-bold uppercase ${
-                client.plan === 'private' ? 'bg-purple-500/20 text-purple-400' :
-                client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
-                client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
-                'bg-zinc-700/50 text-white/70'
-              }`}>
+              <div className={`mt-3 px-4 py-1.5 rounded-full text-sm font-bold uppercase ${client.plan === 'private' ? 'bg-purple-500/20 text-purple-400' :
+                  client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
+                    client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                      'bg-zinc-700/50 text-white/70'
+                }`}>
                 {client.plan || 'N/A'}
               </div>
             </div>
@@ -937,15 +958,14 @@ export function FullCrmPage() {
               <p className="text-white/40 font-mono text-sm mt-1">{selectedUser.telegram_id}</p>
 
               {/* Статус */}
-              <div className={`mt-3 px-3 py-1 rounded-full text-sm ${
-                selectedUser.status === 'premium' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
-                selectedUser.status === 'new' ? 'bg-blue-500/20 text-blue-400' :
-                selectedUser.status === 'expired' ? 'bg-red-500/20 text-red-400' :
-                'bg-white/10 text-white/60'
-              }`}>
+              <div className={`mt-3 px-3 py-1 rounded-full text-sm ${selectedUser.status === 'premium' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                  selectedUser.status === 'new' ? 'bg-blue-500/20 text-blue-400' :
+                    selectedUser.status === 'expired' ? 'bg-red-500/20 text-red-400' :
+                      'bg-white/10 text-white/60'
+                }`}>
                 {selectedUser.status === 'premium' ? 'Premium' :
-                 selectedUser.status === 'new' ? 'Новый' :
-                 selectedUser.status === 'expired' ? 'Подписка истекла' : 'Активный'}
+                  selectedUser.status === 'new' ? 'Новый' :
+                    selectedUser.status === 'expired' ? 'Подписка истекла' : 'Активный'}
               </div>
             </div>
 
@@ -1052,9 +1072,8 @@ export function FullCrmPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === tab ? 'bg-white text-black' : 'text-white/60'
-                }`}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? 'bg-white text-black' : 'text-white/60'
+                  }`}
               >
                 {tab === 'leads' && 'База'}
                 {tab === 'premium' && 'Premium'}
@@ -1151,9 +1170,8 @@ export function FullCrmPage() {
                       <div
                         key={stat.source}
                         onClick={() => setLeadsSourceFilter(stat.source === leadsSourceFilter ? 'all' : stat.source)}
-                        className={`p-3 rounded-xl cursor-pointer transition-all ${
-                          leadsSourceFilter === stat.source ? 'bg-white/10 ring-1 ring-white/20' : 'bg-zinc-800/50 hover:bg-zinc-800'
-                        }`}
+                        className={`p-3 rounded-xl cursor-pointer transition-all ${leadsSourceFilter === stat.source ? 'bg-white/10 ring-1 ring-white/20' : 'bg-zinc-800/50 hover:bg-zinc-800'
+                          }`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -1194,9 +1212,8 @@ export function FullCrmPage() {
                   <button
                     key={f.key}
                     onClick={() => setLeadsStatusFilter(f.key as typeof leadsStatusFilter)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                      leadsStatusFilter === f.key ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${leadsStatusFilter === f.key ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
+                      }`}
                   >
                     {f.label}
                   </button>
@@ -1335,8 +1352,8 @@ export function FullCrmPage() {
                 const isUsdCurrency = (c: PremiumClient) => {
                   const cur = (c.currency || '').toUpperCase()
                   return cur.includes('USD') || cur.includes('USDT') || cur.includes('USDC') ||
-                         cur.includes('BTC') || cur.includes('ETH') || cur.includes('TON') ||
-                         cur.includes('CRYPTO') || c.source === '0xprocessing'
+                    cur.includes('BTC') || cur.includes('ETH') || cur.includes('TON') ||
+                    cur.includes('CRYPTO') || c.source === '0xprocessing'
                 }
                 const isEurCurrency = (c: PremiumClient) => (c.currency || '').toUpperCase() === 'EUR'
                 const isRubCurrency = (c: PremiumClient) => {
@@ -1561,12 +1578,11 @@ export function FullCrmPage() {
                             <div className="text-xs text-white/40 font-mono">{client.telegram_id}</div>
                           </div>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-sm font-bold uppercase ${
-                          client.plan === 'private' ? 'bg-purple-500/20 text-purple-400' :
-                          client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
-                          client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
-                          'bg-zinc-700/50 text-white/70'
-                        }`}>
+                        <div className={`px-3 py-1 rounded-full text-sm font-bold uppercase ${client.plan === 'private' ? 'bg-purple-500/20 text-purple-400' :
+                            client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
+                              client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                                'bg-zinc-700/50 text-white/70'
+                          }`}>
                           {client.plan || 'N/A'}
                         </div>
                       </div>
@@ -1609,16 +1625,14 @@ export function FullCrmPage() {
 
                       {/* Статус канал/чат */}
                       <div className="flex gap-2 mt-3">
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs backdrop-blur-sm ${
-                          client.in_channel ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-zinc-800/50 text-white/30'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_channel ? 'bg-emerald-400' : 'bg-white/30'}`}/>
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs backdrop-blur-sm ${client.in_channel ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-zinc-800/50 text-white/30'
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_channel ? 'bg-emerald-400' : 'bg-white/30'}`} />
                           Канал
                         </div>
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs backdrop-blur-sm ${
-                          client.in_chat ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-zinc-800/50 text-white/30'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_chat ? 'bg-emerald-400' : 'bg-white/30'}`}/>
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs backdrop-blur-sm ${client.in_chat ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-zinc-800/50 text-white/30'
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${client.in_chat ? 'bg-emerald-400' : 'bg-white/30'}`} />
                           Чат
                         </div>
                         {client.last_payment_method && (
@@ -1682,11 +1696,10 @@ export function FullCrmPage() {
                             <button
                               key={p.value}
                               onClick={() => setNewClientPeriod(p.value as typeof newClientPeriod)}
-                              className={`py-3 rounded-xl text-center transition-all ${
-                                newClientPeriod === p.value
+                              className={`py-3 rounded-xl text-center transition-all ${newClientPeriod === p.value
                                   ? 'bg-white text-black'
                                   : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
-                              }`}
+                                }`}
                             >
                               <div className="font-medium">{p.label}</div>
                               <div className="text-xs opacity-70">{p.plan}</div>
@@ -1706,7 +1719,7 @@ export function FullCrmPage() {
                           const firstDayOfWeek = (currentMonth.getDay() + 6) % 7 // Понедельник = 0
 
                           const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-                                            'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+                            'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
                           const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
                           const days = []
@@ -1799,15 +1812,14 @@ export function FullCrmPage() {
                                       <button
                                         onClick={() => !isPast(day) && selectDay(day)}
                                         disabled={isPast(day)}
-                                        className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-medium transition-all ${
-                                          isSelected(day)
+                                        className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-medium transition-all ${isSelected(day)
                                             ? 'bg-white text-black'
                                             : isToday(day)
                                               ? 'bg-zinc-600 text-white ring-1 ring-white/30'
                                               : isPast(day)
                                                 ? 'text-white/20 cursor-not-allowed'
                                                 : 'text-white/70 hover:bg-zinc-700 hover:text-white'
-                                        }`}
+                                          }`}
                                       >
                                         {day}
                                       </button>
@@ -1842,13 +1854,11 @@ export function FullCrmPage() {
                         <label className="flex items-center gap-3 mb-3 cursor-pointer">
                           <div
                             onClick={() => setNewClientNoPayment(!newClientNoPayment)}
-                            className={`w-12 h-7 rounded-full relative transition-colors ${
-                              newClientNoPayment ? 'bg-white' : 'bg-zinc-700'
-                            }`}
+                            className={`w-12 h-7 rounded-full relative transition-colors ${newClientNoPayment ? 'bg-white' : 'bg-zinc-700'
+                              }`}
                           >
-                            <div className={`w-5 h-5 rounded-full absolute top-1 transition-all ${
-                              newClientNoPayment ? 'left-6 bg-black' : 'left-1 bg-white'
-                            }`} />
+                            <div className={`w-5 h-5 rounded-full absolute top-1 transition-all ${newClientNoPayment ? 'left-6 bg-black' : 'left-1 bg-white'
+                              }`} />
                           </div>
                           <span className="text-white">Без оплаты (бонус/перенос)</span>
                         </label>
@@ -1940,9 +1950,8 @@ export function FullCrmPage() {
                             setSelectedUsers([user.telegram_id])
                             setBroadcastSearch('')
                           }}
-                          className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${
-                            selectedUsers.includes(user.telegram_id) ? 'bg-white/10' : 'hover:bg-zinc-800'
-                          }`}
+                          className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedUsers.includes(user.telegram_id) ? 'bg-white/10' : 'hover:bg-zinc-800'
+                            }`}
                         >
                           {user.avatar_url ? (
                             <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
