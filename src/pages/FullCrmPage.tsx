@@ -1895,47 +1895,82 @@ export function FullCrmPage() {
                   </button>
                 </div>
 
-                {/* Фильтры Premium */}
+                {/* Фильтры по тарифам */}
                 <div className="mt-4 pt-4 border-t border-zinc-800">
-                  <p className="text-xs text-white/30 uppercase tracking-wide mb-2">Фильтры Premium</p>
+                  <p className="text-xs text-white/30 uppercase tracking-wide mb-2">По тарифу</p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => {
-                        const filtered = premiumClients.filter(p => p.plan === '1month' || p.plan?.toLowerCase() === 'trader')
+                        const filtered = premiumClients.filter(p => p.plan?.toLowerCase() === 'classic' || p.plan === '1month')
                         setSelectedUsers(filtered.map(p => p.telegram_id))
                       }}
                       className="px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800 text-white/60 hover:bg-zinc-700 transition-all"
                     >
-                      TRADER ({premiumClients.filter(p => p.plan === '1month' || p.plan?.toLowerCase() === 'trader').length})
+                      CLASSIC ({premiumClients.filter(p => p.plan?.toLowerCase() === 'classic' || p.plan === '1month').length})
                     </button>
                     <button
                       onClick={() => {
-                        const filtered = premiumClients.filter(p => p.plan === '2months' || p.plan?.toLowerCase() === 'private')
+                        const filtered = premiumClients.filter(p => p.plan?.toLowerCase() === 'gold')
                         setSelectedUsers(filtered.map(p => p.telegram_id))
                       }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800 text-white/60 hover:bg-zinc-700 transition-all"
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#FFD700]/20 text-[#FFD700] hover:bg-[#FFD700]/30 transition-all"
                     >
-                      PRIVATE ({premiumClients.filter(p => p.plan === '2months' || p.plan?.toLowerCase() === 'private').length})
+                      GOLD ({premiumClients.filter(p => p.plan?.toLowerCase() === 'gold').length})
                     </button>
+                    <button
+                      onClick={() => {
+                        const filtered = premiumClients.filter(p => p.plan?.toLowerCase() === 'platinum')
+                        setSelectedUsers(filtered.map(p => p.telegram_id))
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-all"
+                    >
+                      PLATINUM ({premiumClients.filter(p => p.plan?.toLowerCase() === 'platinum').length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        const filtered = premiumClients.filter(p => p.plan?.toLowerCase() === 'private' || p.plan === '2months')
+                        setSelectedUsers(filtered.map(p => p.telegram_id))
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-all"
+                    >
+                      PRIVATE ({premiumClients.filter(p => p.plan?.toLowerCase() === 'private' || p.plan === '2months').length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Дополнительные фильтры */}
+                <div className="mt-3 pt-3 border-t border-zinc-800/50">
+                  <p className="text-xs text-white/30 uppercase tracking-wide mb-2">Дополнительно</p>
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => {
                         const filtered = premiumClients.filter(p => p.in_channel === true)
                         setSelectedUsers(filtered.map(p => p.telegram_id))
                       }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800 text-white/60 hover:bg-zinc-700 transition-all"
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-all"
                     >
                       В канале ({premiumClients.filter(p => p.in_channel).length})
                     </button>
                     <button
                       onClick={() => {
+                        const filtered = premiumClients.filter(p => p.in_chat === true)
+                        setSelectedUsers(filtered.map(p => p.telegram_id))
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-all"
+                    >
+                      В чате ({premiumClients.filter(p => p.in_chat).length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        // GOLD + PLATINUM + PRIVATE (от 3 месяцев)
                         const filtered = premiumClients.filter(p =>
-                          (p.plan === '2months' || p.plan?.toLowerCase() === 'private') && p.in_channel
+                          ['gold', 'platinum', 'private'].includes(p.plan?.toLowerCase() || '') || p.plan === '2months'
                         )
                         setSelectedUsers(filtered.map(p => p.telegram_id))
                       }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#FFD700]/20 text-[#FFD700] hover:bg-[#FFD700]/30 transition-all"
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-[#FFD700]/20 to-emerald-500/20 text-white/80 hover:from-[#FFD700]/30 hover:to-emerald-500/30 transition-all"
                     >
-                      PRIVATE + в канале ({premiumClients.filter(p => (p.plan === '2months' || p.plan?.toLowerCase() === 'private') && p.in_channel).length})
+                      От 3 мес ({premiumClients.filter(p => ['gold', 'platinum', 'private'].includes(p.plan?.toLowerCase() || '') || p.plan === '2months').length})
                     </button>
                   </div>
                 </div>
