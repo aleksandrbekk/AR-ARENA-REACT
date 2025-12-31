@@ -79,7 +79,11 @@ export function CrmPage() {
 
   // Проверка доступа
   const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
-  const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
+  const isTelegramWebApp = !!window.Telegram?.WebApp?.initData
+  // В браузере разрешаем доступ для просмотра, в Telegram - только админам
+  const isAdmin = isTelegramWebApp
+    ? (telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false)
+    : true
 
   // Загрузка данных
   const loadData = async () => {
