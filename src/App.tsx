@@ -16,10 +16,7 @@ import { LiveArenaPage } from './pages/LiveArenaPage'
 import { AdminPage } from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
 import { FullCrmPage } from './pages/FullCrmPage'
-import { PremiumPromoPage } from './pages/PremiumPromoPage'
-import { TariffsPage } from './pages/TariffsPage'
 import { PricingPage } from './pages/PricingPage'
-import { PricingPageGate } from './pages/PricingPageGate'
 import { StreamPage } from './pages/StreamPage'
 import { StreamAdminPage } from './pages/StreamAdminPage'
 import { InboxPage } from './pages/InboxPage'
@@ -67,10 +64,7 @@ function App() {
             <Route path="/payment-success" element={<PaymentSuccessPage />} />
             <Route path="/crm" element={<Navigate to="/full-crm" replace />} />
             <Route path="/full-crm" element={<FullCrmPage />} />
-            <Route path="/premium-promo" element={<PremiumPromoPage />} />
-            <Route path="/tariffs" element={<TariffsPage />} />
             <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/pricing-gate" element={<PricingPageGate />} />
             <Route path="/stream" element={<StreamPage />} />
             <Route path="/live" element={<StreamPage />} />
             <Route path="/stream-admin" element={<StreamAdminPage />} />
