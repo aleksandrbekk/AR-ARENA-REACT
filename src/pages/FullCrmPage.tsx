@@ -1846,23 +1846,7 @@ export function FullCrmPage() {
                     type="text"
                     placeholder="Поиск по ID, @username или имени..."
                     value={searchQuery}
-                    onChange={e => {
-                      setSearchQuery(e.target.value)
-                      if (e.target.value.trim()) {
-                        const q = e.target.value.toLowerCase()
-                        const allUsers = [
-                          ...botUsers.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name })),
-                          ...premiumClients.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name }))
-                        ]
-                        const unique = Array.from(new Map(allUsers.map(u => [u.telegram_id, u])).values())
-                        const found = unique.filter(u =>
-                          u.telegram_id.toString().includes(q) ||
-                          u.username?.toLowerCase().includes(q) ||
-                          u.first_name?.toLowerCase().includes(q)
-                        )
-                        setSelectedUsers(found.map(u => u.telegram_id))
-                      }
-                    }}
+                    onChange={e => setSearchQuery(e.target.value)}
                     className="w-full bg-zinc-800 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20"
                   />
                   {searchQuery && (
@@ -1874,13 +1858,85 @@ export function FullCrmPage() {
                     </button>
                   )}
                 </div>
-                {searchQuery && selectedUsers.length > 0 && (
-                  <p className="text-xs text-white/40 mt-2">Найдено: {selectedUsers.length}</p>
-                )}
+
+                {/* Результаты поиска */}
+                {searchQuery.trim() && (() => {
+                  const q = searchQuery.toLowerCase()
+                  const allUsers = [
+                    ...premiumClients.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, avatar_url: u.avatar_url, isPremium: true })),
+                    ...botUsers.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, avatar_url: null, isPremium: false }))
+                  ]
+                  const unique = Array.from(new Map(allUsers.map(u => [u.telegram_id, u])).values())
+                  const results = unique.filter(u =>
+                    String(u.telegram_id).includes(q) ||
+                    (u.username && u.username.toLowerCase().includes(q)) ||
+                    (u.first_name && u.first_name.toLowerCase().includes(q))
+                  ).slice(0, 10)
+
+                  if (results.length === 0) {
+                    return <p className="text-white/40 text-sm mt-3">Ничего не найдено</p>
+                  }
+
+                  return (
+                    <div className="mt-3 space-y-1 max-h-64 overflow-y-auto">
+                      {results.map(user => (
+                        <button
+                          key={user.telegram_id}
+                          onClick={() => {
+                            setSelectedUsers([user.telegram_id])
+                            setSearchQuery('')
+                          }}
+                          className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${
+                            selectedUsers.includes(user.telegram_id) ? 'bg-white/10' : 'hover:bg-zinc-800'
+                          }`}
+                        >
+                          {user.avatar_url ? (
+                            <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white/60 text-sm font-medium">
+                              {(user.first_name || user.username || '?')[0]?.toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 text-left">
+                            <div className="text-white text-sm font-medium flex items-center gap-2">
+                              {user.first_name || user.username || 'Без имени'}
+                              {user.isPremium && <span className="text-[10px] bg-[#FFD700]/20 text-[#FFD700] px-1.5 py-0.5 rounded">Premium</span>}
+                            </div>
+                            <div className="text-white/40 text-xs">
+                              {user.username ? `@${user.username}` : ''} · {user.telegram_id}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )
+                })()}
+
+                {selectedUsers.length === 1 && !searchQuery && (() => {
+                  const userId = selectedUsers[0]
+                  const user = premiumClients.find(u => u.telegram_id === userId) || botUsers.find(u => u.telegram_id === userId)
+                  if (!user) return null
+                  return (
+                    <div className="mt-3 flex items-center gap-3 bg-zinc-800 rounded-xl p-3">
+                      {(user as typeof premiumClients[0]).avatar_url ? (
+                        <img src={(user as typeof premiumClients[0]).avatar_url!} alt="" className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white/60 text-sm font-medium">
+                          {(user.first_name || user.username || '?')[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="text-white text-sm font-medium">{user.first_name || user.username || 'Без имени'}</div>
+                        <div className="text-white/40 text-xs">{user.username ? `@${user.username}` : ''} · {user.telegram_id}</div>
+                      </div>
+                      <button onClick={() => setSelectedUsers([])} className="text-white/40 hover:text-white p-1">✕</button>
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Или выбрать аудиторию */}
-              {!searchQuery && (
+              {!searchQuery && selectedUsers.length !== 1 && (
                 <div className="bg-zinc-900 rounded-2xl p-4">
                   <div className="grid grid-cols-2 gap-2">
                     <select
