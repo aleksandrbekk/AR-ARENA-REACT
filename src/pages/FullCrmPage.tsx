@@ -76,9 +76,9 @@ export function FullCrmPage() {
   const [botUsers, setBotUsers] = useState<BotUser[]>([])
   const [utmStats, setUtmStats] = useState<UtmStats[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedUsers, setSelectedUsers] = useState<number[]>([])
   const [broadcastMessage, setBroadcastMessage] = useState('')
+  const [broadcastSearch, setBroadcastSearch] = useState('')
   const [broadcastImage, setBroadcastImage] = useState<File | null>(null)
   const [broadcastImagePreview, setBroadcastImagePreview] = useState<string | null>(null)
   const [sendingBroadcast, setSendingBroadcast] = useState(false)
@@ -1845,13 +1845,13 @@ export function FullCrmPage() {
                   <input
                     type="text"
                     placeholder="Поиск по ID, @username или имени..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
+                    value={broadcastSearch}
+                    onChange={e => setBroadcastSearch(e.target.value)}
                     className="w-full bg-zinc-800 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20"
                   />
-                  {searchQuery && (
+                  {broadcastSearch && (
                     <button
-                      onClick={() => { setSearchQuery(''); setSelectedUsers([]) }}
+                      onClick={() => { setBroadcastSearch(''); setSelectedUsers([]) }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
                     >
                       ✕
@@ -1860,8 +1860,8 @@ export function FullCrmPage() {
                 </div>
 
                 {/* Результаты поиска */}
-                {searchQuery.trim() && (() => {
-                  const q = searchQuery.toLowerCase()
+                {broadcastSearch.trim() && (() => {
+                  const q = broadcastSearch.toLowerCase()
                   const allUsers = [
                     ...premiumClients.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, avatar_url: u.avatar_url, isPremium: true })),
                     ...botUsers.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, avatar_url: null, isPremium: false }))
@@ -1884,7 +1884,7 @@ export function FullCrmPage() {
                           key={user.telegram_id}
                           onClick={() => {
                             setSelectedUsers([user.telegram_id])
-                            setSearchQuery('')
+                            setBroadcastSearch('')
                           }}
                           className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${
                             selectedUsers.includes(user.telegram_id) ? 'bg-white/10' : 'hover:bg-zinc-800'
@@ -1912,7 +1912,7 @@ export function FullCrmPage() {
                   )
                 })()}
 
-                {selectedUsers.length === 1 && !searchQuery && (() => {
+                {selectedUsers.length === 1 && !broadcastSearch && (() => {
                   const userId = selectedUsers[0]
                   const user = premiumClients.find(u => u.telegram_id === userId) || botUsers.find(u => u.telegram_id === userId)
                   if (!user) return null
@@ -1936,7 +1936,7 @@ export function FullCrmPage() {
               </div>
 
               {/* Или выбрать аудиторию */}
-              {!searchQuery && selectedUsers.length !== 1 && (
+              {!broadcastSearch && selectedUsers.length !== 1 && (
                 <div className="bg-zinc-900 rounded-2xl p-4">
                   <div className="grid grid-cols-2 gap-2">
                     <select
