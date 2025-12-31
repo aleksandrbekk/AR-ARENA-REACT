@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       .insert({
         name: 'Тестовый Новогодний Розыгрыш',
         main_title: 'Новогодний Розыгрыш 2025',
+        subtitle: 'Тестовый розыгрыш',
         description: 'Автоматический тест системы розыгрышей AR ARENA',
         type: 'money',
         status: 'active',
