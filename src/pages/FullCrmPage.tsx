@@ -95,6 +95,7 @@ export function FullCrmPage() {
   const [premiumFilter, setPremiumFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all')
   const [planFilter, setPlanFilter] = useState<string>('all')
   const [monthFilter, setMonthFilter] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<'last_payment' | 'expires' | 'total_paid' | 'created'>('last_payment')
   const [daysToAdd, setDaysToAdd] = useState(30)
   const [selectedPremiumClient, setSelectedPremiumClient] = useState<PremiumClient | null>(null)
 
@@ -279,35 +280,57 @@ export function FullCrmPage() {
   }
 
   // Фильтрация Premium клиентов
-  const filteredPremiumClients = premiumClients.filter(client => {
-    // Поиск
-    if (premiumSearch) {
-      const q = premiumSearch.toLowerCase()
-      const matchesSearch =
-        client.username?.toLowerCase().includes(q) ||
-        client.first_name?.toLowerCase().includes(q) ||
-        client.telegram_id.toString().includes(q)
-      if (!matchesSearch) return false
-    }
+  const filteredPremiumClients = premiumClients
+    .filter(client => {
+      // Поиск
+      if (premiumSearch) {
+        const q = premiumSearch.toLowerCase()
+        const matchesSearch =
+          client.username?.toLowerCase().includes(q) ||
+          client.first_name?.toLowerCase().includes(q) ||
+          client.telegram_id.toString().includes(q)
+        if (!matchesSearch) return false
+      }
 
-    // Фильтр по плану
-    if (planFilter !== 'all' && client.plan !== planFilter) return false
+      // Фильтр по плану
+      if (planFilter !== 'all' && client.plan !== planFilter) return false
 
-    // Фильтр по месяцу (по дате последнего платежа)
-    if (monthFilter !== 'all' && client.last_payment_at) {
-      const paymentDate = new Date(client.last_payment_at)
-      const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
-      if (paymentMonth !== monthFilter) return false
-    }
+      // Фильтр по месяцу (по дате последнего платежа)
+      if (monthFilter !== 'all' && client.last_payment_at) {
+        const paymentDate = new Date(client.last_payment_at)
+        const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+        if (paymentMonth !== monthFilter) return false
+      }
 
-    // Фильтр по статусу
-    const days = getDaysRemaining(client.expires_at)
-    if (premiumFilter === 'active' && days <= 7) return false
-    if (premiumFilter === 'expiring' && (days <= 0 || days > 7)) return false
-    if (premiumFilter === 'expired' && days > 0) return false
+      // Фильтр по статусу
+      const days = getDaysRemaining(client.expires_at)
+      if (premiumFilter === 'active' && days <= 7) return false
+      if (premiumFilter === 'expiring' && (days <= 0 || days > 7)) return false
+      if (premiumFilter === 'expired' && days > 0) return false
 
-    return true
-  })
+      return true
+    })
+    .sort((a, b) => {
+      // Сортировка
+      switch (sortBy) {
+        case 'last_payment':
+          // По дате последнего платежа (новые вверху)
+          const aPayment = a.last_payment_at ? new Date(a.last_payment_at).getTime() : 0
+          const bPayment = b.last_payment_at ? new Date(b.last_payment_at).getTime() : 0
+          return bPayment - aPayment
+        case 'expires':
+          // По дате истечения (скоро истекающие вверху)
+          return new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime()
+        case 'total_paid':
+          // По сумме оплат (больше вверху)
+          return (b.total_paid_usd || 0) - (a.total_paid_usd || 0)
+        case 'created':
+          // По дате добавления (новые вверху)
+          return new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+        default:
+          return 0
+      }
+    })
 
   // Получаем уникальные месяцы для фильтра
   const availableMonths = [...new Set(
@@ -1440,47 +1463,63 @@ export function FullCrmPage() {
                 </button>
               </div>
 
-              {/* Компактные фильтры */}
-              <div className="flex gap-2">
-                {/* Статус */}
-                <select
-                  value={premiumFilter}
-                  onChange={e => setPremiumFilter(e.target.value as typeof premiumFilter)}
-                  className="flex-1 px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '20px', paddingRight: '32px' }}
-                >
-                  <option value="all">Все статусы</option>
-                  <option value="active">✓ Активные</option>
-                  <option value="expiring">⚠️ Истекают</option>
-                  <option value="expired">✗ Истекли</option>
-                </select>
+              {/* Фильтры и сортировка */}
+              <div className="bg-zinc-900/50 rounded-2xl p-3 space-y-3">
+                {/* Верхний ряд: Статус + План */}
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={premiumFilter}
+                    onChange={e => setPremiumFilter(e.target.value as typeof premiumFilter)}
+                    className="w-full px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '28px' }}
+                  >
+                    <option value="all">📊 Все статусы</option>
+                    <option value="active">✅ Активные</option>
+                    <option value="expiring">⚠️ Истекают</option>
+                    <option value="expired">❌ Истекли</option>
+                  </select>
 
-                {/* План */}
-                <select
-                  value={planFilter}
-                  onChange={e => setPlanFilter(e.target.value)}
-                  className="flex-1 px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '20px', paddingRight: '32px' }}
-                >
-                  <option value="all">Все планы</option>
-                  <option value="private">Private</option>
-                  <option value="platinum">Platinum</option>
-                  <option value="gold">Gold</option>
-                  <option value="classic">Classic</option>
-                </select>
+                  <select
+                    value={planFilter}
+                    onChange={e => setPlanFilter(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '28px' }}
+                  >
+                    <option value="all">💎 Все планы</option>
+                    <option value="private">🟣 Private</option>
+                    <option value="platinum">🔵 Platinum</option>
+                    <option value="gold">🟡 Gold</option>
+                    <option value="classic">⚪ Classic</option>
+                    <option value="trader">🟢 Trader</option>
+                  </select>
+                </div>
 
-                {/* Месяц */}
-                <select
-                  value={monthFilter}
-                  onChange={e => setMonthFilter(e.target.value)}
-                  className="flex-1 px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '20px', paddingRight: '32px' }}
-                >
-                  <option value="all">Все месяцы</option>
-                  {availableMonths.map(m => (
-                    <option key={m} value={m}>{formatMonthLabel(m)}</option>
-                  ))}
-                </select>
+                {/* Нижний ряд: Месяц + Сортировка */}
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={monthFilter}
+                    onChange={e => setMonthFilter(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '28px' }}
+                  >
+                    <option value="all">📅 Все месяцы</option>
+                    {availableMonths.map(m => (
+                      <option key={m} value={m}>{formatMonthLabel(m)}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as typeof sortBy)}
+                    className="w-full px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '28px' }}
+                  >
+                    <option value="last_payment">💳 Последний платёж</option>
+                    <option value="expires">⏰ Дата истечения</option>
+                    <option value="total_paid">💰 Сумма оплат</option>
+                    <option value="created">📆 Дата добавления</option>
+                  </select>
+                </div>
               </div>
 
               {/* Счётчик */}
