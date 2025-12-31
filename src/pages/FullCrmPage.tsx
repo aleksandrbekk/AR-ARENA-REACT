@@ -57,7 +57,7 @@ interface UtmStats {
   revenue: number
 }
 
-type TabType = 'leads' | 'premium' | 'users' | 'broadcast'
+type TabType = 'leads' | 'premium' | 'broadcast'
 
 // ============ КОНСТАНТЫ ============
 // SECURITY: Secrets from environment variables
@@ -251,19 +251,7 @@ export function FullCrmPage() {
     }
   }
 
-  // ============ ФИЛЬТРАЦИЯ ============
-  const filteredUsers = users.filter(user => {
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
-    return (
-      user.username?.toLowerCase().includes(q) ||
-      user.first_name?.toLowerCase().includes(q) ||
-      user.telegram_id.toString().includes(q)
-    )
-  })
-
-  
-  // Вспомогательные функции (перенесены выше для использования в фильтрах)
+  // Вспомогательные функции
   const getDaysRemaining = (expiresAt: string) => {
     const now = new Date()
     const expires = new Date(expiresAt)
@@ -1031,7 +1019,6 @@ export function FullCrmPage() {
               <p className="text-white/40 mt-1">
                 {activeTab === 'leads' && `${botUsers.length} в боте`}
                 {activeTab === 'premium' && `${premiumClients.length} подписчиков`}
-                {activeTab === 'users' && `${users.length} в приложении`}
                 {activeTab === 'broadcast' && 'Рассылка сообщений'}
               </p>
             </div>
@@ -1049,7 +1036,7 @@ export function FullCrmPage() {
 
           {/* Табы */}
           <div className="flex gap-1 p-1 bg-zinc-900 rounded-xl mb-6">
-            {(['leads', 'premium', 'users', 'broadcast'] as TabType[]).map(tab => (
+            {(['leads', 'premium', 'broadcast'] as TabType[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1059,7 +1046,6 @@ export function FullCrmPage() {
               >
                 {tab === 'leads' && 'База'}
                 {tab === 'premium' && 'Premium'}
-                {tab === 'users' && 'App'}
                 {tab === 'broadcast' && 'Рассылка'}
               </button>
             ))}
@@ -1315,69 +1301,16 @@ export function FullCrmPage() {
             </div>
           )}
 
-          {/* ============ ВСЕ ЮЗЕРЫ ============ */}
-          {activeTab === 'users' && (
-            <>
-              {/* Поиск */}
-              <div className="relative mb-4">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Поиск..."
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-                />
-              </div>
-
-              {/* Список */}
-              <div className="bg-zinc-900 rounded-2xl overflow-hidden">
-                {filteredUsers.map((user, i) => (
-                  <div
-                    key={user.id}
-                    onClick={() => setSelectedUser(user)}
-                    className={`flex items-center gap-3 px-4 py-3 active:bg-white/5 cursor-pointer ${
-                      i !== 0 ? 'border-t border-white/5' : ''
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white/60 font-medium">
-                      {getInitial(user)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">
-                        {user.username ? `@${user.username}` : user.first_name || 'Без имени'}
-                      </div>
-                      <div className="text-sm text-white/40 truncate">
-                        {user.first_name && user.username ? user.first_name : `ID: ${user.telegram_id}`}
-                      </div>
-                    </div>
-                    {user.status === 'premium' && (
-                      <div className="px-2 py-0.5 bg-[#FFD700]/20 text-[#FFD700] rounded text-xs font-medium">
-                        PRO
-                      </div>
-                    )}
-                    {user.status === 'new' && (
-                      <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    )}
-                    <svg className="w-5 h-5 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                ))}
-                {filteredUsers.length === 0 && (
-                  <div className="py-12 text-center text-white/30">Ничего не найдено</div>
-                )}
-              </div>
-            </>
-          )}
-
           {/* ============ PREMIUM ============ */}
           {activeTab === 'premium' && (
             <div className="space-y-4">
               {/* Статистика */}
               {(() => {
+                // Только реально оплатившие (не migration, и есть сумма > 0)
+                const paidClients = premiumClients.filter(c =>
+                  c.source !== 'migration' && (c.total_paid_usd > 0 || (c.original_amount ?? 0) > 0)
+                )
+
                 // Хелпер для определения типа валюты
                 const isUsdCurrency = (c: PremiumClient) => {
                   const cur = (c.currency || '').toUpperCase()
@@ -1391,27 +1324,30 @@ export function FullCrmPage() {
                   return cur === 'RUB' || (!c.currency && c.source === 'lava.top' && !isUsdCurrency(c) && !isEurCurrency(c))
                 }
 
-                // Считаем по валютам
-                const totalRub = premiumClients
+                // Считаем по валютам (только оплатившие)
+                const totalRub = paidClients
                   .filter(c => isRubCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
-                const totalUsd = premiumClients
+                const totalUsd = paidClients
                   .filter(c => isUsdCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
-                const totalEur = premiumClients
+                const totalEur = paidClients
                   .filter(c => isEurCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || 0), 0)
 
-                const clientsCount = premiumClients.length
+                const totalSubscribers = premiumClients.length
+                const paidCount = paidClients.length
+                const migratedCount = premiumClients.filter(c => c.source === 'migration').length
 
-                // Средний чек в рублях (конвертируем USD и EUR)
+                // Средний чек (только по оплатившим)
                 const USD_TO_RUB = 100
                 const EUR_TO_RUB = 110
                 const totalInRub = totalRub + (totalUsd * USD_TO_RUB) + (totalEur * EUR_TO_RUB)
-                const avgCheck = clientsCount > 0 ? Math.round(totalInRub / clientsCount) : 0
+                const avgCheck = paidCount > 0 ? Math.round(totalInRub / paidCount) : 0
 
                 return (
                   <div className="space-y-3">
+                    {/* Выручка по валютам */}
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">RUB</div>
@@ -1426,14 +1362,28 @@ export function FullCrmPage() {
                         <div className="text-lg font-bold text-blue-400">€{totalEur.toLocaleString('de-DE')}</div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+
+                    {/* Статистика подписчиков */}
+                    <div className="grid grid-cols-3 gap-2">
                       <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">Кол-во оплат</div>
-                        <div className="text-lg font-bold text-white">{clientsCount}</div>
+                        <div className="text-white/40 text-[10px] mb-1">Всего</div>
+                        <div className="text-lg font-bold text-white">{totalSubscribers}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">Ср. чек</div>
-                        <div className="text-lg font-bold text-[#FFD700]">{avgCheck.toLocaleString('ru-RU')} ₽</div>
+                        <div className="text-white/40 text-[10px] mb-1">Оплатили</div>
+                        <div className="text-lg font-bold text-emerald-400">{paidCount}</div>
+                      </div>
+                      <div className="bg-zinc-900 rounded-xl p-3">
+                        <div className="text-white/40 text-[10px] mb-1">Перенесены</div>
+                        <div className="text-lg font-bold text-white/50">{migratedCount}</div>
+                      </div>
+                    </div>
+
+                    {/* Средний чек */}
+                    <div className="bg-zinc-900 rounded-xl p-3">
+                      <div className="flex justify-between items-center">
+                        <div className="text-white/40 text-sm">Средний чек</div>
+                        <div className="text-xl font-bold text-[#FFD700]">{avgCheck.toLocaleString('ru-RU')} ₽</div>
                       </div>
                     </div>
                   </div>
@@ -1888,175 +1838,133 @@ export function FullCrmPage() {
 
           {/* ============ РАССЫЛКА ============ */}
           {activeTab === 'broadcast' && (
-            <div className="space-y-4">
-              {/* Получатели */}
+            <div className="space-y-3">
+              {/* Поиск конкретного пользователя */}
               <div className="bg-zinc-900 rounded-2xl p-4">
-                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-3">Получатели</h3>
-                <div className="flex flex-wrap gap-2">
-                  {/* База бота - главная кнопка */}
-                  <button
-                    onClick={() => setSelectedUsers(botUsers.map(bu => bu.telegram_id))}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedUsers.length === botUsers.length ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-white/60'
-                    }`}
-                  >
-                    База бота ({botUsers.length})
-                  </button>
-                  <button
-                    onClick={() => setSelectedUsers(users.map(u => u.telegram_id))}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedUsers.length === users.length && users.length > 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-zinc-800/50 text-white/60'
-                    }`}
-                  >
-                    Открыли App ({users.length})
-                  </button>
-                  <button
-                    onClick={() => setSelectedUsers(premiumClients.map(p => p.telegram_id))}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedUsers.length === premiumClients.length && premiumClients.length > 0 ? 'bg-[#FFD700] text-black' : 'bg-zinc-800 text-white/60'
-                    }`}
-                  >
-                    Premium ({premiumClients.length})
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Те кто в боте, но не купил Premium
-                      const premiumIds = new Set(premiumClients.map(p => p.telegram_id))
-                      const notPremium = botUsers.filter(bu => !premiumIds.has(bu.telegram_id))
-                      setSelectedUsers(notPremium.map(bu => bu.telegram_id))
-                    }}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedUsers.length === botUsers.length - premiumClients.length && selectedUsers.length > 0
-                        ? 'bg-orange-500 text-white' : 'bg-zinc-800 text-white/60'
-                    }`}
-                  >
-                    Без Premium ({botUsers.length - premiumClients.length})
-                  </button>
-                </div>
-
-                {/* Фильтры по тарифам */}
-                <div className="mt-4 pt-4 border-t border-zinc-800">
-                  <p className="text-xs text-white/30 uppercase tracking-wide mb-2">По тарифу</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => {
-                        const filtered = premiumClients.filter(p => p.plan?.toLowerCase() === 'classic' || p.plan === '1month')
-                        setSelectedUsers(filtered.map(p => p.telegram_id))
-                      }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800 text-white/60 hover:bg-zinc-700 transition-all"
-                    >
-                      CLASSIC ({premiumClients.filter(p => p.plan?.toLowerCase() === 'classic' || p.plan === '1month').length})
-                    </button>
-                    <button
-                      onClick={() => {
-                        const filtered = premiumClients.filter(p => p.plan?.toLowerCase() === 'gold')
-                        setSelectedUsers(filtered.map(p => p.telegram_id))
-                      }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#FFD700]/20 text-[#FFD700] hover:bg-[#FFD700]/30 transition-all"
-                    >
-                      GOLD ({premiumClients.filter(p => p.plan?.toLowerCase() === 'gold').length})
-                    </button>
-                    <button
-                      onClick={() => {
-                        const filtered = premiumClients.filter(p => p.plan?.toLowerCase() === 'platinum')
-                        setSelectedUsers(filtered.map(p => p.telegram_id))
-                      }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-all"
-                    >
-                      PLATINUM ({premiumClients.filter(p => p.plan?.toLowerCase() === 'platinum').length})
-                    </button>
-                    <button
-                      onClick={() => {
-                        const filtered = premiumClients.filter(p => p.plan?.toLowerCase() === 'private' || p.plan === '2months')
-                        setSelectedUsers(filtered.map(p => p.telegram_id))
-                      }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-all"
-                    >
-                      PRIVATE ({premiumClients.filter(p => p.plan?.toLowerCase() === 'private' || p.plan === '2months').length})
-                    </button>
-                  </div>
-                </div>
-
-                {/* Дополнительные фильтры */}
-                <div className="mt-3 pt-3 border-t border-zinc-800/50">
-                  <p className="text-xs text-white/30 uppercase tracking-wide mb-2">Дополнительно</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => {
-                        const filtered = premiumClients.filter(p => p.in_channel === true)
-                        setSelectedUsers(filtered.map(p => p.telegram_id))
-                      }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-all"
-                    >
-                      В канале ({premiumClients.filter(p => p.in_channel).length})
-                    </button>
-                    <button
-                      onClick={() => {
-                        const filtered = premiumClients.filter(p => p.in_chat === true)
-                        setSelectedUsers(filtered.map(p => p.telegram_id))
-                      }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-all"
-                    >
-                      В чате ({premiumClients.filter(p => p.in_chat).length})
-                    </button>
-                    <button
-                      onClick={() => {
-                        // GOLD + PLATINUM + PRIVATE (от 3 месяцев)
-                        const filtered = premiumClients.filter(p =>
-                          ['gold', 'platinum', 'private'].includes(p.plan?.toLowerCase() || '') || p.plan === '2months'
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Поиск по ID, @username или имени..."
+                    value={searchQuery}
+                    onChange={e => {
+                      setSearchQuery(e.target.value)
+                      if (e.target.value.trim()) {
+                        const q = e.target.value.toLowerCase()
+                        const allUsers = [
+                          ...botUsers.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name })),
+                          ...premiumClients.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name }))
+                        ]
+                        const unique = Array.from(new Map(allUsers.map(u => [u.telegram_id, u])).values())
+                        const found = unique.filter(u =>
+                          u.telegram_id.toString().includes(q) ||
+                          u.username?.toLowerCase().includes(q) ||
+                          u.first_name?.toLowerCase().includes(q)
                         )
-                        setSelectedUsers(filtered.map(p => p.telegram_id))
-                      }}
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-[#FFD700]/20 to-emerald-500/20 text-white/80 hover:from-[#FFD700]/30 hover:to-emerald-500/30 transition-all"
+                        setSelectedUsers(found.map(u => u.telegram_id))
+                      }
+                    }}
+                    className="w-full bg-zinc-800 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => { setSearchQuery(''); setSelectedUsers([]) }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
                     >
-                      От 3 мес ({premiumClients.filter(p => ['gold', 'platinum', 'private'].includes(p.plan?.toLowerCase() || '') || p.plan === '2months').length})
+                      ✕
                     </button>
-                  </div>
+                  )}
                 </div>
-
-                <p className="text-sm text-white/40 mt-3">
-                  Выбрано: <span className="text-white font-medium">{selectedUsers.length}</span>
-                </p>
+                {searchQuery && selectedUsers.length > 0 && (
+                  <p className="text-xs text-white/40 mt-2">Найдено: {selectedUsers.length}</p>
+                )}
               </div>
 
-              {/* Картинка */}
-              <div className="bg-zinc-900 rounded-2xl p-4">
-                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-3">Картинка (опционально)</h3>
+              {/* Или выбрать аудиторию */}
+              {!searchQuery && (
+                <div className="bg-zinc-900 rounded-2xl p-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      onChange={e => {
+                        const v = e.target.value
+                        if (v === 'bot') setSelectedUsers(botUsers.map(u => u.telegram_id))
+                        else if (v === 'app') setSelectedUsers(users.map(u => u.telegram_id))
+                        else if (v === 'premium') setSelectedUsers(premiumClients.map(p => p.telegram_id))
+                        else if (v === 'no-premium') {
+                          const premiumIds = new Set(premiumClients.map(p => p.telegram_id))
+                          setSelectedUsers(botUsers.filter(u => !premiumIds.has(u.telegram_id)).map(u => u.telegram_id))
+                        }
+                        else if (v === 'in-channel') setSelectedUsers(premiumClients.filter(p => p.in_channel).map(p => p.telegram_id))
+                        else setSelectedUsers([])
+                      }}
+                      className="bg-zinc-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none cursor-pointer"
+                    >
+                      <option value="">Аудитория</option>
+                      <option value="bot">База бота ({botUsers.length})</option>
+                      <option value="app">Открыли App ({users.length})</option>
+                      <option value="premium">Все Premium ({premiumClients.length})</option>
+                      <option value="no-premium">Без Premium ({botUsers.length - premiumClients.length})</option>
+                      <option value="in-channel">В канале ({premiumClients.filter(p => p.in_channel).length})</option>
+                    </select>
+
+                    <select
+                      onChange={e => {
+                        const v = e.target.value
+                        if (!v) return
+                        const filtered = premiumClients.filter(p => {
+                          const plan = p.plan?.toLowerCase()
+                          if (v === 'classic') return plan === 'classic' || p.plan === '1month'
+                          if (v === 'gold') return plan === 'gold'
+                          if (v === 'platinum') return plan === 'platinum'
+                          if (v === 'private') return plan === 'private' || p.plan === '2months'
+                          if (v === 'from3m') return ['gold', 'platinum', 'private'].includes(plan || '') || p.plan === '2months'
+                          return false
+                        })
+                        setSelectedUsers(filtered.map(p => p.telegram_id))
+                      }}
+                      className="bg-zinc-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none cursor-pointer"
+                    >
+                      <option value="">По тарифу</option>
+                      <option value="classic">CLASSIC ({premiumClients.filter(p => p.plan?.toLowerCase() === 'classic' || p.plan === '1month').length})</option>
+                      <option value="gold">GOLD ({premiumClients.filter(p => p.plan?.toLowerCase() === 'gold').length})</option>
+                      <option value="platinum">PLATINUM ({premiumClients.filter(p => p.plan?.toLowerCase() === 'platinum').length})</option>
+                      <option value="private">PRIVATE ({premiumClients.filter(p => p.plan?.toLowerCase() === 'private' || p.plan === '2months').length})</option>
+                      <option value="from3m">От 3 мес ({premiumClients.filter(p => ['gold', 'platinum', 'private'].includes(p.plan?.toLowerCase() || '') || p.plan === '2months').length})</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-800">
+                    <span className="text-white/40 text-sm">Выбрано получателей</span>
+                    <span className="text-white font-medium">{selectedUsers.length}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Контент */}
+              <div className="bg-zinc-900 rounded-2xl p-4 space-y-4">
+                {/* Картинка */}
                 {broadcastImagePreview ? (
                   <div className="relative">
-                    <img
-                      src={broadcastImagePreview}
-                      alt="Preview"
-                      className="w-full max-h-48 object-contain rounded-lg"
-                    />
+                    <img src={broadcastImagePreview} alt="Preview" className="w-full max-h-40 object-contain rounded-xl" />
                     <button
                       onClick={clearBroadcastImage}
-                      className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+                      className="absolute top-2 right-2 w-7 h-7 bg-black/70 rounded-full flex items-center justify-center text-white/80 hover:text-white text-sm"
                     >
                       ✕
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-zinc-600 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      className="hidden"
-                    />
-                    <span className="text-white/40 text-sm">Нажмите для выбора картинки</span>
+                  <label className="flex items-center justify-center h-16 border border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-zinc-500 transition-colors">
+                    <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                    <span className="text-white/30 text-sm">+ Добавить картинку</span>
                   </label>
                 )}
-              </div>
 
-              {/* Сообщение */}
-              <div className="bg-zinc-900 rounded-2xl p-4">
-                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-3">Сообщение {broadcastImage && '(подпись к картинке)'}</h3>
+                {/* Текст */}
                 <textarea
                   value={broadcastMessage}
                   onChange={e => setBroadcastMessage(e.target.value)}
-                  placeholder={broadcastImage ? "Введите подпись к картинке..." : "Введите текст..."}
-                  className="w-full h-32 bg-transparent text-white placeholder-white/30 focus:outline-none resize-none"
+                  placeholder={broadcastImage ? "Подпись к картинке..." : "Текст сообщения..."}
+                  className="w-full h-28 bg-zinc-800 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20 resize-none"
                 />
               </div>
 
