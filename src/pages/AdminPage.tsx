@@ -71,7 +71,7 @@ export function AdminPage() {
       const [usersRes, giveawaysRes, premiumClientsRes, utmLinksRes] = await Promise.all([
         supabase.from('users').select('*', { count: 'exact', head: true }),
         supabase.from('giveaways').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('premium_clients').select('*', { count: 'exact', head: true }).gt('expires_at', new Date().toISOString()),
+        supabase.from('premium_clients').select('*', { count: 'exact', head: true }), // Все записи, не только активные
         supabase.from('utm_links').select('*', { count: 'exact', head: true })
       ])
 
@@ -220,7 +220,7 @@ export function AdminPage() {
                 <div className="text-center">
                   <div className="text-white font-medium">CRM</div>
                   <div className="text-white/60 text-sm">
-                    {loadingStats ? '...' : `${stats.activePremiumClientsCount} premium`}
+                    {loadingStats ? '...' : `${stats.activePremiumClientsCount} чел.`}
                   </div>
                 </div>
               </button>
