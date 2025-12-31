@@ -89,6 +89,11 @@ const router = createBrowserRouter([
           </Suspense>
         ),
         children: [
+          // Index route for /app to handle redirection if needed or show default state
+          {
+            index: true,
+            element: <div className="h-full flex items-center justify-center text-white/50">Select a project...</div>
+          },
           // Если пользователь зашел просто на /app, его перекинет Layout (см. внутри AdminLayout)
           {
             path: ":projectId",
