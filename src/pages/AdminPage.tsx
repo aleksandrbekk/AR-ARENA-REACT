@@ -16,6 +16,7 @@ interface DashboardStats {
   activeGiveawaysCount: number
   activePremiumClientsCount: number
   utmLinksCount: number
+  botUsersCount: number
 }
 
 // SECURITY: Password from env variable (set in Vercel)
@@ -25,7 +26,7 @@ export function AdminPage() {
   const { telegramUser, isLoading } = useAuth()
   const navigate = useNavigate()
   const [activeSection, setActiveSection] = useState<AdminSection>('dashboard')
-  const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0, utmLinksCount: 0 })
+  const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0, utmLinksCount: 0, botUsersCount: 0 })
   const [loadingStats, setLoadingStats] = useState(true)
 
   // Защита паролем для браузера
@@ -68,18 +69,20 @@ export function AdminPage() {
   const loadDashboardStats = async () => {
     try {
       setLoadingStats(true)
-      const [usersRes, giveawaysRes, premiumClientsRes, utmLinksRes] = await Promise.all([
+      const [usersRes, giveawaysRes, premiumClientsRes, utmLinksRes, botUsersRes] = await Promise.all([
         supabase.from('users').select('*', { count: 'exact', head: true }),
         supabase.from('giveaways').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('premium_clients').select('*', { count: 'exact', head: true }), // Все записи, не только активные
-        supabase.from('utm_links').select('*', { count: 'exact', head: true })
+        supabase.from('utm_links').select('*', { count: 'exact', head: true }),
+        supabase.from('bot_users').select('*', { count: 'exact', head: true })
       ])
 
       setStats({
         usersCount: usersRes.count || 0,
         activeGiveawaysCount: giveawaysRes.count || 0,
         activePremiumClientsCount: premiumClientsRes.count || 0,
-        utmLinksCount: utmLinksRes.count || 0
+        utmLinksCount: utmLinksRes.count || 0,
+        botUsersCount: botUsersRes.count || 0
       })
     } catch (err) {
       console.error('Error loading dashboard stats:', err)
@@ -144,9 +147,8 @@ export function AdminPage() {
                   onChange={e => { setPasswordInput(e.target.value); setPasswordError(false) }}
                   onKeyDown={e => e.key === 'Enter' && handlePasswordSubmit()}
                   placeholder="Пароль"
-                  className={`w-full px-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 ${
-                    passwordError ? 'ring-2 ring-red-500' : 'focus:ring-white/20'
-                  }`}
+                  className={`w-full px-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 ${passwordError ? 'ring-2 ring-red-500' : 'focus:ring-white/20'
+                    }`}
                   autoFocus
                 />
                 {passwordError && (
@@ -220,7 +222,7 @@ export function AdminPage() {
                 <div className="text-center">
                   <div className="text-white font-medium">CRM</div>
                   <div className="text-white/60 text-sm">
-                    {loadingStats ? '...' : `${stats.activePremiumClientsCount} чел.`}
+                    {loadingStats ? '...' : `${stats.botUsersCount} в боте`}
                   </div>
                 </div>
               </button>
