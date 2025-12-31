@@ -527,24 +527,63 @@ export function FullCrmPage() {
     } catch { return false }
   }
 
+  const sendPhoto = async (telegramId: number, photo: File, caption: string): Promise<boolean> => {
+    try {
+      const formData = new FormData()
+      formData.append('chat_id', telegramId.toString())
+      formData.append('photo', photo)
+      if (caption) formData.append('caption', caption)
+      formData.append('parse_mode', 'HTML')
+
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method: 'POST',
+        body: formData
+      })
+      return (await res.json()).ok
+    } catch { return false }
+  }
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setBroadcastImage(file)
+      const reader = new FileReader()
+      reader.onloadend = () => setBroadcastImagePreview(reader.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const clearBroadcastImage = () => {
+    setBroadcastImage(null)
+    setBroadcastImagePreview(null)
+  }
+
   const handleBroadcast = async () => {
-    if (!broadcastMessage.trim()) return showToast({ variant: 'error', title: 'Введите сообщение' })
+    if (!broadcastMessage.trim() && !broadcastImage) return showToast({ variant: 'error', title: 'Введите сообщение или добавьте картинку' })
     if (selectedUsers.length === 0) return showToast({ variant: 'error', title: 'Выберите получателей' })
 
-    if (!confirm(`Отправить ${selectedUsers.length} пользователям?`)) return
+    const messageType = broadcastImage ? 'картинку' : 'сообщение'
+    if (!confirm(`Отправить ${messageType} ${selectedUsers.length} пользователям?`)) return
 
     setSendingBroadcast(true)
     setBroadcastProgress({ sent: 0, total: selectedUsers.length })
 
     let sent = 0
     for (const telegramId of selectedUsers) {
-      if (await sendMessage(telegramId, broadcastMessage)) sent++
+      let success = false
+      if (broadcastImage) {
+        success = await sendPhoto(telegramId, broadcastImage, broadcastMessage)
+      } else {
+        success = await sendMessage(telegramId, broadcastMessage)
+      }
+      if (success) sent++
       setBroadcastProgress({ sent, total: selectedUsers.length })
       await new Promise(r => setTimeout(r, 50)) // Задержка чтобы не забанили
     }
 
     setSendingBroadcast(false)
     setBroadcastMessage('')
+    clearBroadcastImage()
     setSelectedUsers([])
     showToast({ variant: 'success', title: `Отправлено: ${sent}/${selectedUsers.length}` })
   }
@@ -1855,18 +1894,94 @@ export function FullCrmPage() {
                     Без Premium ({botUsers.length - premiumClients.length})
                   </button>
                 </div>
+
+                {/* Фильтры Premium */}
+                <div className="mt-4 pt-4 border-t border-zinc-800">
+                  <p className="text-xs text-white/30 uppercase tracking-wide mb-2">Фильтры Premium</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        const filtered = premiumClients.filter(p => p.plan === '1month' || p.plan?.toLowerCase() === 'trader')
+                        setSelectedUsers(filtered.map(p => p.telegram_id))
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800 text-white/60 hover:bg-zinc-700 transition-all"
+                    >
+                      TRADER ({premiumClients.filter(p => p.plan === '1month' || p.plan?.toLowerCase() === 'trader').length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        const filtered = premiumClients.filter(p => p.plan === '2months' || p.plan?.toLowerCase() === 'private')
+                        setSelectedUsers(filtered.map(p => p.telegram_id))
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800 text-white/60 hover:bg-zinc-700 transition-all"
+                    >
+                      PRIVATE ({premiumClients.filter(p => p.plan === '2months' || p.plan?.toLowerCase() === 'private').length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        const filtered = premiumClients.filter(p => p.in_channel === true)
+                        setSelectedUsers(filtered.map(p => p.telegram_id))
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-zinc-800 text-white/60 hover:bg-zinc-700 transition-all"
+                    >
+                      В канале ({premiumClients.filter(p => p.in_channel).length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        const filtered = premiumClients.filter(p =>
+                          (p.plan === '2months' || p.plan?.toLowerCase() === 'private') && p.in_channel
+                        )
+                        setSelectedUsers(filtered.map(p => p.telegram_id))
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#FFD700]/20 text-[#FFD700] hover:bg-[#FFD700]/30 transition-all"
+                    >
+                      PRIVATE + в канале ({premiumClients.filter(p => (p.plan === '2months' || p.plan?.toLowerCase() === 'private') && p.in_channel).length})
+                    </button>
+                  </div>
+                </div>
+
                 <p className="text-sm text-white/40 mt-3">
                   Выбрано: <span className="text-white font-medium">{selectedUsers.length}</span>
                 </p>
               </div>
 
+              {/* Картинка */}
+              <div className="bg-zinc-900 rounded-2xl p-4">
+                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-3">Картинка (опционально)</h3>
+                {broadcastImagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={broadcastImagePreview}
+                      alt="Preview"
+                      className="w-full max-h-48 object-contain rounded-lg"
+                    />
+                    <button
+                      onClick={clearBroadcastImage}
+                      className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-zinc-600 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                    <span className="text-white/40 text-sm">Нажмите для выбора картинки</span>
+                  </label>
+                )}
+              </div>
+
               {/* Сообщение */}
               <div className="bg-zinc-900 rounded-2xl p-4">
-                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-3">Сообщение</h3>
+                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-3">Сообщение {broadcastImage && '(подпись к картинке)'}</h3>
                 <textarea
                   value={broadcastMessage}
                   onChange={e => setBroadcastMessage(e.target.value)}
-                  placeholder="Введите текст..."
+                  placeholder={broadcastImage ? "Введите подпись к картинке..." : "Введите текст..."}
                   className="w-full h-32 bg-transparent text-white placeholder-white/30 focus:outline-none resize-none"
                 />
               </div>
@@ -1890,10 +2005,10 @@ export function FullCrmPage() {
               {/* Кнопка */}
               <button
                 onClick={handleBroadcast}
-                disabled={sendingBroadcast || !broadcastMessage.trim()}
+                disabled={sendingBroadcast || (!broadcastMessage.trim() && !broadcastImage)}
                 className="w-full py-4 bg-white text-black font-semibold rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
-                {sendingBroadcast ? 'Отправка...' : 'Отправить'}
+                {sendingBroadcast ? 'Отправка...' : broadcastImage ? 'Отправить картинку' : 'Отправить'}
               </button>
             </div>
           )}
