@@ -7,7 +7,8 @@ import SkinsPage from './pages/SkinsPage'
 import { ShopPage } from './pages/ShopPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { FarmPage } from './pages/FarmPage'
-// import { FarmPageGemini } from './pages/FarmPageGemini'
+import { FarmPageGemini } from './pages/FarmPageGemini'
+import { CrmPage } from './pages/CrmPage'
 import { GiveawaysPage } from './pages/GiveawaysPage'
 import { GiveawayDetailsPage } from './pages/GiveawayDetailsPage'
 import { GiveawayResultsPage } from './pages/GiveawayResultsPage'
@@ -78,6 +79,9 @@ function App() {
             <Route path="/live" element={<StreamPage />} />
             <Route path="/stream-admin" element={<StreamAdminPage />} />
             <Route path="/inbox" element={<InboxPage />} />
+            {/* Временные роуты для просмотра старых версий */}
+            <Route path="/crm-old" element={<CrmPage />} />
+            <Route path="/farm-alt" element={<FarmPageGemini />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>
