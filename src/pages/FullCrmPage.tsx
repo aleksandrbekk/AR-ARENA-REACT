@@ -337,10 +337,12 @@ export function FullCrmPage() {
       // Сортировка
       switch (sortBy) {
         case 'last_payment':
-          // По дате последнего платежа (новые вверху)
-          const aPayment = a.last_payment_at ? new Date(a.last_payment_at).getTime() : 0
-          const bPayment = b.last_payment_at ? new Date(b.last_payment_at).getTime() : 0
-          return bPayment - aPayment
+          // По дате последнего платежа (или начала подписки), новые вверху
+          const getSortDate = (c: PremiumClient) => {
+            if (c.last_payment_at) return new Date(c.last_payment_at).getTime()
+            return new Date(c.started_at).getTime()
+          }
+          return getSortDate(b) - getSortDate(a)
         case 'expires':
           // По дате истечения (скоро истекающие вверху)
           return new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime()
@@ -776,9 +778,9 @@ export function FullCrmPage() {
 
               {/* Бейдж плана */}
               <div className={`mt-3 px-4 py-1.5 rounded-full text-sm font-bold uppercase ${client.plan === 'private' ? 'bg-purple-500/20 text-purple-400' :
-                  client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
-                    client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
-                      'bg-zinc-700/50 text-white/70'
+                client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
+                  client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                    'bg-zinc-700/50 text-white/70'
                 }`}>
                 {client.plan || 'N/A'}
               </div>
@@ -959,9 +961,9 @@ export function FullCrmPage() {
 
               {/* Статус */}
               <div className={`mt-3 px-3 py-1 rounded-full text-sm ${selectedUser.status === 'premium' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
-                  selectedUser.status === 'new' ? 'bg-blue-500/20 text-blue-400' :
-                    selectedUser.status === 'expired' ? 'bg-red-500/20 text-red-400' :
-                      'bg-white/10 text-white/60'
+                selectedUser.status === 'new' ? 'bg-blue-500/20 text-blue-400' :
+                  selectedUser.status === 'expired' ? 'bg-red-500/20 text-red-400' :
+                    'bg-white/10 text-white/60'
                 }`}>
                 {selectedUser.status === 'premium' ? 'Premium' :
                   selectedUser.status === 'new' ? 'Новый' :
@@ -1579,9 +1581,9 @@ export function FullCrmPage() {
                           </div>
                         </div>
                         <div className={`px-3 py-1 rounded-full text-sm font-bold uppercase ${client.plan === 'private' ? 'bg-purple-500/20 text-purple-400' :
-                            client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
-                              client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
-                                'bg-zinc-700/50 text-white/70'
+                          client.plan === 'platinum' ? 'bg-cyan-500/20 text-cyan-400' :
+                            client.plan === 'gold' ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                              'bg-zinc-700/50 text-white/70'
                           }`}>
                           {client.plan || 'N/A'}
                         </div>
@@ -1697,8 +1699,8 @@ export function FullCrmPage() {
                               key={p.value}
                               onClick={() => setNewClientPeriod(p.value as typeof newClientPeriod)}
                               className={`py-3 rounded-xl text-center transition-all ${newClientPeriod === p.value
-                                  ? 'bg-white text-black'
-                                  : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
+                                ? 'bg-white text-black'
+                                : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
                                 }`}
                             >
                               <div className="font-medium">{p.label}</div>
@@ -1813,12 +1815,12 @@ export function FullCrmPage() {
                                         onClick={() => !isPast(day) && selectDay(day)}
                                         disabled={isPast(day)}
                                         className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-medium transition-all ${isSelected(day)
-                                            ? 'bg-white text-black'
-                                            : isToday(day)
-                                              ? 'bg-zinc-600 text-white ring-1 ring-white/30'
-                                              : isPast(day)
-                                                ? 'text-white/20 cursor-not-allowed'
-                                                : 'text-white/70 hover:bg-zinc-700 hover:text-white'
+                                          ? 'bg-white text-black'
+                                          : isToday(day)
+                                            ? 'bg-zinc-600 text-white ring-1 ring-white/30'
+                                            : isPast(day)
+                                              ? 'text-white/20 cursor-not-allowed'
+                                              : 'text-white/70 hover:bg-zinc-700 hover:text-white'
                                           }`}
                                       >
                                         {day}
