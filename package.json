@@ -12,9 +12,11 @@
   "dependencies": {
     "@notionhq/client": "^5.4.0",
     "@supabase/supabase-js": "^2.86.0",
+    "@types/pg": "^8.16.0",
     "autoprefixer": "^10.4.22",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.555.0",
+    "pg": "^8.16.3",
     "postcss": "^8.5.6",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",

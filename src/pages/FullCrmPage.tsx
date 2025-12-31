@@ -49,14 +49,6 @@ interface BotUser {
   last_seen_at: string
 }
 
-interface UtmStats {
-  source: string
-  users: number
-  appOpened: number
-  purchased: number
-  revenue: number
-}
-
 interface BroadcastRecord {
   id: string
   message: string | null
@@ -85,7 +77,6 @@ export function FullCrmPage() {
   const [users, setUsers] = useState<User[]>([])
   const [premiumClients, setPremiumClients] = useState<PremiumClient[]>([])
   const [botUsers, setBotUsers] = useState<BotUser[]>([])
-  const [utmStats, setUtmStats] = useState<UtmStats[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedUsers, setSelectedUsers] = useState<number[]>([])
   const [broadcastMessage, setBroadcastMessage] = useState('')
@@ -119,7 +110,6 @@ export function FullCrmPage() {
 
   // База пользователей (leads) фильтры
   const [leadsSearch, setLeadsSearch] = useState('')
-  const [leadsSourceFilter, setLeadsSourceFilter] = useState<string>('all')
   const [leadsStatusFilter, setLeadsStatusFilter] = useState<'all' | 'app_opened' | 'not_opened' | 'purchased'>('all')
 
   // Модалка добавления клиента
@@ -259,36 +249,7 @@ export function FullCrmPage() {
 
       setBotUsers(botUsersData as BotUser[] || [])
 
-      // Считаем UTM статистику
-      const appOpenedSet = new Set(usersWithStatus.map(u => u.telegram_id))
-      const purchasedMap = new Map<number, number>()
-      premiumWithAvatars.forEach(p => {
-        purchasedMap.set(p.telegram_id, p.original_amount || p.total_paid_usd || 0)
-      })
-
-      // Группируем по источникам
-      const sourceStats = new Map<string, UtmStats>()
-        ; (botUsersData || []).forEach((bu: any) => {
-          const src = bu.source || 'direct'
-          if (!sourceStats.has(src)) {
-            sourceStats.set(src, { source: src, users: 0, appOpened: 0, purchased: 0, revenue: 0 })
-          }
-          const stat = sourceStats.get(src)!
-          stat.users++
-          if (appOpenedSet.has(bu.telegram_id)) {
-            stat.appOpened++
-          }
-          if (purchasedMap.has(bu.telegram_id)) {
-            stat.purchased++
-            stat.revenue += purchasedMap.get(bu.telegram_id) || 0
-          }
-        })
-
-      // Сортируем по количеству пользователей
-      const stats = Array.from(sourceStats.values()).sort((a, b) => b.users - a.users)
-      setUtmStats(stats)
-
-    } catch (err) {
+      } catch (err) {
       console.error('Error:', err)
       showToast({ variant: 'error', title: 'Ошибка загрузки данных' })
     } finally {
@@ -1213,47 +1174,6 @@ export function FullCrmPage() {
                 )
               })()}
 
-              {/* UTM Аналитика */}
-              <div className="bg-zinc-900 rounded-2xl p-4">
-                <h3 className="text-sm text-white/40 uppercase tracking-wide mb-4">UTM-источники</h3>
-                <div className="space-y-2">
-                  {utmStats.map(stat => {
-                    const convRate = stat.users > 0 ? ((stat.purchased / stat.users) * 100).toFixed(1) : '0'
-                    return (
-                      <div
-                        key={stat.source}
-                        onClick={() => setLeadsSourceFilter(stat.source === leadsSourceFilter ? 'all' : stat.source)}
-                        className={`p-3 rounded-xl cursor-pointer transition-all ${leadsSourceFilter === stat.source ? 'bg-white/10 ring-1 ring-white/20' : 'bg-zinc-800/50 hover:bg-zinc-800'
-                          }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-medium">{stat.source}</span>
-                            <span className="text-white/40 text-sm">({stat.users})</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm">
-                            <span className="text-emerald-400">{stat.appOpened} app</span>
-                            <span className="text-[#FFD700]">{stat.purchased} paid</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-[#FFD700] rounded-full"
-                              style={{ width: `${Math.min(100, parseFloat(convRate) * 5)}%` }}
-                            />
-                          </div>
-                          <span className="text-white/50 text-xs w-12 text-right">{convRate}%</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {utmStats.length === 0 && (
-                    <div className="text-center text-white/30 py-4">Нет данных</div>
-                  )}
-                </div>
-              </div>
-
               {/* Фильтры */}
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {[
@@ -1300,11 +1220,6 @@ export function FullCrmPage() {
                       bu.first_name?.toLowerCase().includes(q) ||
                       bu.telegram_id.toString().includes(q)
                     if (!match) return false
-                  }
-
-                  // Фильтр по источнику
-                  if (leadsSourceFilter !== 'all') {
-                    if ((bu.source || 'direct') !== leadsSourceFilter) return false
                   }
 
                   // Фильтр по статусу
