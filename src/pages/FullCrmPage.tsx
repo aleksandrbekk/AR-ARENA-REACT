@@ -1509,10 +1509,10 @@ export function FullCrmPage() {
                     className="w-full px-3 py-2.5 bg-zinc-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px', paddingRight: '28px' }}
                   >
-                    <option value="last_payment">💳 Последний платёж</option>
-                    <option value="expires">⏰ Дата истечения</option>
-                    <option value="total_paid">💰 Сумма оплат</option>
-                    <option value="created">📆 Дата добавления</option>
+                    <option value="last_payment">Последний платёж</option>
+                    <option value="expires">Дата истечения</option>
+                    <option value="total_paid">Сумма оплат</option>
+                    <option value="created">Дата добавления</option>
                   </select>
                 </div>
               </div>
