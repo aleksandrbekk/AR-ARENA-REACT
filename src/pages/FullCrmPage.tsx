@@ -96,6 +96,9 @@ export function FullCrmPage() {
   const [planFilter, setPlanFilter] = useState<string>('all')
   const [monthFilter, setMonthFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'last_payment' | 'expires' | 'total_paid' | 'created'>('last_payment')
+  // Месяц для статистики выручки (по умолчанию текущий)
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  const [statsMonth, setStatsMonth] = useState<string>(currentMonth)
   const [daysToAdd, setDaysToAdd] = useState(30)
   const [selectedPremiumClient, setSelectedPremiumClient] = useState<PremiumClient | null>(null)
 
@@ -1306,10 +1309,18 @@ export function FullCrmPage() {
             <div className="space-y-4">
               {/* Статистика */}
               {(() => {
-                // Только реально оплатившие (не migration, и есть сумма > 0)
-                const paidClients = premiumClients.filter(c =>
+                // Все реально оплатившие (не migration, и есть сумма > 0)
+                const allPaidClients = premiumClients.filter(c =>
                   c.source !== 'migration' && (c.total_paid_usd > 0 || (c.original_amount ?? 0) > 0)
                 )
+
+                // Фильтруем по выбранному месяцу (по last_payment_at)
+                const paidClientsThisMonth = allPaidClients.filter(c => {
+                  if (!c.last_payment_at) return false
+                  const paymentDate = new Date(c.last_payment_at)
+                  const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+                  return paymentMonth === statsMonth
+                })
 
                 // Хелпер для определения типа валюты
                 const isUsdCurrency = (c: PremiumClient) => {
@@ -1324,28 +1335,65 @@ export function FullCrmPage() {
                   return cur === 'RUB' || (!c.currency && c.source === 'lava.top' && !isUsdCurrency(c) && !isEurCurrency(c))
                 }
 
-                // Считаем по валютам (только оплатившие)
-                const totalRub = paidClients
+                // Считаем по валютам (только за выбранный месяц)
+                const totalRub = paidClientsThisMonth
                   .filter(c => isRubCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
-                const totalUsd = paidClients
+                const totalUsd = paidClientsThisMonth
                   .filter(c => isUsdCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
-                const totalEur = paidClients
+                const totalEur = paidClientsThisMonth
                   .filter(c => isEurCurrency(c))
                   .reduce((sum, c) => sum + (c.original_amount || 0), 0)
 
                 const totalSubscribers = premiumClients.length
-                const paidCount = paidClients.length
+                const paidCountThisMonth = paidClientsThisMonth.length
 
-                // Средний чек (только по оплатившим)
+                // Средний чек (только за выбранный месяц)
                 const USD_TO_RUB = 100
                 const EUR_TO_RUB = 110
                 const totalInRub = totalRub + (totalUsd * USD_TO_RUB) + (totalEur * EUR_TO_RUB)
-                const avgCheck = paidCount > 0 ? Math.round(totalInRub / paidCount) : 0
+                const avgCheck = paidCountThisMonth > 0 ? Math.round(totalInRub / paidCountThisMonth) : 0
+
+                // Доступные месяцы для выбора
+                const availableStatsMonths = [...new Set(
+                  allPaidClients
+                    .filter(c => c.last_payment_at)
+                    .map(c => {
+                      const d = new Date(c.last_payment_at!)
+                      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                    })
+                )].sort().reverse()
+
+                // Названия месяцев
+                const monthNamesStats: Record<string, string> = {
+                  '01': 'Январь', '02': 'Февраль', '03': 'Март', '04': 'Апрель',
+                  '05': 'Май', '06': 'Июнь', '07': 'Июль', '08': 'Август',
+                  '09': 'Сентябрь', '10': 'Октябрь', '11': 'Ноябрь', '12': 'Декабрь'
+                }
+
+                const formatStatsMonth = (m: string) => {
+                  const [year, month] = m.split('-')
+                  return `${monthNamesStats[month]} ${year}`
+                }
 
                 return (
                   <div className="space-y-3">
+                    {/* Селектор месяца */}
+                    <div className="flex items-center justify-between">
+                      <div className="text-white/60 text-sm">Статистика за:</div>
+                      <select
+                        value={statsMonth}
+                        onChange={e => setStatsMonth(e.target.value)}
+                        className="px-3 py-1.5 bg-zinc-800 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 appearance-none cursor-pointer"
+                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23FFD700'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '14px', paddingRight: '28px' }}
+                      >
+                        {availableStatsMonths.map(m => (
+                          <option key={m} value={m}>{formatStatsMonth(m)}</option>
+                        ))}
+                      </select>
+                    </div>
+
                     {/* Выручка по валютам */}
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-zinc-900 rounded-xl p-3">
@@ -1365,15 +1413,15 @@ export function FullCrmPage() {
                     {/* Статистика подписчиков */}
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">Всего</div>
+                        <div className="text-white/40 text-[10px] mb-1">В клубе</div>
                         <div className="text-lg font-bold text-white">{totalSubscribers}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">Оплатили</div>
-                        <div className="text-lg font-bold text-emerald-400">{paidCount}</div>
+                        <div className="text-white/40 text-[10px] mb-1">Оплат</div>
+                        <div className="text-lg font-bold text-emerald-400">{paidCountThisMonth}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">Средний чек</div>
+                        <div className="text-white/40 text-[10px] mb-1">Ср. чек</div>
                         <div className="text-lg font-bold text-[#FFD700]">{avgCheck.toLocaleString('ru-RU')} ₽</div>
                       </div>
                     </div>
