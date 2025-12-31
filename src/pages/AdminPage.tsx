@@ -4,12 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { UsersTab } from '../components/admin/UsersTab'
 import { GiveawaysTab } from '../components/admin/GiveawaysTab'
-import { TransactionsTab } from '../components/admin/TransactionsTab'
-import { SettingsTab } from '../components/admin/SettingsTab'
 import { UtmLinksTab } from '../components/admin/UtmLinksTab'
 import { supabase } from '../lib/supabase'
 
-type AdminSection = 'dashboard' | 'users' | 'giveaways' | 'transactions' | 'settings' | 'utm'
+type AdminSection = 'dashboard' | 'users' | 'giveaways' | 'utm'
 
 interface DashboardStats {
   usersCount: number
@@ -227,36 +225,10 @@ export function AdminPage() {
                 </div>
               </button>
 
-              {/* 4. FINANCE */}
-              <button
-                onClick={() => setActiveSection('transactions')}
-                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
-              >
-                <img src="/icons/arcoin.png" alt="Finance" className="w-8 h-8 object-contain" />
-                <div className="text-center">
-                  <div className="text-white font-medium">Финансы</div>
-                </div>
-              </button>
-
-              {/* 6. SETTINGS */}
-              <button
-                onClick={() => setActiveSection('settings')}
-                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
-              >
-                <img
-                  src="/icons/icons/settings-gear.png"
-                  alt="Settings"
-                  className="w-8 h-8 object-contain"
-                />
-                <div className="text-center">
-                  <div className="text-white font-medium">Настройки</div>
-                </div>
-              </button>
-
-              {/* 7. UTM LINKS */}
+              {/* 4. UTM LINKS */}
               <button
                 onClick={() => setActiveSection('utm')}
-                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3 col-span-2"
+                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
               >
                 <svg
                   className="w-8 h-8 text-[#FFD700]"
@@ -299,8 +271,6 @@ export function AdminPage() {
             <div className="overflow-x-hidden">
               {activeSection === 'users' && <UsersTab />}
               {activeSection === 'giveaways' && <GiveawaysTab />}
-              {activeSection === 'transactions' && <TransactionsTab />}
-              {activeSection === 'settings' && <SettingsTab />}
               {activeSection === 'utm' && <UtmLinksTab />}
             </div>
           )}
