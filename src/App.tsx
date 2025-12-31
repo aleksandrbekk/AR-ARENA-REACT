@@ -20,7 +20,6 @@ import { PremiumPromoPage } from './pages/PremiumPromoPage'
 import { TariffsPage } from './pages/TariffsPage'
 import { PricingPage } from './pages/PricingPage'
 import { PricingPageGate } from './pages/PricingPageGate'
-import { PricingPage3 } from './pages/PricingPage3'
 import { StreamPage } from './pages/StreamPage'
 import { StreamAdminPage } from './pages/StreamAdminPage'
 import { InboxPage } from './pages/InboxPage'
@@ -72,7 +71,6 @@ function App() {
             <Route path="/tariffs" element={<TariffsPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/pricing-gate" element={<PricingPageGate />} />
-            <Route path="/pricing3" element={<PricingPage3 />} />
             <Route path="/stream" element={<StreamPage />} />
             <Route path="/live" element={<StreamPage />} />
             <Route path="/stream-admin" element={<StreamAdminPage />} />
