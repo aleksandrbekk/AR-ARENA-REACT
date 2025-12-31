@@ -79,6 +79,8 @@ export function FullCrmPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedUsers, setSelectedUsers] = useState<number[]>([])
   const [broadcastMessage, setBroadcastMessage] = useState('')
+  const [broadcastImage, setBroadcastImage] = useState<File | null>(null)
+  const [broadcastImagePreview, setBroadcastImagePreview] = useState<string | null>(null)
   const [sendingBroadcast, setSendingBroadcast] = useState(false)
   const [broadcastProgress, setBroadcastProgress] = useState({ sent: 0, total: 0 })
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
@@ -366,6 +368,10 @@ export function FullCrmPage() {
 
       if (error) throw error
 
+      // Проверяем был ли пользователь кикнут
+      const client = premiumClients.find(c => c.id === clientId)
+      const wasKicked = client?.tags?.includes('kicked')
+
       // Обновляем локальный стейт
       setPremiumClients(prev => prev.map(c =>
         c.id === clientId ? { ...c, expires_at: newExpires.toISOString() } : c
@@ -373,8 +379,35 @@ export function FullCrmPage() {
 
       showToast({ variant: 'success', title: `+${days} дней добавлено` })
 
-      // Уведомляем пользователя
-      await sendMessage(telegramId, `🎁 Вам начислено <b>${days} бонусных дней</b> подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')}`)
+      // Если был кикнут — восстанавливаем доступ (отправляем новые ссылки)
+      if (wasKicked) {
+        try {
+          const reinstateRes = await fetch('/api/reinstate-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_id: telegramId })
+          })
+          const reinstateData = await reinstateRes.json()
+
+          if (reinstateData.success) {
+            showToast({ variant: 'success', title: 'Ссылки отправлены пользователю' })
+            // Обновляем теги в локальном стейте
+            setPremiumClients(prev => prev.map(c =>
+              c.id === clientId ? { ...c, tags: reinstateData.newTags || [] } : c
+            ))
+          } else {
+            showToast({ variant: 'error', title: 'Ошибка отправки ссылок' })
+            // Всё равно уведомляем о продлении
+            await sendMessage(telegramId, `🎁 Вам начислено <b>${days} бонусных дней</b> подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')}\n\n⚠️ Для получения ссылок на канал и чат напишите @Andrey_cryptoinvestor`)
+          }
+        } catch {
+          // Если API недоступен, отправляем обычное сообщение
+          await sendMessage(telegramId, `🎁 Вам начислено <b>${days} бонусных дней</b> подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')}\n\n⚠️ Для получения ссылок на канал и чат напишите @Andrey_cryptoinvestor`)
+        }
+      } else {
+        // Обычное уведомление для не-кикнутых
+        await sendMessage(telegramId, `🎁 Вам начислено <b>${days} бонусных дней</b> подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')}`)
+      }
     } catch (err) {
       console.error('Error adding days:', err)
       showToast({ variant: 'error', title: 'Ошибка добавления дней' })
