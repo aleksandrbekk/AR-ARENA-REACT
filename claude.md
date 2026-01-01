@@ -123,6 +123,11 @@ B) [решение]
 - Заходит в Supabase Dashboard
 - Копирует SQL
 - Делает что-либо руками кроме проверки в Telegram
+- К супабэйс подключайся через гитхаб
+
+  aleksandrbekk@bk.ru
+
+  xYrsyp-6jyhgy-gubjyc
 
 ---
 

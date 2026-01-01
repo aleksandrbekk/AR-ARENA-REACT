@@ -935,28 +935,28 @@ export function FullCrmPage() {
             </div>
 
             {/* Действия */}
-            <button
-              onClick={() => { setMessageText(''); setShowMessageModal(true) }}
-              className="w-full py-4 bg-white/10 hover:bg-white/15 rounded-2xl text-white font-medium transition-colors mb-3"
-            >
-              💬 Написать сообщение
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={() => { setMessageText(''); setShowMessageModal(true) }}
+                className="w-full py-4 bg-zinc-800/50 hover:bg-zinc-700/50 rounded-2xl text-white font-medium transition-all active:scale-[0.98] backdrop-blur-sm border border-white/10"
+              >
+                Написать сообщение
+              </button>
 
-            {/* Кнопка отправки invite-ссылок */}
-            <button
-              onClick={() => { setInviteLinks(null); setShowInviteModal(true) }}
-              className="w-full py-4 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-2xl text-emerald-400 font-medium transition-colors mb-3"
-            >
-              🔗 Отправить ссылку-приглашение
-            </button>
+              <button
+                onClick={() => { setInviteLinks(null); setShowInviteModal(true) }}
+                className="w-full py-4 bg-zinc-800/50 hover:bg-zinc-700/50 rounded-2xl text-white font-medium transition-all active:scale-[0.98] backdrop-blur-sm border border-white/10"
+              >
+                Отправить ссылку-приглашение
+              </button>
 
-            {/* Кнопка удаления */}
-            <button
-              onClick={() => deletePremiumClient(client.id, client.telegram_id)}
-              className="w-full py-4 bg-red-500/10 hover:bg-red-500/20 rounded-2xl text-red-400 font-medium transition-colors mb-3"
-            >
-              🗑 Удалить клиента
-            </button>
+              <button
+                onClick={() => deletePremiumClient(client.id, client.telegram_id)}
+                className="w-full py-4 bg-zinc-800/50 hover:bg-red-500/20 rounded-2xl text-white/60 hover:text-red-400 font-medium transition-all active:scale-[0.98] backdrop-blur-sm border border-white/10 hover:border-red-500/30"
+              >
+                Удалить клиента
+              </button>
+            </div>
 
             {/* Модалка invite-ссылок */}
             {showInviteModal && (
@@ -964,53 +964,53 @@ export function FullCrmPage() {
                 <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-white">Ссылки-приглашения</h3>
-                    <button onClick={() => setShowInviteModal(false)} className="w-8 h-8 flex items-center justify-center text-white/60 text-2xl">×</button>
+                    <button onClick={() => setShowInviteModal(false)} className="w-8 h-8 flex items-center justify-center text-white/60 hover:text-white text-2xl transition-colors">×</button>
                   </div>
 
                   {!inviteLinks ? (
                     <div className="space-y-3">
-                      <p className="text-white/60 text-sm mb-4">
-                        Создайте новые invite-ссылки для {client.username ? `@${client.username}` : client.telegram_id}
+                      <p className="text-white/50 text-sm mb-4">
+                        Создать новые invite-ссылки для {client.username ? `@${client.username}` : client.telegram_id}
                       </p>
                       <button
                         onClick={async () => {
                           await generateInviteLinks(client.telegram_id, true)
                         }}
                         disabled={generatingInvite}
-                        className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl disabled:opacity-50 active:scale-[0.98] transition-all"
+                        className="w-full py-4 bg-white text-black font-semibold rounded-xl disabled:opacity-50 active:scale-[0.98] transition-all"
                       >
-                        {generatingInvite ? 'Генерация...' : '📤 Сгенерировать и отправить пользователю'}
+                        {generatingInvite ? 'Генерация...' : 'Сгенерировать и отправить'}
                       </button>
                       <button
                         onClick={async () => {
                           await generateInviteLinks(client.telegram_id, false)
                         }}
                         disabled={generatingInvite}
-                        className="w-full py-4 bg-zinc-700 hover:bg-zinc-600 text-white font-semibold rounded-xl disabled:opacity-50 active:scale-[0.98] transition-all"
+                        className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl disabled:opacity-50 active:scale-[0.98] transition-all"
                       >
-                        {generatingInvite ? 'Генерация...' : '🔗 Только сгенерировать (для копирования)'}
+                        {generatingInvite ? 'Генерация...' : 'Только сгенерировать'}
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-emerald-400 text-sm mb-2">Ссылки успешно сгенерированы!</p>
+                      <p className="text-emerald-400 text-sm">Ссылки сгенерированы</p>
 
                       <div className="space-y-3">
                         <div className="bg-zinc-800 rounded-xl p-3">
-                          <div className="text-white/50 text-xs mb-1">📺 Канал</div>
+                          <div className="text-white/40 text-xs uppercase tracking-wide mb-2">Канал</div>
                           <div className="flex items-center gap-2">
                             <input
                               type="text"
                               value={inviteLinks.channelLink}
                               readOnly
-                              className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                              className="flex-1 bg-transparent text-white text-sm focus:outline-none truncate"
                             />
                             <button
                               onClick={() => {
                                 navigator.clipboard.writeText(inviteLinks.channelLink)
-                                showToast({ variant: 'success', title: 'Ссылка скопирована' })
+                                showToast({ variant: 'success', title: 'Скопировано' })
                               }}
-                              className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-white transition-colors"
+                              className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-white transition-colors shrink-0"
                             >
                               Копировать
                             </button>
@@ -1018,20 +1018,20 @@ export function FullCrmPage() {
                         </div>
 
                         <div className="bg-zinc-800 rounded-xl p-3">
-                          <div className="text-white/50 text-xs mb-1">💬 Чат</div>
+                          <div className="text-white/40 text-xs uppercase tracking-wide mb-2">Чат</div>
                           <div className="flex items-center gap-2">
                             <input
                               type="text"
                               value={inviteLinks.chatLink}
                               readOnly
-                              className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                              className="flex-1 bg-transparent text-white text-sm focus:outline-none truncate"
                             />
                             <button
                               onClick={() => {
                                 navigator.clipboard.writeText(inviteLinks.chatLink)
-                                showToast({ variant: 'success', title: 'Ссылка скопирована' })
+                                showToast({ variant: 'success', title: 'Скопировано' })
                               }}
-                              className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-white transition-colors"
+                              className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-white transition-colors shrink-0"
                             >
                               Копировать
                             </button>
@@ -1041,16 +1041,16 @@ export function FullCrmPage() {
 
                       <button
                         onClick={() => {
-                          const text = `📺 Канал: ${inviteLinks.channelLink}\n💬 Чат: ${inviteLinks.chatLink}`
+                          const text = `Канал: ${inviteLinks.channelLink}\nЧат: ${inviteLinks.chatLink}`
                           navigator.clipboard.writeText(text)
                           showToast({ variant: 'success', title: 'Обе ссылки скопированы' })
                         }}
-                        className="w-full py-3 bg-zinc-700 hover:bg-zinc-600 text-white font-medium rounded-xl transition-colors"
+                        className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors"
                       >
-                        📋 Копировать обе ссылки
+                        Копировать обе ссылки
                       </button>
 
-                      <p className="text-white/40 text-xs text-center">
+                      <p className="text-white/30 text-xs text-center">
                         Ссылки одноразовые, действуют 7 дней
                       </p>
                     </div>
