@@ -56,7 +56,8 @@ interface InboxStats {
 }
 
 // ============ КОНСТАНТЫ ============
-const ADMIN_PASSWORD = 'arena2024'
+// SECURITY: Password from env variable (set in Vercel)
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
 const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
 
 // ============ КОМПОНЕНТ ============

@@ -551,9 +551,8 @@ export default async function handler(req, res) {
     }
 
     if (!isAuthorized) {
-      log('⚠️ No valid authorization (allowing for debugging)');
-      // Пока разрешаем для отладки, потом раскомментировать:
-      // return res.status(403).json({ error: 'Unauthorized' });
+      log('❌ Unauthorized webhook request');
+      return res.status(403).json({ error: 'Unauthorized' });
     }
 
     // ============================================
