@@ -241,7 +241,7 @@ async function checkSubscription(telegramId) {
 function formatDate(dateStr) {
   const date = new Date(dateStr);
   const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-                  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
@@ -472,6 +472,51 @@ function getDaysWord(days) {
 }
 
 // ============================================
+// AUTOMATION LOGIC
+// ============================================
+
+async function checkAndRunAutomation(chatId, telegramId, conversationId, text) {
+  if (!text) return;
+
+  try {
+    // 1. Получаем все активные правила
+    const { data: rules, error } = await supabase
+      .from('automation_rules')
+      .select('trigger_keyword, response_text, match_type')
+      .eq('is_active', true);
+
+    if (error || !rules || rules.length === 0) return;
+
+    const lowerText = text.toLowerCase();
+
+    // 2. Ищем совпадение
+    const matchedRule = rules.find(rule => {
+      const keyword = rule.trigger_keyword.toLowerCase();
+
+      if (rule.match_type === 'exact') {
+        return lowerText === keyword;
+      }
+      if (rule.match_type === 'starts_with') {
+        return lowerText.startsWith(keyword);
+      }
+      // default: contains
+      return lowerText.includes(keyword);
+    });
+
+    // 3. Если нашли - отвечаем
+    if (matchedRule) {
+      log(`⚡ Automation triggered: "${matchedRule.trigger_keyword}" -> responding to ${telegramId}`);
+
+      await sendMessage(chatId, matchedRule.response_text);
+      saveOutgoingMessage(conversationId, telegramId, matchedRule.response_text, 'auto_rule'); // sent_by = auto_rule
+    }
+
+  } catch (err) {
+    log('❌ runAutomation error', { error: err.message });
+  }
+}
+
+// ============================================
 // MAIN HANDLER
 // ============================================
 
@@ -603,6 +648,13 @@ export default async function handler(req, res) {
     if (text === '/status' || text === '/подписка' || text === '/sub' || text === '/subscription') {
       log(`👤 /status from ${telegramId}`);
       await handleStatus(chatId, telegramId, conversationId);
+    }
+
+    // ============================================
+    // ЗАПУСК АВТОМАТИЗАЦИИ (для обычного текста)
+    // ============================================
+    if (!text.startsWith('/')) {
+      await checkAndRunAutomation(chatId, telegramId, conversationId, text);
     }
 
     return res.status(200).json({ ok: true });
