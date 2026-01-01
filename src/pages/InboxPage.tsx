@@ -61,8 +61,14 @@ const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
 
 // ============ КОМПОНЕНТ ============
 export function InboxPage() {
-  // const navigate = useNavigate()
-  const { projectId } = useOutletContext<{ projectId: string }>()
+  // projectId is optional - only available when rendered under AdminLayout
+  let projectId: string | undefined = undefined
+  try {
+    const context = useOutletContext<{ projectId: string } | null>()
+    projectId = context?.projectId
+  } catch {
+    // Running standalone, no context available
+  }
 
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState(false)
