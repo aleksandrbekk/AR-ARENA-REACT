@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
@@ -103,7 +104,7 @@ export function FullCrmPage() {
   const [monthFilter, setMonthFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'last_payment' | 'expires' | 'total_paid' | 'created'>('last_payment')
   // Месяц для статистики выручки (по умолчанию текущий)
-  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  const currentMonth = `${new Date().getFullYear()} -${String(new Date().getMonth() + 1).padStart(2, '0')} `
   const [statsMonth, setStatsMonth] = useState<string>(currentMonth)
   const [daysToAdd, setDaysToAdd] = useState(30)
   const [selectedPremiumClient, setSelectedPremiumClient] = useState<PremiumClient | null>(null)
@@ -249,7 +250,7 @@ export function FullCrmPage() {
 
       setBotUsers(botUsersData as BotUser[] || [])
 
-      } catch (err) {
+    } catch (err) {
       console.error('Error:', err)
       showToast({ variant: 'error', title: 'Ошибка загрузки данных' })
     } finally {
@@ -299,7 +300,7 @@ export function FullCrmPage() {
       // Фильтр по месяцу (по дате последнего платежа)
       if (monthFilter !== 'all' && client.last_payment_at) {
         const paymentDate = new Date(client.last_payment_at)
-        const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+        const paymentMonth = `${paymentDate.getFullYear()} -${String(paymentDate.getMonth() + 1).padStart(2, '0')} `
         if (paymentMonth !== monthFilter) return false
       }
 
@@ -339,7 +340,7 @@ export function FullCrmPage() {
       .filter(c => c.last_payment_at)
       .map(c => {
         const d = new Date(c.last_payment_at!)
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        return `${d.getFullYear()} -${String(d.getMonth() + 1).padStart(2, '0')} `
       })
   )].sort().reverse()
 
@@ -351,12 +352,12 @@ export function FullCrmPage() {
 
   const formatMonthLabel = (m: string) => {
     const [year, month] = m.split('-')
-    return `${monthNames[month]} ${year}`
+    return `${monthNames[month]} ${year} `
   }
 
   // ============ УДАЛИТЬ КЛИЕНТА ============
   const deletePremiumClient = async (clientId: string, telegramId: number) => {
-    if (!confirm(`Удалить клиента ${telegramId} из Premium?`)) return
+    if (!confirm(`Удалить клиента ${telegramId} из Premium ? `)) return
 
     try {
       const { error } = await supabase
@@ -401,7 +402,7 @@ export function FullCrmPage() {
         c.id === clientId ? { ...c, expires_at: newExpires.toISOString() } : c
       ))
 
-      showToast({ variant: 'success', title: `+${days} дней добавлено` })
+      showToast({ variant: 'success', title: `+ ${days} дней добавлено` })
 
       // Если был кикнут — восстанавливаем доступ (отправляем новые ссылки)
       if (wasKicked) {
@@ -422,15 +423,15 @@ export function FullCrmPage() {
           } else {
             showToast({ variant: 'error', title: 'Ошибка отправки ссылок' })
             // Всё равно уведомляем о продлении
-            await sendMessage(telegramId, `🎁 Вам начислено <b>${days} бонусных дней</b> подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')}\n\n⚠️ Для получения ссылок на канал и чат напишите @Andrey_cryptoinvestor`)
+            await sendMessage(telegramId, `🎁 Вам начислено < b > ${days} бонусных дней</b > подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')} \n\n⚠️ Для получения ссылок на канал и чат напишите @Andrey_cryptoinvestor`)
           }
         } catch {
           // Если API недоступен, отправляем обычное сообщение
-          await sendMessage(telegramId, `🎁 Вам начислено <b>${days} бонусных дней</b> подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')}\n\n⚠️ Для получения ссылок на канал и чат напишите @Andrey_cryptoinvestor`)
+          await sendMessage(telegramId, `🎁 Вам начислено < b > ${days} бонусных дней</b > подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')} \n\n⚠️ Для получения ссылок на канал и чат напишите @Andrey_cryptoinvestor`)
         }
       } else {
         // Обычное уведомление для не-кикнутых
-        await sendMessage(telegramId, `🎁 Вам начислено <b>${days} бонусных дней</b> подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')}`)
+        await sendMessage(telegramId, `🎁 Вам начислено < b > ${days} бонусных дней</b > подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')} `)
       }
     } catch (err) {
       console.error('Error adding days:', err)

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, LayoutDashboard, MessageSquare, Settings, ChevronDown, Check, Plus } from 'lucide-react'
-// import { supabase } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 
 interface Project {
     id: string
@@ -19,24 +19,52 @@ export function AdminLayout() {
     // -- 1. Загрузка проектов при старте
     useEffect(() => {
         async function fetchProjects() {
-            // Здесь потом будет fetch из Supabase
-            // Пока мокаем данные, чтобы не ломать логику до полного API
-            // const { data } = await supabase.from('projects').select('id, name')
+            try {
+                const { data, error } = await supabase
+                    .from('projects')
+                    .select('id, name')
+                    .order('created_at', { ascending: true })
 
-            const mockProjects = [
-                { id: '11111111-1111-1111-1111-111111111111', name: 'AR ARENA (Main)' },
-                { id: '22222222-2222-2222-2222-222222222222', name: 'Личный Бренд' }
-            ]
-            setProjects(mockProjects)
+                if (error) {
+                    console.error('Error fetching projects:', error)
+                    // Fallback: use mock project if DB error
+                    const mockProject = { id: 'default', name: 'AR ARENA (Fallback)' }
+                    setProjects([mockProject])
+                    setCurrentProject(mockProject)
+                    return
+                }
 
-            // Еcли в URL нет projectId, редиректим на первый проект
-            if (!projectId && mockProjects.length > 0) {
-                navigate(`/app/${mockProjects[0].id}/dashboard`, { replace: true })
-            } else if (projectId) {
-                const found = mockProjects.find(p => p.id === projectId)
-                if (found) setCurrentProject(found)
+                if (data && data.length > 0) {
+                    setProjects(data)
+
+                    // Если в URL нет projectId или он невалидный, редиректим на первый проект
+                    const validProject = projectId ? data.find(p => p.id === projectId) : null
+
+                    if (!projectId || !validProject) {
+                        // Если пришли без ID или с неверным ID -> редирект на первый доступный
+                        navigate(`/app/${data[0].id}/dashboard`, { replace: true })
+                        setCurrentProject(data[0])
+                    } else {
+                        // Если ID валидный -> устанавливаем его
+                        setCurrentProject(validProject)
+                    }
+                } else {
+                    // Случай если проектов нет вообще - используем fallback
+                    console.warn('No projects found in database, using fallback')
+                    const fallbackProject = { id: 'main', name: 'AR ARENA (Main)' }
+                    setProjects([fallbackProject])
+                    setCurrentProject(fallbackProject)
+                    navigate(`/app/main/dashboard`, { replace: true })
+                }
+            } catch (e) {
+                console.error('Exception fetching projects:', e)
+                // Fallback on exception
+                const fallbackProject = { id: 'default', name: 'AR ARENA (Error Fallback)' }
+                setProjects([fallbackProject])
+                setCurrentProject(fallbackProject)
             }
         }
+
         fetchProjects()
     }, [projectId, navigate])
 
