@@ -109,6 +109,11 @@ export function FullCrmPage() {
   const [daysToAdd, setDaysToAdd] = useState(30)
   const [selectedPremiumClient, setSelectedPremiumClient] = useState<PremiumClient | null>(null)
 
+  // Модалка для отправки invite-ссылок
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviteLinks, setInviteLinks] = useState<{ channelLink: string; chatLink: string } | null>(null)
+  const [generatingInvite, setGeneratingInvite] = useState(false)
+
   // База пользователей (leads) фильтры
   const [leadsSearch, setLeadsSearch] = useState('')
   const [leadsStatusFilter, setLeadsStatusFilter] = useState<'all' | 'app_opened' | 'not_opened' | 'purchased'>('all')
@@ -568,6 +573,37 @@ export function FullCrmPage() {
     } catch { return false }
   }
 
+  // Генерация и отправка invite-ссылок через API
+  const generateInviteLinks = async (telegramId: number, sendToUser: boolean = false) => {
+    try {
+      setGeneratingInvite(true)
+      const res = await fetch('/api/admin-send-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: telegramId, send_to_user: sendToUser })
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setInviteLinks({ channelLink: data.channelLink, chatLink: data.chatLink })
+        if (sendToUser && data.sent) {
+          showToast({ variant: 'success', title: 'Ссылки отправлены пользователю' })
+        }
+        return data
+      } else {
+        showToast({ variant: 'error', title: data.error || 'Ошибка генерации ссылок' })
+        return null
+      }
+    } catch (err) {
+      console.error('Generate invite error:', err)
+      showToast({ variant: 'error', title: 'Ошибка сети' })
+      return null
+    } finally {
+      setGeneratingInvite(false)
+    }
+  }
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -906,6 +942,14 @@ export function FullCrmPage() {
               💬 Написать сообщение
             </button>
 
+            {/* Кнопка отправки invite-ссылок */}
+            <button
+              onClick={() => { setInviteLinks(null); setShowInviteModal(true) }}
+              className="w-full py-4 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-2xl text-emerald-400 font-medium transition-colors mb-3"
+            >
+              🔗 Отправить ссылку-приглашение
+            </button>
+
             {/* Кнопка удаления */}
             <button
               onClick={() => deletePremiumClient(client.id, client.telegram_id)}
@@ -913,6 +957,107 @@ export function FullCrmPage() {
             >
               🗑 Удалить клиента
             </button>
+
+            {/* Модалка invite-ссылок */}
+            {showInviteModal && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end justify-center z-50">
+                <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Ссылки-приглашения</h3>
+                    <button onClick={() => setShowInviteModal(false)} className="w-8 h-8 flex items-center justify-center text-white/60 text-2xl">×</button>
+                  </div>
+
+                  {!inviteLinks ? (
+                    <div className="space-y-3">
+                      <p className="text-white/60 text-sm mb-4">
+                        Создайте новые invite-ссылки для {client.username ? `@${client.username}` : client.telegram_id}
+                      </p>
+                      <button
+                        onClick={async () => {
+                          await generateInviteLinks(client.telegram_id, true)
+                        }}
+                        disabled={generatingInvite}
+                        className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl disabled:opacity-50 active:scale-[0.98] transition-all"
+                      >
+                        {generatingInvite ? 'Генерация...' : '📤 Сгенерировать и отправить пользователю'}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await generateInviteLinks(client.telegram_id, false)
+                        }}
+                        disabled={generatingInvite}
+                        className="w-full py-4 bg-zinc-700 hover:bg-zinc-600 text-white font-semibold rounded-xl disabled:opacity-50 active:scale-[0.98] transition-all"
+                      >
+                        {generatingInvite ? 'Генерация...' : '🔗 Только сгенерировать (для копирования)'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-emerald-400 text-sm mb-2">Ссылки успешно сгенерированы!</p>
+
+                      <div className="space-y-3">
+                        <div className="bg-zinc-800 rounded-xl p-3">
+                          <div className="text-white/50 text-xs mb-1">📺 Канал</div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={inviteLinks.channelLink}
+                              readOnly
+                              className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                            />
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(inviteLinks.channelLink)
+                                showToast({ variant: 'success', title: 'Ссылка скопирована' })
+                              }}
+                              className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-white transition-colors"
+                            >
+                              Копировать
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="bg-zinc-800 rounded-xl p-3">
+                          <div className="text-white/50 text-xs mb-1">💬 Чат</div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={inviteLinks.chatLink}
+                              readOnly
+                              className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                            />
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(inviteLinks.chatLink)
+                                showToast({ variant: 'success', title: 'Ссылка скопирована' })
+                              }}
+                              className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-white transition-colors"
+                            >
+                              Копировать
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          const text = `📺 Канал: ${inviteLinks.channelLink}\n💬 Чат: ${inviteLinks.chatLink}`
+                          navigator.clipboard.writeText(text)
+                          showToast({ variant: 'success', title: 'Обе ссылки скопированы' })
+                        }}
+                        className="w-full py-3 bg-zinc-700 hover:bg-zinc-600 text-white font-medium rounded-xl transition-colors"
+                      >
+                        📋 Копировать обе ссылки
+                      </button>
+
+                      <p className="text-white/40 text-xs text-center">
+                        Ссылки одноразовые, действуют 7 дней
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Модалка сообщения */}
             {showMessageModal && (

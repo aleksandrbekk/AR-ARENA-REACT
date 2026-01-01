@@ -1,19 +1,22 @@
 # Current State
 
-## 🚀 Active Task used CLAUDE.md
-**Implementing Unified Admin Workspace (Stage 2)**
+## 🚀 Active Task
+**Inbox Automation & Supabase Integration (Stage 3)**
 
 ### ✅ Done
-- Upgraded `react-router-dom` to latest version.
-- Created `src/layouts/AdminLayout.tsx` with Sidebar and Project Selector (Mock Data).
-- Refactored `src/App.tsx` to use `createBrowserRouter` and `React.lazy` for Admin modules.
-- Verified build (`npm run build`).
+- **Unified Admin Layout (Stage 2)**:
+  - Sidebar, Project Selector (with fallback), Lazy Routing.
+  - `/app` works, `/inbox` works standalone.
+- **Inbox Automation (MVP)**:
+  - Tabbed Interface (Chats / Automation).
+  - `AutomationRules` UI component functioning.
+  - **Connected to Supabase**: Created `automation_rules` table and implemented full CRUD (Create, Read, Update, Delete) in the UI.
+  - Fixes: `FullCrmPage.tsx` build errors resolved.
 
 ### ⏳ Next Steps
-- Verify in browser (User action).
-- Connect Project Selector to real Supabase data.
-- Update `FullCrmPage` and `InboxPage` to respect `projectId` from URL.
+- **Backend Logic**: Implement the actual message interception logic (webhook or process) that *uses* these rules to auto-reply.
+- **Testing**: Verify auto-responses in a real Telegram bot conversation.
 
 ## 📝 Notes
-- Admin pages are now lazy loaded!
-- Route structure: `/app/:projectId/dashboard`, `/app/:projectId/crm`, `/app/:projectId/inbox`.
+- Rules are now stored in `automation_rules` table.
+- Admin Panel is live at `https://ararena.pro/inbox` (or `/app/...`).
