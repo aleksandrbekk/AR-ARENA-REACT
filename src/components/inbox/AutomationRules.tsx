@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { Plus, Trash2, Zap, Save } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Plus, Trash2, Zap, Save, Loader2 } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 
-// В будущем это будет приходить из БД (chat_flows)
 interface AutomationRule {
     id: string
     trigger_keyword: string
@@ -10,39 +10,123 @@ interface AutomationRule {
 }
 
 export function AutomationRules({ projectId }: { projectId: string | undefined }) {
-    // Silence unused warning for now
-    console.log('AutomationRules mounted for project:', projectId)
-
-    const [rules, setRules] = useState<AutomationRule[]>([
-        { id: '1', trigger_keyword: '/start', response_text: 'Привет! Я бот.', is_active: true },
-        { id: '2', trigger_keyword: 'цена', response_text: 'Наши тарифы: ...', is_active: true }
-    ])
+    const [rules, setRules] = useState<AutomationRule[]>([])
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
 
     const [isAdding, setIsAdding] = useState(false)
     const [newKeyword, setNewKeyword] = useState('')
     const [newResponse, setNewResponse] = useState('')
 
-    const handleAddRule = () => {
-        if (!newKeyword || !newResponse) return
+    // Load rules from Supabase
+    const loadRules = useCallback(async () => {
+        try {
+            setLoading(true)
+            const { data, error } = await supabase
+                .from('automation_rules')
+                .select('*')
+                .order('created_at', { ascending: false })
 
-        const newRule: AutomationRule = {
-            id: Date.now().toString(),
-            trigger_keyword: newKeyword,
-            response_text: newResponse,
-            is_active: true
+            if (error) {
+                console.error('Error loading rules:', error)
+                return
+            }
+
+            setRules(data || [])
+        } catch (err) {
+            console.error('Exception loading rules:', err)
+        } finally {
+            setLoading(false)
         }
+    }, [])
 
-        setRules([...rules, newRule])
-        setIsAdding(false)
-        setNewKeyword('')
-        setNewResponse('')
+    useEffect(() => {
+        loadRules()
+    }, [loadRules])
 
-        // TODO: Save to Supabase (chat_flows)
+    // Log projectId for future multi-project support
+    useEffect(() => {
+        if (projectId) {
+            console.log('AutomationRules for project:', projectId)
+        }
+    }, [projectId])
+
+    const handleAddRule = async () => {
+        if (!newKeyword.trim() || !newResponse.trim()) return
+
+        setSaving(true)
+        try {
+            const { data, error } = await supabase
+                .from('automation_rules')
+                .insert({
+                    trigger_keyword: newKeyword.trim(),
+                    response_text: newResponse.trim(),
+                    is_active: true
+                })
+                .select()
+                .single()
+
+            if (error) {
+                console.error('Error adding rule:', error)
+                alert('Ошибка при добавлении правила')
+                return
+            }
+
+            setRules([data, ...rules])
+            setIsAdding(false)
+            setNewKeyword('')
+            setNewResponse('')
+        } catch (err) {
+            console.error('Exception adding rule:', err)
+        } finally {
+            setSaving(false)
+        }
     }
 
-    const handleDelete = (id: string) => {
-        setRules(rules.filter(r => r.id !== id))
-        // TODO: Delete from Supabase
+    const handleDelete = async (id: string) => {
+        if (!confirm('Удалить это правило?')) return
+
+        try {
+            const { error } = await supabase
+                .from('automation_rules')
+                .delete()
+                .eq('id', id)
+
+            if (error) {
+                console.error('Error deleting rule:', error)
+                return
+            }
+
+            setRules(rules.filter(r => r.id !== id))
+        } catch (err) {
+            console.error('Exception deleting rule:', err)
+        }
+    }
+
+    const toggleRule = async (id: string, currentState: boolean) => {
+        try {
+            const { error } = await supabase
+                .from('automation_rules')
+                .update({ is_active: !currentState })
+                .eq('id', id)
+
+            if (error) {
+                console.error('Error toggling rule:', error)
+                return
+            }
+
+            setRules(rules.map(r => r.id === id ? { ...r, is_active: !currentState } : r))
+        } catch (err) {
+            console.error('Exception toggling rule:', err)
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="flex-1 flex items-center justify-center bg-[#0a0a0a]">
+                <Loader2 className="w-8 h-8 text-yellow-500 animate-spin" />
+            </div>
+        )
     }
 
     return (
@@ -105,10 +189,10 @@ export function AutomationRules({ projectId }: { projectId: string | undefined }
                             </button>
                             <button
                                 onClick={handleAddRule}
-                                disabled={!newKeyword || !newResponse}
+                                disabled={!newKeyword.trim() || !newResponse.trim() || saving}
                                 className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition disabled:opacity-50"
                             >
-                                <Save size={16} />
+                                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                 Сохранить
                             </button>
                         </div>
@@ -118,11 +202,19 @@ export function AutomationRules({ projectId }: { projectId: string | undefined }
                 {/* Rules List */}
                 <div className="space-y-4">
                     {rules.map(rule => (
-                        <div key={rule.id} className="group bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 flex items-center justify-between transition">
+                        <div
+                            key={rule.id}
+                            className={`group bg-zinc-900/50 border rounded-xl p-4 flex items-center justify-between transition ${rule.is_active ? 'border-zinc-800 hover:border-zinc-700' : 'border-zinc-800/50 opacity-50'
+                                }`}
+                        >
                             <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${rule.is_active ? 'bg-yellow-500/10 text-yellow-500' : 'bg-zinc-800 text-zinc-600'}`}>
+                                <button
+                                    onClick={() => toggleRule(rule.id, rule.is_active)}
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition ${rule.is_active ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-zinc-800 text-zinc-600 hover:bg-zinc-700'
+                                        }`}
+                                >
                                     <Zap size={20} />
-                                </div>
+                                </button>
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <span className="font-mono text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded text-sm">
@@ -130,7 +222,7 @@ export function AutomationRules({ projectId }: { projectId: string | undefined }
                                         </span>
                                         <span className="text-zinc-600">→</span>
                                         <span className="text-zinc-300">
-                                            {rule.response_text}
+                                            {rule.response_text.length > 50 ? rule.response_text.slice(0, 50) + '...' : rule.response_text}
                                         </span>
                                     </div>
                                 </div>
@@ -149,6 +241,7 @@ export function AutomationRules({ projectId }: { projectId: string | undefined }
                         <div className="text-center py-12 text-zinc-500">
                             <Zap className="w-12 h-12 mx-auto mb-4 opacity-20" />
                             <p>Нет активных правил</p>
+                            <p className="text-sm mt-2">Создайте первое правило для автоответов</p>
                         </div>
                     )}
                 </div>
