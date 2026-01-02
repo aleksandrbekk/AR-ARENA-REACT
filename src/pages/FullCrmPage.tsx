@@ -104,7 +104,7 @@ export function FullCrmPage() {
   const [monthFilter, setMonthFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'last_payment' | 'expires' | 'total_paid' | 'created'>('last_payment')
   // Месяц для статистики выручки (по умолчанию текущий)
-  const currentMonth = `${new Date().getFullYear()} -${String(new Date().getMonth() + 1).padStart(2, '0')} `
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
   const [statsMonth, setStatsMonth] = useState<string>(currentMonth)
   const [daysToAdd, setDaysToAdd] = useState(30)
   const [selectedPremiumClient, setSelectedPremiumClient] = useState<PremiumClient | null>(null)
