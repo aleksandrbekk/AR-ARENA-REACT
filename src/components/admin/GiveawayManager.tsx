@@ -301,7 +301,7 @@ export function GiveawayManager() {
                     <span className="text-blue-400 text-sm">Ред.</span>
                   </button>
                   <button
-                    onClick={() => handleDelete(g.id, g.title)}
+                    onClick={() => handleDelete(g.id, g.main_title || g.title || g.name || 'Розыгрыш')}
                     disabled={loading}
                     className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                     title="Удалить"

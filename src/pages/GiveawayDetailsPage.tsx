@@ -244,9 +244,9 @@ export function GiveawayDetailsPage() {
                   </div>
                   <div className="flex-1">
                     <p className="text-white font-medium">
-                      {prize.amount > 0 ? `${prize.amount.toLocaleString()} ${giveaway.currency?.toUpperCase()}` : ''}
-                      {prize.amount > 0 && prize.percentage > 0 ? ' + ' : ''}
-                      {prize.percentage > 0 ? `${prize.percentage}% джекпота` : ''}
+                      {(prize.amount ?? 0) > 0 ? `${(prize.amount ?? 0).toLocaleString()} ${giveaway.currency?.toUpperCase() || 'AR'}` : ''}
+                      {(prize.amount ?? 0) > 0 && (prize.percentage ?? 0) > 0 ? ' + ' : ''}
+                      {(prize.percentage ?? 0) > 0 ? `${prize.percentage}% джекпота` : ''}
                     </p>
                   </div>
                 </motion.div>

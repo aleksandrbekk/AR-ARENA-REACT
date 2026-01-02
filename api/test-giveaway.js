@@ -1,6 +1,6 @@
 // API для создания и запуска тестового розыгрыша
 // ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ - удалить после проверки
-// 2024-12-31
+// Использует полную 4-этапную механику через Edge Function
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -19,18 +19,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Создаем тестовый розыгрыш с правильной структурой таблицы
+    console.log('Creating test giveaway...');
+
+    // 1. Создаем тестовый розыгрыш
     const now = new Date();
-    const endDate = new Date(now.getTime() - 60000).toISOString(); // 1 минуту назад
+    const endDate = new Date(now.getTime() - 60000).toISOString(); // 1 минуту назад (уже истёк)
     const startDate = new Date(now.getTime() - 86400000).toISOString(); // 1 день назад
 
     const { data: giveaway, error: giveawayError } = await supabase
       .from('giveaways')
       .insert({
-        name: 'Тестовый Новогодний Розыгрыш',
-        main_title: 'Новогодний Розыгрыш 2025',
-        subtitle: 'Тестовый розыгрыш',
-        description: 'Автоматический тест системы розыгрышей AR ARENA',
+        name: 'Тестовый Розыгрыш',
+        main_title: 'Тестовый Розыгрыш AR ARENA',
+        subtitle: 'Тест 4-этапной механики',
+        description: 'Автоматический тест системы розыгрышей с полной механикой: Tour 1 → Tour 2 → Semifinal → Final',
         type: 'money',
         status: 'active',
         start_date: startDate,
@@ -51,138 +53,101 @@ export default async function handler(req, res) {
       .single();
 
     if (giveawayError) {
+      console.error('Failed to create giveaway:', giveawayError);
       return res.status(500).json({ error: 'Failed to create giveaway', details: giveawayError });
     }
 
     console.log('Created giveaway:', giveaway.id);
 
-    // 2. Получаем реальных пользователей из базы для билетов
+    // 2. Получаем реальных пользователей из базы
     const { data: users, error: usersError } = await supabase
       .from('users')
       .select('telegram_id, first_name, username')
       .limit(30);
 
-    let ticketCount = 0;
+    if (usersError) {
+      console.error('Failed to fetch users:', usersError);
+    }
 
-    if (usersError || !users || users.length < 5) {
-      // Если мало пользователей, создадим билеты с fake user_id
-      const tickets = [];
+    let ticketCount = 0;
+    const tickets = [];
+
+    if (!users || users.length < 5) {
+      // Если мало пользователей, создаём билеты с fake user_id
+      console.log('Creating tickets for fake users...');
       for (let i = 1; i <= 25; i++) {
         const numTickets = Math.floor(Math.random() * 3) + 1;
         for (let t = 0; t < numTickets; t++) {
+          ticketCount++;
           tickets.push({
             giveaway_id: giveaway.id,
             user_id: 100000 + i,
-            ticket_number: ticketCount + t + 1
+            ticket_number: ticketCount
           });
         }
-        ticketCount += numTickets;
       }
-
-      const { error: ticketsError } = await supabase
-        .from('giveaway_tickets')
-        .insert(tickets);
-
-      if (ticketsError) {
-        return res.status(500).json({ error: 'Failed to create tickets', details: ticketsError });
-      }
-
-      console.log('Created', tickets.length, 'tickets for fake users');
     } else {
       // Используем реальных пользователей
-      const tickets = [];
+      console.log(`Creating tickets for ${users.length} real users...`);
       for (const u of users) {
         const numTickets = Math.floor(Math.random() * 3) + 1;
         for (let t = 0; t < numTickets; t++) {
+          ticketCount++;
           tickets.push({
             giveaway_id: giveaway.id,
             user_id: u.telegram_id,
-            ticket_number: ticketCount + t + 1
+            ticket_number: ticketCount
           });
         }
-        ticketCount += numTickets;
       }
-
-      const { error: ticketsError } = await supabase
-        .from('giveaway_tickets')
-        .insert(tickets);
-
-      if (ticketsError) {
-        return res.status(500).json({ error: 'Failed to create tickets', details: ticketsError });
-      }
-
-      console.log('Created', tickets.length, 'tickets for', users.length, 'real users');
     }
 
+    const { error: ticketsError } = await supabase
+      .from('giveaway_tickets')
+      .insert(tickets);
+
+    if (ticketsError) {
+      console.error('Failed to create tickets:', ticketsError);
+      return res.status(500).json({ error: 'Failed to create tickets', details: ticketsError });
+    }
+
+    console.log(`Created ${tickets.length} tickets`);
+
     // 3. Обновляем счётчики в розыгрыше
+    const uniqueParticipants = new Set(tickets.map(t => t.user_id)).size;
     await supabase
       .from('giveaways')
       .update({
-        total_participants: users?.length || 25,
+        total_participants: uniqueParticipants,
         total_tickets_sold: ticketCount
       })
       .eq('id', giveaway.id);
 
-    // 4. Запускаем розыгрыш через RPC (если есть)
-    let drawResult = null;
-    let drawError = null;
+    // 4. Запускаем розыгрыш через Edge Function
+    console.log('Calling Edge Function to generate results...');
 
-    try {
-      const result = await supabase.rpc('run_giveaway_draw', {
-        p_giveaway_id: giveaway.id
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-giveaway-result`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+      },
+      body: JSON.stringify({ giveaway_id: giveaway.id })
+    });
+
+    const drawResult = await response.json();
+
+    if (!response.ok || !drawResult.success) {
+      console.error('Edge Function failed:', drawResult.error);
+      return res.status(500).json({
+        error: 'Draw generation failed',
+        details: drawResult.error,
+        giveaway_id: giveaway.id
       });
-      drawResult = result.data;
-      drawError = result.error;
-    } catch (e) {
-      console.log('RPC run_giveaway_draw not available, running manual draw');
-
-      // Ручной розыгрыш: выбираем 5 случайных победителей
-      const { data: allTickets } = await supabase
-        .from('giveaway_tickets')
-        .select('user_id')
-        .eq('giveaway_id', giveaway.id);
-
-      if (allTickets && allTickets.length > 0) {
-        // Перемешиваем и берём 5 уникальных
-        const shuffled = allTickets.sort(() => Math.random() - 0.5);
-        const uniqueWinners = [...new Set(shuffled.map(t => t.user_id.toString()))].slice(0, 5);
-
-        await supabase
-          .from('giveaways')
-          .update({
-            status: 'completed',
-            winners: uniqueWinners
-          })
-          .eq('id', giveaway.id);
-
-        drawResult = { manual: true, winners: uniqueWinners };
-      }
     }
 
-    if (drawError) {
-      // Если RPC не сработал, делаем ручной розыгрыш
-      console.log('RPC failed, doing manual draw:', drawError.message);
-
-      const { data: allTickets } = await supabase
-        .from('giveaway_tickets')
-        .select('user_id')
-        .eq('giveaway_id', giveaway.id);
-
-      if (allTickets && allTickets.length > 0) {
-        const shuffled = allTickets.sort(() => Math.random() - 0.5);
-        const uniqueWinners = [...new Set(shuffled.map(t => t.user_id.toString()))].slice(0, 5);
-
-        await supabase
-          .from('giveaways')
-          .update({
-            status: 'completed',
-            winners: uniqueWinners
-          })
-          .eq('id', giveaway.id);
-
-        drawResult = { manual: true, winners: uniqueWinners };
-      }
-    }
+    console.log('Draw completed successfully!');
+    console.log('Winners:', drawResult.winners?.map(w => `${w.place}. ${w.username}`).join(', '));
 
     // 5. Получаем финальное состояние розыгрыша
     const { data: finalGiveaway } = await supabase
@@ -196,10 +161,19 @@ export default async function handler(req, res) {
       message: 'Test giveaway created and completed!',
       giveaway_id: giveaway.id,
       results_url: `/giveaway/${giveaway.id}/results`,
-      draw_result: drawResult,
-      final_status: finalGiveaway?.status,
-      winners: finalGiveaway?.winners,
-      total_tickets: ticketCount
+      live_url: `/live/${giveaway.id}`,
+      draw_result: {
+        total_participants: drawResult.total_participants,
+        total_tickets: drawResult.total_tickets,
+        winners: drawResult.winners
+      },
+      stages: {
+        tour1_count: drawResult.draw_result?.tour1?.participants?.length || 0,
+        tour2_finalists: drawResult.draw_result?.tour2?.finalists?.length || 0,
+        semifinal_eliminated: drawResult.draw_result?.semifinal?.eliminated?.length || 0,
+        final_turns: drawResult.draw_result?.final?.turns?.length || 0
+      },
+      final_status: finalGiveaway?.status
     });
 
   } catch (error) {

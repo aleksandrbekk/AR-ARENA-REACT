@@ -67,6 +67,7 @@ const router = createBrowserRouter([
       { path: "giveaway/:id", element: <GiveawayDetailsPage /> },
       { path: "giveaway/:id/results", element: <GiveawayResultsPage /> },
       { path: "live-arena/:id", element: <LiveArenaPage /> },
+      { path: "live/:id", element: <LiveArenaPage /> },
       { path: "payment-success", element: <PaymentSuccessPage /> },
       { path: "pricing", element: <PricingPage /> },
       { path: "stream", element: <StreamPage /> },
