@@ -389,14 +389,18 @@ export function LiveArenaPage() {
     for (const spin of results.semifinal.spins) {
       const spinTicketNum = typeof spin.ticket === 'number' ? spin.ticket : (spin.ticket as any)?.ticket_number || (spin as any).ticket_number
 
-      // Spin animation
+      // Spin animation - start by scrolling fast
       setCurrentSpinTicket(null)
-      setRouletteOffset(prev => prev - 3000)
+      setRouletteOffset(prev => prev - 2000)
       await sleep(100)
 
+      // Calculate target position - item width 100px + gap 12px = 112px per item
+      // Target middle repetition (rep 5 of 10) to have items on both sides
       const ticketIndex = semifinalists.findIndex(t => t.ticket_number === spinTicketNum)
-      const itemWidth = 120
-      const targetOffset = -(ticketIndex * itemWidth + 5 * semifinalists.length * itemWidth)
+      const itemWidth = 112 // 100px item + 12px gap
+      const targetRep = 5 // middle repetition
+      const globalIndex = targetRep * semifinalists.length + ticketIndex
+      const targetOffset = -(globalIndex * itemWidth)
       setRouletteOffset(targetOffset)
       await sleep(2500)
 
@@ -662,7 +666,7 @@ export function LiveArenaPage() {
     }
 
     return (
-      <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-8 px-4">
+      <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
         <div className="text-center mb-4">
           <h1 className="text-2xl font-black text-[#FFD700]">ПОЛУФИНАЛ</h1>
           <p className="text-white/60 text-sm">Обратный светофор</p>
@@ -726,24 +730,27 @@ export function LiveArenaPage() {
 
         {/* Roulette */}
         <div className="relative mb-6">
-          {/* Cursor */}
+          {/* Cursor - centered above strip */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20">
             <img src="/icons/Cursor.png" alt="cursor" className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
           </div>
 
           {/* Roulette Strip Container */}
-          <div className="mt-8 bg-zinc-900/90 border-2 border-[#FFD700]/30 rounded-2xl p-3 overflow-hidden">
+          <div className="mt-10 bg-zinc-900/90 border-2 border-[#FFD700]/30 rounded-2xl py-3 overflow-hidden">
             <div
-              className="flex gap-3 transition-transform duration-[2.5s] ease-out"
-              style={{ transform: `translateX(calc(50% + ${rouletteOffset}px - 60px))` }}
+              className="flex transition-transform duration-[2.5s] ease-out"
+              style={{
+                gap: '12px',
+                transform: `translateX(calc(50% + ${rouletteOffset}px - 50px))`
+              }}
             >
               {Array(10).fill(null).flatMap((_, repIdx) =>
                 semifinalPlayers.map((t, tIdx) => {
                   const hits = semifinalHits.get(t.ticket_number) || 0
-                  const hitClass = hits === 1 ? 'border-green-500 bg-green-500/20 text-green-400' :
-                                   hits === 2 ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' :
-                                   hits === 3 ? 'border-red-500 bg-red-500/20 text-red-400' :
-                                   'border-[#FFD700]/30 text-white'
+                  const hitClass = hits === 1 ? 'border-green-500 bg-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
+                                   hits === 2 ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.5)]' :
+                                   hits === 3 ? 'border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
+                                   'border-[#FFD700]/30 bg-zinc-800/50 text-white'
 
                   return (
                     <div
@@ -788,7 +795,7 @@ export function LiveArenaPage() {
 
   // ==================== RENDER FINAL (REDESIGNED) ====================
   const renderFinal = () => (
-    <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-8 px-4">
+    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-black text-[#FFD700]">ФИНАЛ</h1>
         <p className="text-white/60 text-sm">Битва быка и медведя</p>
@@ -866,13 +873,24 @@ export function LiveArenaPage() {
         })}
       </div>
 
-      {/* Wheel */}
-      <div className="relative w-56 h-56 mx-auto">
+      {/* Wheel - cursor rotates around wheel center, wheel stays still */}
+      <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
+        {/* Static wheel image */}
         <img
           src="/icons/rulet.png"
           alt="wheel"
-          className={`w-full h-full transition-transform ${wheelSpinning ? 'duration-[3s] ease-out' : ''}`}
-          style={{ transform: `rotate(${wheelAngle}deg)` }}
+          className="w-full h-full"
+        />
+
+        {/* Rotating cursor - positioned at top, rotates around wheel center */}
+        <img
+          src="/icons/Cursor.png"
+          alt="cursor"
+          className={`absolute w-10 h-10 top-0 left-1/2 -ml-5 z-10 transition-transform ${wheelSpinning ? 'duration-[3s] ease-out' : ''}`}
+          style={{
+            transformOrigin: 'center 128px', // half of 256px wheel = rotate around center
+            transform: `rotate(${wheelAngle}deg)`
+          }}
         />
 
         {/* Result indicator */}
@@ -880,7 +898,7 @@ export function LiveArenaPage() {
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className={`absolute inset-0 flex items-center justify-center`}
+            className="absolute inset-0 flex items-center justify-center"
           >
             <div className={`text-6xl ${lastResult === 'bull' ? 'drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]'}`}>
               {lastResult === 'bull' ? '🐂' : '🐻'}
@@ -893,7 +911,7 @@ export function LiveArenaPage() {
 
   // ==================== RENDER RESULTS ====================
   const renderResults = () => (
-    <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-8 px-4">
+    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
       <h1 className="text-3xl font-black text-center mb-8 text-[#FFD700]">
         ПОБЕДИТЕЛИ
       </h1>
