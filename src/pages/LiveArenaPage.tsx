@@ -311,7 +311,14 @@ export function LiveArenaPage() {
     const results = drawResultsRef.current
     const giveaway = giveawayDataRef.current
 
-    if (!results) return
+    console.log('🚀 runDraw started')
+    console.log('📊 tickets:', tickets.length)
+    console.log('📊 results:', JSON.stringify(results, null, 2))
+
+    if (!results) {
+      console.error('❌ No results!')
+      return
+    }
 
     // ===== TOUR 1 =====
     await displayModal({
@@ -381,9 +388,18 @@ export function LiveArenaPage() {
     })
 
     setCurrentStage('semifinal')
-    const semifinalists = results.tour2.finalists.map(num =>
-      tickets.find(t => t.ticket_number === num)!
-    ).filter(Boolean)
+
+    console.log('🔍 SEMIFINAL DEBUG:')
+    console.log('   tour2.finalists:', results.tour2?.finalists)
+    console.log('   tickets sample:', tickets.slice(0, 3).map(t => ({ num: t.ticket_number, name: t.player.name })))
+
+    const semifinalists = results.tour2.finalists.map(num => {
+      const found = tickets.find(t => t.ticket_number === num)
+      if (!found) console.log('   ❌ NOT FOUND ticket:', num)
+      return found
+    }).filter((t): t is Ticket => !!t)
+
+    console.log('   semifinalists count:', semifinalists.length)
     setSemifinalPlayers(semifinalists)
 
     const hits = new Map<number, number>()
