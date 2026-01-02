@@ -60,6 +60,7 @@ const CURRENCY_TO_USD = {
 };
 
 // Получить валюту из payload Lava - доверяем API, не угадываем по суммам!
+// Получить валюту из payload Lava - доверяем API, не угадываем по суммам!
 function getCurrencyFromPayload(payload) {
   // Приоритет полей Lava API:
   // 1. buyerCurrency - валюта в которой покупатель реально платил
@@ -69,57 +70,55 @@ function getCurrencyFromPayload(payload) {
 
   const { buyerCurrency, payment, invoice, currency: rawCurrency } = payload;
 
-  if (buyerCurrency) {
-    console.log(`💱 Using buyerCurrency from API: ${buyerCurrency}`);
-    return buyerCurrency.toUpperCase();
-  }
-
-  if (payment?.currency) {
-    console.log(`💱 Using payment.currency from API: ${payment.currency}`);
-    return payment.currency.toUpperCase();
-  }
-
-  if (invoice?.currency) {
-    console.log(`💱 Using invoice.currency from API: ${invoice.currency}`);
-    return invoice.currency.toUpperCase();
-  }
-
-  if (rawCurrency) {
-    console.log(`💱 Using currency from API: ${rawCurrency}`);
-    return rawCurrency.toUpperCase();
-  }
+  if (buyerCurrency) return buyerCurrency.toUpperCase();
+  if (payment?.currency) return payment.currency.toUpperCase();
+  if (invoice?.currency) return invoice.currency.toUpperCase();
+  if (rawCurrency) return rawCurrency.toUpperCase();
 
   // Fallback только если Lava не прислала валюту вообще
-  console.log(`⚠️ No currency in payload, defaulting to RUB`);
   return 'RUB';
 }
 
-// Получить сумму из payload Lava
-function getAmountFromPayload(payload) {
-  const { buyerAmount, payment, invoice, amount: rawAmount } = payload;
+// Получить ГРЯЗНУЮ сумму (сколько заплатил юзер) - для определения тарифа
+function getGrossAmount(payload) {
+  const { buyerAmount, invoice, amount: rawAmount } = payload;
 
-  // buyerAmount - реальная сумма которую заплатил покупатель
+  // buyerAmount - сколько реально списали с юзера (Gross)
   if (buyerAmount) {
-    console.log(`💰 Using buyerAmount from API: ${buyerAmount}`);
+    console.log(`💰 Using buyerAmount (Gross) for Tariff: ${buyerAmount}`);
     return parseFloat(buyerAmount);
   }
 
-  if (payment?.amount) {
-    console.log(`💰 Using payment.amount from API: ${payment.amount}`);
-    return parseFloat(payment.amount);
-  }
-
+  // invoice.amount - сумма выставленного счета (Gross)
   if (invoice?.amount) {
-    console.log(`💰 Using invoice.amount from API: ${invoice.amount}`);
+    console.log(`💰 Using invoice.amount (Gross) for Tariff: ${invoice.amount}`);
     return parseFloat(invoice.amount);
   }
 
-  if (rawAmount) {
-    console.log(`💰 Using amount from API: ${rawAmount}`);
-    return parseFloat(rawAmount);
+  // Fallback
+  console.log(`💰 Using rawAmount (Fallback) for Tariff: ${rawAmount}`);
+  return parseFloat(rawAmount || 0);
+}
+
+// Получить ЧИСТУЮ сумму (сколько пришло в магазин) - для статистики
+function getNetAmount(payload) {
+  const { payment, shopAmount, amount: rawAmount } = payload;
+
+  // payment.amount - сумма зачисления (Net)
+  if (payment?.amount) {
+    console.log(`💵 Using payment.amount (Net) for DB: ${payment.amount}`);
+    return parseFloat(payment.amount);
   }
 
-  return 0;
+  // shopAmount - иногда бывает такое поле
+  if (shopAmount) {
+    console.log(`💵 Using shopAmount (Net) for DB: ${shopAmount}`);
+    return parseFloat(shopAmount);
+  }
+
+  // Fallback - если нет явного Net, берем что есть (лучше завысить, чем 0)
+  console.log(`💵 Using rawAmount (Fallback) for DB: ${rawAmount}`);
+  return parseFloat(rawAmount || 0);
 }
 
 // Supabase клиент
@@ -581,11 +580,14 @@ export default async function handler(req, res) {
       invoice
     } = payload;
 
-    // Получаем валюту и сумму напрямую из API Lava - без угадывания по суммам!
+    // Получаем валюту и суммы (разделяем Gross и Net)
     const currency = getCurrencyFromPayload(payload);
-    const amount = getAmountFromPayload(payload) || rawAmount;
+    const grossAmount = getGrossAmount(payload); // Для тарифа
+    const netAmount = getNetAmount(payload);     // Для БД
 
-    log(`📨 Event: ${eventType}, Status: ${status}, Amount: ${amount} ${currency}`);
+    log(`📨 Event: ${eventType}, Status: ${status}`);
+    log(`💰 Gross: ${grossAmount} ${currency} (User paid)`);
+    log(`💵 Net:   ${netAmount} ${currency} (Shop received)`);
     log(`📊 Raw values: amount=${rawAmount}, currency=${rawCurrency}`);
 
     // Проверяем тип события и статус
@@ -642,8 +644,9 @@ export default async function handler(req, res) {
     // 4. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ (по periodicity или amount)
     // ============================================
     const periodicity = payload.periodicity || payload.offer?.periodicity;
-    log(`🏷️ Periodicity: ${periodicity}, Amount: ${amount}, Currency: ${currency}`);
-    const period = getPeriodByPeriodicityOrAmount(periodicity, amount, currency);
+    log(`🏷️ Periodicity: ${periodicity}, Amount(Gross): ${grossAmount}, Currency: ${currency}`);
+    // ИСПОЛЬЗУЕМ GROSS AMOUNT ДЛЯ ОПРЕДЕЛЕНИЯ ТАРИФА
+    const period = getPeriodByPeriodicityOrAmount(periodicity, grossAmount, currency);
     log(`📅 Period determined: ${period.days} days (${period.name})`);
 
     // ============================================
@@ -683,19 +686,21 @@ export default async function handler(req, res) {
         ? new Date(currentExpires.getTime() + period.days * 24 * 60 * 60 * 1000)
         : expiresAt;
 
-      // Конвертируем сумму в USD
+      // Конвертируем ЧИСТУЮ сумму в USD для статистики
       const currencyUpper = (currency || 'RUB').toUpperCase();
       const usdRate = CURRENCY_TO_USD[currencyUpper] || CURRENCY_TO_USD['RUB'];
-      const amountInUsd = parseFloat(amount) * usdRate;
+      const netAmountInUsd = netAmount * usdRate;
 
       const { error: updateError } = await supabase
         .from('premium_clients')
         .update({
           plan: period.tariff,
           expires_at: newExpires.toISOString(),
-          total_paid_usd: (existingClient.total_paid_usd || 0) + amountInUsd,
+          // Прибавляем Net USD к total_paid
+          total_paid_usd: (existingClient.total_paid_usd || 0) + netAmountInUsd,
           currency: currencyUpper,
-          original_amount: parseFloat(amount),
+          // Сохраняем Net Amount как original_amount последнего платежа
+          original_amount: netAmount,
           payments_count: (existingClient.payments_count || 0) + 1,
           last_payment_at: now.toISOString(),
           last_payment_method: 'lava.top',
@@ -729,10 +734,10 @@ export default async function handler(req, res) {
         }
       }
 
-      // Конвертируем сумму в USD для нового клиента
+      // Конвертируем ЧИСТУЮ сумму в USD для нового клиента
       const currencyUpperNew = (currency || 'RUB').toUpperCase();
       const usdRateNew = CURRENCY_TO_USD[currencyUpperNew] || CURRENCY_TO_USD['RUB'];
-      const amountInUsdNew = parseFloat(amount) * usdRateNew;
+      const netAmountInUsdNew = netAmount * usdRateNew;
 
       const { data: newClient, error: insertError } = await supabase
         .from('premium_clients')
@@ -746,9 +751,9 @@ export default async function handler(req, res) {
           in_chat: false,
           tags: [],
           source: 'lava.top',
-          total_paid_usd: amountInUsdNew,
+          total_paid_usd: netAmountInUsdNew,
           currency: currencyUpperNew,
-          original_amount: parseFloat(amount),
+          original_amount: netAmount,
           payments_count: 1,
           last_payment_at: now.toISOString(),
           last_payment_method: 'lava.top',
@@ -790,13 +795,13 @@ export default async function handler(req, res) {
       // Формируем ОДНО сообщение с приветствием и кнопками
       const welcomeText = isNewClient
         ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
-          `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
-          `👇 Нажмите кнопки ниже для доступа:\n\n` +
-          `📞 Служба заботы: @Andrey_cryptoinvestor`
+        `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
+        `👇 Нажмите кнопки ниже для доступа:\n\n` +
+        `📞 Служба заботы: @Andrey_cryptoinvestor`
         : `✅ <b>Подписка продлена!</b>\n\n` +
-          `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
-          `👇 Нажмите кнопки ниже для доступа:\n\n` +
-          `📞 Служба заботы: @Andrey_cryptoinvestor`;
+        `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
+        `👇 Нажмите кнопки ниже для доступа:\n\n` +
+        `📞 Служба заботы: @Andrey_cryptoinvestor`;
 
       // Формируем кнопки
       const buttons = [];

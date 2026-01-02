@@ -12,6 +12,10 @@
   - `AutomationRules` UI component functioning.
   - **Connected to Supabase**: Created `automation_rules` table and implemented full CRUD (Create, Read, Update, Delete) in the UI.
   - Fixes: `FullCrmPage.tsx` build errors resolved.
+- **Payment Discrepancy Fix**:
+  - Analyzed `lava-premium-webhook.js` and separated Gross (Tariff) vs Net (DB) amounts.
+  - Now prioritizing `buyerAmount` for identifying plans and `payment.amount` for recording revenue.
+
 
 ### ⏳ Next Steps
 - **Backend Logic**: Implement the actual message interception logic (webhook or process) that *uses* these rules to auto-reply.
