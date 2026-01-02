@@ -311,14 +311,7 @@ export function LiveArenaPage() {
     const results = drawResultsRef.current
     const giveaway = giveawayDataRef.current
 
-    console.log('🚀 runDraw started')
-    console.log('📊 tickets:', tickets.length)
-    console.log('📊 results:', JSON.stringify(results, null, 2))
-
-    if (!results) {
-      console.error('❌ No results!')
-      return
-    }
+    if (!results) return
 
     // ===== TOUR 1 =====
     await displayModal({
@@ -332,9 +325,11 @@ export function LiveArenaPage() {
     })
 
     setCurrentStage('tour1')
-    const tour1WinnerTickets = results.tour1.winners.map(num =>
-      tickets.find(t => t.ticket_number === num)!
-    ).filter(Boolean)
+    // Handle both formats: array of numbers OR array of objects with ticket_number
+    const tour1WinnerTickets = results.tour1.winners.map((winner: any) => {
+      const ticketNum = typeof winner === 'number' ? winner : winner.ticket_number
+      return tickets.find(t => t.ticket_number === ticketNum)
+    }).filter((t): t is Ticket => !!t)
     setTour1Winners(tour1WinnerTickets)
 
     await sleep(500)
@@ -389,17 +384,13 @@ export function LiveArenaPage() {
 
     setCurrentStage('semifinal')
 
-    console.log('🔍 SEMIFINAL DEBUG:')
-    console.log('   tour2.finalists:', results.tour2?.finalists)
-    console.log('   tickets sample:', tickets.slice(0, 3).map(t => ({ num: t.ticket_number, name: t.player.name })))
-
-    const semifinalists = results.tour2.finalists.map(num => {
-      const found = tickets.find(t => t.ticket_number === num)
-      if (!found) console.log('   ❌ NOT FOUND ticket:', num)
+    // Handle both formats: array of numbers OR array of objects with ticket_number
+    const semifinalists = results.tour2.finalists.map((finalist: any) => {
+      const ticketNum = typeof finalist === 'number' ? finalist : finalist.ticket_number
+      const found = tickets.find(t => t.ticket_number === ticketNum)
       return found
     }).filter((t): t is Ticket => !!t)
 
-    console.log('   semifinalists count:', semifinalists.length)
     setSemifinalPlayers(semifinalists)
 
     const hits = new Map<number, number>()
@@ -414,8 +405,11 @@ export function LiveArenaPage() {
     let eliminatedCount = 0
 
     for (const spin of results.semifinal.spins) {
+      // Handle both formats for spin.ticket
+      const spinTicketNum = typeof spin.ticket === 'number' ? spin.ticket : (spin.ticket as any)?.ticket_number || (spin as any).ticket_number
+
       // Animate roulette - spin fast then stop at winning ticket
-      const ticketIndex = semifinalists.findIndex(t => t.ticket_number === spin.ticket)
+      const ticketIndex = semifinalists.findIndex(t => t.ticket_number === spinTicketNum)
       const itemWidth = 80
       const repeatCount = 5 // How many full cycles to spin
       const targetOffset = -(ticketIndex * itemWidth + repeatCount * semifinalists.length * itemWidth + 40)
@@ -430,14 +424,14 @@ export function LiveArenaPage() {
       // Update hits
       setSemifinalHits(prev => {
         const next = new Map(prev)
-        next.set(spin.ticket, spin.hits)
+        next.set(spinTicketNum, spin.hits)
         return next
       })
 
       if (spin.hits === 3) {
         eliminatedCount++
         const place = eliminatedCount === 1 ? 5 : 4
-        eliminatedMap.set(spin.ticket, place)
+        eliminatedMap.set(spinTicketNum, place)
         setSemifinalEliminated(new Map(eliminatedMap))
       }
 
@@ -454,9 +448,11 @@ export function LiveArenaPage() {
     })
 
     setCurrentStage('final')
-    const finalists = results.semifinal.finalists3.map(num =>
-      tickets.find(t => t.ticket_number === num)!
-    ).filter(Boolean)
+    // Handle both formats for finalists3
+    const finalists = results.semifinal.finalists3.map((finalist: any) => {
+      const ticketNum = typeof finalist === 'number' ? finalist : finalist.ticket_number
+      return tickets.find(t => t.ticket_number === ticketNum)
+    }).filter((t): t is Ticket => !!t)
     setFinalPlayers(finalists)
     setFinalScores([
       { bulls: 0, bears: 0, place: null },
@@ -744,15 +740,7 @@ export function LiveArenaPage() {
       </div>
 
       {semifinalPlayers.length === 0 && (
-        <div className="text-center py-8">
-          <div className="text-red-500 font-bold">DEBUG: semifinalPlayers пустой!</div>
-          <div className="text-white/50 text-xs mt-2">
-            tour2.finalists: {JSON.stringify(drawResultsRef.current?.tour2?.finalists || 'undefined')}
-          </div>
-          <div className="text-white/50 text-xs mt-1">
-            tickets count: {allTicketsRef.current?.length || 0}
-          </div>
-        </div>
+        <div className="text-center text-white/50 py-8">Загрузка полуфиналистов...</div>
       )}
 
       {/* Players */}
