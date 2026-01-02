@@ -692,10 +692,20 @@ export function FullCrmPage() {
   const getInitial = (user: User) => (user.first_name || user.username || '?')[0]?.toUpperCase()
   const getPremiumInitial = (client: PremiumClient) => (client.first_name || client.username || '?')[0]?.toUpperCase()
 
-  // Форматирование суммы с валютой
+  // Получить чистую сумму после комиссии платёжки
+  // Lava.top берёт 8% комиссии
+  const getNetAmount = (client: PremiumClient) => {
+    const amount = client.original_amount || client.total_paid_usd || 0
+    if (client.source === 'lava.top') {
+      return amount * 0.92 // минус 8% комиссии
+    }
+    return amount
+  }
+
+  // Форматирование суммы с валютой (уже за вычетом комиссии)
   const formatAmount = (client: PremiumClient) => {
     const rawCurrency = client.currency || (client.source === '0xprocessing' ? 'USD' : 'RUB')
-    const amount = client.original_amount || client.total_paid_usd || 0
+    const amount = getNetAmount(client)
 
     // Нормализация валюты: все крипто → USD
     const upperCurrency = rawCurrency.toUpperCase()
@@ -709,7 +719,7 @@ export function FullCrmPage() {
 
     if (currency === 'USD') return `$${amount.toLocaleString('en-US')}`
     if (currency === 'EUR') return `€${amount.toLocaleString('de-DE')}`
-    return `${amount.toLocaleString('ru-RU')} ₽`
+    return `${Math.round(amount).toLocaleString('ru-RU')} ₽`
   }
 
   // ============ TELEGRAM BACK ============
@@ -1475,16 +1485,16 @@ export function FullCrmPage() {
                   return cur === 'RUB' || (!c.currency && c.source === 'lava.top' && !isUsdCurrency(c) && !isEurCurrency(c))
                 }
 
-                // Считаем по валютам (только за выбранный месяц)
+                // Считаем по валютам (только за выбранный месяц, с учётом комиссии платёжек)
                 const totalRub = paidClientsThisMonth
                   .filter(c => isRubCurrency(c))
-                  .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
+                  .reduce((sum, c) => sum + getNetAmount(c), 0)
                 const totalUsd = paidClientsThisMonth
                   .filter(c => isUsdCurrency(c))
-                  .reduce((sum, c) => sum + (c.original_amount || c.total_paid_usd || 0), 0)
+                  .reduce((sum, c) => sum + getNetAmount(c), 0)
                 const totalEur = paidClientsThisMonth
                   .filter(c => isEurCurrency(c))
-                  .reduce((sum, c) => sum + (c.original_amount || 0), 0)
+                  .reduce((sum, c) => sum + getNetAmount(c), 0)
 
                 // Активные подписчики (expires > now)
                 const now = new Date()
@@ -1540,15 +1550,15 @@ export function FullCrmPage() {
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">RUB</div>
-                        <div className="text-lg font-bold text-white">{totalRub.toLocaleString('ru-RU')} ₽</div>
+                        <div className="text-lg font-bold text-white">{Math.round(totalRub).toLocaleString('ru-RU')} ₽</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">USD</div>
-                        <div className="text-lg font-bold text-[#FFD700]">${totalUsd.toLocaleString('en-US')}</div>
+                        <div className="text-lg font-bold text-[#FFD700]">${Math.round(totalUsd).toLocaleString('en-US')}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">EUR</div>
-                        <div className="text-lg font-bold text-blue-400">€{totalEur.toLocaleString('de-DE')}</div>
+                        <div className="text-lg font-bold text-blue-400">€{Math.round(totalEur).toLocaleString('de-DE')}</div>
                       </div>
                     </div>
 
