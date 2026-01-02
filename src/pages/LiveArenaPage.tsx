@@ -744,7 +744,15 @@ export function LiveArenaPage() {
       </div>
 
       {semifinalPlayers.length === 0 && (
-        <div className="text-center text-white/50 py-8">Загрузка полуфиналистов...</div>
+        <div className="text-center py-8">
+          <div className="text-red-500 font-bold">DEBUG: semifinalPlayers пустой!</div>
+          <div className="text-white/50 text-xs mt-2">
+            tour2.finalists: {JSON.stringify(drawResultsRef.current?.tour2?.finalists || 'undefined')}
+          </div>
+          <div className="text-white/50 text-xs mt-1">
+            tickets count: {allTicketsRef.current?.length || 0}
+          </div>
+        </div>
       )}
 
       {/* Players */}
