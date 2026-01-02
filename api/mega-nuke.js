@@ -11,7 +11,7 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const GHOST_ID = 579353732;
+    const GHOST_ID = 5533465717;
 
     // 1. Delete
     const { data, error } = await supabase
