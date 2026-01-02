@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import DOMPurify from 'dompurify'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { AutomationRules } from '../components/inbox/AutomationRules'
@@ -568,7 +569,13 @@ export function InboxPage() {
                         <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.direction === 'outgoing' ? 'bg-yellow-500 text-black rounded-br-md' : 'bg-zinc-800 text-white rounded-bl-md'
                           }`}>
                           {msg.is_command && <div className="text-xs opacity-70 mb-1">Команда: {msg.command_name}</div>}
-                          <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+
+                          {/* Safe HTML Rendering */}
+                          <div
+                            className="whitespace-pre-wrap break-words [&>b]:font-bold [&>i]:italic [&>a]:underline [&>a]:text-blue-400"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.text || '') }}
+                          />
+
                           <div className={`text-xs mt-1 flex items-center gap-1 ${msg.direction === 'outgoing' ? 'text-black/60 justify-end' : 'text-zinc-500'}`}>
                             {new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                             {msg.direction === 'outgoing' && (msg.is_read ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
@@ -578,6 +585,7 @@ export function InboxPage() {
                     ))}
                     <div ref={messagesEndRef} />
                   </div>
+
 
                   {/* Input */}
                   <div className="p-4 border-t border-zinc-800">
