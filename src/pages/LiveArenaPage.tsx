@@ -573,7 +573,7 @@ export function LiveArenaPage() {
 
   // ==================== RENDER TOUR 1 ====================
   const renderTour1 = () => (
-    <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-8 px-4">
+    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-black text-[#FFD700]">ОТБОРОЧНЫЙ ТУР</h1>
         <p className="text-white/60 text-sm mt-2">Выбираем 20 из {allTicketsRef.current.length} билетов</p>
@@ -611,7 +611,7 @@ export function LiveArenaPage() {
 
   // ==================== RENDER TOUR 2 ====================
   const renderTour2 = () => (
-    <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-8 px-4">
+    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-black text-[#FFD700]">ВТОРОЙ ТУР</h1>
         <p className="text-white/60 text-sm mt-2">Выбираем ТОП-5 финалистов</p>
