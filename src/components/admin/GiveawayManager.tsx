@@ -299,7 +299,7 @@ export function GiveawayManager() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ delay: idx * 0.05 }}
-                    className={`relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-sm ${statusConfig.glow}`}
+                    className={`relative rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-sm ${statusConfig.glow}`}
                   >
                     {/* Status indicator line */}
                     <div className={`absolute top-0 left-0 right-0 h-1 ${
@@ -309,34 +309,34 @@ export function GiveawayManager() {
                       'bg-gradient-to-r from-zinc-600 to-zinc-500'
                     }`} />
 
-                    <div className="p-5">
+                    <div className="p-4">
                       {/* Header Row */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
                               {statusConfig.label}
                             </span>
                             {g.status === 'completed' && (
-                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                              <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
                                 (g as any).prizes_distributed
                                   ? 'bg-emerald-500/20 text-emerald-400'
                                   : 'bg-amber-500/20 text-amber-400'
                               }`}>
-                                {(g as any).prizes_distributed ? 'Выплачено' : 'Ожидает выплаты'}
+                                {(g as any).prizes_distributed ? 'Выплачено' : 'Ожидает'}
                               </span>
                             )}
                           </div>
-                          <h3 className="text-lg font-bold text-white truncate">{g.title || g.name}</h3>
-                          {g.subtitle && <p className="text-sm text-white/40 truncate">{g.subtitle}</p>}
+                          <h3 className="text-base font-bold text-white truncate">{g.title || g.name}</h3>
+                          {g.subtitle && <p className="text-xs text-white/40 truncate">{g.subtitle}</p>}
                         </div>
 
                         {/* Jackpot */}
-                        <div className="text-right ml-4">
-                          <div className="text-xs text-white/40 mb-1">Джекпот</div>
-                          <div className="flex items-center gap-1.5 justify-end">
-                            <img src={`/icons/${g.currency === 'ar' ? 'arcoin' : 'BUL'}.png`} alt="" className="w-5 h-5" />
-                            <span className="text-xl font-black text-[#FFD700]">
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-[10px] text-white/40 mb-0.5">Джекпот</div>
+                          <div className="flex items-center gap-1 justify-end">
+                            <img src={`/icons/${g.currency === 'ar' ? 'arcoin' : 'BUL'}.png`} alt="" className="w-4 h-4" />
+                            <span className="text-base font-black text-[#FFD700]">
                               {(g.jackpot_current_amount || 0).toLocaleString()}
                             </span>
                           </div>
@@ -344,30 +344,30 @@ export function GiveawayManager() {
                       </div>
 
                       {/* Info Grid */}
-                      <div className="grid grid-cols-3 gap-3 mb-4">
-                        <div className="bg-black/30 rounded-xl p-3 text-center">
-                          <div className="text-xs text-white/40 mb-1">Билет</div>
-                          <div className="text-sm font-bold text-white">{g.price} {g.currency?.toUpperCase()}</div>
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="bg-black/30 rounded-lg p-2 text-center">
+                          <div className="text-[10px] text-white/40">Билет</div>
+                          <div className="text-xs font-bold text-white">{g.price} {g.currency?.toUpperCase()}</div>
                         </div>
-                        <div className="bg-black/30 rounded-xl p-3 text-center">
-                          <div className="text-xs text-white/40 mb-1">Призов</div>
-                          <div className="text-sm font-bold text-white">{g.prizes?.length || 0}</div>
+                        <div className="bg-black/30 rounded-lg p-2 text-center">
+                          <div className="text-[10px] text-white/40">Призов</div>
+                          <div className="text-xs font-bold text-white">{g.prizes?.length || 0}</div>
                         </div>
-                        <div className="bg-black/30 rounded-xl p-3 text-center">
-                          <div className="text-xs text-white/40 mb-1">Конец</div>
-                          <div className="text-sm font-bold text-white">
+                        <div className="bg-black/30 rounded-lg p-2 text-center">
+                          <div className="text-[10px] text-white/40">Конец</div>
+                          <div className="text-xs font-bold text-white">
                             {g.end_date ? new Date(g.end_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—'}
                           </div>
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {g.status === 'active' && (
                           <button
                             onClick={() => handleRunDraw(g.id)}
                             disabled={loading}
-                            className="flex-1 py-2.5 px-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-500 hover:to-red-400 shadow-lg shadow-red-500/20"
+                            className="py-2 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-500 hover:to-red-400"
                           >
                             Провести
                           </button>
@@ -376,7 +376,7 @@ export function GiveawayManager() {
                           <button
                             onClick={() => handleDistributePrizes(g.id)}
                             disabled={loading}
-                            className="flex-1 py-2.5 px-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-500 hover:to-emerald-400 shadow-lg shadow-emerald-500/20"
+                            className="py-2 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-emerald-600 to-emerald-500 text-white"
                           >
                             Выплатить
                           </button>
@@ -384,21 +384,21 @@ export function GiveawayManager() {
                         {g.status === 'completed' && (
                           <button
                             onClick={() => window.open(`/live/${g.id}`, '_blank')}
-                            className="flex-1 py-2.5 px-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 shadow-lg shadow-blue-500/20"
+                            className="py-2 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-blue-600 to-blue-500 text-white"
                           >
                             Live
                           </button>
                         )}
                         <button
                           onClick={() => handleEdit(g)}
-                          className="py-2.5 px-4 rounded-xl font-medium text-sm transition-all bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10"
+                          className="py-2 px-3 rounded-xl font-medium text-xs transition-all bg-white/10 text-white/70 hover:text-white"
                         >
                           Ред.
                         </button>
                         <button
                           onClick={() => handleDelete(g.id, g.title || g.name || 'Розыгрыш')}
                           disabled={loading}
-                          className="py-2.5 px-4 rounded-xl font-medium text-sm transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                          className="py-2 px-3 rounded-xl font-medium text-xs transition-all bg-red-500/20 text-red-400"
                         >
                           Удал.
                         </button>
