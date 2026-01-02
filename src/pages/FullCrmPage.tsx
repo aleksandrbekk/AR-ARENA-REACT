@@ -1477,71 +1477,87 @@ export function FullCrmPage() {
             <div className="space-y-4">
               {/* Статистика */}
               {(() => {
-                // === ИСПОЛЬЗУЕМ PAYMENT_HISTORY ДЛЯ ТОЧНОЙ СТАТИСТИКИ ===
+                // === СТАТИСТИКА: используем payment_history если есть, иначе premium_clients ===
+                const hasPaymentHistory = paymentHistory.length > 0
 
-                // Фильтруем платежи по выбранному месяцу
-                const paymentsFiltered = statsMonth === 'all'
-                  ? paymentHistory
-                  : paymentHistory.filter(p => {
-                    if (!p.created_at) return false
-                    const paymentDate = new Date(p.created_at)
-                    const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
-                    return paymentMonth === statsMonth
+                // Хелперы для валют
+                const isUsdCurrency = (cur: string, source: string) => {
+                  const c = (cur || '').toUpperCase()
+                  return c.includes('USD') || c.includes('USDT') || c.includes('USDC') ||
+                    c.includes('BTC') || c.includes('ETH') || c.includes('TON') ||
+                    c.includes('CRYPTO') || source === '0xprocessing'
+                }
+                const isEurCurrency = (cur: string) => (cur || '').toUpperCase() === 'EUR'
+                const isRubCurrency = (cur: string, source: string) => {
+                  const c = (cur || '').toUpperCase()
+                  return c === 'RUB' || (!cur && source === 'lava.top')
+                }
+
+                let totalRub = 0, totalUsd = 0, totalEur = 0, paidCountThisMonth = 0
+
+                if (hasPaymentHistory) {
+                  // Используем payment_history для точной статистики
+                  const paymentsFiltered = statsMonth === 'all'
+                    ? paymentHistory
+                    : paymentHistory.filter(p => {
+                      if (!p.created_at) return false
+                      const paymentDate = new Date(p.created_at)
+                      const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+                      return paymentMonth === statsMonth
+                    })
+
+                  paymentsFiltered.forEach(p => {
+                    let amount = p.amount || 0
+                    // Lava.top берёт 8% комиссии
+                    if (p.source === 'lava.top') amount *= 0.92
+
+                    if (isRubCurrency(p.currency, p.source)) totalRub += amount
+                    else if (isEurCurrency(p.currency)) totalEur += amount
+                    else if (isUsdCurrency(p.currency, p.source)) totalUsd += amount
                   })
+                  paidCountThisMonth = paymentsFiltered.length
+                } else {
+                  // Fallback: используем premium_clients (менее точно)
+                  const allPaidClients = premiumClients.filter(c =>
+                    c.source !== 'migration' && (c.total_paid_usd > 0 || (c.original_amount ?? 0) > 0)
+                  )
+                  const clientsFiltered = statsMonth === 'all'
+                    ? allPaidClients
+                    : allPaidClients.filter(c => {
+                      if (!c.last_payment_at) return false
+                      const paymentDate = new Date(c.last_payment_at)
+                      const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+                      return paymentMonth === statsMonth
+                    })
 
-                // Хелпер для получения суммы с учётом комиссии
-                const getPaymentNetAmount = (p: PaymentRecord) => {
-                  const amount = p.amount || 0
-                  // Lava.top берёт 8% комиссии
-                  if (p.source === 'lava.top') {
-                    return amount * 0.92
-                  }
-                  return amount
-                }
+                  clientsFiltered.forEach(c => {
+                    let amount = c.original_amount || c.total_paid_usd || 0
+                    if (c.source === 'lava.top') amount *= 0.92
 
-                // Хелпер для определения типа валюты платежа
-                const isPaymentUsd = (p: PaymentRecord) => {
-                  const cur = (p.currency || '').toUpperCase()
-                  return cur.includes('USD') || cur.includes('USDT') || cur.includes('USDC') ||
-                    cur.includes('BTC') || cur.includes('ETH') || cur.includes('TON') ||
-                    cur.includes('CRYPTO') || p.source === '0xprocessing'
+                    if (isRubCurrency(c.currency || '', c.source || '')) totalRub += amount
+                    else if (isEurCurrency(c.currency || '')) totalEur += amount
+                    else if (isUsdCurrency(c.currency || '', c.source || '')) totalUsd += amount
+                  })
+                  paidCountThisMonth = clientsFiltered.length
                 }
-                const isPaymentEur = (p: PaymentRecord) => (p.currency || '').toUpperCase() === 'EUR'
-                const isPaymentRub = (p: PaymentRecord) => {
-                  const cur = (p.currency || '').toUpperCase()
-                  return cur === 'RUB' || (!p.currency && p.source === 'lava.top')
-                }
-
-                // Считаем по валютам из payment_history
-                const totalRub = paymentsFiltered
-                  .filter(p => isPaymentRub(p))
-                  .reduce((sum, p) => sum + getPaymentNetAmount(p), 0)
-                const totalUsd = paymentsFiltered
-                  .filter(p => isPaymentUsd(p))
-                  .reduce((sum, p) => sum + getPaymentNetAmount(p), 0)
-                const totalEur = paymentsFiltered
-                  .filter(p => isPaymentEur(p))
-                  .reduce((sum, p) => sum + getPaymentNetAmount(p), 0)
 
                 // Активные подписчики (expires > now)
                 const now = new Date()
                 const activeSubscribers = premiumClients.filter(c => new Date(c.expires_at) > now).length
-                const paidCountThisMonth = paymentsFiltered.length
 
-                // Средний чек (только за выбранный месяц)
+                // Средний чек
                 const USD_TO_RUB = 100
                 const EUR_TO_RUB = 110
                 const totalInRub = totalRub + (totalUsd * USD_TO_RUB) + (totalEur * EUR_TO_RUB)
                 const avgCheck = paidCountThisMonth > 0 ? Math.round(totalInRub / paidCountThisMonth) : 0
 
-                // Доступные месяцы для выбора (из истории платежей)
+                // Доступные месяцы для выбора
+                const monthsSource = hasPaymentHistory
+                  ? paymentHistory.filter(p => p.created_at).map(p => new Date(p.created_at))
+                  : premiumClients.filter(c => c.last_payment_at).map(c => new Date(c.last_payment_at!))
+
                 const availableStatsMonths = [...new Set(
-                  paymentHistory
-                    .filter(p => p.created_at)
-                    .map(p => {
-                      const d = new Date(p.created_at)
-                      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-                    })
+                  monthsSource.map(d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
                 )].sort().reverse()
 
                 // Названия месяцев
