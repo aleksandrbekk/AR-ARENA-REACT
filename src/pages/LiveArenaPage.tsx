@@ -727,9 +727,14 @@ export function LiveArenaPage() {
         </div>
       </div>
 
+      {semifinalPlayers.length === 0 && (
+        <div className="text-center text-white/50 py-8">Загрузка полуфиналистов...</div>
+      )}
+
       {/* Players */}
-      <div className="flex justify-center gap-2 mb-6">
+      <div className="flex justify-center gap-2 mb-6 flex-wrap">
         {semifinalPlayers.map((ticket) => {
+          if (!ticket) return null
           const hits = semifinalHits.get(ticket.ticket_number) || 0
           const eliminated = semifinalEliminated.get(ticket.ticket_number)
 
@@ -817,9 +822,14 @@ export function LiveArenaPage() {
         <p className="text-white/70 text-sm">Битва быка и медведя</p>
       </div>
 
+      {finalPlayers.length === 0 && (
+        <div className="text-center text-white/50 py-8">Загрузка финалистов...</div>
+      )}
+
       {/* Players */}
       <div className="flex justify-center gap-4 mb-6">
         {finalPlayers.map((ticket, idx) => {
+          if (!ticket) return null
           const score = finalScores[idx]
           const isCurrent = currentFinalPlayer === idx
 
