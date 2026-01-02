@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import type { Giveaway } from '../../types'
-// Icons removed - using text/images per design system rules
 
 export function GiveawayManager() {
   const [mode, setMode] = useState<'list' | 'edit'>('list')
@@ -105,14 +105,14 @@ export function GiveawayManager() {
     setFormData({ ...formData, prizes: newPrizes })
   }
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      'draft': 'Черновик',
-      'active': 'Активный',
-      'completed': 'Завершён',
-      'cancelled': 'Отменён'
+  const getStatusConfig = (status: string) => {
+    const configs: Record<string, { label: string; bg: string; text: string; glow: string }> = {
+      'draft': { label: 'Черновик', bg: 'bg-zinc-500/20', text: 'text-zinc-400', glow: '' },
+      'active': { label: 'Активный', bg: 'bg-emerald-500/20', text: 'text-emerald-400', glow: 'shadow-[0_0_20px_rgba(16,185,129,0.3)]' },
+      'completed': { label: 'Завершён', bg: 'bg-blue-500/20', text: 'text-blue-400', glow: '' },
+      'cancelled': { label: 'Отменён', bg: 'bg-red-500/20', text: 'text-red-400', glow: '' }
     }
-    return labels[status] || status
+    return configs[status] || configs['draft']
   }
 
   const handleRunDraw = async (giveawayId: string) => {
@@ -122,18 +122,12 @@ export function GiveawayManager() {
 
     setLoading(true)
     try {
-      // Используем новую функцию run_giveaway_draw (генерация + выплата)
       const { data, error } = await supabase.rpc('run_giveaway_draw', {
         p_giveaway_id: giveawayId
       })
 
-      if (error) {
-        throw new Error(error.message)
-      }
-
-      if (!data?.success) {
-        throw new Error(data?.draw?.error || data?.error || 'Ошибка генерации')
-      }
+      if (error) throw new Error(error.message)
+      if (!data?.success) throw new Error(data?.draw?.error || data?.error || 'Ошибка генерации')
 
       const drawData = data.draw
       const prizesData = data.prizes
@@ -169,13 +163,8 @@ export function GiveawayManager() {
         p_giveaway_id: giveawayId
       })
 
-      if (error) {
-        throw new Error(error.message)
-      }
-
-      if (!data?.success) {
-        throw new Error(data?.error || 'Ошибка выплаты')
-      }
+      if (error) throw new Error(error.message)
+      if (!data?.success) throw new Error(data?.error || 'Ошибка выплаты')
 
       let message = `Призы выплачены!\n\n`
       message += `Джекпот: ${data.jackpot} ${data.currency?.toUpperCase()}\n`
@@ -204,18 +193,8 @@ export function GiveawayManager() {
 
     setLoading(true)
     try {
-      // Сначала удаляем билеты
-      await supabase
-        .from('giveaway_tickets')
-        .delete()
-        .eq('giveaway_id', giveawayId)
-
-      // Затем удаляем сам розыгрыш
-      const { error } = await supabase
-        .from('giveaways')
-        .delete()
-        .eq('id', giveawayId)
-
+      await supabase.from('giveaway_tickets').delete().eq('giveaway_id', giveawayId)
+      const { error } = await supabase.from('giveaways').delete().eq('id', giveawayId)
       if (error) throw error
 
       alert('Розыгрыш удалён!')
@@ -227,313 +206,507 @@ export function GiveawayManager() {
     }
   }
 
+  // ==================== LIST VIEW ====================
   if (mode === 'list') {
     return (
-      <div className="p-6 bg-zinc-900 min-h-screen text-white">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-[#FFD700]">Управление розыгрышами</h2>
-          <button
-            onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-lg hover:opacity-90"
-          >
-            + Создать
-          </button>
+      <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
+        {/* Premium Header */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="relative text-center">
+            {/* Glow effect */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-32 bg-[#FFD700]/10 blur-[80px] rounded-full" />
+
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative"
+            >
+              <h1 className="text-3xl font-black tracking-wider mb-2">
+                <span className="bg-gradient-to-r from-[#FFD700] via-[#FFC700] to-[#FFA500] bg-clip-text text-transparent">
+                  РОЗЫГРЫШИ
+                </span>
+              </h1>
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#FFD700]/50" />
+                <span className="text-xs text-white/40 uppercase tracking-[0.3em]">Управление</span>
+                <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#FFD700]/50" />
+              </div>
+            </motion.div>
+          </div>
         </div>
 
-        <div className="grid gap-4">
-          {giveaways.map(g => (
-            <div key={g.id} className="p-4 bg-zinc-800/50 border border-white/10 rounded-xl">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${g.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                      g.status === 'completed' ? 'bg-blue-500/20 text-blue-400' :
-                        'bg-gray-500/20 text-gray-400'
-                      }`}>
-                      {getStatusLabel(g.status)}
-                    </span>
-                    <h3 className="font-bold">{g.title}</h3>
-                  </div>
-                  <p className="text-sm text-white/50">{g.subtitle}</p>
-                  <div className="text-xs text-white/30 mt-1 flex gap-4 flex-wrap">
-                    <span>ID: {g.id}</span>
-                    <span>Конец: {new Date(g.end_date).toLocaleDateString('ru-RU')}</span>
-                    <span>Джекпот: {g.jackpot_current_amount}</span>
-                    {g.status === 'completed' && (
-                      <span className={(g as any).prizes_distributed ? 'text-green-400' : 'text-yellow-400'}>
-                        {(g as any).prizes_distributed ? '✓ Выплачено' : '⏳ Не выплачено'}
-                      </span>
-                    )}
-                  </div>
+        {/* Create Button */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <motion.button
+            onClick={handleCreate}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-4 rounded-2xl font-bold text-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all"
+            style={{
+              background: 'linear-gradient(135deg, #FFD700 0%, #FFC700 25%, #FFB800 50%, #FFA500 75%, #FF9500 100%)',
+              boxShadow: '0 4px 30px rgba(255, 215, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+            }}
+          >
+            <span className="text-2xl font-light">+</span>
+            <span>Создать розыгрыш</span>
+          </motion.button>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Всего', value: giveaways.length, color: 'white' },
+              { label: 'Активных', value: giveaways.filter(g => g.status === 'active').length, color: '#10b981' },
+              { label: 'Завершённых', value: giveaways.filter(g => g.status === 'completed').length, color: '#3b82f6' }
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-zinc-900/80 backdrop-blur-sm border border-white/5 rounded-xl p-4 text-center"
+              >
+                <div className="text-2xl font-black" style={{ color: stat.color }}>{stat.value}</div>
+                <div className="text-xs text-white/40 uppercase tracking-wider">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Giveaways List */}
+        <div className="max-w-2xl mx-auto space-y-4">
+          <AnimatePresence>
+            {giveaways.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-16"
+              >
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-zinc-900 border border-[#FFD700]/20 flex items-center justify-center">
+                  <span className="text-4xl opacity-50">🎁</span>
                 </div>
-                <div className="flex gap-2 flex-wrap justify-end">
-                  {g.status === 'active' && (
-                    <button
-                      onClick={() => handleRunDraw(g.id)}
-                      disabled={loading}
-                      className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs font-medium"
-                    >
-                      ПРОВЕСТИ
-                    </button>
-                  )}
-                  {g.status === 'completed' && !(g as any).prizes_distributed && (
-                    <button
-                      onClick={() => handleDistributePrizes(g.id)}
-                      disabled={loading}
-                      className="px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors text-xs font-medium"
-                    >
-                      ВЫПЛАТИТЬ
-                    </button>
-                  )}
-                  {g.status === 'completed' && (
-                    <button
-                      onClick={() => window.open(`/giveaway/${g.id}/results`, '_blank')}
-                      className="px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors text-xs font-medium"
-                    >
-                      РЕЗУЛЬТАТЫ
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleEdit(g)}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    title="Редактировать"
+                <p className="text-white/40 mb-2">Нет розыгрышей</p>
+                <p className="text-white/20 text-sm">Создайте первый розыгрыш</p>
+              </motion.div>
+            ) : (
+              giveaways.map((g, idx) => {
+                const statusConfig = getStatusConfig(g.status)
+                return (
+                  <motion.div
+                    key={g.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className={`relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-sm ${statusConfig.glow}`}
                   >
-                    <span className="text-blue-400 text-sm">Ред.</span>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(g.id, g.main_title || g.title || g.name || 'Розыгрыш')}
-                    disabled={loading}
-                    className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
-                    title="Удалить"
-                  >
-                    <span className="text-red-400 text-sm">Удал.</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+                    {/* Status indicator line */}
+                    <div className={`absolute top-0 left-0 right-0 h-1 ${
+                      g.status === 'active' ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
+                      g.status === 'completed' ? 'bg-gradient-to-r from-blue-500 to-blue-400' :
+                      g.status === 'cancelled' ? 'bg-gradient-to-r from-red-500 to-red-400' :
+                      'bg-gradient-to-r from-zinc-600 to-zinc-500'
+                    }`} />
+
+                    <div className="p-5">
+                      {/* Header Row */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
+                              {statusConfig.label}
+                            </span>
+                            {g.status === 'completed' && (
+                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                                (g as any).prizes_distributed
+                                  ? 'bg-emerald-500/20 text-emerald-400'
+                                  : 'bg-amber-500/20 text-amber-400'
+                              }`}>
+                                {(g as any).prizes_distributed ? 'Выплачено' : 'Ожидает выплаты'}
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="text-lg font-bold text-white truncate">{g.title || g.name}</h3>
+                          {g.subtitle && <p className="text-sm text-white/40 truncate">{g.subtitle}</p>}
+                        </div>
+
+                        {/* Jackpot */}
+                        <div className="text-right ml-4">
+                          <div className="text-xs text-white/40 mb-1">Джекпот</div>
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <img src={`/icons/${g.currency === 'ar' ? 'arcoin' : 'BUL'}.png`} alt="" className="w-5 h-5" />
+                            <span className="text-xl font-black text-[#FFD700]">
+                              {(g.jackpot_current_amount || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info Grid */}
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="bg-black/30 rounded-xl p-3 text-center">
+                          <div className="text-xs text-white/40 mb-1">Билет</div>
+                          <div className="text-sm font-bold text-white">{g.price} {g.currency?.toUpperCase()}</div>
+                        </div>
+                        <div className="bg-black/30 rounded-xl p-3 text-center">
+                          <div className="text-xs text-white/40 mb-1">Призов</div>
+                          <div className="text-sm font-bold text-white">{g.prizes?.length || 0}</div>
+                        </div>
+                        <div className="bg-black/30 rounded-xl p-3 text-center">
+                          <div className="text-xs text-white/40 mb-1">Конец</div>
+                          <div className="text-sm font-bold text-white">
+                            {g.end_date ? new Date(g.end_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        {g.status === 'active' && (
+                          <button
+                            onClick={() => handleRunDraw(g.id)}
+                            disabled={loading}
+                            className="flex-1 py-2.5 px-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-500 hover:to-red-400 shadow-lg shadow-red-500/20"
+                          >
+                            Провести
+                          </button>
+                        )}
+                        {g.status === 'completed' && !(g as any).prizes_distributed && (
+                          <button
+                            onClick={() => handleDistributePrizes(g.id)}
+                            disabled={loading}
+                            className="flex-1 py-2.5 px-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-500 hover:to-emerald-400 shadow-lg shadow-emerald-500/20"
+                          >
+                            Выплатить
+                          </button>
+                        )}
+                        {g.status === 'completed' && (
+                          <button
+                            onClick={() => window.open(`/live/${g.id}`, '_blank')}
+                            className="flex-1 py-2.5 px-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 shadow-lg shadow-blue-500/20"
+                          >
+                            Live
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleEdit(g)}
+                          className="py-2.5 px-4 rounded-xl font-medium text-sm transition-all bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10"
+                        >
+                          Ред.
+                        </button>
+                        <button
+                          onClick={() => handleDelete(g.id, g.title || g.name || 'Розыгрыш')}
+                          disabled={loading}
+                          className="py-2.5 px-4 rounded-xl font-medium text-sm transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                        >
+                          Удал.
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })
+            )}
+          </AnimatePresence>
         </div>
       </div>
     )
   }
 
+  // ==================== EDIT VIEW ====================
   return (
-    <div className="p-6 bg-zinc-900 min-h-screen text-white pb-24">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-[#FFD700]">
-          {editingId ? 'Редактировать розыгрыш' : 'Создать розыгрыш'}
-        </h2>
-        <button onClick={() => setMode('list')} className="p-2 hover:bg-white/10 rounded-lg">
-          <span className="text-white/60 text-xl">×</span>
-        </button>
+    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-24 px-4">
+      {/* Header */}
+      <div className="max-w-2xl mx-auto mb-8">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setMode('list')}
+            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+          >
+            <span className="text-xl">←</span>
+            <span>Назад</span>
+          </button>
+          <h1 className="text-xl font-bold text-[#FFD700]">
+            {editingId ? 'Редактирование' : 'Новый розыгрыш'}
+          </h1>
+          <div className="w-16" /> {/* Spacer for centering */}
+        </div>
       </div>
 
-      <div className="space-y-6 max-w-2xl mx-auto">
-        {/* Основная информация */}
-        <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/5">
-          <h3 className="text-lg font-bold flex items-center gap-2"><span className="text-[#FFD700]">*</span> Основная информация</h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-white/50 mb-1">Тип</label>
-              <select
-                value={formData.type}
-                onChange={e => setFormData({ ...formData, type: e.target.value as any })}
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
-              >
-                <option value="money">Деньги</option>
-                <option value="course">Курс</option>
-              </select>
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Section: Basic Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-white/5 overflow-hidden"
+        >
+          <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#FFD700]/20 flex items-center justify-center">
+              <span className="text-[#FFD700]">1</span>
             </div>
-            <div>
-              <label className="block text-xs text-white/50 mb-1">Статус</label>
-              <select
-                value={formData.status}
-                onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
-              >
-                <option value="draft">Черновик</option>
-                <option value="active">Активный</option>
-                <option value="completed">Завершён</option>
-                <option value="cancelled">Отменён</option>
-              </select>
+            <h3 className="font-bold text-white">Основная информация</h3>
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Тип</label>
+                <select
+                  value={formData.type}
+                  onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
+                >
+                  <option value="money">Деньги</option>
+                  <option value="course">Курс</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Статус</label>
+                <select
+                  value={formData.status}
+                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
+                >
+                  <option value="draft">Черновик</option>
+                  <option value="active">Активный</option>
+                  <option value="completed">Завершён</option>
+                  <option value="cancelled">Отменён</option>
+                </select>
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs text-white/50 mb-1">Название</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={e => setFormData({ ...formData, title: e.target.value })}
-              className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-white/50 mb-1">Подзаголовок</label>
-            <input
-              type="text"
-              value={formData.subtitle || ''}
-              onChange={e => setFormData({ ...formData, subtitle: e.target.value })}
-              className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-white/50 mb-1">Цена билета</label>
+              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Название</label>
               <input
-                type="number"
-                value={formData.price}
-                onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
+                type="text"
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Введите название..."
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none transition-colors"
               />
             </div>
+
             <div>
-              <label className="block text-xs text-white/50 mb-1">Валюта</label>
-              <select
-                value={formData.currency}
-                onChange={e => setFormData({ ...formData, currency: e.target.value as any })}
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
-              >
-                <option value="ar">AR</option>
-                <option value="bul">BUL</option>
-              </select>
+              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Подзаголовок</label>
+              <input
+                type="text"
+                value={formData.subtitle || ''}
+                onChange={e => setFormData({ ...formData, subtitle: e.target.value })}
+                placeholder="Краткое описание..."
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none transition-colors"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Цена билета</label>
+                <input
+                  type="number"
+                  value={formData.price}
+                  onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Валюта</label>
+                <select
+                  value={formData.currency}
+                  onChange={e => setFormData({ ...formData, currency: e.target.value as any })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
+                >
+                  <option value="ar">AR</option>
+                  <option value="bul">BUL</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Даты */}
-        <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/5">
-          <h3 className="text-lg font-bold flex items-center gap-2"><span className="text-[#FFD700]">Даты</span></h3>
-
-          <div className="grid grid-cols-1 gap-4">
+        {/* Section: Dates */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-white/5 overflow-hidden"
+        >
+          <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#FFD700]/20 flex items-center justify-center">
+              <span className="text-[#FFD700]">2</span>
+            </div>
+            <h3 className="font-bold text-white">Даты</h3>
+          </div>
+          <div className="p-5 space-y-4">
             <div>
-              <label className="block text-xs text-white/50 mb-1">Дата окончания</label>
+              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Дата окончания</label>
               <input
                 type="datetime-local"
                 value={formData.end_date ? new Date(formData.end_date).toISOString().slice(0, 16) : ''}
                 onChange={e => setFormData({ ...formData, end_date: new Date(e.target.value).toISOString() })}
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs text-white/50 mb-1">Дата розыгрыша</label>
+              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Дата розыгрыша</label>
               <input
                 type="datetime-local"
                 value={formData.draw_date ? new Date(formData.draw_date).toISOString().slice(0, 16) : ''}
                 onChange={e => setFormData({ ...formData, draw_date: new Date(e.target.value).toISOString() })}
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white"
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
               />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Призы */}
-        <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/5">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold flex items-center gap-2"><span className="text-[#FFD700]">Призы</span></h3>
-            <button onClick={addPrize} className="text-xs bg-white/10 px-2 py-1 rounded hover:bg-white/20">Добавить приз</button>
+        {/* Section: Prizes */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-white/5 overflow-hidden"
+        >
+          <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#FFD700]/20 flex items-center justify-center">
+                <span className="text-[#FFD700]">3</span>
+              </div>
+              <h3 className="font-bold text-white">Призы</h3>
+            </div>
+            <button
+              onClick={addPrize}
+              className="px-3 py-1.5 bg-[#FFD700]/20 hover:bg-[#FFD700]/30 text-[#FFD700] rounded-lg text-sm font-medium transition-colors"
+            >
+              + Добавить
+            </button>
           </div>
-
-          <div className="space-y-2">
+          <div className="p-5 space-y-3">
+            {formData.prizes?.length === 0 && (
+              <div className="text-center py-8 text-white/30">
+                Нет призов. Нажмите "Добавить" выше.
+              </div>
+            )}
             {formData.prizes?.map((prize, idx) => (
-              <div key={idx} className="flex gap-2 items-center bg-black/40 p-2 rounded-lg">
-                <div className="w-10 text-center font-bold text-white/50">#{prize.place}</div>
+              <div key={idx} className="flex items-center gap-3 bg-black/30 rounded-xl p-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
+                  idx === 0 ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                  idx === 1 ? 'bg-gray-400/20 text-gray-400' :
+                  idx === 2 ? 'bg-amber-600/20 text-amber-500' :
+                  'bg-white/5 text-white/50'
+                }`}>
+                  {prize.place}
+                </div>
                 <input
                   type="number"
                   placeholder="Сумма"
                   value={prize.amount}
                   onChange={e => updatePrize(idx, 'amount', Number(e.target.value))}
-                  className="w-24 bg-transparent border-b border-white/10 p-1 text-sm text-white"
+                  className="flex-1 bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
                 />
-                <input
-                  type="number"
-                  placeholder="%"
-                  value={prize.percentage}
-                  onChange={e => updatePrize(idx, 'percentage', Number(e.target.value))}
-                  className="w-16 bg-transparent border-b border-white/10 p-1 text-sm text-white"
-                />
-                <span className="text-xs text-white/30">%</span>
-                <button onClick={() => removePrize(idx)} className="ml-auto text-red-400 hover:text-red-300 text-sm">Удалить</button>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    placeholder="%"
+                    value={prize.percentage}
+                    onChange={e => updatePrize(idx, 'percentage', Number(e.target.value))}
+                    className="w-16 bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
+                  />
+                  <span className="text-white/30 text-sm">%</span>
+                </div>
+                <button
+                  onClick={() => removePrize(idx)}
+                  className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Требования */}
-        <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/5">
-          <h3 className="text-lg font-bold flex items-center gap-2"><span className="text-[#FFD700]">Требования</span></h3>
-
-          <div className="space-y-3">
-            <div>
-              <label className="flex items-center gap-2 text-sm mb-2">
-                <input
-                  type="checkbox"
-                  checked={!!formData.requirements?.telegram_channel_id}
-                  onChange={e => {
-                    const reqs = { ...formData.requirements }
-                    if (e.target.checked) reqs.telegram_channel_id = ''
-                    else delete reqs.telegram_channel_id
-                    setFormData({ ...formData, requirements: reqs })
-                  }}
-                />
-                Подписка на Telegram канал
-              </label>
-              {formData.requirements?.telegram_channel_id !== undefined && (
-                <input
-                  type="text"
-                  placeholder="ID канала (напр. @ar_arena)"
-                  value={formData.requirements.telegram_channel_id}
-                  onChange={e => setFormData({
-                    ...formData,
-                    requirements: { ...formData.requirements, telegram_channel_id: e.target.value }
-                  })}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm"
-                />
-              )}
+        {/* Section: Requirements */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-white/5 overflow-hidden"
+        >
+          <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#FFD700]/20 flex items-center justify-center">
+              <span className="text-[#FFD700]">4</span>
             </div>
-
-            <div>
-              <label className="flex items-center gap-2 text-sm mb-2">
-                <input
-                  type="checkbox"
-                  checked={!!formData.requirements?.min_friends}
-                  onChange={e => {
-                    const reqs = { ...formData.requirements }
-                    if (e.target.checked) reqs.min_friends = 1
-                    else delete reqs.min_friends
-                    setFormData({ ...formData, requirements: reqs })
-                  }}
-                />
-                Минимум друзей
-              </label>
-              {formData.requirements?.min_friends !== undefined && (
-                <input
-                  type="number"
-                  placeholder="Количество"
-                  value={formData.requirements.min_friends}
-                  onChange={e => setFormData({
-                    ...formData,
-                    requirements: { ...formData.requirements, min_friends: Number(e.target.value) }
-                  })}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm"
-                />
-              )}
-            </div>
+            <h3 className="font-bold text-white">Требования</h3>
           </div>
-        </div>
+          <div className="p-5 space-y-4">
+            <label className="flex items-center gap-3 p-3 bg-black/30 rounded-xl cursor-pointer hover:bg-black/40 transition-colors">
+              <input
+                type="checkbox"
+                checked={!!formData.requirements?.telegram_channel_id}
+                onChange={e => {
+                  const reqs = { ...formData.requirements }
+                  if (e.target.checked) reqs.telegram_channel_id = ''
+                  else delete reqs.telegram_channel_id
+                  setFormData({ ...formData, requirements: reqs })
+                }}
+                className="w-5 h-5 rounded accent-[#FFD700]"
+              />
+              <span className="text-white">Подписка на Telegram канал</span>
+            </label>
+            {formData.requirements?.telegram_channel_id !== undefined && (
+              <input
+                type="text"
+                placeholder="ID канала (напр. @ar_arena)"
+                value={formData.requirements.telegram_channel_id}
+                onChange={e => setFormData({
+                  ...formData,
+                  requirements: { ...formData.requirements, telegram_channel_id: e.target.value }
+                })}
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none"
+              />
+            )}
 
-        {/* Кнопка сохранения */}
-        <button
+            <label className="flex items-center gap-3 p-3 bg-black/30 rounded-xl cursor-pointer hover:bg-black/40 transition-colors">
+              <input
+                type="checkbox"
+                checked={!!formData.requirements?.min_friends}
+                onChange={e => {
+                  const reqs = { ...formData.requirements }
+                  if (e.target.checked) reqs.min_friends = 1
+                  else delete reqs.min_friends
+                  setFormData({ ...formData, requirements: reqs })
+                }}
+                className="w-5 h-5 rounded accent-[#FFD700]"
+              />
+              <span className="text-white">Минимум друзей</span>
+            </label>
+            {formData.requirements?.min_friends !== undefined && (
+              <input
+                type="number"
+                placeholder="Количество"
+                value={formData.requirements.min_friends}
+                onChange={e => setFormData({
+                  ...formData,
+                  requirements: { ...formData.requirements, min_friends: Number(e.target.value) }
+                })}
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none"
+              />
+            )}
+          </div>
+        </motion.div>
+
+        {/* Save Button */}
+        <motion.button
           onClick={handleSave}
           disabled={loading}
-          className="w-full py-4 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl shadow-lg hover:opacity-90 flex justify-center items-center gap-2"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full py-4 rounded-2xl font-bold text-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          style={{
+            background: 'linear-gradient(135deg, #FFD700 0%, #FFC700 25%, #FFB800 50%, #FFA500 75%, #FF9500 100%)',
+            boxShadow: '0 4px 30px rgba(255, 215, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+          }}
         >
           {loading ? 'Сохранение...' : 'Сохранить'}
-        </button>
+        </motion.button>
       </div>
-    </div >
+    </div>
   )
 }
