@@ -1550,9 +1550,13 @@ export function FullCrmPage() {
                       }
                     }
                     else if (isEurCurrency(c.currency || '')) totalEur += amount
-                    else if (isCryptoCurrency(c.currency || '', c.source || '')) totalUsdt += amount
+                    else if (isCryptoCurrency(c.currency || '', c.source || '')) {
+                      console.log('[USDT DEBUG]', c.telegram_id, 'original_amount:', c.original_amount, 'total_paid_usd:', c.total_paid_usd, 'ADDING:', amount)
+                      totalUsdt += amount
+                    }
                     else if (isUsdCurrency(c.currency || '', c.source || '')) totalUsd += amount
                   })
+                  console.log('[USDT TOTAL FOR MONTH]', statsMonth, totalUsdt)
                   paidCountThisMonth = clientsFiltered.length
 
                   // DEBUG: вывести в консоль
