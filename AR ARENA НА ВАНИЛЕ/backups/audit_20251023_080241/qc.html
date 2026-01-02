@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AR ARENA - Конструктор квизов</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 16px;
+                padding-bottom: 90px;
+            }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Шапка */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                margin-bottom: 20px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,215,0,0.1);
+            border-color: #FFD700;
+        }
+
+        .back-btn img {
+            width: 18px;
+            height: 18px;
+            filter: brightness(0) saturate(100%) invert(73%) sepia(86%) saturate(434%) hue-rotate(4deg) brightness(104%) contrast(101%);
+        }
+
+        h1 {
+            font-size: 22px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            white-space: nowrap;
+        }
+
+        /* Секции формы */
+        .form-section {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @media (max-width: 480px) {
+            .form-section {
+                padding: 16px;
+                margin-bottom: 12px;
+                border-radius: 14px;
+            }
+        }
+
+        .form-section-title {
+            color: #FFD700;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-section-title img {
+            width: 24px;
+            height: 24px;
+            filter: drop-shadow(0 0 0 transparent);
+        }
+
+        @media (max-width: 480px) {
+            .form-section-title {
+                font-size: 15px;
+                margin-bottom: 14px;
+                gap: 8px;
+            }
+
+            .form-section-title img {
+                width: 22px;
+                height: 22px;
+            }
+        }
+
+        /* Инпуты */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-label {
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+            margin-bottom: 10px;
+            display: block;
+            font-weight: 500;
+        }
+
+        @media (max-width: 480px) {
+            .input-group {
+                margin-bottom: 16px;
+            }
+
+            .input-label {
+                font-size: 12px;
+                margin-bottom: 8px;
+            }
+
+            .input-field {
+                padding: 12px 14px;
+                font-size: 14px;
+            }
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 15px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .input-field:focus {
+            outline: none;
+            background: rgba(255,255,255,0.08);
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255,215,0,0.1);
+        }
+
+        .input-field::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+
+        textarea.input-field {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .input-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Вопросы */
+        .questions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .questions-header {
+                margin-bottom: 14px;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+        }
+
+        .add-question-btn {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+            flex-shrink: 0;
+        }
+
+        .add-question-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,215,0,0.4);
+        }
+
+        .add-question-btn:active {
+            transform: scale(0.98);
+        }
+
+        .add-question-btn img {
+            width: 16px;
+            height: 16px;
+        }
+
+        @media (max-width: 480px) {
+            .add-question-btn {
+                padding: 8px 16px;
+                font-size: 13px;
+                gap: 5px;
+            }
+
+            .add-question-btn img {
+                width: 14px;
+                height: 14px;
+            }
+        }
+
+        .question-card {
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .question-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,215,0,0.3);
+        }
+
+        @media (max-width: 480px) {
+            .question-card {
+                padding: 14px;
+                margin-bottom: 10px;
+                border-radius: 12px;
+            }
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .question-number {
+            color: #FFD700;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .delete-question-btn {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #ef4444;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .delete-question-btn:hover {
+            background: rgba(239,68,68,0.2);
+            transform: scale(1.05);
+        }
+
+        .delete-question-btn img {
+            width: 13px;
+            height: 13px;
+            filter: brightness(0) saturate(100%) invert(47%) sepia(86%) saturate(2688%) hue-rotate(335deg) brightness(98%) contrast(94%);
+        }
+
+        @media (max-width: 480px) {
+            .delete-question-btn {
+                padding: 5px 10px;
+                font-size: 11px;
+                gap: 4px;
+            }
+
+            .delete-question-btn img {
+                width: 12px;
+                height: 12px;
+            }
+        }
+
+        /* Кнопки действий */
+        .actions-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, #0a0a0a 80%, transparent);
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        @media (max-width: 480px) {
+            .actions-bar {
+                padding: 12px;
+                gap: 10px;
+            }
+
+            .btn-primary {
+                padding: 14px;
+                font-size: 15px;
+            }
+
+            .btn-secondary {
+                padding: 14px 20px;
+                font-size: 15px;
+            }
+        }
+
+        .btn-primary {
+            flex: 1;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: none;
+            color: #000;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,215,0,0.4);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        .btn-secondary:active {
+            background: rgba(255,255,255,0.1);
+            transform: scale(0.98);
+        }
+
+        .btn-secondary img {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Переключатель типа квиза */
+        .quiz-type-switch {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 0;
+        }
+
+        .type-option {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .type-option:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        .type-option.active {
+            background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.1));
+            border-color: #FFD700;
+        }
+
+        .type-option-title {
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .type-option.active .type-option-title {
+            color: #FFD700;
+        }
+
+        .type-option-desc {
+            color: rgba(255,255,255,0.5);
+            font-size: 11px;
+        }
+
+        @media (max-width: 480px) {
+            .quiz-type-switch {
+                gap: 10px;
+            }
+
+            .type-option {
+                padding: 10px 8px;
+            }
+
+            .type-option-title {
+                font-size: 13px;
+                margin-bottom: 3px;
+            }
+
+            .type-option-desc {
+                font-size: 10px;
+            }
+        }
+
+        /* Варианты ответов */
+        .answer-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .answer-options {
+                gap: 8px;
+                margin-bottom: 10px;
+            }
+        }
+
+        .answer-option-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .answer-option-card:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,215,0,0.3);
+        }
+
+        .answer-option-card.correct {
+            background: linear-gradient(135deg, rgba(76,175,80,0.15), rgba(69,160,73,0.08));
+            border-color: #4CAF50;
+        }
+
+        @media (max-width: 480px) {
+            .answer-option-card {
+                padding: 10px;
+                gap: 10px;
+                border-radius: 8px;
+            }
+        }
+
+        .answer-number {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.1));
+            border: 1px solid rgba(255,215,0,0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFD700;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .answer-option-card.correct .answer-number {
+            background: linear-gradient(135deg, rgba(76,175,80,0.3), rgba(69,160,73,0.2));
+            border-color: rgba(76,175,80,0.5);
+            color: #4CAF50;
+        }
+
+        @media (max-width: 480px) {
+            .answer-number {
+                width: 30px;
+                height: 30px;
+                font-size: 13px;
+                border-radius: 7px;
+            }
+        }
+
+        .answer-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 14px;
+            padding: 0;
+        }
+
+        .answer-input:focus {
+            outline: none;
+        }
+
+        .answer-input::placeholder {
+            color: rgba(255,255,255,0.3);
+            font-size: 13px;
+        }
+
+        .answer-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+            align-items: center;
+        }
+
+        .mark-correct-btn {
+            display: none !important;
+        }
+
+        .remove-answer-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #ef4444;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            line-height: 1;
+        }
+
+        .remove-answer-btn:hover {
+            background: rgba(239,68,68,0.2);
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 480px) {
+            .answer-option-card {
+                gap: 10px;
+                padding-right: 40px;
+            }
+
+            .answer-input {
+                font-size: 13px;
+            }
+
+            .remove-answer-btn {
+                width: 22px;
+                height: 22px;
+                font-size: 14px;
+                top: 8px;
+                right: 8px;
+            }
+        }
+
+        .add-answer-btn {
+            background: rgba(255,215,0,0.1);
+            border: 1px solid rgba(255,215,0,0.3);
+            color: #FFD700;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .add-answer-btn:hover {
+            background: rgba(255,215,0,0.15);
+            transform: translateY(-1px);
+        }
+
+        .add-answer-btn:active {
+            transform: scale(0.98);
+        }
+
+        @media (max-width: 480px) {
+            .add-answer-btn {
+                padding: 9px;
+                font-size: 12px;
+                gap: 5px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка -->
+        <div class="header">
+            <div class="header-left">
+                <a href="admin.html" class="back-btn">
+                    <img src="icons/back.png" alt="Back">
+                </a>
+                <h1>Конструктор квизов</h1>
+            </div>
+        </div>
+
+        <!-- Основная информация -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <img src="icons/QWIZ.png" alt="Info">
+                Основная информация
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label class="input-label">Название квиза</label>
+                    <input type="text" id="quizTitle" class="input-field" placeholder="Основы AR Points" maxlength="25">
+                    <div class="char-counter" style="text-align: right; font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px;">
+                        <span id="titleCounter">0/25</span>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Награда (AR)</label>
+                    <input type="number" id="quizReward" class="input-field" value="100" min="0">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Описание квиза</label>
+                <textarea id="quizDescription" class="input-field" placeholder="Краткое описание того, о чем этот квиз..." maxlength="40"></textarea>
+                <div class="char-counter" style="text-align: right; font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px;">
+                    <span id="descCounter">0/40</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Настройки квиза -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <img src="icons/settings-gear.png" alt="Settings">
+                Настройки
+            </div>
+
+            <div class="input-label">Тип квиза</div>
+            <div class="quiz-type-switch">
+                <div class="type-option active" onclick="setQuizType('test')">
+                    <div class="type-option-title">Тест</div>
+                    <div class="type-option-desc">С правильными ответами</div>
+                </div>
+                <div class="type-option" onclick="setQuizType('survey')">
+                    <div class="type-option-title">Опрос</div>
+                    <div class="type-option-desc">Без проверки</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Вопросы -->
+        <div class="form-section">
+            <div class="questions-header">
+                <div class="form-section-title" style="margin: 0;">
+                    <img src="icons/todo.png" alt="Questions">
+                    Вопросы
+                </div>
+                <button class="add-question-btn" onclick="addQuestion()">
+                    <img src="icons/QWIZ.png" alt="Add">
+                    Добавить
+                </button>
+            </div>
+
+            <div id="questionsContainer">
+                <!-- Вопросы будут здесь -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="actions-bar">
+        <button class="btn-secondary" onclick="window.location.href='admin.html'">
+            Отмена
+        </button>
+        <button class="btn-primary" onclick="saveQuiz()">
+            Сохранить квиз
+        </button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js?v=20251013"></script>
+    <script>
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        tg?.expand();
+
+        let questionCount = 0;
+        let quizType = 'test';
+
+        // Установить тип квиза
+        window.setQuizType = function(type) {
+            quizType = type;
+
+            // Переключаем активный класс
+            document.querySelectorAll('.type-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            event.target.closest('.type-option').classList.add('active');
+
+            // Показываем/скрываем кнопки "Правильный"
+            const correctBtns = document.querySelectorAll('.mark-correct-btn');
+            correctBtns.forEach(btn => {
+                btn.style.display = type === 'test' ? 'inline-block' : 'none';
+            });
+
+            // Убираем зелёные плашки если переключили на опрос
+            if (type === 'survey') {
+                document.querySelectorAll('.answer-option-card').forEach(card => {
+                    card.classList.remove('correct');
+                });
+            }
+        };
+
+        // Отметить правильный ответ (по клику на карточку)
+        window.markCorrect = function(card) {
+            if (quizType !== 'test') return;
+
+            const questionCard = card.closest('.question-card');
+            const allOptions = questionCard.querySelectorAll('.answer-option-card');
+
+            allOptions.forEach(opt => opt.classList.remove('correct'));
+            card.classList.add('correct');
+        };
+
+        // Удалить вариант ответа
+        window.removeAnswer = function(btn) {
+            const container = btn.closest('.answer-options');
+            const cards = container.querySelectorAll('.answer-option-card');
+
+            if (cards.length <= 2) {
+                alert('Минимум 2 варианта ответа');
+                return;
+            }
+
+            btn.closest('.answer-option-card').remove();
+            updateAnswerNumbers(container);
+        };
+
+        // Добавить вариант ответа
+        window.addAnswer = function(btn) {
+            const container = btn.previousElementSibling;
+            const number = container.querySelectorAll('.answer-option-card').length + 1;
+
+            const card = document.createElement('div');
+            card.className = 'answer-option-card';
+            card.onclick = function() { markCorrect(this); };
+            card.innerHTML = `
+                <div class="answer-number">${number}</div>
+                <input type="text" class="answer-input" placeholder="Вариант ответа" value="" maxlength="50">
+                <div class="char-counter" style="text-align: right; font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px;">
+                    <span class="answer-counter">0/50</span>
+                </div>
+                <button class="remove-answer-btn" onclick="event.stopPropagation(); removeAnswer(this)">×</button>
+            `;
+
+            container.appendChild(card);
+        };
+
+        // Обновить номера ответов
+        function updateAnswerNumbers(container) {
+            const cards = container.querySelectorAll('.answer-option-card');
+            cards.forEach((card, idx) => {
+                card.querySelector('.answer-number').textContent = idx + 1;
+            });
+        }
+
+        // Добавить вопрос
+        window.addQuestion = function() {
+            questionCount++;
+            const container = document.getElementById('questionsContainer');
+
+            const questionCard = document.createElement('div');
+            questionCard.className = 'question-card';
+            questionCard.innerHTML = `
+                <div class="question-header">
+                    <div class="question-number">Вопрос ${questionCount}</div>
+                    <button class="delete-question-btn" onclick="this.closest('.question-card').remove()">
+                        <img src="icons/close1.png" alt="Delete">
+                        Удалить
+                    </button>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Текст вопроса</label>
+                    <input type="text" class="input-field question-text" placeholder="Что такое AR Points?" maxlength="80">
+                    <div class="char-counter" style="text-align: right; font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px;">
+                        <span class="question-counter">0/80</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Варианты ответов</label>
+                    <div class="answer-options">
+                        <div class="answer-option-card ${quizType === 'test' ? 'correct' : ''}" onclick="markCorrect(this)">
+                            <div class="answer-number">1</div>
+                            <input type="text" class="answer-input" placeholder="Вариант ответа" value="" maxlength="50">
+                            <div class="char-counter" style="text-align: right; font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px;">
+                                <span class="answer-counter">0/50</span>
+                            </div>
+                            <button class="remove-answer-btn" onclick="event.stopPropagation(); removeAnswer(this)">×</button>
+                        </div>
+                        <div class="answer-option-card" onclick="markCorrect(this)">
+                            <div class="answer-number">2</div>
+                            <input type="text" class="answer-input" placeholder="Вариант ответа" value="" maxlength="50">
+                            <div class="char-counter" style="text-align: right; font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px;">
+                                <span class="answer-counter">0/50</span>
+                            </div>
+                            <button class="remove-answer-btn" onclick="event.stopPropagation(); removeAnswer(this)">×</button>
+                        </div>
+                    </div>
+                    <button class="add-answer-btn" onclick="addAnswer(this)">+ Добавить вариант</button>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Объяснение/обучающий текст</label>
+                    <textarea class="input-field question-education" placeholder="Подробное объяснение правильного ответа..." maxlength="300"></textarea>
+                </div>
+            `;
+
+            container.appendChild(questionCard);
+        };
+
+        // Сохранить квиз
+        window.saveQuiz = async function() {
+            const title = document.getElementById('quizTitle').value;
+            const description = document.getElementById('quizDescription').value;
+            const reward = parseInt(document.getElementById('quizReward').value);
+
+            if (!title) {
+                alert('Введите название квиза');
+                return;
+            }
+
+            // Собираем вопросы
+            const questionCards = document.querySelectorAll('.question-card');
+            const questions = [];
+
+            questionCards.forEach((card, idx) => {
+                const questionText = card.querySelector('.question-text').value;
+                const educationText = card.querySelector('.question-education').value;
+
+                // Собираем варианты ответов из карточек
+                const answerCards = card.querySelectorAll('.answer-option-card');
+                const options = [];
+                let correctIndex = 0;
+
+                answerCards.forEach((answerCard, optIdx) => {
+                    const text = answerCard.querySelector('.answer-input').value.trim();
+                    if (!text) return;
+
+                    const isCorrect = answerCard.classList.contains('correct');
+                    if (isCorrect) correctIndex = optIdx;
+
+                    options.push({
+                        text: text,
+                        is_correct: isCorrect,
+                        next_question: idx < questionCards.length - 1 ? `q${idx + 2}` : null,
+                        education_text: educationText
+                    });
+                });
+
+                if (options.length < 2) {
+                    alert(`Вопрос ${idx + 1}: добавьте минимум 2 варианта ответа`);
+                    return;
+                }
+
+                questions.push({
+                    id: `q${idx + 1}`,
+                    type: 'multiple_choice',
+                    question: questionText,
+                    options: options
+                });
+            });
+
+            if (questions.length === 0) {
+                alert('Добавьте хотя бы один вопрос');
+                return;
+            }
+
+            // Создаем структуру квиза
+            const quizData = {
+                title: title,
+                description: description,
+                type: 'educational_quiz',
+                category: 'education',
+                reward_ar: reward,
+                reward_coins: 0,
+                questions: {
+                    quiz_type: quizType,
+                    passing_score: quizType === 'test' ? 70 : 0,
+                    questions: questions
+                },
+                max_completions: 1,
+                is_active: true,
+                priority: 0
+            };
+
+            try {
+                // Wait for Supabase client to be ready
+                let attempts = 0;
+                while ((!window.supabaseClient && !window.db) && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                const supabase = window.supabaseClient || window.db;
+
+                if (!supabase) {
+                    throw new Error('Supabase client не инициализирован. Перезагрузите страницу.');
+                }
+
+                const { data, error } = await supabase
+                    .from('tasks')
+                    .insert(quizData)
+                    .select();
+
+                if (error) throw error;
+
+                // Сразу перенаправляем без alert
+                window.location.href = 'admin-quizzes.html';
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Ошибка создания: ' + error.message);
+            }
+        };
+
+        // Добавляем первый вопрос при загрузке
+        addQuestion();
+
+        // Обновление счётчиков символов
+        document.getElementById('quizTitle').addEventListener('input', function(e) {
+            document.getElementById('titleCounter').textContent = e.target.value.length + '/25';
+        });
+
+        document.getElementById('quizDescription').addEventListener('input', function(e) {
+            document.getElementById('descCounter').textContent = e.target.value.length + '/40';
+        });
+
+        // Для динамических полей (вопросы и ответы)
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('question-text')) {
+                const counter = e.target.nextElementSibling?.querySelector('.question-counter');
+                if (counter) counter.textContent = e.target.value.length + '/80';
+            }
+            if (e.target.classList.contains('answer-input')) {
+                const counter = e.target.nextElementSibling?.querySelector('.answer-counter');
+                if (counter) counter.textContent = e.target.value.length + '/50';
+            }
+        });
+
+        console.log('✅ QC конструктор инициализирован');
+    </script>
+</body>
+</html>

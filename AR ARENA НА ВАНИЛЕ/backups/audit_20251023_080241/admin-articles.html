@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AR ARENA - Управление статьями</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="admin-section-header.js"></script>
+    <style id="section-header-styles"></style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: white;
+            min-height: 100vh;
+            padding: 16px 12px 90px;
+        }
+
+        /* Шапка */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,215,0,0.1);
+            border-color: #FFD700;
+        }
+
+        .back-btn img {
+            width: 18px;
+            height: 18px;
+            filter: brightness(0) saturate(100%) invert(73%) sepia(86%) saturate(434%) hue-rotate(4deg) brightness(104%) contrast(101%);
+        }
+
+        h1 {
+            font-size: 22px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            white-space: nowrap;
+        }
+
+        .create-btn {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .create-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .create-btn img {
+            width: 16px;
+            height: 16px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Сетка статей */
+        .articles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+
+        /* Карточка статьи */
+        .article-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 18px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .article-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255,215,0,0.3);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .article-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 16px;
+            position: relative;
+            padding-right: 110px; /* место для кнопок */
+        }
+
+        .article-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .article-icon img {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 0 0 transparent);
+        }
+
+        .article-header-content {
+            flex: 1;
+        }
+
+        .article-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .article-subtitle {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            line-height: 1.4;
+        }
+
+        .article-type-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .article-type-badge.educational {
+            background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.1));
+            color: #FFD700;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+
+        .article-type-badge.special {
+            background: linear-gradient(135deg, rgba(103,126,234,0.2), rgba(118,75,162,0.1));
+            color: #677EEA;
+            border: 1px solid rgba(103,126,234,0.3);
+        }
+
+        .article-type-badge.partner {
+            background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(124,58,237,0.1));
+            color: #a855f7;
+            border: 1px solid rgba(168,85,247,0.3);
+        }
+
+        /* Статистика */
+        .article-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .stat-label {
+            color: rgba(255,255,255,0.5);
+            font-size: 11px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-label img {
+            width: 14px;
+            height: 14px;
+            opacity: 0.5;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .stat-value.good {
+            color: #4ade80;
+        }
+
+        .stat-value.medium {
+            color: #fbbf24;
+        }
+
+        .stat-value.bad {
+            color: #f87171;
+        }
+
+        /* Действия */
+        .article-actions {
+            display: flex;
+            gap: 3px;
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        .action-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+            width: 24px;
+            height: 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .action-btn svg {
+            width: 12px;
+            height: 12px;
+            stroke: rgba(255,255,255,0.7);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .action-btn:hover {
+            background: rgba(255,215,0,0.1);
+            border-color: #FFD700;
+        }
+
+        .action-btn:hover svg {
+            stroke: #FFD700;
+        }
+
+        .action-btn.delete:hover {
+            background: rgba(239,68,68,0.1);
+            border-color: #ef4444;
+        }
+
+        .action-btn.delete:hover svg {
+            stroke: #ef4444;
+        }
+
+        /* Loader */
+        .loader {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .loader img {
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            color: rgba(255,255,255,0.5);
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        /* Пустое состояние */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .empty-state img {
+            width: 100px;
+            height: 100px;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 10px;
+        }
+
+        .empty-state-text {
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
+        }
+
+        /* Модальное окно подтверждения */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #FFD700;
+        }
+
+        .modal-text {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+
+        .modal-btn.cancel {
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.7);
+        }
+
+        .modal-btn.confirm {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .articles-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Вставка компактного хедера раздела
+        document.getElementById('section-header-styles').textContent = sectionHeaderStyles;
+        document.body.insertAdjacentHTML('afterbegin', createSectionHeader('Обучающие статьи', 'admin-tasks.html'));
+    </script>
+
+    <div class="container">
+        <!-- Кнопка создания -->
+        <button class="create-btn" onclick="window.location.href='admin-article-create.html'" style="margin-bottom: 20px;">
+            <img src="icons/article.png" alt="Article">
+            Создать статью
+        </button>
+
+        <!-- Loader -->
+        <div id="loader" class="loader">
+            <img src="icons/loading.png" alt="Loading">
+            <div class="loader-text">Загрузка статей...</div>
+        </div>
+
+        <!-- Сетка статей -->
+        <div id="articlesGrid" class="articles-grid" style="display: none;"></div>
+
+        <!-- Пустое состояние -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <img src="icons/article.png" alt="Empty">
+            <div class="empty-state-title">Статей пока нет</div>
+            <div class="empty-state-text">Создайте первую статью, чтобы начать</div>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения удаления -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Удалить статью?</div>
+            <div class="modal-text">Это действие нельзя отменить. Все данные о прочтении статьи будут удалены.</div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeDeleteModal()">Отмена</button>
+                <button class="modal-btn confirm" onclick="confirmDelete()">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js?v=1760034000"></script>
+    <script>
+        const ADMIN_ID = 190202791;
+        const supabase = window.supabaseClient || window.db;
+        let allArticles = [];
+        let deleteArticleId = null;
+
+        // Проверка инициализации Supabase
+        if (!supabase) {
+            console.error('Supabase не инициализирован!');
+            document.getElementById('loader').innerHTML = '<div class="loader-text" style="color: #ef4444;">Ошибка подключения к базе данных</div>';
+        }
+
+        // Получение категории badge класса
+        function getCategoryBadgeClass(category) {
+            switch(category) {
+                case 'Обучающие': return 'educational';
+                case 'Специальные': return 'special';
+                case 'Партнерские': return 'partner';
+                default: return 'educational';
+            }
+        }
+
+        // Загрузка статей
+        async function loadArticles() {
+            const loader = document.getElementById('loader');
+            const grid = document.getElementById('articlesGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            try {
+                // Показываем loader, скрываем grid и emptyState
+                loader.style.display = 'block';
+                grid.style.display = 'none';
+                emptyState.style.display = 'none';
+
+                const { data: articles, error } = await supabase
+                    .from('articles')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                loader.style.display = 'none';
+
+                if (!articles || articles.length === 0) {
+                    grid.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    allArticles = [];
+                    return;
+                }
+
+                allArticles = articles;
+                displayArticles();
+                grid.style.display = 'grid';
+
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                loader.innerHTML = '<div class="loader-text" style="color: #ef4444;">Ошибка загрузки статей</div>';
+            }
+        }
+
+        // Отображение статей
+        function displayArticles() {
+            const grid = document.getElementById('articlesGrid');
+
+            grid.innerHTML = allArticles.map(article => `
+                <div class="article-card">
+                    <div class="article-card-header">
+                        <div class="article-icon">
+                            <img src="${article.cover_image || 'icons/article.png'}" alt="Article">
+                        </div>
+                        <div class="article-header-content">
+                            <div class="article-title">${article.title}</div>
+                            <div class="article-subtitle">
+                                <span class="article-type-badge ${getCategoryBadgeClass(article.category)}">${article.category}</span>
+                            </div>
+                        </div>
+                        <div class="article-actions">
+                            <button class="action-btn" onclick="editArticle('${article.id}')" title="Редактировать">
+                                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button class="action-btn" onclick="viewStats('${article.id}')" title="Статистика">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="8" width="4" height="13"/><rect x="10" y="3" width="4" height="18"/><rect x="17" y="13" width="4" height="8"/></svg>
+                            </button>
+                            <button class="action-btn delete" onclick="showDeleteModal('${article.id}')" title="Удалить">
+                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="article-stats">
+                        <div class="stat-item">
+                            <div class="stat-label">
+                                <img src="icons/reward.png" alt="Reward">
+                                Награда
+                            </div>
+                            <div class="stat-value">${article.reward_ar} AR</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">
+                                <img src="icons/time.png" alt="Time">
+                                Время чтения
+                            </div>
+                            <div class="stat-value">${article.reading_time} мин</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Редактирование статьи
+        function editArticle(id) {
+            window.location.href = `admin-article-edit.html?id=${id}`;
+        }
+
+        // Просмотр статистики
+        async function viewStats(id) {
+            try {
+                const { data: reads } = await supabase
+                    .from('article_reads')
+                    .select('*')
+                    .eq('article_id', id);
+
+                const article = allArticles.find(a => a.id === id);
+                const readCount = reads?.length || 0;
+                const rewardsClaimed = reads?.filter(r => r.reward_claimed).length || 0;
+
+                alert(`Статистика: ${article.title}\n\nПрочитано: ${readCount} раз\nНаграды выданы: ${rewardsClaimed}`);
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+                alert('Ошибка загрузки статистики');
+            }
+        }
+
+        // Показать модалку удаления
+        function showDeleteModal(id) {
+            deleteArticleId = id;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        // Закрыть модалку удаления
+        function closeDeleteModal() {
+            deleteArticleId = null;
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        // Подтвердить удаление
+        async function confirmDelete() {
+            if (!deleteArticleId) return;
+
+            try {
+                const { error } = await supabase
+                    .from('articles')
+                    .delete()
+                    .eq('id', deleteArticleId);
+
+                if (error) throw error;
+
+                closeDeleteModal();
+                await loadArticles();
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+                alert('Ошибка удаления статьи');
+            }
+        }
+
+        // Инициализация
+        window.addEventListener('DOMContentLoaded', () => {
+            loadArticles();
+        });
+    </script>
+</body>
+</html>

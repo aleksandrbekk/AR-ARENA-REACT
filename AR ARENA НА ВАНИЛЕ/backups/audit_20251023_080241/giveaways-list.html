@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Розыгрыши - AR ARENA</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js?v=20250114"></script>
+    <script src="auth.js?v=20250114"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 16px;
+            padding-bottom: 100px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* HEADER */
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* TABS */
+
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+        }
+
+        /* GIVEAWAY CARD */
+
+        .giveaway-card {
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.9), rgba(30, 30, 30, 0.8));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 2px solid rgba(255, 215, 0, 0.25);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(255, 215, 0, 0.05);
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .giveaway-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(255, 215, 0, 0.3);
+            border-color: rgba(255, 215, 0, 0.4);
+        }
+
+        .giveaway-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .giveaway-title {
+            font-size: 20px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            flex: 1;
+        }
+
+        .giveaway-badge {
+            background: linear-gradient(135deg, #11998E, #38EF7D);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .giveaway-description {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 16px;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .giveaway-prizes {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .prize-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 13px;
+        }
+
+        .prize-name {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .prize-value {
+            color: #FFD700;
+            font-weight: 700;
+        }
+
+        .giveaway-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 900;
+            color: #FFD700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .countdown {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #ff6b6b;
+        }
+
+        .participate-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 900;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .participate-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* LOADING */
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 215, 0, 0.2);
+            border-top-color: #FFD700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* EMPTY STATE */
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 8px;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="page-header">
+            <div class="page-title">🎁 Розыгрыши</div>
+            <div class="page-subtitle">Участвуйте и выигрывайте призы!</div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('active')">Активные</button>
+            <button class="tab" onclick="switchTab('finished')">Завершенные</button>
+        </div>
+
+        <!-- LOADING -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <div>Загрузка розыгрышей...</div>
+        </div>
+
+        <!-- GIVEAWAYS LIST -->
+        <div id="giveaways-list" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Глобальные переменные
+        let activeTab = 'active';
+        let allGiveaways = [];
+
+        // Инициализация Telegram WebApp
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+
+        // ========================================
+        // ЗАГРУЗКА РОЗЫГРЫШЕЙ
+        // ========================================
+
+        async function loadGiveaways() {
+            try {
+                const db = window.supabaseClient || window.db;
+
+                if (!db) {
+                    throw new Error('База данных не подключена');
+                }
+
+                // Загружаем все розыгрыши
+                const { data: giveaways, error } = await db
+                    .from('giveaways')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                allGiveaways = giveaways || [];
+                console.log('Загружено розыгрышей:', allGiveaways.length);
+
+                displayGiveaways();
+
+            } catch (error) {
+                console.error('Ошибка загрузки розыгрышей:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="empty-icon">⚠️</div>
+                    <div class="empty-title">Ошибка загрузки</div>
+                    <div class="empty-text">${error.message}</div>
+                `;
+            }
+        }
+
+        // ========================================
+        // ОТОБРАЖЕНИЕ РОЗЫГРЫШЕЙ
+        // ========================================
+
+        function displayGiveaways() {
+            const container = document.getElementById('giveaways-list');
+            container.innerHTML = '';
+
+            // Фильтруем по статусу
+            const filtered = allGiveaways.filter(g => g.status === activeTab);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🎁</div>
+                        <div class="empty-title">Пока нет розыгрышей</div>
+                        <div class="empty-text">Следите за обновлениями!</div>
+                    </div>
+                `;
+                document.getElementById('loading').style.display = 'none';
+                container.style.display = 'block';
+                return;
+            }
+
+            // Создаем карточки
+            filtered.forEach(giveaway => {
+                const card = createGiveawayCard(giveaway);
+                container.appendChild(card);
+            });
+
+            document.getElementById('loading').style.display = 'none';
+            container.style.display = 'block';
+
+            // Запускаем обновление таймеров
+            startCountdowns();
+        }
+
+        // ========================================
+        // СОЗДАНИЕ КАРТОЧКИ
+        // ========================================
+
+        function createGiveawayCard(giveaway) {
+            const card = document.createElement('div');
+            card.className = 'giveaway-card';
+            card.onclick = () => window.location.href = `giveaway-detail.html?id=${giveaway.id}`;
+
+            // Призы (топ 3)
+            const prizes = giveaway.prizes || [];
+            const prizesHtml = prizes.slice(0, 3).map(p => `
+                <div class="prize-row">
+                    <div class="prize-name">${p.place}. ${p.description}</div>
+                    <div class="prize-value">${p.prize_ar?.toLocaleString('ru-RU')} AR</div>
+                </div>
+            `).join('');
+
+            card.innerHTML = `
+                <div class="giveaway-header">
+                    <div class="giveaway-title">${giveaway.title}</div>
+                    ${giveaway.status === 'active' ? '<div class="giveaway-badge">Активно</div>' : ''}
+                </div>
+
+                <div class="giveaway-description">${giveaway.description || ''}</div>
+
+                <div class="giveaway-prizes">
+                    ${prizesHtml}
+                </div>
+
+                <div class="giveaway-stats">
+                    <div class="stat">
+                        <div class="stat-value">${giveaway.total_participants || 0}</div>
+                        <div class="stat-label">Участников</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">${(giveaway.total_tickets_pool || 0).toLocaleString('ru-RU')}</div>
+                        <div class="stat-label">Билетов</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">${prizes.length}</div>
+                        <div class="stat-label">Призов</div>
+                    </div>
+                </div>
+
+                ${giveaway.status === 'active' ? `
+                    <div class="countdown" data-end="${giveaway.end_date}">
+                        ⏳ Загрузка...
+                    </div>
+                ` : ''}
+
+                <button class="participate-btn" onclick="event.stopPropagation(); window.location.href='giveaway-detail.html?id=${giveaway.id}'">
+                    ${giveaway.status === 'active' ? 'Участвовать' : 'Посмотреть'}
+                </button>
+            `;
+
+            return card;
+        }
+
+        // ========================================
+        // COUNTDOWN ТАЙМЕРЫ
+        // ========================================
+
+        function startCountdowns() {
+            function updateCountdowns() {
+                const countdowns = document.querySelectorAll('.countdown');
+
+                countdowns.forEach(countdown => {
+                    const endDate = new Date(countdown.dataset.end);
+                    const now = new Date();
+                    const diff = endDate - now;
+
+                    if (diff <= 0) {
+                        countdown.textContent = '⏰ Завершено';
+                        countdown.style.background = 'rgba(128, 128, 128, 0.2)';
+                        countdown.style.borderColor = 'rgba(128, 128, 128, 0.3)';
+                        countdown.style.color = 'rgba(255, 255, 255, 0.5)';
+                        return;
+                    }
+
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                    countdown.textContent = `⏳ Осталось: ${days}д ${hours}ч ${minutes}м`;
+                });
+            }
+
+            updateCountdowns();
+            setInterval(updateCountdowns, 60000); // Обновляем каждую минуту
+        }
+
+        // ========================================
+        // ПЕРЕКЛЮЧЕНИЕ ТАБОВ
+        // ========================================
+
+        function switchTab(tab) {
+            activeTab = tab;
+
+            // Обновляем кнопки
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Перерисовываем список
+            displayGiveaways();
+        }
+
+        // ========================================
+        // INIT
+        // ========================================
+
+        let loadAttempts = 0;
+        function waitForAuth() {
+            if (window.currentUser || window.supabaseClient || loadAttempts > 20) {
+                loadGiveaways();
+            } else {
+                loadAttempts++;
+                setTimeout(waitForAuth, 500);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', waitForAuth);
+    </script>
+</body>
+</html>

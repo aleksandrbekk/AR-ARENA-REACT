@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AR ARENA - Garage</title>
+    <link rel="stylesheet" href="css/skins.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <header class="header">
+        <button class="back-btn" onclick="window.history.back()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
+        <div class="header-title">Garage</div>
+    </header>
+
+    <!-- ВЕРХНЯЯ ЧАСТЬ (ПРЕВЬЮ) -->
+    <div class="preview-section">
+        <div class="stage-light"></div>
+        <img id="previewImage" src="" alt="Bull Preview" class="preview-image">
+        
+        <div class="preview-info">
+            <div class="preview-name" id="skinName">Loading...</div>
+            <div class="preview-rarity" id="skinRarity">Common</div>
+        </div>
+    </div>
+
+    <!-- НИЖНЯЯ ЧАСТЬ (СКРОЛЛ ПАНЕЛЬ) -->
+    <div class="scroll-panel">
+        <!-- Кнопка действия (фиксирована в начале списка) -->
+        <button id="actionBtn" class="action-btn btn-select" onclick="handleAction()">
+            SELECT
+        </button>
+
+        <!-- Сетка 3 колонки -->
+        <div class="skins-grid" id="skinsGrid">
+            <!-- Карточки генерируются JS -->
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация
+        const skins = [
+            { id: 1, file: 'bull.png', name: 'Novice Bull', minLevel: 1, rarity: 'Common' },
+            { id: 2, file: 'Bull2.png', name: 'Trader Bull', minLevel: 2, rarity: 'Common' },
+            { id: 3, file: 'Bull3.png', name: 'Pro Bull', minLevel: 5, rarity: 'Uncommon' },
+            { id: 4, file: 'Bull4.png', name: 'Master Bull', minLevel: 10, rarity: 'Rare' },
+            { id: 5, file: 'Bull5.png', name: 'Elite Bull', minLevel: 15, rarity: 'Rare' },
+            { id: 6, file: 'BULL6.png', name: 'Legend Bull', minLevel: 20, rarity: 'Epic' },
+            { id: 7, file: 'Bull7.png', name: 'Cyber Bull', minLevel: 25, rarity: 'Epic' },
+            { id: 8, file: 'Bull8.png', name: 'Gold Bull', minLevel: 30, rarity: 'Legendary' },
+            { id: 9, file: 'Bull9.png', name: 'Platinum Bull', minLevel: 35, rarity: 'Legendary' },
+            { id: 10, file: 'Bull10.png', name: 'Diamond Bull', minLevel: 40, rarity: 'Mythical' },
+            { id: 11, file: 'Bull11.png', name: 'Ruby Bull', minLevel: 45, rarity: 'Mythical' },
+            { id: 12, file: 'Bull12.png', name: 'Emerald Bull', minLevel: 50, rarity: 'Mythical' },
+            { id: 13, file: 'Bull13.png', name: 'Sapphire Bull', minLevel: 55, rarity: 'Divine' },
+            { id: 14, file: 'bull14.png', name: 'Cosmic Bull', minLevel: 60, rarity: 'Godlike' },
+            { id: 20, file: 'Bull20.png', name: 'God Bull', minLevel: 100, rarity: 'Absolute' }
+        ];
+
+        // Состояние
+        const userLevel = parseInt(localStorage.getItem('bull_level') || '1');
+        let currentEquippedId = parseInt(localStorage.getItem('active_skin_id') || '1');
+        let currentPreviewId = currentEquippedId;
+
+        // DOM
+        const dom = {
+            previewImage: document.getElementById('previewImage'),
+            skinName: document.getElementById('skinName'),
+            skinRarity: document.getElementById('skinRarity'),
+            actionBtn: document.getElementById('actionBtn'),
+            grid: document.getElementById('skinsGrid')
+        };
+
+        function init() {
+            renderGrid();
+            updatePreview(currentPreviewId);
+
+            const tg = window.Telegram?.WebApp;
+            if (tg) {
+                tg.ready();
+                tg.expand();
+                tg.BackButton.show();
+                tg.BackButton.onClick(() => window.history.back());
+            }
+        }
+
+        function renderGrid() {
+            dom.grid.innerHTML = skins.map(skin => {
+                const isLocked = userLevel < skin.minLevel;
+                const isEquipped = currentEquippedId === skin.id;
+                const isPreview = currentPreviewId === skin.id;
+
+                return `
+                    <div class="skin-card ${isPreview ? 'active' : ''} ${isEquipped ? 'equipped' : ''} ${isLocked ? 'locked' : ''}" 
+                         onclick="setPreview(${skin.id})">
+                        <img src="icons/bulls/${skin.file}" alt="${skin.name}">
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.setPreview = function(id) {
+            if (currentPreviewId === id) return;
+            currentPreviewId = id;
+            
+            dom.previewImage.classList.add('change');
+            renderGrid();
+
+            setTimeout(() => {
+                updatePreview(id);
+                dom.previewImage.classList.remove('change');
+            }, 200);
+
+            window.Telegram?.WebApp?.HapticFeedback.selectionChanged();
+        };
+
+        function updatePreview(id) {
+            const skin = skins.find(s => s.id === id);
+            if (!skin) return;
+
+            dom.previewImage.src = `icons/bulls/${skin.file}`;
+            dom.skinName.textContent = skin.name;
+            dom.skinRarity.textContent = skin.rarity;
+
+            updateActionButton(skin);
+        }
+
+        function updateActionButton(skin) {
+            const isLocked = userLevel < skin.minLevel;
+            const isEquipped = currentEquippedId === skin.id;
+
+            dom.actionBtn.onclick = null;
+
+            if (isEquipped) {
+                dom.actionBtn.className = 'action-btn btn-selected';
+                dom.actionBtn.textContent = 'EQUIPPED';
+                dom.actionBtn.disabled = true;
+            } else if (isLocked) {
+                dom.actionBtn.className = 'action-btn btn-locked';
+                dom.actionBtn.textContent = `LOCKED (LVL ${skin.minLevel})`;
+                dom.actionBtn.disabled = true;
+            } else {
+                dom.actionBtn.className = 'action-btn btn-select';
+                dom.actionBtn.textContent = 'EQUIP';
+                dom.actionBtn.disabled = false;
+                dom.actionBtn.onclick = () => equipSkin(skin);
+            }
+        }
+
+        function equipSkin(skin) {
+            currentEquippedId = skin.id;
+            localStorage.setItem('active_skin_id', skin.id);
+            localStorage.setItem('active_skin_file', skin.file);
+            
+            updateActionButton(skin);
+            renderGrid();
+            window.Telegram?.WebApp?.HapticFeedback.notificationOccurred('success');
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

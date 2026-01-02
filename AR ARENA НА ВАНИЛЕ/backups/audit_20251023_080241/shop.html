@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR SHOP</title>
+    <link rel="stylesheet" href="shop-styles.css?v=20251013">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Карточки продуктов (динамически загружаются) -->
+        <div class="products-section">
+            <div class="products-row" id="productsContainer">
+                <!-- Статическая карточка - Билеты -->
+                <div class="product-card tickets small" onclick="window.location.href='buy-tickets.html'">
+                    <div class="product-icon">
+                        <img src="icons/tiket.png" alt="Билеты" style="width: 60px; height: 60px; object-fit: contain;">
+                    </div>
+                    <div class="product-content">
+                        <h3 class="product-title" style="font-size: 15px;">Билеты лотереи</h3>
+                        <p class="product-desc">Участвуйте в еженедельной лотерее</p>
+                        <div class="product-price">от 100 AR</div>
+                    </div>
+                    <button class="product-button" onclick="event.stopPropagation(); window.location.href='buy-tickets.html'">
+                        Купить
+                    </button>
+                </div>
+
+                <!-- Индикатор загрузки -->
+                <div id="loadingIndicator" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.5);">
+                    <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                    <div>Загрузка продуктов...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="window.closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Навигационное меню -->
+    <nav class="bottom-navigation">
+        <div class="nav-item" onclick="window.location.href='index.html'">
+            <img src="icons/main.png" alt="Главная" class="nav-icon">
+            <span class="nav-label">Главная</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='tasks.html'">
+            <img src="icons/todo.png" alt="Задания" class="nav-icon">
+            <span class="nav-label">Задания</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='games.html'">
+            <img src="icons/gamepad.png" alt="Игры" class="nav-icon">
+            <span class="nav-label">Игры</span>
+        </div>
+        <div class="nav-item active" onclick="window.location.href='shop.html'">
+            <img src="icons/SHOP.png" alt="Магазин" class="nav-icon">
+            <span class="nav-label">Магазин</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='admin.html?v=20251007'">
+            <img src="icons/admin.png" alt="Админ" class="nav-icon">
+            <span class="nav-label">Админ</span>
+        </div>
+    </nav>
+
+    <!-- Подключаем Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+
+    <!-- Подключаем auth.js -->
+    <script src="auth.js?v=1759200000"></script>
+
+    <!-- Подключаем shop.js -->
+    <script src="shop.js?v=20251013"></script>
+
+    <script>
+        // ==========================================
+        // РЕНДЕР ПРОДУКТОВ ИЗ SUPABASE
+        // ==========================================
+
+        function renderProducts(products) {
+            const container = document.getElementById('productsContainer');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const ticketsCard = container.querySelector('.product-card.tickets');
+
+            // Удаляем только индикатор загрузки
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+
+            if (!products || products.length === 0) {
+                // Добавляем сообщение после статических карточек
+                const emptyMessage = document.createElement('div');
+                emptyMessage.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.5);';
+                emptyMessage.innerHTML = `
+                    <div style="font-size: 48px; margin-bottom: 10px;">📦</div>
+                    <div>Продукты не найдены</div>
+                `;
+                container.appendChild(emptyMessage);
+                return;
+            }
+
+            // Добавляем продукты после статической карточки с билетами
+            products.forEach(product => {
+                const card = createProductCard(product);
+                container.appendChild(card);
+            });
+
+            console.log(`✅ Отрендерено ${products.length} продуктов`);
+        }
+
+        function createProductCard(product) {
+            const card = document.createElement('div');
+
+            // Определяем класс по категории
+            let categoryClass = 'premium';
+            if (product.category === 'futures') categoryClass = 'futures';
+            if (product.category === 'test') categoryClass = 'test';
+
+            // Определяем иконку по категории
+            let iconSrc = 'icons/SPOT.png';
+            if (product.category === 'futures') iconSrc = 'icons/х10.png';
+            if (product.category === 'test') iconSrc = 'icons/arcoin.png?v=20251023';
+
+            card.className = `product-card ${categoryClass} small`;
+            card.innerHTML = `
+                <div class="product-icon">
+                    <img src="${iconSrc}" alt="${product.title}" style="width: 60px; height: 60px; object-fit: contain;">
+                </div>
+                <div class="product-content">
+                    <h3 class="product-title" style="font-size: 15px;">${product.title}</h3>
+                    <p class="product-desc">${product.description || ''}</p>
+                    <div class="product-price">${product.price_ar} AR${product.duration_days ? '/' + product.duration_days + ' дн' : ''}</div>
+                </div>
+                <button class="product-button" onclick="window.handleBuyProduct('${product.id}', ${product.price_ar})">
+                    ${product.category === 'test' ? 'Купить тест' : 'Подробнее'}
+                </button>
+            `;
+
+            return card;
+        }
+
+        // ==========================================
+        // ОБРАБОТКА ПОКУПКИ
+        // ==========================================
+
+        async function handleBuyProduct(productId, price) {
+            console.log(`🛒 Клик на покупку: ${productId}, ${price} AR`);
+
+            // Проверяем доступность функции из shop.js
+            if (typeof window.shopFunctions !== 'undefined' && window.shopFunctions.buyProduct) {
+                await window.shopFunctions.buyProduct(productId, price);
+            } else {
+                console.error('❌ shop.js не загружен или buyProduct недоступен');
+                alert('Ошибка загрузки магазина. Перезагрузите страницу.');
+            }
+        }
+
+        // ==========================================
+        // ПОДПИСКА НА ЗАГРУЗКУ ПРОДУКТОВ ИЗ SHOP.JS
+        // ==========================================
+
+        // Ждём пока shop.js загрузит продукты
+        function waitForProducts() {
+            if (window.shopFunctions && window.shopFunctions.loadProducts) {
+                console.log('✅ Shop.js готов, загружаем продукты...');
+
+                // Получаем продукты (они уже загружены в shop.js)
+                setTimeout(async () => {
+                    try {
+                        const products = await window.shopFunctions.loadProducts();
+                        renderProducts(products);
+                    } catch (error) {
+                        console.error('❌ Ошибка загрузки продуктов:', error);
+                        document.getElementById('productsContainer').innerHTML = `
+                            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(255, 100, 100, 0.7);">
+                                <div style="font-size: 48px; margin-bottom: 10px;">❌</div>
+                                <div>Ошибка загрузки продуктов</div>
+                                <button onclick="location.reload()" style="margin-top: 20px; padding: 16px 32px; background: linear-gradient(135deg, #FFD700, #FFA500); border: none; border-radius: 12px; color: #000; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); transition: all 0.3s;">
+                                    Попробовать снова
+                                </button>
+                            </div>
+                        `;
+                    }
+                }, 100);
+            } else {
+                console.log('⏳ Ждём загрузки shop.js...');
+                setTimeout(waitForProducts, 300);
+            }
+        }
+
+        // Запускаем после загрузки DOM
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                waitForProducts();
+            });
+        } else {
+            waitForProducts();
+        }
+
+        // ==========================================
+        // МОДАЛЬНОЕ ОКНО (оставляем для совместимости)
+        // ==========================================
+
+        function showModal(type) {
+            const modal = document.getElementById('productModal');
+            const modalBody = document.getElementById('modalBody');
+
+            let content = '';
+
+            if (type === 'spot') {
+                content = `
+                    <div class="modal-header">
+                        <img src="icons/SPOT.png" alt="SPOT" style="width: 80px; height: 80px; object-fit: contain;">
+                        <h2>КЛУБ СПОТ торговли</h2>
+                    </div>
+                    <div class="modal-description">
+                        <h3>Что включено:</h3>
+                        <ul>
+                            <li>Обучение инвестициям в ТОП монеты</li>
+                            <li>Ежедневные спотовые сигналы</li>
+                            <li>Аналитика рынка</li>
+                            <li>Приоритетная поддержка</li>
+                            <li>Доступ к закрытому каналу</li>
+                            <li>ROI >85% на дистанции</li>
+                        </ul>
+                    </div>
+                    <div class="modal-price">2000 AR/месяц</div>
+                    <button class="modal-button" onclick="window.open('https://premium-ar.com/', '_blank')">
+                        Перейти на сайт
+                    </button>
+                `;
+            } else if (type === 'futures') {
+                content = `
+                    <div class="modal-header">
+                        <img src="icons/х10.png" alt="Futures" style="width: 80px; height: 80px; object-fit: contain;">
+                        <h2>Торговля на фьючерсах</h2>
+                    </div>
+                    <div class="modal-description">
+                        <h3>Что включено:</h3>
+                        <ul>
+                            <li>Ежедневные торговые сигналы</li>
+                            <li>Точность отработки >85%</li>
+                            <li>Риск-менеджмент</li>
+                            <li>Обучающие материалы</li>
+                            <li>VIP чат трейдеров</li>
+                            <li>Команда с опытом 8+ лет</li>
+                        </ul>
+                    </div>
+                    <div class="modal-price">1500 AR/месяц</div>
+                    <button class="modal-button" onclick="window.open('https://www.ar-premium.com/', '_blank')">
+                        Перейти на сайт
+                    </button>
+                `;
+            }
+
+            modalBody.innerHTML = content;
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('productModal').style.display = 'none';
+        }
+
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const modal = document.getElementById('productModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

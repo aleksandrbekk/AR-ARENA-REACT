@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AR ARENA - Квизы</title>
+    <link rel="stylesheet" href="tasks.css?v=20251009">
+    <style>
+        /* Стили для списка квизов */
+        body {
+            background: #0a0a0a;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .quiz-header-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .quiz-section-title {
+            color: #FFD700;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .section-subtitle {
+            color: #888;
+            font-size: 14px;
+        }
+        .quiz-back-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #FFD700;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        .quiz-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        .quiz-card {
+            background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,165,0,0.05));
+            border: 2px solid rgba(255,215,0,0.3);
+            border-radius: 20px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .quiz-card:active {
+            transform: scale(0.98);
+            background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.1));
+        }
+        .quiz-card-icon {
+            font-size: 40px;
+            flex-shrink: 0;
+        }
+        .quiz-card-content {
+            flex: 1;
+        }
+        .quiz-card-title {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+        .quiz-card-description {
+            color: #888;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.4;
+            max-height: 2.8em;
+        }
+        .quiz-card-reward {
+            color: #FFD700;
+            font-size: 16px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* Модальное окно квиза */
+        .quiz-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .quiz-modal:not([hidden]) {
+            display: flex;
+        }
+        .quiz-dialog {
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .quiz-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .quiz-title {
+            color: #FFD700;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        .quiz-navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            gap: 12px;
+        }
+        .quiz-back-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,215,0,0.3);
+            color: #FFD700;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        .quiz-back-btn:hover {
+            background: rgba(255,215,0,0.1);
+        }
+        .quiz-back-btn:active {
+            transform: scale(0.95);
+        }
+        .quiz-progress {
+            flex: 1;
+        }
+        .quiz-progress-counter {
+            color: #888;
+            font-size: 14px;
+        }
+        .quiz-progress-bar {
+            background: rgba(255,255,255,0.1);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .quiz-progress-fill {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .quiz-question-text {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .quiz-option {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            color: #fff;
+            padding: 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            text-align: left;
+        }
+        .quiz-option:hover {
+            background: rgba(255,215,0,0.1);
+            border-color: #FFD700;
+        }
+        .quiz-option:disabled {
+            cursor: not-allowed;
+        }
+        .quiz-education {
+            background: rgba(255,215,0,0.1);
+            border-left: 4px solid #FFD700;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #fff;
+            line-height: 1.6;
+        }
+        .quiz-education-icon {
+            margin-bottom: 10px;
+        }
+        .quiz-next {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: none;
+            color: #000;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+            transition: all 0.3s;
+        }
+        .quiz-next:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .quiz-back-btn-modal {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,215,0,0.3);
+            color: #FFD700;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .quiz-back-btn-modal:hover {
+            background: rgba(255,215,0,0.1);
+            transform: translateY(-2px);
+        }
+        .quiz-final {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        body.quiz-lock {
+            overflow: hidden;
+        }
+
+        /* Анимация для inline объяснения */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Заголовок страницы -->
+        <div class="quiz-header-title">
+            <h2 class="quiz-section-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="quiz-icon">
+                    <circle cx="12" cy="12" r="10" stroke="url(#gradGold)" stroke-width="2" fill="none"/>
+                    <path d="M12 6v6l4 2" stroke="url(#gradGold)" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="12" cy="16" r="1" fill="url(#gradGold)"/>
+                    <defs>
+                        <linearGradient id="gradGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                Образовательные квизы
+            </h2>
+            <div class="section-subtitle">Проходите квизы и получайте награды</div>
+        </div>
+
+        <!-- Список квизов -->
+        <div id="quizList" class="quiz-list">
+            <!-- Квизы будут загружены сюда через JavaScript -->
+        </div>
+    </div>
+
+    <!-- Кнопка назад внизу (фиксированная) -->
+    <button class="quiz-back-btn" onclick="window.location.href='tasks.html'">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18L9 12L15 6" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Назад
+    </button>
+
+    <!-- Модальное окно квиза -->
+    <div id="quizModal" class="quiz-modal" hidden>
+        <div class="quiz-dialog">
+            <button type="button" class="quiz-close">&times;</button>
+
+            <div class="quiz-header">
+                <h2 class="quiz-title">Образовательный квиз</h2>
+                <div class="quiz-progress" style="margin-bottom: 30px;">
+                    <span class="quiz-progress-counter">1 / 5</span>
+                    <div class="quiz-progress-bar">
+                        <div class="quiz-progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-body">
+                <div class="quiz-question">
+                    <p class="quiz-question-text">Загрузка вопроса...</p>
+                </div>
+
+                <div class="quiz-options">
+                    <!-- Варианты ответов -->
+                </div>
+
+                <div class="quiz-education" hidden>
+                    <div class="quiz-education-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                            <path d="M9 18H15M12 3C8.68629 3 6 5.68629 6 9C6 11.5 7.5 13.5 9 15V17C9 17.5523 9.44772 18 10 18H14C14.5523 18 15 17.5523 15 17V15C16.5 13.5 18 11.5 18 9C18 5.68629 15.3137 3 12 3Z" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="quiz-education-text"></p>
+                </div>
+
+                <div class="quiz-final" hidden>
+                    <!-- Результаты квиза -->
+                </div>
+            </div>
+
+            <div class="quiz-footer">
+                <div style="display: flex; gap: 12px; width: 100%;">
+                    <button type="button" class="quiz-back-btn-modal" onclick="goToPreviousQuestion()" style="display: none; flex: 1;">
+                        Назад
+                    </button>
+                    <button type="button" class="quiz-next" disabled style="flex: 1;">
+                        Завершить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth.js"></script>
+    <script src="quiz-simple.js?v=1760027300"></script>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        tg?.expand();
+
+        // Загрузка списка квизов
+        async function loadQuizzes() {
+            const quizListEl = document.getElementById('quizList');
+
+            try {
+                console.log('Загрузка квизов...');
+
+                // Проверяем доступность Supabase
+                if (!window.supabase && !window.supabaseClient) {
+                    console.error('Supabase не инициализирован');
+                    quizListEl.innerHTML = '<p style="color: #fff; text-align: center; padding: 20px;">Ошибка подключения к базе данных</p>';
+                    return;
+                }
+
+                const supabase = window.supabaseClient || window.db;
+
+                // Получаем ID текущего пользователя
+                const userId = tg?.initDataUnsafe?.user?.id?.toString();
+                console.log('User ID:', userId);
+
+                // Загружаем все квизы
+                const { data: quizzes, error } = await supabase
+                    .from('tasks')
+                    .select('*')
+                    .eq('type', 'educational_quiz')
+                    .eq('is_active', true)
+                    .order('id', { ascending: true });
+
+                if (error) {
+                    console.error('Ошибка загрузки квизов:', error);
+                    quizListEl.innerHTML = '<p style="color: #fff; text-align: center; padding: 20px;">Ошибка загрузки квизов</p>';
+                    return;
+                }
+
+                console.log('Квизы загружены:', quizzes);
+
+                // Если есть userId, фильтруем пройденные квизы
+                let availableQuizzes = quizzes || [];
+
+                if (userId) {
+                    // Получаем список пройденных квизов
+                    const { data: completions, error: completionsError } = await supabase
+                        .from('task_completions')
+                        .select('task_id')
+                        .eq('user_id', userId);
+
+                    if (!completionsError && completions) {
+                        const completedIds = completions.map(c => c.task_id);
+                        console.log('Пройденные квизы:', completedIds);
+
+                        // Фильтруем только непройденные
+                        availableQuizzes = quizzes.filter(quiz => !completedIds.includes(quiz.id));
+                        console.log('Доступные квизы:', availableQuizzes.length);
+                    }
+                }
+
+                if (!availableQuizzes || availableQuizzes.length === 0) {
+                    quizListEl.innerHTML = '<p style="color: #fff; text-align: center; padding: 20px;">Все квизы пройдены! Ожидайте новые задания.</p>';
+                    return;
+                }
+
+                // Отрисовываем карточки квизов
+                const quizListHTML = availableQuizzes.map(quiz => `
+                    <div class="quiz-card" onclick="launchQuiz('${quiz.id}')" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px;">
+                        <div style="flex: 1; min-width: 0;">
+                            <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 0 4px 0;">${quiz.title}</h3>
+                            <p style="font-size: 12px; color: rgba(255,255,255,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0;">${quiz.description || 'Образовательный квиз'}</p>
+                        </div>
+                        <div style="flex-shrink: 0; color: #FFD700; font-size: 16px; font-weight: 700;">+${quiz.reward_ar} AR</div>
+                    </div>
+                `).join('');
+
+                quizListEl.innerHTML = quizListHTML;
+
+                // Debug info
+                console.log('[Quizzes] Loaded', quizzes.length, 'quizzes');
+                window.debugQuizzes = quizzes;
+            } catch (error) {
+                console.error('Ошибка:', error);
+                quizListEl.innerHTML = '<p style="color: #fff; text-align: center; padding: 20px;">Произошла ошибка: ' + error.message + '</p>';
+            }
+        }
+
+        // Слушатель события завершения квиза
+        document.addEventListener('quizCompleted', () => {
+            console.log('[Quizzes] Quiz completed event received, reloading list...');
+            loadQuizzes();
+        });
+
+        // Также слушать postMessage
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'quiz_completed') {
+                console.log('[Quizzes] Quiz completed message received, reloading list...');
+                loadQuizzes();
+            }
+        });
+
+        // Загружаем квизы при загрузке страницы
+        window.addEventListener('DOMContentLoaded', loadQuizzes);
+    </script>
+</body>
+</html>

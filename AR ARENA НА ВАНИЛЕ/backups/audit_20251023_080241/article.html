@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR ARENA - Статья</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: white;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Прогресс-бар чтения */
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 6px;
+            background: linear-gradient(90deg, #FFD700, #FFA500, #FF6B35);
+            z-index: 1000;
+            transition: width 0.1s ease;
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-text {
+            position: absolute;
+            right: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            z-index: 1001;
+        }
+
+        /* Хедер */
+        .header {
+            background: linear-gradient(to bottom, rgba(15, 15, 15, 0.98), rgba(10, 10, 10, 0.95));
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 900px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+        }
+
+
+        /* Контейнер */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px 20px 80px;
+        }
+
+        /* Обложка Hero */
+        .article-hero {
+            width: 100%;
+            height: 350px;
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 35px;
+            position: relative;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        .article-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent 50%, rgba(10, 10, 10, 0.8) 100%);
+            z-index: 1;
+        }
+
+        .article-cover {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: coverZoom 0.8s ease-out;
+        }
+
+        @keyframes coverZoom {
+            from {
+                transform: scale(1.1);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Заголовок статьи */
+        .article-header {
+            margin-bottom: 35px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 26px;
+            line-height: 1.3;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .article-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            font-weight: 500;
+        }
+
+        .meta-item img {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .badge img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .badge-category {
+            background: linear-gradient(135deg, #667EEA, #764BA2);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .badge-reward {
+            background: rgba(80, 80, 80, 0.5);
+            color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            font-weight: 700;
+            cursor: not-allowed;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .badge-reward.locked {
+            background: rgba(80, 80, 80, 0.5);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: not-allowed;
+        }
+
+        .badge-reward.unlocked {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
+            cursor: pointer;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(255, 215, 0, 0.7);
+            }
+        }
+
+        .badge-reward.unlocked:hover {
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .badge-reward.claimed {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: #fff;
+            cursor: default;
+            animation: none;
+        }
+
+        /* Контент статьи - УЛУЧШЕННАЯ ТИПОГРАФИКА */
+        .article-content {
+            line-height: 1.6;
+            font-size: 18px;
+            margin-bottom: 50px;
+            color: rgba(255, 255, 255, 0.92);
+            animation: fadeIn 0.8s ease-out 0.2s both;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .article-content h2 {
+            color: #FFD700;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: 700;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .article-content h3 {
+            color: rgba(255, 215, 0, 0.95);
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .article-content p {
+            margin-bottom: 18px;
+            color: rgba(255, 255, 255, 0.9);
+            text-align: justify;
+        }
+
+        .article-content ul, .article-content ol {
+            margin: 20px 0 20px 30px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .article-content li {
+            margin-bottom: 12px;
+            line-height: 1.7;
+        }
+
+        .article-content code {
+            background: rgba(255, 215, 0, 0.12);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            color: #FFD700;
+            font-size: 16px;
+        }
+
+        .article-content pre {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin: 25px 0;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .article-content blockquote {
+            border-left: 4px solid #FFD700;
+            padding-left: 25px;
+            margin: 25px 0;
+            color: rgba(255, 255, 255, 0.85);
+            font-style: italic;
+            background: rgba(255, 215, 0, 0.03);
+            padding: 20px 25px;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .article-content strong {
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        /* Кнопка действия в конце статьи */
+        .article-action-button {
+            margin: 40px 0;
+            text-align: center;
+        }
+
+        .article-action-button a {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .article-action-button a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        /* Индикатор прогресса */
+        .progress-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            padding: 14px 22px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            z-index: 99;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .progress-indicator.completed {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+            border-color: #FFD700;
+            color: #FFD700;
+        }
+
+        /* Glassmorphism completion badge */
+        .already-read {
+            background: rgba(10, 10, 10, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 0;
+            margin: 40px 0;
+            animation: completionSlide 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .already-read::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 24px;
+            padding: 2px;
+            background: linear-gradient(135deg, #FFD700, #FFA500, #FF6B35, #667EEA);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        @keyframes completionSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .already-read-inner {
+            padding: 35px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .already-read-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.15));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            animation: checkmarkPop 0.6s ease-out 0.3s both;
+        }
+
+        @keyframes checkmarkPop {
+            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(10deg); }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+
+        .already-read h3 {
+            color: transparent;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .already-read p {
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .already-read .read-date {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 12px;
+            font-weight: 500;
+        }
+
+        /* CSS Variables для состояний */
+        :root {
+            --color-locked-from: #334155;
+            --color-locked-to: #475569;
+            --color-reading-from: #8B5CF6;
+            --color-reading-to: #6366F1;
+            --color-almost-from: #10B981;
+            --color-almost-to: #059669;
+            --color-unlocked-from: #FFD700;
+            --color-unlocked-to: #F59E0B;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /* Particle system */
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            border-radius: 50%;
+            animation: particleExplosion 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes particleExplosion {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Flying coin animation */
+        .flying-coin {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            font-size: 32px;
+            animation: coinFly 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes coinFly {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(var(--mid-x), var(--mid-y)) scale(1.3) rotate(180deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--end-x), var(--end-y)) scale(0.5) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Debug панель */
+        .debug-panel {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 998;
+            min-width: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .debug-title {
+            color: #FFD700;
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 12px;
+            text-align: center;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .debug-item {
+            padding: 4px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .debug-item:last-child {
+            border-bottom: none;
+        }
+
+        .debug-item span {
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 28px;
+            }
+
+            .article-content {
+                font-size: 16px;
+                line-height: 1.65;
+            }
+
+            .article-hero {
+                height: 250px;
+                border-radius: 18px;
+            }
+
+            .badge-reward {
+                font-size: 13px;
+                padding: 8px 14px;
+            }
+
+            .progress-indicator {
+                top: 70px;
+                right: 10px;
+                font-size: 11px;
+                padding: 10px 16px;
+            }
+
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px 15px 40px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .article-hero {
+                height: 200px;
+                border-radius: 16px;
+            }
+
+            .article-content {
+                font-size: 15px;
+            }
+
+            .badge-reward {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+    </style>
+</head>
+<body>
+    <div class="reading-progress" id="readingProgress">
+        <span class="progress-text" id="progressText">0%</span>
+    </div>
+
+    <div class="header">
+        <div class="header-content">
+            <!-- Badge награды (кликабельный при ≥95%) -->
+            <span class="badge badge-reward locked" id="articleReward">
+                <img src="/icons/arcoin.png?v=20251023" alt="AR">
+                <span id="rewardAmount">...</span>
+            </span>
+
+            <!-- Время чтения -->
+            <span class="meta-item">
+                <img src="/icons/time.png" alt="Time">
+                <span id="articleTime">...</span> мин
+            </span>
+
+            <!-- Проценты прочтения -->
+            <span class="meta-item" id="progressIndicatorInline" style="font-weight: 600;">
+                <img src="/icons/tasks.png" alt="Progress">
+                <span id="progressPercent">0%</span>
+            </span>
+        </div>
+    </div>
+
+
+    <div class="progress-indicator" id="progressIndicator" style="display: none;">
+        Прочитано: 0%
+    </div>
+
+    <div class="container">
+        <div class="article-hero" id="articleHero" style="display: none;">
+            <img id="articleCover" class="article-cover">
+        </div>
+
+        <div class="article-header">
+            <h1 id="articleTitle" class="skeleton" style="height: 42px; border-radius: 10px;">Загрузка...</h1>
+        </div>
+
+        <div id="alreadyRead" class="already-read" style="display: none;">
+            <div class="already-read-inner">
+                <div class="already-read-icon">✨</div>
+                <h3>Статья прочитана</h3>
+                <p>Награда успешно получена</p>
+                <div class="read-date" id="readDate"></div>
+            </div>
+        </div>
+
+        <div class="article-content" id="articleContent">
+            <p class="skeleton" style="height: 20px; margin-bottom: 15px;"></p>
+            <p class="skeleton" style="height: 20px; margin-bottom: 15px;"></p>
+            <p class="skeleton" style="height: 20px; width: 80%;"></p>
+        </div>
+
+
+        <!-- Кнопка действия -->
+        <div id="articleActionButton" class="article-action-button" style="display: none;"></div>
+    </div>
+
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <div class="debug-title">🔧 Debug Info</div>
+        <div class="debug-item">Article ID: <span id="debugArticleId">-</span></div>
+        <div class="debug-item">User ID: <span id="debugUserId">-</span></div>
+        <div class="debug-item">Progress: <span id="debugProgress">0%</span></div>
+        <div class="debug-item">Time: <span id="debugTime">0:00</span></div>
+        <div class="debug-item">Already Read: <span id="debugAlreadyRead">-</span></div>
+        <div class="debug-item">Button Display: <span id="debugButtonDisplay">-</span></div>
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 215, 0, 0.2);">
+            <div style="color: #FFD700; font-weight: 700; font-size: 11px; margin-bottom: 5px;">📋 Console Logs:</div>
+            <div id="debugConsole" style="font-size: 10px; max-height: 150px; overflow-y: auto; color: rgba(255, 255, 255, 0.6);"></div>
+        </div>
+    </div>
+
+    <script src="supabase-client.js?v=20251014004"></script>
+    <script src="auth.js?v=20251014004"></script>
+    <script>
+        // Intercept console.log for on-screen debugging
+        const debugConsoleEl = document.getElementById('debugConsole');
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const logLine = document.createElement('div');
+            logLine.textContent = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+            logLine.style.marginBottom = '3px';
+            logLine.style.paddingBottom = '3px';
+            logLine.style.borderBottom = '1px solid rgba(255, 255, 255, 0.05)';
+            debugConsoleEl.appendChild(logLine);
+            debugConsoleEl.scrollTop = debugConsoleEl.scrollHeight;
+        };
+
+        // Глобальные переменные
+        let article = null;
+        let user = null;
+        let scrollPercentage = 0;
+        let readingStartTime = Date.now();
+        let alreadyRead = false;
+        let timerInterval = null;
+
+        // Получение ID статьи из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const articleId = urlParams.get('id');
+
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
+        // Debug обновление
+        function updateDebug() {
+            try {
+                document.getElementById('debugArticleId').textContent = articleId || 'N/A';
+                document.getElementById('debugUserId').textContent = user ? user.telegram_id : 'Loading...';
+                document.getElementById('debugProgress').textContent = Math.round(scrollPercentage) + '%';
+                document.getElementById('debugAlreadyRead').textContent = alreadyRead ? 'Yes' : 'No';
+                const badge = document.getElementById('articleReward');
+                const badgeState = badge ? badge.className : 'N/A';
+                document.getElementById('debugButtonDisplay').textContent = `Badge:${badgeState}`;
+            } catch (error) {
+                console.error('Debug update error:', error);
+            }
+        }
+
+        // Загрузка статьи
+        async function loadArticle() {
+            try {
+                if (!articleId) {
+                    alert('❌ Статья не найдена');
+                    window.location.href = 'tasks.html';
+                    return;
+                }
+
+                // Проверка Supabase
+                const supabase = window.supabaseClient || window.db;
+                if (!supabase) {
+                    console.error('❌ Supabase не инициализирован');
+                    alert('❌ Ошибка подключения к базе данных. Перезагрузите страницу.');
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from('articles')
+                    .select('*')
+                    .eq('id', articleId)
+                    .single();
+
+                if (error) {
+                    console.error('Load article error:', error);
+                    alert('❌ Ошибка загрузки статьи: ' + error.message);
+                    window.location.href = 'tasks.html';
+                    return;
+                }
+
+                if (!data) {
+                    alert('❌ Статья не найдена');
+                    window.location.href = 'tasks.html';
+                    return;
+                }
+
+                article = data;
+                displayArticle();
+                await checkIfRead();
+                updateDebug();
+            } catch (error) {
+                console.error('loadArticle error:', error);
+                alert('❌ Критическая ошибка: ' + error.message);
+            }
+        }
+
+        // Отображение статьи
+        function displayArticle() {
+            try {
+                document.getElementById('articleTitle').textContent = article.title;
+                document.getElementById('articleTitle').classList.remove('skeleton');
+                document.getElementById('articleTitle').style.height = 'auto';
+
+
+                document.getElementById('rewardAmount').textContent = `+${article.reward_ar} AR`;
+                document.getElementById('articleTime').textContent = article.reading_time;
+
+                document.getElementById('articleContent').innerHTML = article.content;
+
+                // Кнопка действия будет показана позже в updateActionButton() после проверки alreadyRead
+
+                if (article.cover_image && article.cover_image !== '/icons/article.png') {
+                    const hero = document.getElementById('articleHero');
+                    const cover = document.getElementById('articleCover');
+                    cover.src = article.cover_image;
+                    cover.onerror = () => {
+                        hero.style.display = 'none';
+                    };
+                    hero.style.display = 'block';
+                }
+
+                startTimer();
+            } catch (error) {
+                console.error('displayArticle error:', error);
+                alert('❌ Ошибка отображения статьи');
+            }
+        }
+
+        // Проверка прочитана ли статья
+        async function checkIfRead() {
+            try {
+                console.log('🔍 checkIfRead: Starting...');
+
+                const supabase = window.supabaseClient || window.db;
+                if (!supabase) {
+                    console.error('❌ Supabase не инициализирован');
+                    return;
+                }
+
+                user = await getCurrentUser();
+                console.log('👤 checkIfRead: User =', user ? user.telegram_id : 'NULL');
+                if (!user) {
+                    console.warn('⚠️ User not authenticated');
+                    alreadyRead = false;
+                    return;
+                }
+
+                console.log('📊 checkIfRead: Querying article_reads for user_id =', user.telegram_id, ', article_id =', articleId);
+                const { data, error } = await supabase
+                    .from('article_reads')
+                    .select('*, created_at')
+                    .eq('user_id', user.telegram_id)
+                    .eq('article_id', articleId)
+                    .maybeSingle();
+
+                console.log('📊 checkIfRead: Query result - data:', data, ', error:', error);
+
+                if (error) {
+                    console.error('❌ checkIfRead error:', error);
+                    return;
+                }
+
+                if (data) {
+                    console.log('✅ Article already read at:', new Date(data.created_at).toLocaleString());
+                    alreadyRead = true;
+                    const readDate = new Date(data.created_at).toLocaleDateString('ru-RU', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    document.getElementById('readDate').textContent = `Прочитано: ${readDate}`;
+                    document.getElementById('alreadyRead').style.display = 'block';
+
+                    // Обновляем badge - показываем что награда получена
+                    const badge = document.getElementById('articleReward');
+                    if (badge) {
+                        badge.classList.remove('locked', 'unlocked');
+                        badge.classList.add('claimed');
+                        badge.querySelector('#rewardAmount').textContent = '✅ Получено';
+                    }
+
+                    // Скрываем проценты прочтения для прочитанных статей
+                    const progressIndicator = document.getElementById('progressIndicatorInline');
+                    if (progressIndicator) {
+                        progressIndicator.style.display = 'none';
+                    }
+                } else {
+                    console.log('🆕 Article NOT read yet');
+                    alreadyRead = false;
+                }
+
+                updateDebug();
+                updateActionButton(); // Обновляем кнопку действия после проверки alreadyRead
+            } catch (error) {
+                console.error('❌ checkIfRead critical error:', error);
+            }
+        }
+
+        // Обновление видимости кнопки действия
+        function updateActionButton() {
+            // Показываем кнопку действия только если статья НЕ прочитана и кнопка существует
+            if (!alreadyRead && article && article.action_button && article.action_button.text && article.action_button.url) {
+                const buttonContainer = document.getElementById('articleActionButton');
+                if (buttonContainer) {
+                    buttonContainer.innerHTML = `<a href="${article.action_button.url}">${article.action_button.text}</a>`;
+                    buttonContainer.style.display = 'block';
+                    console.log('✅ Action button показана:', article.action_button.text);
+                }
+            } else {
+                // Скрываем кнопку если статья уже прочитана
+                const buttonContainer = document.getElementById('articleActionButton');
+                if (buttonContainer) {
+                    buttonContainer.style.display = 'none';
+                    console.log('🚫 Action button скрыта (alreadyRead =', alreadyRead, ')');
+                }
+            }
+        }
+
+        // Таймер чтения
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - readingStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                document.getElementById('timerText').textContent = timeStr;
+                document.getElementById('debugTime').textContent = timeStr;
+            }, 1000);
+        }
+
+        // State Machine для badge-reward
+        let wasUnlocked = false;
+
+        function updateBadgeRewardState(percentage) {
+            if (alreadyRead) return;
+
+            const badge = document.getElementById('articleReward');
+            if (!badge) return;
+
+            if (percentage < 95) {
+                // STATE: Locked (0-94%)
+                badge.classList.remove('unlocked');
+                badge.classList.add('locked');
+                wasUnlocked = false;
+            } else {
+                // STATE: Unlocked (95%+)
+                if (!wasUnlocked) {
+                    console.log('🎁 Badge unlocked at', Math.round(percentage) + '%');
+                    wasUnlocked = true;
+                }
+
+                badge.classList.remove('locked');
+                badge.classList.add('unlocked');
+            }
+        }
+
+
+        // Отслеживание скролла
+        window.addEventListener('scroll', () => {
+            try {
+                const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+                const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                scrollPercentage = height > 0 ? (winScroll / height) * 100 : 0;
+
+                const progressPercent = Math.round(scrollPercentage);
+
+                // Обновляем прогресс-бар вверху
+                document.getElementById('readingProgress').style.width = scrollPercentage + '%';
+
+                // Обновляем проценты вверху справа
+                const percentageEl = document.getElementById('progressPercentage');
+                percentageEl.textContent = `${progressPercent}%`;
+                if (scrollPercentage >= 90) {
+                    percentageEl.classList.add('completed');
+                } else {
+                    percentageEl.classList.remove('completed');
+                }
+
+                // Обновляем meta-индикатор в шапке статьи
+                document.getElementById('progressPercent').textContent = `${progressPercent}%`;
+                document.getElementById('progressIndicator').textContent = `Прочитано: ${progressPercent}%`;
+                document.getElementById('debugProgress').textContent = progressPercent + '%';
+
+                const progressInline = document.getElementById('progressIndicatorInline');
+                if (scrollPercentage >= 90) {
+                    document.getElementById('progressIndicator').classList.add('completed');
+                    progressInline.style.background = 'rgba(74, 222, 128, 0.15)';
+                    progressInline.style.borderColor = 'rgba(74, 222, 128, 0.3)';
+                    progressInline.style.color = '#4ade80';
+                } else {
+                    document.getElementById('progressIndicator').classList.remove('completed');
+                    progressInline.style.background = 'rgba(255, 255, 255, 0.03)';
+                    progressInline.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+                    progressInline.style.color = 'rgba(255, 255, 255, 0.7)';
+                }
+
+                // Обновляем текст на прогресс-баре
+                document.getElementById('progressText').textContent = progressPercent + '%';
+
+                // Обновляем badge награды
+                updateBadgeRewardState(scrollPercentage);
+
+            } catch (error) {
+                console.error('Scroll handler error:', error);
+            }
+        });
+
+        // Кнопка "Назад" с историей
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'tasks.html';
+            }
+        }
+
+        // Particle explosion system
+        function createParticleExplosion(originX, originY) {
+            const colors = ['#FFD700', '#FFA500', '#FF6B35', '#667EEA', '#764BA2', '#10B981', '#06B6D4'];
+            const particleCount = 40;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+
+                // Random direction and distance
+                const angle = (Math.PI * 2 * i) / particleCount;
+                const velocity = 100 + Math.random() * 150;
+                const tx = Math.cos(angle) * velocity;
+                const ty = Math.sin(angle) * velocity;
+
+                particle.style.left = originX + 'px';
+                particle.style.top = originY + 'px';
+                particle.style.width = (Math.random() * 8 + 4) + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.setProperty('--tx', tx + 'px');
+                particle.style.setProperty('--ty', ty + 'px');
+
+                document.body.appendChild(particle);
+
+                setTimeout(() => particle.remove(), 1200);
+            }
+        }
+
+        // Flying coins to header
+        function createFlyingCoins(startX, startY, count = 5) {
+            const header = document.querySelector('.header');
+            const headerRect = header.getBoundingClientRect();
+            const targetX = headerRect.left + headerRect.width / 2;
+            const targetY = headerRect.top + headerRect.height / 2;
+
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const coin = document.createElement('div');
+                    coin.className = 'flying-coin';
+                    coin.textContent = '💰';
+
+                    // Random start offset
+                    const offsetX = (Math.random() - 0.5) * 100;
+                    const offsetY = (Math.random() - 0.5) * 100;
+
+                    coin.style.left = (startX + offsetX) + 'px';
+                    coin.style.top = (startY + offsetY) + 'px';
+
+                    // Calculate trajectory
+                    const midX = (targetX - startX - offsetX) / 2 + (Math.random() - 0.5) * 100;
+                    const midY = (targetY - startY - offsetY) / 2 - 150;
+                    const endX = targetX - startX - offsetX;
+                    const endY = targetY - startY - offsetY;
+
+                    coin.style.setProperty('--mid-x', midX + 'px');
+                    coin.style.setProperty('--mid-y', midY + 'px');
+                    coin.style.setProperty('--end-x', endX + 'px');
+                    coin.style.setProperty('--end-y', endY + 'px');
+
+                    document.body.appendChild(coin);
+
+                    setTimeout(() => coin.remove(), 1500);
+                }, i * 100);
+            }
+        }
+
+
+        // Получение награды через badge-reward
+        document.addEventListener('DOMContentLoaded', () => {
+            const badge = document.getElementById('articleReward');
+            if (!badge) return;
+
+            badge.addEventListener('click', async () => {
+                await claimReward(badge);
+            });
+        });
+
+        // Универсальная функция получения награды
+        async function claimReward(triggerElement) {
+            try {
+                const supabase = window.supabaseClient || window.db;
+                if (!supabase) {
+                    alert('❌ Ошибка подключения к базе данных');
+                    return;
+                }
+
+                // Проверка что награда ещё не получена
+                if (alreadyRead) {
+                    return; // Уже получена, ничего не делаем
+                }
+
+                // Проверка что статья прочитана
+                if (scrollPercentage < 90) {
+                    alert('📖 Пожалуйста, прочитайте статью до конца (минимум 90%)');
+                    return;
+                }
+
+                // Проверка авторизации
+                if (!user) {
+                    alert('❌ Ошибка авторизации');
+                    return;
+                }
+
+                // Блокируем элементы UI
+                const badge = document.getElementById('articleReward');
+
+                let originalText = '';
+                if (triggerElement === badge) {
+                    badge.classList.remove('unlocked');
+                    badge.classList.add('locked');
+                    originalText = badge.querySelector('#rewardAmount').textContent;
+                    badge.querySelector('#rewardAmount').textContent = '⏳ Начисляем...';
+                }
+
+
+                // Создаём запись о прочтении
+                const { error: readError } = await supabase
+                    .from('article_reads')
+                    .insert({
+                        user_id: user.telegram_id,
+                        article_id: articleId,
+                        reward_claimed: true
+                    });
+
+                if (readError) {
+                    console.error('Insert read error:', readError);
+                    alert('❌ Ошибка: ' + readError.message);
+
+                    // Восстанавливаем состояние элементов
+                    if (triggerElement === badge) {
+                        badge.classList.remove('locked');
+                        badge.classList.add('unlocked');
+                        badge.querySelector('#rewardAmount').textContent = originalText;
+                    }
+                    return;
+                }
+
+                // Начисляем награду
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({
+                        balance_ar: user.balance_ar + article.reward_ar
+                    })
+                    .eq('telegram_id', user.telegram_id);
+
+                if (updateError) {
+                    console.error('Update balance error:', updateError);
+                    alert('❌ Ошибка начисления награды');
+                    return;
+                }
+
+                // Создаём транзакцию
+                await supabase.from('transactions').insert({
+                    user_id: user.telegram_id,
+                    type: 'article_reward',
+                    amount: article.reward_ar,
+                    description: `Прочитана статья: ${article.title}`
+                });
+
+                // Получаем позицию элемента для анимаций
+                const elementRect = triggerElement.getBoundingClientRect();
+                const centerX = elementRect.left + elementRect.width / 2;
+                const centerY = elementRect.top + elementRect.height / 2;
+
+                // Запускаем particle explosion
+                createParticleExplosion(centerX, centerY);
+
+                // Запускаем flying coins
+                setTimeout(() => {
+                    createFlyingCoins(centerX, centerY, 8);
+                }, 200);
+
+                // Показываем успех
+                setTimeout(() => {
+                    alert(`🎉 Поздравляем!\n\nВы получили ${article.reward_ar} AR!\n\nСпасибо за прочтение статьи!`);
+
+                    alreadyRead = true;
+
+                    // Обновляем badge - показываем ✅
+                    if (badge) {
+                        badge.classList.remove('unlocked', 'locked');
+                        badge.classList.add('claimed');
+                        badge.querySelector('#rewardAmount').textContent = '✅ Получено';
+                    }
+
+                    // Скрываем проценты прочтения для прочитанных статей
+                    const progressIndicator = document.getElementById('progressIndicatorInline');
+                    if (progressIndicator) {
+                        progressIndicator.style.display = 'none';
+                    }
+
+                    // Показываем completion badge
+                    document.getElementById('alreadyRead').style.display = 'block';
+                    const now = new Date().toLocaleDateString('ru-RU', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    document.getElementById('readDate').textContent = `Прочитано: ${now}`;
+                    updateDebug();
+                }, 800);
+
+            } catch (error) {
+                console.error('Reward claim error:', error);
+                alert('❌ Критическая ошибка: ' + error.message);
+            }
+        }
+
+        // Инициализация при загрузке
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                console.log('🚀 Article page initialized');
+                await loadArticle();
+            } catch (error) {
+                console.error('DOMContentLoaded error:', error);
+                alert('❌ Ошибка инициализации');
+            }
+        });
+
+        // Очистка таймера при уходе со страницы
+        window.addEventListener('beforeunload', () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+        });
+    </script>
+</body>
+</html>

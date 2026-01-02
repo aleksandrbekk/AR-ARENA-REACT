@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AR ARENA - Профиль</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js?v=2"></script>
+    <script src="auth.js?v=1759200000"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header с аватаром */
+        .profile-header {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+        }
+
+        .profile-avatar-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            object-fit: cover;
+        }
+
+        .avatar-placeholder {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: 800;
+            color: #0a0a0a;
+        }
+
+        .profile-name {
+            font-size: 28px;
+            font-weight: 800;
+            color: #0a0a0a;
+            margin-bottom: 5px;
+        }
+
+        .profile-username {
+            font-size: 16px;
+            color: rgba(10, 10, 10, 0.7);
+            margin-bottom: 15px;
+        }
+
+        .profile-id {
+            font-size: 12px;
+            color: rgba(10, 10, 10, 0.5);
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Статистика */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 15px;
+            padding: 20px 15px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 215, 0, 0.3);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #FFD700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Табы */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 5px;
+            border-radius: 15px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #0a0a0a;
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Контент табов */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Секции настроек */
+        .settings-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFD700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 3px;
+        }
+
+        .setting-desc {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .setting-value {
+            font-size: 14px;
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        /* Покупки */
+        .purchase-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .purchase-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 215, 0, 0.3);
+        }
+
+        .purchase-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .purchase-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .purchase-status {
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .purchase-status.active {
+            background: linear-gradient(135deg, #11998E, #38EF7D);
+            color: #0a0a0a;
+        }
+
+        .purchase-status.expired {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .purchase-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .purchase-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .purchase-detail-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+        }
+
+        .purchase-detail-value {
+            font-size: 14px;
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .empty-state img {
+            width: 80px;
+            height: 80px;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-desc {
+            font-size: 13px;
+        }
+
+        /* Кнопки */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #0a0a0a;
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Навигация */
+        .bottom-navigation {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 215, 0, 0.1);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-item.active {
+            color: #FFD700;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .purchase-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка профиля -->
+        <div class="profile-header">
+            <div class="profile-avatar-container">
+                <img src="" alt="Avatar" class="profile-avatar" id="userAvatar" style="display: none;">
+                <div class="avatar-placeholder" id="avatarPlaceholder">
+                    <span id="avatarInitial">Г</span>
+                </div>
+            </div>
+            <h1 class="profile-name" id="userName">Гость</h1>
+            <div class="profile-username" id="userUsername">@username</div>
+            <div class="profile-id">ID: <span id="userId">—</span></div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="balanceAR">0</div>
+                <div class="stat-label">AR монет</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="referralsCount">0</div>
+                <div class="stat-label">Рефералов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="tasksCompleted">0</div>
+                <div class="stat-label">Заданий</div>
+            </div>
+        </div>
+
+        <!-- Табы -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('settings')">Настройки</button>
+            <button class="tab" onclick="switchTab('purchases')">Мои покупки</button>
+        </div>
+
+        <!-- Контент: Настройки -->
+        <div class="tab-content active" id="settingsTab">
+            <!-- Аккаунт -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <img src="icons/profil.png" alt="Аккаунт">
+                    Аккаунт
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">Имя пользователя</div>
+                        <div class="setting-desc">Ваше отображаемое имя</div>
+                    </div>
+                    <div class="setting-value" id="settingName">—</div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">Telegram ID</div>
+                        <div class="setting-desc">Уникальный идентификатор</div>
+                    </div>
+                    <div class="setting-value" id="settingTelegramId">—</div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">Дата регистрации</div>
+                        <div class="setting-desc">Когда вы присоединились</div>
+                    </div>
+                    <div class="setting-value" id="settingJoinDate">—</div>
+                </div>
+            </div>
+
+            <!-- Баланс -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <img src="icons/arcoin.png?v=20251023" alt="Баланс" style="width: 28px; height: 28px;">
+                    Баланс и активы
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">AR монеты</div>
+                        <div class="setting-desc">Основная валюта</div>
+                    </div>
+                    <div class="setting-value" id="settingBalance">0 AR</div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">Отмычки</div>
+                        <div class="setting-desc">Для открытия сундуков</div>
+                    </div>
+                    <div class="setting-value" id="settingKeys">0</div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">Билеты</div>
+                        <div class="setting-desc">Для участия в розыгрышах</div>
+                    </div>
+                    <div class="setting-value" id="settingTickets">0</div>
+                </div>
+            </div>
+
+            <!-- Реферальная программа -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <img src="icons/pp1.png" alt="Рефералы">
+                    Реферальная программа
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">Приглашенных друзей</div>
+                        <div class="setting-desc">Прямые рефералы (L1)</div>
+                    </div>
+                    <div class="setting-value" id="settingReferralsL1">0</div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">Вторичные рефералы</div>
+                        <div class="setting-desc">Друзья друзей (L2)</div>
+                    </div>
+                    <div class="setting-value" id="settingReferralsL2">0</div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-name">Заработано с рефералов</div>
+                        <div class="setting-desc">Всего бонусов</div>
+                    </div>
+                    <div class="setting-value" id="settingReferralEarnings">0 AR</div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="window.location.href='referral.html'">
+                Перейти в реферальную программу
+            </button>
+        </div>
+
+        <!-- Контент: Мои покупки -->
+        <div class="tab-content" id="purchasesTab">
+            <div id="purchasesList">
+                <!-- Загрузится динамически -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Нижняя навигация -->
+    <nav class="bottom-navigation">
+        <div class="nav-item" onclick="window.location.href='index.html'">
+            <img src="icons/main.png" alt="Главная" class="nav-icon">
+            <span class="nav-label">Главная</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='tasks.html'">
+            <img src="icons/todo.png" alt="Задания" class="nav-icon">
+            <span class="nav-label">Задания</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='games.html'">
+            <img src="icons/gamepad.png" alt="Игры" class="nav-icon">
+            <span class="nav-label">Игры</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='shop.html'">
+            <img src="icons/SHOP.png" alt="Магазин" class="nav-icon">
+            <span class="nav-label">Магазин</span>
+        </div>
+        <div class="nav-item active" onclick="window.location.href='profile.html'">
+            <img src="icons/profil.png" alt="Профиль" class="nav-icon">
+            <span class="nav-label">Профиль</span>
+        </div>
+    </nav>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        tg?.expand();
+
+        const user = tg?.initDataUnsafe?.user;
+
+        // Переключение табов
+        function switchTab(tabName) {
+            // Убираем активный класс со всех табов
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Добавляем активный класс нужным элементам
+            if (tabName === 'settings') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('settingsTab').classList.add('active');
+            } else if (tabName === 'purchases') {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('purchasesTab').classList.add('active');
+                loadPurchases();
+            }
+        }
+
+        // Загрузка данных пользователя
+        async function loadUserData() {
+            // Аватар и имя
+            if (user) {
+                const avatarElement = document.getElementById('userAvatar');
+                const placeholderElement = document.getElementById('avatarPlaceholder');
+
+                if (user.photo_url) {
+                    avatarElement.src = user.photo_url;
+                    avatarElement.style.display = 'block';
+                    placeholderElement.style.display = 'none';
+                } else {
+                    const initials = (user.first_name || 'U').charAt(0).toUpperCase();
+                    document.getElementById('avatarInitial').textContent = initials;
+                    avatarElement.style.display = 'none';
+                    placeholderElement.style.display = 'flex';
+                }
+
+                const fullName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+                document.getElementById('userName').textContent = fullName;
+                document.getElementById('settingName').textContent = fullName;
+
+                if (user.username) {
+                    document.getElementById('userUsername').textContent = '@' + user.username;
+                } else {
+                    document.getElementById('userUsername').style.display = 'none';
+                }
+
+                document.getElementById('userId').textContent = user.id;
+                document.getElementById('settingTelegramId').textContent = user.id;
+            }
+
+            // Загружаем данные из Supabase
+            if (window.currentUser) {
+                loadSupabaseData();
+            } else {
+                // Ждем загрузки currentUser
+                setTimeout(loadSupabaseData, 1000);
+            }
+        }
+
+        // Загрузка данных из Supabase
+        async function loadSupabaseData() {
+            try {
+                const currentUser = window.currentUser;
+                if (!currentUser) {
+                    console.warn('currentUser не загружен');
+                    return;
+                }
+
+                // Баланс и активы
+                document.getElementById('balanceAR').textContent = currentUser.balance_ar || 0;
+                document.getElementById('settingBalance').textContent = (currentUser.balance_ar || 0) + ' AR';
+                document.getElementById('settingKeys').textContent = currentUser.keys || 0;
+                document.getElementById('settingTickets').textContent = currentUser.tickets || 0;
+
+                // Дата регистрации
+                if (currentUser.created_at) {
+                    const date = new Date(currentUser.created_at);
+                    document.getElementById('settingJoinDate').textContent = date.toLocaleDateString('ru-RU');
+                }
+
+                // Загружаем рефералов
+                await loadReferralStats();
+
+                // Загружаем выполненные задания
+                await loadTasksStats();
+
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+            }
+        }
+
+        // Статистика рефералов
+        async function loadReferralStats() {
+            try {
+                const db = window.supabaseClient || window.db;
+                const currentUser = window.currentUser;
+
+                if (!db || !currentUser) return;
+
+                // L1 рефералы
+                const { data: l1Referrals, error: l1Error } = await db
+                    .from('referral_relations')
+                    .select('*')
+                    .eq('referrer_id', currentUser.telegram_id)
+                    .eq('level', 1);
+
+                if (!l1Error && l1Referrals) {
+                    document.getElementById('referralsCount').textContent = l1Referrals.length;
+                    document.getElementById('settingReferralsL1').textContent = l1Referrals.length;
+                }
+
+                // L2 рефералы
+                const { data: l2Referrals, error: l2Error } = await db
+                    .from('referral_relations')
+                    .select('*')
+                    .eq('referrer_id', currentUser.telegram_id)
+                    .eq('level', 2);
+
+                if (!l2Error && l2Referrals) {
+                    document.getElementById('settingReferralsL2').textContent = l2Referrals.length;
+                }
+
+                // Заработано с рефералов (из транзакций)
+                const { data: transactions, error: txError } = await db
+                    .from('transactions')
+                    .select('amount')
+                    .eq('user_id', currentUser.telegram_id)
+                    .like('type', 'referral%');
+
+                if (!txError && transactions) {
+                    const total = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+                    document.getElementById('settingReferralEarnings').textContent = total + ' AR';
+                }
+
+            } catch (error) {
+                console.error('Ошибка загрузки рефералов:', error);
+            }
+        }
+
+        // Статистика заданий
+        async function loadTasksStats() {
+            try {
+                const db = window.supabaseClient || window.db;
+                const currentUser = window.currentUser;
+
+                if (!db || !currentUser) return;
+
+                const { data: completions, error } = await db
+                    .from('task_completions')
+                    .select('*')
+                    .eq('user_id', currentUser.telegram_id);
+
+                if (!error && completions) {
+                    document.getElementById('tasksCompleted').textContent = completions.length;
+                }
+
+            } catch (error) {
+                console.error('Ошибка загрузки заданий:', error);
+            }
+        }
+
+        // Загрузка покупок
+        async function loadPurchases() {
+            try {
+                const db = window.supabaseClient || window.db;
+                const currentUser = window.currentUser;
+
+                if (!db || !currentUser) {
+                    showEmptyPurchases();
+                    return;
+                }
+
+                const { data: purchases, error } = await db
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', currentUser.telegram_id)
+                    .like('type', 'purchase%')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (error) throw error;
+
+                if (!purchases || purchases.length === 0) {
+                    showEmptyPurchases();
+                    return;
+                }
+
+                renderPurchases(purchases);
+
+            } catch (error) {
+                console.error('Ошибка загрузки покупок:', error);
+                showEmptyPurchases();
+            }
+        }
+
+        // Отрисовка покупок
+        function renderPurchases(purchases) {
+            const container = document.getElementById('purchasesList');
+
+            let html = '';
+
+            purchases.forEach(purchase => {
+                const date = new Date(purchase.created_at);
+                const formattedDate = date.toLocaleDateString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+                const formattedTime = date.toLocaleTimeString('ru-RU', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Определяем статус (условно - можно доработать)
+                const isActive = purchase.type.includes('subscription') || purchase.type.includes('pass');
+                const statusClass = isActive ? 'active' : 'expired';
+                const statusText = isActive ? 'Активно' : 'Завершено';
+
+                html += `
+                    <div class="purchase-card">
+                        <div class="purchase-header">
+                            <div class="purchase-title">${purchase.description || 'Покупка'}</div>
+                            <div class="purchase-status ${statusClass}">${statusText}</div>
+                        </div>
+                        <div class="purchase-details">
+                            <div class="purchase-detail">
+                                <div class="purchase-detail-label">Сумма</div>
+                                <div class="purchase-detail-value">${Math.abs(purchase.amount)} AR</div>
+                            </div>
+                            <div class="purchase-detail">
+                                <div class="purchase-detail-label">Дата</div>
+                                <div class="purchase-detail-value">${formattedDate}</div>
+                            </div>
+                            <div class="purchase-detail">
+                                <div class="purchase-detail-label">Время</div>
+                                <div class="purchase-detail-value">${formattedTime}</div>
+                            </div>
+                            <div class="purchase-detail">
+                                <div class="purchase-detail-label">Тип</div>
+                                <div class="purchase-detail-value">${purchase.type}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Пустое состояние
+        function showEmptyPurchases() {
+            const container = document.getElementById('purchasesList');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <img src="icons/SHOP.png" alt="Нет покупок">
+                    <div class="empty-state-text">Нет покупок</div>
+                    <div class="empty-state-desc">Здесь будет отображаться история ваших транзакций</div>
+                    <button class="btn btn-primary" onclick="window.location.href='shop.html'">
+                        Перейти в магазин
+                    </button>
+                </div>
+            `;
+        }
+
+        // Загружаем данные при старте
+        window.addEventListener('DOMContentLoaded', loadUserData);
+
+        // Обновляем при изменении пользователя
+        window.addEventListener('userUpdated', loadUserData);
+    </script>
+</body>
+</html>

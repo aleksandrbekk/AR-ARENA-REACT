@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест реферальной системы</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .log {
+            background: black;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #4CAF50;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #ff0000; }
+        .warning { color: #ffff00; }
+        input {
+            padding: 10px;
+            margin: 10px 0;
+            width: 300px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест реферальной системы AR ARENA</h1>
+
+    <div class="test-section">
+        <h2>1. Текущий пользователь</h2>
+        <div id="current-user">Загрузка...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Параметры URL</h2>
+        <div id="url-params">Проверка...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Проверка пользователя в БД</h2>
+        <input type="text" id="telegram-id" placeholder="Telegram ID для проверки">
+        <button onclick="checkUserInDB()">Проверить в БД</button>
+        <div id="db-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Симуляция регистрации нового пользователя</h2>
+        <input type="text" id="new-user-id" placeholder="Telegram ID нового пользователя">
+        <input type="text" id="referrer-id" placeholder="Telegram ID реферера">
+        <button onclick="simulateNewUser()">Симулировать регистрацию</button>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Проверка баланса</h2>
+        <input type="text" id="check-balance-id" placeholder="Telegram ID">
+        <button onclick="checkBalance()">Проверить баланс</button>
+        <div id="balance-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>6. Логи</h2>
+        <div class="log" id="logs"></div>
+    </div>
+
+    <script>
+        const log = (msg, type = 'info') => {
+            const logsDiv = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            const colorClass = type === 'error' ? 'error' : type === 'success' ? 'success' : 'warning';
+            logsDiv.innerHTML += `<div class="${colorClass}">[${time}] ${msg}</div>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        };
+
+        // Проверяем текущего пользователя
+        window.addEventListener('DOMContentLoaded', () => {
+            const tg = window.Telegram?.WebApp;
+            const user = tg?.initDataUnsafe?.user;
+
+            if (user) {
+                document.getElementById('current-user').innerHTML = `
+                    <div class="success">✅ Telegram пользователь:</div>
+                    ID: ${user.id}<br>
+                    Имя: ${user.first_name} ${user.last_name || ''}<br>
+                    Username: @${user.username || 'нет'}
+                `;
+                log(`Пользователь: ${user.first_name} (${user.id})`, 'success');
+            } else {
+                document.getElementById('current-user').innerHTML =
+                    '<div class="warning">⚠️ Не в Telegram (браузер)</div>';
+                log('Открыто в браузере', 'warning');
+            }
+
+            // Проверяем параметры URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('ref');
+
+            if (ref) {
+                document.getElementById('url-params').innerHTML =
+                    `<div class="success">✅ Реферальный параметр найден: ref=${ref}</div>`;
+                log(`Найден параметр ref=${ref}`, 'success');
+            } else {
+                document.getElementById('url-params').innerHTML =
+                    '<div class="error">❌ Реферальный параметр отсутствует</div>';
+                log('Нет реферального параметра', 'error');
+            }
+        });
+
+        // Проверка пользователя в БД
+        async function checkUserInDB() {
+            const telegramId = document.getElementById('telegram-id').value;
+            if (!telegramId) {
+                log('Введите Telegram ID', 'error');
+                return;
+            }
+
+            log(`Проверяю пользователя ${telegramId} в БД...`);
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('telegram_id', telegramId);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const user = data[0];
+                    document.getElementById('db-result').innerHTML = `
+                        <div class="success">✅ Пользователь найден:</div>
+                        <pre>${JSON.stringify(user, null, 2)}</pre>
+                    `;
+                    log(`Найден: ${user.first_name}, баланс: ${user.balance_ar} AR`, 'success');
+                } else {
+                    document.getElementById('db-result').innerHTML =
+                        '<div class="warning">⚠️ Пользователь НЕ найден (новый)</div>';
+                    log('Пользователь не зарегистрирован', 'warning');
+                }
+            } catch (error) {
+                log(`Ошибка БД: ${error.message}`, 'error');
+            }
+        }
+
+        // Симуляция регистрации нового пользователя
+        async function simulateNewUser() {
+            const newUserId = document.getElementById('new-user-id').value;
+            const referrerId = document.getElementById('referrer-id').value;
+
+            if (!newUserId) {
+                log('Введите ID нового пользователя', 'error');
+                return;
+            }
+
+            log('Симулирую регистрацию нового пользователя...');
+
+            try {
+                // Проверяем что пользователь новый
+                const { data: existingUser } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('telegram_id', newUserId);
+
+                if (existingUser && existingUser.length > 0) {
+                    log(`Пользователь ${newUserId} уже существует!`, 'error');
+                    return;
+                }
+
+                // Ищем реферера если указан
+                let referrerDbId = null;
+                if (referrerId) {
+                    const { data: referrerData } = await supabaseClient
+                        .from('users')
+                        .select('id, balance_ar')
+                        .eq('telegram_id', referrerId);
+
+                    if (referrerData && referrerData.length > 0) {
+                        referrerDbId = referrerData[0].id;
+                        log(`Реферер найден: ID=${referrerDbId}`, 'success');
+                    } else {
+                        log(`Реферер ${referrerId} не найден`, 'warning');
+                    }
+                }
+
+                // Создаем нового пользователя
+                const { data: newUser, error: insertError } = await supabaseClient
+                    .from('users')
+                    .insert({
+                        telegram_id: newUserId,
+                        username: `test_user_${newUserId}`,
+                        first_name: `Тестовый`,
+                        last_name: `Пользователь`,
+                        balance_ar: 50,
+                        balance_coins: 0,
+                        referrer_id: referrerDbId,
+                        created_at: new Date().toISOString(),
+                        last_seen_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
+
+                if (insertError) throw insertError;
+
+                log(`✅ Новый пользователь создан! ID: ${newUser.id}, Баланс: 50 AR`, 'success');
+
+                // Начисляем бонус рефереру
+                if (referrerDbId) {
+                    const { data: referrer } = await supabaseClient
+                        .from('users')
+                        .select('balance_ar')
+                        .eq('id', referrerDbId)
+                        .single();
+
+                    const newBalance = (referrer.balance_ar || 0) + 100;
+
+                    await supabaseClient
+                        .from('users')
+                        .update({ balance_ar: newBalance })
+                        .eq('id', referrerDbId);
+
+                    log(`✅ Рефереру начислено 100 AR! Новый баланс: ${newBalance}`, 'success');
+                }
+
+            } catch (error) {
+                log(`Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Проверка баланса
+        async function checkBalance() {
+            const telegramId = document.getElementById('check-balance-id').value;
+            if (!telegramId) {
+                log('Введите Telegram ID', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('telegram_id, first_name, balance_ar, balance_coins')
+                    .eq('telegram_id', telegramId)
+                    .single();
+
+                if (error) throw error;
+
+                document.getElementById('balance-result').innerHTML = `
+                    <div class="success">
+                        <strong>${data.first_name}</strong><br>
+                        💰 AR: ${data.balance_ar}<br>
+                        🪙 Coins: ${data.balance_coins}
+                    </div>
+                `;
+                log(`Баланс ${data.first_name}: ${data.balance_ar} AR`, 'success');
+
+            } catch (error) {
+                log(`Ошибка: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

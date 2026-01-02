@@ -1,0 +1,231 @@
+:root {
+    --color-primary-gold: #FFD700;
+    --color-bg-dark: #0a0a0a;
+    --color-glass-bg: rgba(20, 20, 20, 0.8);
+    --color-glass-border: rgba(255, 215, 0, 0.3);
+    --color-text-light: #ffffff;
+    --color-text-muted: rgba(255, 255, 255, 0.5);
+    --border-radius-lg: 16px;
+}
+
+body {
+    background-color: var(--color-bg-dark);
+    background-image: radial-gradient(circle at 50% 20%, #1a1a1a 0%, #000000 80%);
+    color: var(--color-text-light);
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Отключаем глобальный скролл */
+}
+
+/* HEADER */
+.header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 20px;
+    padding-top: calc(env(safe-area-inset-top) + 16px); /* Учитываем челку */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+
+.header-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.back-btn {
+    position: absolute;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+}
+
+/* PREVIEW SECTION (Верхняя часть) */
+.preview-section {
+    flex: 0 0 45%; /* Занимаем 45% высоты экрана */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end; /* Прижимаем быка к низу секции */
+    padding-top: 80px; /* Запас для хедера */
+    padding-bottom: 20px;
+}
+
+/* Свет под быком */
+.stage-light {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 40px;
+    background: radial-gradient(ellipse, rgba(255, 215, 0, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.preview-image {
+    max-height: 85%; /* Не больше 85% высоты секции */
+    max-width: 70%; /* Не слишком широко */
+    width: auto;
+    object-fit: contain;
+    z-index: 1;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.27), opacity 0.2s;
+}
+
+.preview-image.change {
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+/* Info Overlay (Название скина над быком или под ним) */
+.preview-info {
+    margin-top: 10px;
+    text-align: center;
+    z-index: 2;
+}
+
+.preview-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-primary-gold);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+}
+
+.preview-rarity {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* SCROLL PANEL (Нижняя часть с сеткой) */
+.scroll-panel {
+    flex: 1; /* Занимает всё оставшееся место */
+    background: rgba(18, 18, 18, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--color-glass-border);
+    border-radius: 24px 24px 0 0;
+    overflow-y: auto; /* Скролл */
+    padding: 20px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 40px);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Action Button (внутри скролл панели сверху) */
+.action-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0; /* Не сжимать */
+}
+
+.btn-select {
+    background: var(--color-primary-gold);
+    color: black;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+}
+
+.btn-selected {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-locked {
+    background: rgba(255, 69, 58, 0.15);
+    color: #ff453a;
+    border: 1px solid rgba(255, 69, 58, 0.3);
+}
+
+/* GRID 3 columns */
+.skins-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.skin-card {
+    aspect-ratio: 1; /* Квадратные */
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.skin-card img {
+    width: 80%;
+    height: 80%;
+    object-fit: contain;
+}
+
+/* Активный (который сейчас в превью) */
+.skin-card.active {
+    border-color: var(--color-primary-gold);
+    background: rgba(255, 215, 0, 0.1);
+}
+
+/* Надетый (галочка) */
+.skin-card.equipped::after {
+    content: '✓';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    background: #4CD964;
+    border-radius: 50%;
+    color: black;
+    font-size: 10px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #1a1a1a;
+}
+
+.skin-card.locked {
+    opacity: 0.5;
+}
+
+.skin-card.locked::before {
+    content: '🔒';
+    position: absolute;
+    font-size: 20px;
+    z-index: 2;
+    text-shadow: 0 2px 5px black;
+}

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR ARENA - Задания</title>
+    <link rel="stylesheet" href="style.css?v=20250921v9">
+    <link rel="stylesheet" href="tasks.css?v=20250921v11">
+    <script src="https://telegram.org/js/telegram-web-app.js?v=1758287793"></script>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Единый хедер с кнопкой назад и профилем -->
+        <div class="header-glass">
+            <button class="back-btn-compact" onclick="window.location.href='index.html'">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M12 4L6 10L12 16" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <div class="header-center">
+                <div class="logo-text">Задания</div>
+            </div>
+
+            <div class="profile-compact">
+                <img id="userAvatar" class="avatar-mini" src="" alt="">
+                <div class="balance-compact">
+                    <img src="icons/arcoin.png?t=1758342804" alt="AR Coin" class="coin-icon-mini rotating">
+                    <span id="userBalance" class="balance-text">280</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Карточка Крипто Сейфов -->
+        <div class="daily-vault-card" onclick="window.location.href='vault.html'">
+            <div class="card-icon">🏴‍☠️</div>
+            <div class="card-content">
+                <h3 class="card-title">Взломать кейс</h3>
+                <p class="card-description">Ежедневный квест</p>
+            </div>
+            <div class="card-arrow">›</div>
+        </div>
+
+        <!-- Спецзадания (скрыто по умолчанию) -->
+        <div class="special-tasks-section" id="specialTasksSection" style="display: none;">
+            <div class="section-header">
+                <h2>🎯 Спецзадания</h2>
+                <div class="section-subtitle">Подпишитесь на каналы для доступа к ежедневным заданиям</div>
+            </div>
+            <div class="task-card special" id="specialTask1">
+                <div class="task-content">
+                    <div class="task-icon">📺</div>
+                    <div class="task-info">
+                        <div class="task-title">Подписка на канал</div>
+                        <div class="task-description">Алексей Руденко | Криптоинвестор</div>
+                    </div>
+                    <div class="task-reward">+100 AR</div>
+                </div>
+                <button class="task-button check" id="btnSpecial1" onclick="handleSpecialTask(1)">
+                    🔍 Проверить подписку
+                </button>
+            </div>
+            <div class="task-card special" id="specialTask2">
+                <div class="task-content">
+                    <div class="task-icon">📰</div>
+                    <div class="task-info">
+                        <div class="task-title">Подписка на канал</div>
+                        <div class="task-description">PREMIUM NEWS</div>
+                    </div>
+                    <div class="task-reward">+100 AR</div>
+                </div>
+                <button class="task-button check" id="btnSpecial2" onclick="handleSpecialTask(2)">
+                    🔍 Проверить подписку
+                </button>
+            </div>
+        </div>
+
+        <!-- Ежедневные задания -->
+        <div class="daily-tasks-section" style="display: none;">
+            <div class="section-header">
+                <h2>📅 Ежедневные задания</h2>
+                <div class="section-subtitle">Выполняйте каждый день для получения наград</div>
+            </div>
+        </div>
+
+    </div>
+
+
+        
+        
+        
+        
+
+
+    <script src="tasks.js?v=20250921v10"></script>
+    <script>
+        function showProfile() {
+            alert('Профиль в разработке!');
+        }
+    </script>
+
+    <!-- Навигационное меню -->
+    <nav class="bottom-navigation">
+        <div class="nav-item" onclick="window.location.href='index.html'">
+            <img src="icons/main.png" alt="Главная" class="nav-icon">
+            <span class="nav-label">Главная</span>
+        </div>
+        <div class="nav-item active" onclick="window.location.href='tasks.html?v=2'">
+            <img src="icons/todo.png" alt="Задания" class="nav-icon">
+            <span class="nav-label">Задания</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='shop.html'">
+            <img src="icons/SHOP.png" alt="Магазин" class="nav-icon">
+            <span class="nav-label">Магазин</span>
+        </div>
+    </nav>
+</body>
+</html>

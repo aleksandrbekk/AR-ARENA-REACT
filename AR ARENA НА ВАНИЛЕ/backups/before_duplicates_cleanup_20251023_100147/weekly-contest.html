@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AR ARENA - Weekly Lottery</title>
+    <link rel="stylesheet" href="tasks.css?v=20251021_v5">
+    <!-- Version: 20251021_v5_NO_CONFIRM - Test without confirmation dialog -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: auto;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            padding: 16px 12px 90px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior-y: none;
+            -webkit-overflow-scrolling: auto;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* HERO BANNER */
+        .hero-banner {
+            position: relative;
+            background:
+                radial-gradient(ellipse at center, rgba(255, 215, 0, 0.15) 0%, transparent 70%),
+                linear-gradient(135deg,
+                    rgba(139, 0, 0, 0.4) 0%,
+                    rgba(0, 0, 0, 0.9) 40%,
+                    rgba(139, 0, 0, 0.4) 100%
+                );
+            border: 3px solid transparent;
+            border-radius: 24px;
+            padding: 32px 20px 28px;
+            margin-bottom: 16px;
+            box-shadow:
+                0 0 60px rgba(255, 215, 0, 0.3),
+                inset 0 0 80px rgba(255, 215, 0, 0.08),
+                0 20px 50px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+            text-align: center;
+            animation: fadeIn 0.5s ease, borderShine 3s ease-in-out infinite;
+            overflow: hidden;
+        }
+
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 21px;
+            padding: 3px;
+            background: linear-gradient(45deg,
+                #FFD700 0%,
+                #FFA500 25%,
+                #FFD700 50%,
+                #FFA500 75%,
+                #FFD700 100%
+            );
+            -webkit-mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes borderShine {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        @keyframes slotSpin {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(5deg) scale(1.05); }
+            75% { transform: rotate(-5deg) scale(1.05); }
+        }
+
+        .hero-icon-wrapper {
+            display: inline-block;
+            margin-bottom: 18px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-icon {
+            width: 70px;
+            height: 70px;
+            filter: drop-shadow(0 6px 20px rgba(255, 215, 0, 0.6));
+        }
+
+        .hero-title {
+            font-size: 26px;
+            font-weight: 900;
+            background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 4px 12px rgba(255, 215, 0, 0.5);
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-subtitle {
+            font-size: 11px;
+            color: rgba(255, 215, 0, 0.6);
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-prize {
+            font-size: 64px;
+            font-weight: 900;
+            background: linear-gradient(180deg,
+                #FFFFFF 0%,
+                #FFD700 30%,
+                #FFA500 70%,
+                #FFD700 100%
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 24px;
+            text-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+            letter-spacing: -3px;
+            filter: drop-shadow(0 8px 20px rgba(255, 215, 0, 0.6));
+            position: relative;
+            z-index: 2;
+            animation: prizeGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes prizeGlow {
+            0%, 100% { filter: drop-shadow(0 8px 20px rgba(255, 215, 0, 0.6)); }
+            50% { filter: drop-shadow(0 8px 30px rgba(255, 215, 0, 0.9)); }
+        }
+
+        .hero-timer {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            max-width: 380px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .timer-box {
+            background: linear-gradient(135deg,
+                rgba(0, 0, 0, 0.6) 0%,
+                rgba(20, 20, 20, 0.8) 100%
+            );
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 14px;
+            padding: 14px 8px;
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.5),
+                inset 0 0 20px rgba(255, 215, 0, 0.05);
+        }
+
+        .timer-value {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .timer-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(255, 215, 0, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* STATS */
+        .stats-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s ease 0.1s backwards;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg,
+                rgba(20, 20, 20, 0.9) 0%,
+                rgba(30, 30, 30, 0.8) 100%
+            );
+            backdrop-filter: blur(20px);
+            border-radius: 14px;
+            padding: 12px 14px;
+            border: 2px solid rgba(255, 215, 0, 0.25);
+            box-shadow:
+                0 6px 18px rgba(0, 0, 0, 0.5),
+                inset 0 0 20px rgba(255, 215, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .stat-card:active {
+            transform: scale(0.98);
+        }
+
+        .stat-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .stat-icon {
+            width: 28px;
+            height: 28px;
+            filter: drop-shadow(0 3px 10px rgba(255, 215, 0, 0.5));
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .add-btn {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #000;
+            box-shadow: 0 3px 12px rgba(255, 215, 0, 0.4);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .add-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* TICKETS SECTION */
+        .tickets-section {
+            margin-bottom: 20px;
+        }
+
+        .tickets-header {
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            border-radius: 18px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .tickets-title-block {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .tickets-icon {
+            width: 24px;
+            height: 24px;
+            filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.5));
+        }
+
+        .tickets-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: #FFD700;
+            margin: 0;
+            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.4);
+        }
+
+        .tickets-toggle {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 14px;
+            padding: 4px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: none;
+            border-radius: 11px;
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #0a0a0a;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+        }
+
+        /* TAB CONTENT */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* TICKETS SHOP CONTAINER */
+        .tickets-shop {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .shop-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #FFD700;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+        }
+
+        /* TICKETS GRID - 2 колонки x 2 ряда */
+        .tickets-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .ticket-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .ticket-item:hover .ticket-icon {
+            transform: scale(1.15);
+            filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.8));
+        }
+
+        .icon-wrapper {
+            position: relative;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 95px;
+        }
+
+        .ticket-icon {
+            max-width: 95px;
+            max-height: 95px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.4));
+            transition: all 0.3s ease;
+        }
+
+        .discount-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: white;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 3px 7px;
+            border-radius: 6px;
+            box-shadow: 0 3px 8px rgba(255, 107, 53, 0.6);
+            z-index: 2;
+        }
+
+        .discount-badge.large {
+            background: linear-gradient(135deg, #DC143C, #C0392B);
+        }
+
+        .info-block {
+            text-align: center;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+
+        .ticket-amount {
+            color: white;
+            font-size: 11px;
+            margin-bottom: 2px;
+            font-weight: 600;
+        }
+
+        .ticket-price {
+            color: #FFD700;
+            font-size: 14px;
+            font-weight: 800;
+            text-shadow: 0 2px 6px rgba(255, 215, 0, 0.5);
+        }
+
+        .buy-btn {
+            background: rgba(255, 215, 0, 0.15);
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            color: #FFD700;
+            font-weight: 700;
+            font-size: 12px;
+            height: 30px;
+            width: 90%;
+            margin: 0 auto;
+            display: block;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .buy-btn:hover {
+            background: rgba(255, 215, 0, 0.25);
+            border-color: rgba(255, 215, 0, 0.6);
+            transform: scale(1.02);
+        }
+
+        .buy-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* АДАПТИВ */
+        @media (max-width: 400px) {
+            .tickets-grid {
+                gap: 20px;
+            }
+
+            .icon-wrapper {
+                min-height: 80px;
+            }
+
+            .ticket-icon {
+                max-width: 80px;
+                max-height: 80px;
+            }
+
+            .ticket-price {
+                font-size: 12px;
+            }
+
+            .ticket-amount {
+                font-size: 10px;
+            }
+
+            .buy-btn {
+                font-size: 11px;
+                height: 26px;
+            }
+
+            .shop-title {
+                font-size: 16px;
+            }
+        }
+
+        /* EARN SECTION */
+        .earn-section {
+            background: rgba(20, 20, 20, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .earn-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: rgba(255, 215, 0, 0.9);
+            margin-bottom: 16px;
+            text-align: left;
+            padding-left: 4px;
+        }
+
+        .earn-item {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .earn-item:hover {
+            background: rgba(255, 215, 0, 0.08);
+            border-color: rgba(255, 215, 0, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .earn-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .earn-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .earn-reward {
+            font-size: 15px;
+            font-weight: 800;
+            color: #FFD700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+        }
+
+        .progress-text {
+            font-size: 13px;
+            font-weight: 700;
+            color: rgba(255, 215, 0, 0.8);
+        }
+
+        /* REQUIREMENTS */
+        .requirements-section {
+            margin-bottom: 16px;
+            animation: fadeIn 0.5s ease 0.3s backwards;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #FFFFFF;
+            margin-bottom: 16px;
+            text-align: center;
+            text-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+        }
+
+        .req-tabs {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 14px;
+            padding: 4px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+
+        .req-tab-btn {
+            background: transparent;
+            border: none;
+            border-radius: 11px;
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .req-tab-btn.active {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #0a0a0a;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+        }
+
+        .req-card {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .req-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 12px;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .req-item:hover {
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .req-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .check-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+        }
+
+        /* CUSTOM GOLD CHECKMARK */
+        .gold-check {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+        }
+
+        .req-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .req-status {
+            font-size: 13px;
+            font-weight: 700;
+            color: #38EF7D;
+        }
+
+        .progress-text {
+            font-size: 13px;
+            font-weight: 700;
+            color: #FFD700;
+        }
+
+        .subscribe-btn {
+            background: linear-gradient(135deg, #11998E, #38EF7D);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .subscribe-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* VIP COMPACT BANNER - кликабельный */
+        .vip-banner-compact {
+            background: linear-gradient(135deg,
+                rgba(255, 215, 0, 0.15) 0%,
+                rgba(255, 165, 0, 0.1) 100%);
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.2);
+        }
+
+        .vip-banner-compact:active {
+            transform: scale(0.98);
+        }
+
+        .vip-compact-content {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .vip-icon {
+            font-size: 32px;
+            filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.5));
+        }
+
+        .vip-compact-text {
+            flex: 1;
+        }
+
+        .vip-compact-title {
+            font-size: 18px;
+            font-weight: 900;
+            color: #FFD700;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .vip-compact-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .vip-compact-price {
+            font-size: 24px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .vip-arrow {
+            font-size: 24px;
+            color: #FFD700;
+            transition: transform 0.3s ease;
+        }
+
+        .vip-banner-compact.expanded .vip-arrow {
+            transform: rotate(90deg);
+        }
+
+        /* VIP DETAILS - раскрываемая секция */
+        .vip-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+            opacity: 0;
+            margin-bottom: 0;
+        }
+
+        .vip-details.show {
+            max-height: 800px;
+            opacity: 1;
+            margin-bottom: 16px;
+        }
+
+        .vip-details-card {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 18px;
+            padding: 24px 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .vip-price-block {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .vip-price-large {
+            font-size: 56px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+        }
+
+        .vip-price-description {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+        }
+
+        .vip-benefits-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .vip-benefit-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .vip-benefit-item:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: rgba(255, 215, 0, 0.3);
+        }
+
+        .vip-benefit-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+        }
+
+        .vip-benefit-content {
+            flex: 1;
+        }
+
+        .vip-benefit-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #FFFFFF;
+            margin-bottom: 4px;
+        }
+
+        .vip-benefit-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.4;
+        }
+
+        .vip-buy-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: none;
+            border-radius: 16px;
+            padding: 18px 24px;
+            font-size: 18px;
+            font-weight: 900;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .vip-buy-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* MY TICKETS */
+        .my-tickets {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .my-tickets-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #FFD700;
+            margin-bottom: 12px;
+        }
+
+        .tickets-count {
+            font-size: 42px;
+            font-weight: 900;
+            background: linear-gradient(180deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .tickets-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* WINNERS */
+        .winners-section {
+            margin-bottom: 16px;
+        }
+
+        .winners-scroll {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 10px 0;
+            scroll-snap-type: x mandatory;
+        }
+
+        .winners-scroll::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .winners-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 215, 0, 0.3);
+            border-radius: 2px;
+        }
+
+        .winner-card {
+            min-width: 200px;
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 15px;
+            padding: 16px;
+            scroll-snap-align: start;
+        }
+
+        .winner-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFD700;
+            margin-bottom: 8px;
+        }
+
+        .winner-prize {
+            font-size: 24px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .winner-date {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+
+        /* RESPONSIVE */
+        @media (max-width: 360px) {
+            .hero-prize {
+                font-size: 44px;
+            }
+
+            .timer-box {
+                padding: 10px 6px;
+            }
+
+            .timer-value {
+                font-size: 20px;
+            }
+
+            .hero-prize {
+                font-size: 48px !important;
+            }
+
+            .hero-title {
+                font-size: 22px !important;
+            }
+
+            .hero-icon {
+                width: 55px !important;
+                height: 55px !important;
+            }
+
+            .hero-icon-wrapper {
+                padding: 12px;
+            }
+
+            .tickets-header {
+                padding: 16px;
+            }
+
+            .tickets-title {
+                font-size: 18px;
+            }
+
+            .toggle-btn {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HERO BANNER -->
+    <div class="hero-banner">
+        <div class="hero-icon-wrapper">
+            <img src="icons/SLOT.png" class="hero-icon" alt="Slot Machine">
+        </div>
+        <div class="hero-title">ЕЖЕНЕДЕЛЬНЫЙ РОЗЫГРЫШ</div>
+        <div class="hero-subtitle">WEEKLY LOTTERY</div>
+        <div class="hero-prize">$200</div>
+        <div class="hero-timer">
+            <div class="timer-box">
+                <div class="timer-value" id="days">05</div>
+                <div class="timer-label">ДН</div>
+            </div>
+            <div class="timer-box">
+                <div class="timer-value" id="hours">00</div>
+                <div class="timer-label">Ч</div>
+            </div>
+            <div class="timer-box">
+                <div class="timer-value" id="minutes">39</div>
+                <div class="timer-label">МИН</div>
+            </div>
+            <div class="timer-box">
+                <div class="timer-value" id="seconds">08</div>
+                <div class="timer-label">СЕК</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-left">
+                <img src="icons/tiket.png" class="stat-icon" alt="Tickets">
+                <div class="stat-info">
+                    <div class="stat-label">Мои билеты</div>
+                    <div class="stat-value" id="userTicketsCount">0</div>
+                </div>
+            </div>
+            <button class="add-btn" onclick="window.location.href='buy-tickets.html'">+</button>
+        </div>
+        <div class="stat-card participants">
+            <div class="stat-left">
+                <img src="icons/users.png?v=20251023" class="stat-icon" alt="Users">
+                <div class="stat-info">
+                    <div class="stat-label">Участников</div>
+                    <div class="stat-value" id="participantsCount">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FREE REQUIREMENTS -->
+    <div class="requirements-section">
+        <div class="section-title">
+            <img src="icons/todo.png" width="24" style="margin-right: 8px; vertical-align: middle;" alt="Requirements">
+            УСЛОВИЯ УЧАСТИЯ
+        </div>
+
+        <div class="req-card">
+            <div class="req-item">
+                <div class="req-left">
+                    <svg class="gold-check" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" fill="#FFD700"/>
+                        <path d="M7 12L10 15L17 8" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="req-text">Подписка на @premium_news</span>
+                </div>
+                <span class="req-status">Выполнено</span>
+            </div>
+
+            <div class="req-item">
+                <div class="req-left">
+                    <svg class="gold-check" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" fill="#FFD700"/>
+                        <path d="M7 12L10 15L17 8" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="req-text">Подписка на @AlexRich83</span>
+                </div>
+                <span class="req-status">Выполнено</span>
+            </div>
+
+            <div class="req-item">
+                <div class="req-left">
+                    <span class="req-text">Пригласить 3 друзей</span>
+                </div>
+                <span class="progress-text">2/3</span>
+            </div>
+
+            <div class="req-item">
+                <div class="req-left">
+                    <span class="req-text">Иметь минимум 1 билет</span>
+                </div>
+                <button class="subscribe-btn" onclick="window.location.href='buy-tickets.html'">Купить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIP BANNER - кликабельный -->
+    <div class="vip-banner-compact" onclick="toggleVipDetails()">
+        <div class="vip-compact-content">
+            <div class="vip-icon">👑</div>
+            <div class="vip-compact-text">
+                <div class="vip-compact-title">VIP БИЛЕТ</div>
+                <div class="vip-compact-subtitle">Автоматический вход + бонусы</div>
+            </div>
+            <div class="vip-compact-price">3$</div>
+            <div class="vip-arrow">›</div>
+        </div>
+    </div>
+
+    <!-- VIP DETAILS - раскрывается при клике -->
+    <div class="vip-details" id="vip-details">
+        <div class="vip-details-card">
+            <div class="vip-price-block">
+                <div class="vip-price-large">3$</div>
+                <div class="vip-price-description">Автоматический вход + 5 билетов бесплатно</div>
+            </div>
+
+            <div class="vip-benefits-list">
+                <div class="vip-benefit-item">
+                    <div class="vip-benefit-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M5 13l4 4L19 7" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="vip-benefit-content">
+                        <div class="vip-benefit-title">Автоматический вход</div>
+                        <div class="vip-benefit-desc">Вы автоматически участвуете в каждом розыгрыше без необходимости покупать билеты</div>
+                    </div>
+                </div>
+
+                <div class="vip-benefit-item">
+                    <div class="vip-benefit-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L15 8L22 9L17 14L18 21L12 18L6 21L7 14L2 9L9 8L12 2Z" fill="#000"/>
+                        </svg>
+                    </div>
+                    <div class="vip-benefit-content">
+                        <div class="vip-benefit-title">5 билетов в подарок</div>
+                        <div class="vip-benefit-desc">Получите 5 дополнительных билетов сразу после покупки VIP статуса</div>
+                    </div>
+                </div>
+
+                <div class="vip-benefit-item">
+                    <div class="vip-benefit-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="8" r="4" fill="#000"/>
+                            <path d="M6 21C6 17.5 8.5 15 12 15C15.5 15 18 17.5 18 21" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="vip-benefit-content">
+                        <div class="vip-benefit-title">Приоритетная поддержка</div>
+                        <div class="vip-benefit-desc">VIP пользователи получают ответы на свои вопросы в первую очередь</div>
+                    </div>
+                </div>
+
+                <div class="vip-benefit-item">
+                    <div class="vip-benefit-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#000"/>
+                        </svg>
+                    </div>
+                    <div class="vip-benefit-content">
+                        <div class="vip-benefit-title">Эксклюзивные призы</div>
+                        <div class="vip-benefit-desc">Доступ к специальным VIP розыгрышам с уникальными призами</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="vip-buy-btn" onclick="buyVipTicket()">КУПИТЬ VIP БИЛЕТ</button>
+    </div>
+
+    <!-- Навигационное меню -->
+    <nav class="bottom-navigation">
+        <div class="nav-item" onclick="window.location.href='index.html'">
+            <img src="icons/main.png" alt="Главная" class="nav-icon">
+            <span class="nav-label">Главная</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='tasks.html'">
+            <img src="icons/todo.png" alt="Задания" class="nav-icon">
+            <span class="nav-label">Задания</span>
+        </div>
+        <div class="nav-item active" onclick="window.location.href='games.html'">
+            <img src="icons/gamepad.png" alt="Игры" class="nav-icon">
+            <span class="nav-label">Игры</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='shop.html'">
+            <img src="icons/SHOP.png" alt="Магазин" class="nav-icon">
+            <span class="nav-label">Магазин</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='admin.html?v=20251007'">
+            <img src="icons/admin.png" alt="Админ" class="nav-icon">
+            <span class="nav-label">Админ</span>
+        </div>
+    </nav>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth.js?v=1759200000"></script>
+
+    <script>
+        // VERSION CHECK
+        const PAGE_VERSION = '20251021_FINAL';
+        console.log('🔍 Weekly Contest версия:', PAGE_VERSION);
+
+        // Telegram WebApp
+        const tg = window.Telegram?.WebApp;
+        tg?.ready();
+        tg?.expand();
+
+        // Предотвращаем закрытие приложения при overscroll
+        tg?.enableClosingConfirmation?.();
+
+        // Отключаем вертикальные свайпы
+        if (tg?.isVersionAtLeast?.('6.1')) {
+            tg.setHeaderColor?.('#0a0a0a');
+            tg.setBackgroundColor?.('#0a0a0a');
+        }
+
+        // Предотвращаем overscroll (резиновый эффект)
+        let startY = 0;
+        let isScrolling = false;
+
+        document.addEventListener('touchstart', function(e) {
+            startY = e.touches[0].pageY;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            isScrolling = scrollTop > 0;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', function(e) {
+            const currentY = e.touches[0].pageY;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = document.documentElement.clientHeight;
+
+            // Предотвращаем overscroll вверх
+            if (scrollTop <= 0 && currentY > startY) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Предотвращаем overscroll вниз
+            if (scrollTop + clientHeight >= scrollHeight && currentY < startY) {
+                e.preventDefault();
+                return false;
+            }
+        }, { passive: false });
+
+        // Фиксируем скролл при достижении границ
+        let lastScrollTop = 0;
+        window.addEventListener('scroll', function() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = document.documentElement.clientHeight;
+
+            // Если достигли верха
+            if (scrollTop <= 0) {
+                window.scrollTo(0, 1);
+            }
+
+            // Если достигли низа
+            if (scrollTop + clientHeight >= scrollHeight) {
+                window.scrollTo(0, scrollHeight - clientHeight - 1);
+            }
+
+            lastScrollTop = scrollTop;
+        }, { passive: true });
+
+        // Timer Update
+        function updateTimer() {
+            const now = new Date();
+            const sunday = new Date();
+            sunday.setDate(sunday.getDate() + (7 - now.getDay()));
+            sunday.setHours(20, 0, 0, 0);
+
+            const diff = sunday - now;
+
+            if (diff > 0) {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                document.getElementById('days').textContent = String(days).padStart(2, '0');
+                document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+                document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+                document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+            }
+        }
+
+        setInterval(updateTimer, 1000);
+        updateTimer();
+
+        // Switch Ticket Tab
+        function switchTicketTab(tab) {
+            const buyTab = document.getElementById('tab-buy');
+            const earnTab = document.getElementById('tab-earn');
+            const toggleBtns = document.querySelectorAll('.toggle-btn');
+
+            toggleBtns.forEach(btn => btn.classList.remove('active'));
+
+            if (tab === 'buy') {
+                toggleBtns[0].classList.add('active');
+                buyTab.classList.add('active');
+                earnTab.classList.remove('active');
+            } else {
+                toggleBtns[1].classList.add('active');
+                earnTab.classList.add('active');
+                buyTab.classList.remove('active');
+            }
+        }
+
+        // Toggle VIP Details
+        function toggleVipDetails() {
+            const vipDetails = document.getElementById('vip-details');
+            const vipBanner = document.querySelector('.vip-banner-compact');
+
+            if (vipDetails.classList.contains('show')) {
+                vipDetails.classList.remove('show');
+                vipBanner.classList.remove('expanded');
+            } else {
+                vipDetails.classList.add('show');
+                vipBanner.classList.add('expanded');
+            }
+        }
+
+        // Buy VIP Ticket
+        function buyVipTicket() {
+            console.log('Buying VIP ticket');
+            alert('Покупка VIP билета за 3$\nФункционал в разработке!');
+        }
+
+        // Buy Tickets
+        // Load user tickets count
+        function loadUserTickets() {
+            if (!window.currentUser) {
+                console.log('⏳ Ожидание загрузки пользователя для билетов...');
+                setTimeout(loadUserTickets, 500);
+                return;
+            }
+
+            const tickets = window.currentUser.tickets || 0;
+            const ticketsElement = document.getElementById('userTicketsCount');
+            if (ticketsElement) {
+                ticketsElement.textContent = tickets;
+                console.log('✅ Билеты загружены:', tickets);
+            }
+        }
+
+        // Update tickets when user data changes
+        window.addEventListener('userUpdated', () => {
+            console.log('🔄 Обновление билетов после userUpdated...');
+            loadUserTickets();
+        });
+
+        // Load tickets on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('📱 Weekly Contest загружен, загружаю билеты...');
+            loadUserTickets();
+        });
+
+        // Функция buyTickets больше не нужна - покупка на отдельной странице buy-tickets.html
+
+        // Check Subscription
+        function checkSubscription(channel) {
+            console.log(`Checking subscription to ${channel}`);
+            alert(`Проверка подписки на ${channel}`);
+        }
+
+        // Register for Lottery
+        function registerForLottery() {
+            console.log('Registering for VIP lottery');
+            alert('Покупка VIP билета\nФункционал в разработке!');
+        }
+
+        // Share Contest
+        function shareContest() {
+            console.log('Sharing contest');
+            alert('Поделиться розыгрышем\nФункционал в разработке!');
+        }
+
+        console.log('✅ Weekly Contest Premium Page Loaded');
+    </script>
+</body>
+</html>

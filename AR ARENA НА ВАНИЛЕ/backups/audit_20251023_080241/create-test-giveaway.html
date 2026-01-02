@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test Giveaway</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: #FFD700; margin-bottom: 20px; font-size: 32px; }
+        .card {
+            background: rgba(20,20,20,0.8);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,215,0,0.2);
+        }
+        .btn {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover { transform: translateY(-2px); transition: 0.2s; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        #log {
+            background: #000;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: Monaco, monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .log-item { margin-bottom: 8px; padding: 8px; border-radius: 6px; }
+        .log-success { color: #38EF7D; background: rgba(56,239,125,0.1); }
+        .log-error { color: #FF6B35; background: rgba(255,107,53,0.1); }
+        .log-info { color: #4A9EFF; }
+        .log-warning { color: #FFA500; }
+        .params {
+            background: rgba(255,215,0,0.05);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .param-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .param-label { color: #999; }
+        .param-value { color: #FFD700; font-weight: bold; }
+        .result-card {
+            background: rgba(56,239,125,0.1);
+            border: 2px solid #38EF7D;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+        }
+        .result-id {
+            font-size: 48px;
+            color: #38EF7D;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎰 Создание тестового розыгрыша</h1>
+
+        <div class="card">
+            <h2 style="color: #FFD700; margin-bottom: 15px;">Параметры розыгрыша</h2>
+            <div class="params">
+                <div class="param-item">
+                    <span class="param-label">Название:</span>
+                    <span class="param-value">Денежный розыгрыш 50000 AR</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">Тип:</span>
+                    <span class="param-value">money</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">Приз:</span>
+                    <span class="param-value">50000 AR монет</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">Цена билета:</span>
+                    <span class="param-value">100 AR</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">Макс. билетов:</span>
+                    <span class="param-value">500 билетов</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">Начало продаж:</span>
+                    <span class="param-value">Сейчас</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">Окончание продаж:</span>
+                    <span class="param-value">19 октября 2025, 20:00</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">Статус:</span>
+                    <span class="param-value">active</span>
+                </div>
+            </div>
+            <button class="btn" id="createBtn">🚀 Создать розыгрыш</button>
+        </div>
+
+        <div class="result-card" id="resultCard">
+            <h2 style="color: #38EF7D; margin-bottom: 10px; text-align: center;">✅ Розыгрыш создан!</h2>
+            <div class="result-id" id="giveawayId">—</div>
+            <div style="text-align: center; color: #999; font-size: 14px;">ID розыгрыша</div>
+        </div>
+
+        <div class="card">
+            <h3 style="color: #FFD700; margin-bottom: 15px;">📝 Log</h3>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://syxjkircmiwpnpagznay.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzc2NDQxMSwiZXhwIjoyMDczMzQwNDExfQ.7ueEYBhFrxKU3_RJi_iJEDj6EQqWBy3gAXiM4YIALqs'
+        );
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log-item log-${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('log').appendChild(div);
+            document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+        }
+
+        async function createTestGiveaway() {
+            const btn = document.getElementById('createBtn');
+            btn.disabled = true;
+
+            log('🔗 Connecting to Supabase...', 'info');
+
+            try {
+                // Подготовка данных
+                const giveawayData = {
+                    title: 'Денежный розыгрыш 50000 AR',
+                    description: 'Тестовый розыгрыш на 50000 AR монет. Купите билет за 100 AR и участвуйте в розыгрыше! Победитель получит 50000 AR монет на свой счёт.',
+                    prize_description: '50000 AR монет на ваш баланс',
+                    prize_ar: 50000,
+                    prize_image_url: null,
+                    start_date: new Date().toISOString(),
+                    end_date: '2025-10-19T20:00:00+00:00',
+                    status: 'active',
+                    ticket_price_ar: 100,
+                    max_tickets: 500,
+                    sold_tickets: 0
+                };
+
+                log('📝 Creating giveaway with params:', 'info');
+                log(JSON.stringify(giveawayData, null, 2), 'info');
+
+                // Создаём розыгрыш
+                const { data, error } = await supabase
+                    .from('giveaways')
+                    .insert([giveawayData])
+                    .select();
+
+                if (error) {
+                    log(`❌ Error: ${error.message}`, 'error');
+                    log(`Details: ${JSON.stringify(error, null, 2)}`, 'error');
+                    btn.disabled = false;
+                    return;
+                }
+
+                log('✅ Giveaway created successfully!', 'success');
+                log(`Giveaway data: ${JSON.stringify(data, null, 2)}`, 'success');
+
+                const giveawayId = data[0].id;
+                log(`🎰 Giveaway ID: ${giveawayId}`, 'success');
+
+                // Показываем результат
+                document.getElementById('giveawayId').textContent = giveawayId;
+                document.getElementById('resultCard').style.display = 'block';
+
+                // Проверяем созданный розыгрыш
+                log('🔍 Verifying created giveaway...', 'info');
+
+                const { data: verifyData, error: verifyError } = await supabase
+                    .from('giveaways')
+                    .select('*')
+                    .eq('id', giveawayId)
+                    .single();
+
+                if (verifyError) {
+                    log(`⚠️ Verification error: ${verifyError.message}`, 'warning');
+                } else {
+                    log('✅ Giveaway verified!', 'success');
+                    log(`Title: ${verifyData.title}`, 'info');
+                    log(`Prize: ${verifyData.prize_ar} AR`, 'info');
+                    log(`Ticket price: ${verifyData.ticket_price_ar} AR`, 'info');
+                    log(`Max tickets: ${verifyData.max_tickets}`, 'info');
+                    log(`Status: ${verifyData.status}`, 'info');
+                    log(`End date: ${new Date(verifyData.end_date).toLocaleString('ru-RU')}`, 'info');
+                }
+
+                log('🎉 All done!', 'success');
+
+            } catch (err) {
+                log(`❌ Exception: ${err.message}`, 'error');
+                console.error(err);
+            }
+
+            btn.disabled = false;
+        }
+
+        document.getElementById('createBtn').addEventListener('click', createTestGiveaway);
+
+        // Auto-log on page load
+        setTimeout(() => {
+            log('📋 Ready to create test giveaway', 'info');
+            log('Click the button above to create', 'info');
+        }, 500);
+    </script>
+</body>
+</html>

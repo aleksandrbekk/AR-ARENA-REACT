@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест подключения к Supabase</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .log {
+            background: #000;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #45a049; }
+        .input-group {
+            margin: 10px 0;
+        }
+        input {
+            padding: 10px;
+            width: 80%;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест подключения к Supabase</h1>
+
+    <div class="input-group">
+        <label>Supabase URL:</label><br>
+        <input type="text" id="supabaseUrl" value="https://syxjkircmiwpnpagznay.supabase.co" />
+    </div>
+
+    <div class="input-group">
+        <label>Anon Key:</label><br>
+        <input type="text" id="anonKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g" />
+    </div>
+
+    <button onclick="testBasicFetch()">1. Тест базового fetch</button>
+    <button onclick="testSupabaseClient()">2. Тест Supabase клиента</button>
+    <button onclick="createTestUser()">3. Создать тестового пользователя</button>
+    <button onclick="clearLog()">Очистить лог</button>
+
+    <div class="log" id="log"></div>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div class="${type}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Тест 1: Базовый fetch
+        async function testBasicFetch() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('anonKey').value;
+
+            log('=== ТЕСТ БАЗОВОГО FETCH ===', 'info');
+            log('URL: ' + url, 'info');
+            log('Key: ' + key.substring(0, 30) + '...', 'info');
+
+            try {
+                const response = await fetch(`${url}/rest/v1/users?select=*`, {
+                    headers: {
+                        'apikey': key,
+                        'Authorization': `Bearer ${key}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    log(`✅ Успешно! Статус: ${response.status}`, 'success');
+                    log(`Найдено записей: ${Array.isArray(data) ? data.length : 'неизвестно'}`, 'success');
+                    log('Данные: ' + JSON.stringify(data).substring(0, 200), 'info');
+                } else {
+                    log(`❌ Ошибка! Статус: ${response.status}`, 'error');
+                    log('Ответ: ' + JSON.stringify(data), 'error');
+                }
+            } catch (error) {
+                log('❌ Критическая ошибка: ' + error.message, 'error');
+                log('Возможные причины:', 'error');
+                log('1. Неправильный URL Supabase', 'error');
+                log('2. Неправильный ключ', 'error');
+                log('3. CORS блокировка', 'error');
+                log('4. Проект Supabase не активен', 'error');
+            }
+        }
+
+        // Тест 2: Supabase клиент
+        async function testSupabaseClient() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('anonKey').value;
+
+            log('=== ТЕСТ SUPABASE КЛИЕНТА ===', 'info');
+
+            try {
+                const { createClient } = supabase;
+                const client = createClient(url, key);
+
+                log('Клиент создан', 'success');
+
+                const { data, error } = await client
+                    .from('users')
+                    .select('*');
+
+                if (error) {
+                    log('❌ Ошибка запроса: ' + error.message, 'error');
+                    log('Код ошибки: ' + error.code, 'error');
+                    log('Детали: ' + JSON.stringify(error), 'error');
+                } else {
+                    log(`✅ Успешно! Получено записей: ${data ? data.length : 0}`, 'success');
+                    if (data && data.length > 0) {
+                        log('Первая запись: ' + JSON.stringify(data[0]), 'info');
+                    }
+                }
+            } catch (error) {
+                log('❌ Критическая ошибка: ' + error.message, 'error');
+            }
+        }
+
+        // Тест 3: Создание тестового пользователя
+        async function createTestUser() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('anonKey').value;
+
+            log('=== СОЗДАНИЕ ТЕСТОВОГО ПОЛЬЗОВАТЕЛЯ ===', 'info');
+
+            try {
+                const { createClient } = supabase;
+                const client = createClient(url, key);
+
+                const testUser = {
+                    id: Math.floor(Math.random() * 1000000),
+                    username: 'test_' + Date.now(),
+                    first_name: 'Test',
+                    last_name: 'User',
+                    balance_ar: 100,
+                    created_at: new Date().toISOString()
+                };
+
+                log('Создаем пользователя: ' + JSON.stringify(testUser), 'info');
+
+                const { data, error } = await client
+                    .from('users')
+                    .insert([testUser])
+                    .select();
+
+                if (error) {
+                    log('❌ Ошибка создания: ' + error.message, 'error');
+
+                    // Если ошибка о несуществующей таблице
+                    if (error.message.includes('relation') || error.message.includes('does not exist')) {
+                        log('⚠️ Таблица users не существует!', 'error');
+                        log('Необходимо создать таблицу в Supabase', 'error');
+                        showCreateTableSQL();
+                    }
+                } else {
+                    log('✅ Пользователь создан: ' + JSON.stringify(data), 'success');
+                }
+            } catch (error) {
+                log('❌ Критическая ошибка: ' + error.message, 'error');
+            }
+        }
+
+        function showCreateTableSQL() {
+            log('', 'info');
+            log('=== SQL для создания таблиц ===', 'info');
+            log('Выполните этот SQL в Supabase SQL Editor:', 'info');
+            log('', 'info');
+
+            const sql = `
+-- Таблица пользователей
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT PRIMARY KEY,
+    username TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    language_code TEXT,
+    balance_ar INTEGER DEFAULT 0,
+    referrer_id BIGINT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Таблица транзакций
+CREATE TABLE IF NOT EXISTS transactions (
+    id SERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id),
+    type TEXT,
+    amount INTEGER,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Таблица реферальных связей
+CREATE TABLE IF NOT EXISTS referral_relations (
+    id SERIAL PRIMARY KEY,
+    referrer_id BIGINT REFERENCES users(id),
+    referral_id BIGINT REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Таблица выполненных заданий
+CREATE TABLE IF NOT EXISTS task_completions (
+    id SERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id),
+    task_id TEXT,
+    completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, task_id)
+);
+
+-- Индексы для оптимизации
+CREATE INDEX idx_users_referrer ON users(referrer_id);
+CREATE INDEX idx_transactions_user ON transactions(user_id);
+CREATE INDEX idx_referrals_referrer ON referral_relations(referrer_id);
+CREATE INDEX idx_tasks_user ON task_completions(user_id);
+
+-- RLS политики (Row Level Security)
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE referral_relations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_completions ENABLE ROW LEVEL SECURITY;
+
+-- Политики для анонимного доступа
+CREATE POLICY "Анонимный доступ на чтение users" ON users FOR SELECT USING (true);
+CREATE POLICY "Анонимный доступ на вставку users" ON users FOR INSERT WITH CHECK (true);
+CREATE POLICY "Анонимный доступ на обновление users" ON users FOR UPDATE USING (true);
+
+CREATE POLICY "Анонимный доступ к transactions" ON transactions FOR ALL USING (true);
+CREATE POLICY "Анонимный доступ к referral_relations" ON referral_relations FOR ALL USING (true);
+CREATE POLICY "Анонимный доступ к task_completions" ON task_completions FOR ALL USING (true);
+            `;
+
+            log(sql, 'info');
+        }
+
+        // Автозапуск теста при загрузке
+        window.onload = () => {
+            log('Страница загружена. Нажмите кнопки для тестирования.', 'info');
+        };
+    </script>
+</body>
+</html>

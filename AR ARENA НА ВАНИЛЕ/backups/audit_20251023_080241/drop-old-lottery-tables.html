@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drop Old Lottery Tables</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #FFD700; margin-bottom: 20px; }
+        .card {
+            background: rgba(20,20,20,0.8);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,215,0,0.2);
+        }
+        .btn {
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        #log {
+            background: #000;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: Monaco, monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-item { margin-bottom: 8px; padding: 8px; border-radius: 6px; }
+        .log-success { color: #38EF7D; background: rgba(56,239,125,0.1); }
+        .log-error { color: #FF6B35; background: rgba(255,107,53,0.1); }
+        .log-info { color: #4A9EFF; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Drop Old Lottery Tables</h1>
+        <div class="card">
+            <p style="color: #999; margin-bottom: 20px;">
+                This will DROP (delete) old lottery_* tables since giveaway_* tables already exist.
+            </p>
+            <button class="btn" id="dropBtn">⚠️ DROP Old Tables</button>
+        </div>
+        <div class="card">
+            <h3 style="color: #FFD700; margin-bottom: 15px;">📝 Log</h3>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://syxjkircmiwpnpagznay.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzc2NDQxMSwiZXhwIjoyMDczMzQwNDExfQ.7ueEYBhFrxKU3_RJi_iJEDj6EQqWBy3gAXiM4YIALqs'
+        );
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log-item log-${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('log').appendChild(div);
+        }
+
+        async function dropOldTables() {
+            document.getElementById('dropBtn').disabled = true;
+            log('🔗 Connecting to Supabase...', 'info');
+
+            const tables = ['lottery_purchases', 'lottery_referrals', 'lottery_tickets', 'lotteries'];
+
+            for (const table of tables) {
+                try {
+                    log(`🗑️ Dropping ${table}...`, 'info');
+
+                    // Используем прямой SQL запрос через административный доступ
+                    const { error } = await supabase.rpc('exec', {
+                        sql: `DROP TABLE IF EXISTS ${table} CASCADE;`
+                    });
+
+                    if (error) {
+                        log(`⚠️ ${table}: ${error.message}`, 'error');
+                    } else {
+                        log(`✅ Dropped ${table}`, 'success');
+                    }
+                } catch (err) {
+                    log(`❌ ${table}: ${err.message}`, 'error');
+                }
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            log('✅ Cleanup complete!', 'success');
+            log('📋 Note: If errors occurred, tables may have been already dropped or renamed', 'info');
+            document.getElementById('dropBtn').disabled = false;
+        }
+
+        document.getElementById('dropBtn').addEventListener('click', () => {
+            if (confirm('⚠️ Are you sure you want to DROP old lottery_* tables? This cannot be undone!')) {
+                dropOldTables();
+            }
+        });
+    </script>
+</body>
+</html>

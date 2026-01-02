@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR ARENA - Setup Lottery DB</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+
+        .card {
+            background: rgba(20, 20, 20, 0.8);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #log {
+            background: #000;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .log-info {
+            color: #4A9EFF;
+        }
+
+        .log-success {
+            color: #38EF7D;
+            background: rgba(56, 239, 125, 0.1);
+        }
+
+        .log-error {
+            color: #FF6B35;
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .log-warning {
+            color: #FFA500;
+        }
+
+        .status {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status-item {
+            flex: 1;
+            min-width: 200px;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .status-label {
+            color: #999;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            color: #FFD700;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎰 AR ARENA Lottery DB Setup</h1>
+
+        <div class="card">
+            <h2 style="color: #FFD700; margin-bottom: 15px;">Database Initialization</h2>
+            <p style="color: #999; margin-bottom: 20px;">
+                This will create 4 tables for the lottery system:<br>
+                • lotteries<br>
+                • lottery_tickets<br>
+                • lottery_referrals<br>
+                • lottery_purchases
+            </p>
+            <button class="btn" id="createBtn">🚀 Create Lottery Tables</button>
+            <button class="btn" id="verifyBtn" style="background: linear-gradient(135deg, #667EEA, #764BA2);">
+                🔍 Verify Tables
+            </button>
+        </div>
+
+        <div class="card">
+            <h3 style="color: #FFD700; margin-bottom: 15px;">📊 Status</h3>
+            <div class="status">
+                <div class="status-item">
+                    <div class="status-label">Tables Created</div>
+                    <div class="status-value" id="tablesCount">0/4</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Functions</div>
+                    <div class="status-value" id="functionsCount">0/3</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Status</div>
+                    <div class="status-value" id="statusText">Ready</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="color: #FFD700; margin-bottom: 15px;">📝 Execution Log</h3>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://syxjkircmiwpnpagznay.supabase.co';
+        const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzc2NDQxMSwiZXhwIjoyMDczMzQwNDExfQ.7ueEYBhFrxKU3_RJi_iJEDj6EQqWBy3gAXiM4YIALqs';
+
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseServiceKey);
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const logItem = document.createElement('div');
+            logItem.className = `log-item log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logItem.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logItem);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        async function executeSQLFile() {
+            const createBtn = document.getElementById('createBtn');
+            createBtn.disabled = true;
+
+            log('🔗 Connecting to Supabase...', 'info');
+
+            const sqlContent = await fetch('lottery_schema.sql').then(r => r.text());
+
+            log('📝 SQL file loaded, executing...', 'info');
+
+            try {
+                // Выполняем SQL через RPC
+                const { data, error } = await supabase.rpc('exec_sql', {
+                    sql_query: sqlContent
+                });
+
+                if (error) {
+                    log(`❌ Error: ${error.message}`, 'error');
+                    log('⚠️  Trying alternative method...', 'warning');
+
+                    // Пробуем создать таблицы по отдельности через REST API
+                    await createTablesViaRestAPI();
+                } else {
+                    log('✅ SQL executed successfully!', 'success');
+                    await verifyTables();
+                }
+            } catch (err) {
+                log(`❌ Exception: ${err.message}`, 'error');
+                log('⚠️  Trying alternative method...', 'warning');
+                await createTablesViaRestAPI();
+            }
+
+            createBtn.disabled = false;
+        }
+
+        async function createTablesViaRestAPI() {
+            log('🔧 Creating tables via REST API...', 'info');
+
+            const sqlCommands = [
+                {
+                    name: 'lotteries table',
+                    sql: `CREATE TABLE IF NOT EXISTS lotteries (id BIGSERIAL PRIMARY KEY, title VARCHAR(200) NOT NULL, description TEXT, prize_description TEXT NOT NULL, prize_ar INTEGER NOT NULL CHECK (prize_ar > 0), prize_image_url VARCHAR(500), start_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), end_date TIMESTAMP WITH TIME ZONE NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'finished', 'cancelled')), ticket_price_ar INTEGER NOT NULL CHECK (ticket_price_ar > 0), max_tickets INTEGER NOT NULL CHECK (max_tickets > 0), sold_tickets INTEGER NOT NULL DEFAULT 0, winner_id BIGINT, winner_selected_at TIMESTAMP WITH TIME ZONE, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());`
+                },
+                {
+                    name: 'lottery_tickets table',
+                    sql: `CREATE TABLE IF NOT EXISTS lottery_tickets (id BIGSERIAL PRIMARY KEY, lottery_id BIGINT NOT NULL, user_id BIGINT NOT NULL, ticket_number INTEGER NOT NULL CHECK (ticket_number > 0), is_winning_ticket BOOLEAN NOT NULL DEFAULT false, purchased_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), UNIQUE(lottery_id, ticket_number));`
+                },
+                {
+                    name: 'lottery_referrals table',
+                    sql: `CREATE TABLE IF NOT EXISTS lottery_referrals (id BIGSERIAL PRIMARY KEY, lottery_id BIGINT NOT NULL, user_id BIGINT NOT NULL, referral_user_id BIGINT NOT NULL, bonus_tickets INTEGER NOT NULL DEFAULT 1 CHECK (bonus_tickets > 0), created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), UNIQUE(lottery_id, user_id, referral_user_id), CHECK (user_id != referral_user_id));`
+                },
+                {
+                    name: 'lottery_purchases table',
+                    sql: `CREATE TABLE IF NOT EXISTS lottery_purchases (id BIGSERIAL PRIMARY KEY, lottery_id BIGINT NOT NULL, user_id BIGINT NOT NULL, tickets_count INTEGER NOT NULL CHECK (tickets_count > 0), total_ar_spent INTEGER NOT NULL CHECK (total_ar_spent > 0), transaction_id BIGINT, purchased_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());`
+                }
+            ];
+
+            let successCount = 0;
+
+            for (const cmd of sqlCommands) {
+                try {
+                    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': supabaseServiceKey,
+                            'Authorization': `Bearer ${supabaseServiceKey}`
+                        },
+                        body: JSON.stringify({ query: cmd.sql })
+                    });
+
+                    if (response.ok) {
+                        log(`✅ Created: ${cmd.name}`, 'success');
+                        successCount++;
+                    } else {
+                        const error = await response.text();
+                        log(`⚠️  ${cmd.name}: ${error}`, 'warning');
+                    }
+                } catch (err) {
+                    log(`❌ Failed ${cmd.name}: ${err.message}`, 'error');
+                }
+            }
+
+            document.getElementById('tablesCount').textContent = `${successCount}/4`;
+
+            if (successCount === 4) {
+                log('✅ All tables created successfully!', 'success');
+                document.getElementById('statusText').textContent = 'Complete';
+            } else {
+                log('⚠️  Manual SQL execution required', 'warning');
+                log('📋 Please copy lottery_schema.sql to Supabase SQL Editor', 'info');
+                document.getElementById('statusText').textContent = 'Manual Action Required';
+            }
+
+            await verifyTables();
+        }
+
+        async function verifyTables() {
+            log('🔍 Verifying tables...', 'info');
+
+            const tablesToCheck = ['lotteries', 'lottery_tickets', 'lottery_referrals', 'lottery_purchases'];
+            let foundCount = 0;
+
+            for (const tableName of tablesToCheck) {
+                try {
+                    const { data, error } = await supabase
+                        .from(tableName)
+                        .select('count', { count: 'exact', head: true });
+
+                    if (!error) {
+                        log(`✅ Table exists: ${tableName}`, 'success');
+                        foundCount++;
+                    } else {
+                        log(`❌ Table missing: ${tableName}`, 'error');
+                    }
+                } catch (err) {
+                    log(`❌ Cannot verify ${tableName}: ${err.message}`, 'error');
+                }
+            }
+
+            document.getElementById('tablesCount').textContent = `${foundCount}/4`;
+
+            if (foundCount === 4) {
+                log('🎉 All lottery tables verified!', 'success');
+                document.getElementById('statusText').textContent = 'Verified';
+                document.getElementById('statusText').style.color = '#38EF7D';
+            }
+        }
+
+        document.getElementById('createBtn').addEventListener('click', executeSQLFile);
+        document.getElementById('verifyBtn').addEventListener('click', verifyTables);
+
+        // Auto-verify on load
+        setTimeout(() => {
+            log('🔍 Auto-checking existing tables...', 'info');
+            verifyTables();
+        }, 1000);
+    </script>
+</body>
+</html>

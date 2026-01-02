@@ -1,0 +1,1215 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+body {
+    background: #0A0A0A;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: visible;
+    position: relative;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 10;
+    overflow: visible;
+}
+
+/* Кнопка назад */
+/* Компактная кнопка назад в стиле заданий */
+.back-btn-compact {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 50;
+}
+
+.back-btn-compact:hover {
+    background: rgba(255, 215, 0, 0.15);
+    transform: translateX(-2px);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+/* Старая кнопка назад (скрыта) */
+.back-btn {
+    display: none;
+}
+
+/* Счетчик отмычек */
+.lockpick-corner-counter {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFD700;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    transition: all 0.3s ease;
+}
+
+/* Админская кнопка сброса */
+.admin-reset-btn {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    display: none; /* Скрыта кнопка сброса */
+    align-items: center;
+    gap: 6px;
+    background: rgba(239, 68, 68, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 8px 14px;
+    z-index: 100;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+}
+
+.admin-reset-btn:hover {
+    background: rgba(220, 38, 38, 0.95);
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
+}
+
+.admin-reset-btn:active {
+    transform: scale(0.98);
+}
+
+#cornerLockpickCount {
+    transition: transform 0.3s ease;
+}
+
+.lockpick-corner-counter .counter-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+/* Заголовок */
+.vault-header {
+    text-align: center;
+    margin: 20px 0 15px;
+}
+
+.vault-title-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.bank-icon-large {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 15px;
+}
+
+.vault-title {
+    font-size: 42px;
+    font-weight: 900;
+    color: #FFD700;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    /* Убрана анимация пульсации */
+}
+
+.vault-title span {
+    display: block;
+}
+
+/* Убрали пульсацию */
+
+.vault-subtitle {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.5px;
+    font-weight: 400;
+    margin-top: 5px;
+}
+
+/* Контейнер отмычки */
+.lockpick-container {
+    text-align: center;
+    margin: 20px 0 25px;
+    position: relative;
+}
+
+.lockpick-btn {
+    background: linear-gradient(135deg, #9333EA 0%, #DB2777 100%);
+    border: none;
+    color: #FFFFFF;
+    padding: 12px 30px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 260px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(147, 51, 234, 0.4),
+                0 0 20px rgba(147, 51, 234, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    animation: epicPulse 3s ease-in-out infinite;
+}
+
+
+.lockpick-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.4))
+            brightness(1.1);
+}
+
+.lockpick-btn:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.02);
+    background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
+    animation-play-state: paused;
+    box-shadow: 0 6px 25px rgba(147, 51, 234, 0.5),
+                0 0 35px rgba(219, 39, 119, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.lockpick-btn:hover:not(:disabled) .lockpick-icon {
+    filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6))
+            brightness(1.2);
+    transform: scale(1.05);
+}
+
+.lockpick-btn:disabled,
+.lockpick-btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #4B5563 0%, #374151 100%);
+}
+
+.lockpick-btn.btn-error {
+    background: linear-gradient(45deg, #ff4444, #cc0000);
+    color: #fff;
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.lockpick-btn.btn-success {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: #fff;
+}
+
+.lockpick-info {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 8px;
+    max-width: 240px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.3;
+}
+
+/* Счетчик отмычек */
+.lockpick-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: rgba(255, 215, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 25px;
+    animation: fadeInScale 0.5s ease;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.counter-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.counter-text {
+    color: #FFD700;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+#lockpickCount {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Анимация летящей отмычки */
+.flying-lockpick {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: flyAndSpin 1.5s ease-out forwards;
+    z-index: 100;
+}
+
+@keyframes flyAndSpin {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 0;
+    }
+    30% {
+        transform: translate(-50%, -80px) scale(1.5) rotate(180deg);
+        opacity: 1;
+    }
+    70% {
+        transform: translate(-50%, -80px) scale(1.5) rotate(360deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, 100px) scale(0.3) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* Текст инструкции */
+.instruction-text {
+    text-align: center;
+    margin: 10px 0 15px;
+    animation: fadeInUp 0.5s ease;
+    position: relative;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.instruction-text p {
+    display: inline-block;
+    font-size: 14px;
+    color: rgba(255, 215, 0, 0.9);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.03));
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    margin: 0;
+}
+
+.instruction-text p::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Информация о наградах */
+.rewards-info {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0 25px;
+    flex-wrap: wrap;
+}
+
+.reward-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reward-chip.legendary {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1));
+    border-color: #FFD700;
+}
+
+.reward-chip.epic {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(219, 39, 119, 0.1));
+    border-color: #9333ea;
+    /* Убрал анимацию свечения */
+}
+
+/* Убрал анимацию epicGlow */
+
+/* Убрал анимацию epicPulse */
+
+.chance {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 5px;
+    border-radius: 10px;
+}
+
+/* Контейнер с сундуками */
+.chests-container {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 30px auto 40px;
+    padding: 40px 10px 20px; /* Больше padding сверху для тени */
+    perspective: 1000px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+    overflow: visible;
+    width: 100%;
+    max-width: 320px;
+}
+
+/* Сундуки с PNG картинкой */
+.chest {
+    width: 85px;
+    height: 85px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    margin: 10px; /* Увеличил отступы для свечения */
+    flex: 0 0 85px;
+    /* По умолчанию все сундуки заблокированы */
+    opacity: 0.4;
+    filter: grayscale(0.8) brightness(0.6);
+    pointer-events: none;
+}
+
+.chest-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: auto;
+    transition: all 0.3s ease;
+    background: transparent;
+}
+
+.chest.locked {
+    opacity: 0.4;
+    filter: grayscale(0.8) brightness(0.6);
+    pointer-events: none;
+}
+
+.chest.unlocked {
+    opacity: 1;
+    filter: none;
+    pointer-events: auto;
+}
+
+.chest.unlocked .chest-image {
+    /* Убрал свечение с изображения */
+    animation: chestPulse 2s ease-in-out infinite;
+}
+
+/* Фоновое свечение для разблокированных сундуков */
+.chest.unlocked::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle,
+        rgba(255, 215, 0, 0.25) 10%,
+        rgba(255, 215, 0, 0.2) 25%,
+        rgba(255, 215, 0, 0.12) 40%,
+        rgba(255, 215, 0, 0.06) 55%,
+        rgba(255, 215, 0, 0.02) 70%,
+        transparent 85%);
+    pointer-events: none;
+    z-index: -1;
+    filter: blur(25px);
+    animation: pulsateGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulsateGlow {
+    0%, 100% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(0.95);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+}
+
+.chest.unlocked:hover {
+    transform: translateY(-8px) scale(1.15);
+}
+
+.chest.unlocked:hover .chest-image {
+    /* Убрал свечение с изображения при наведении */
+}
+
+/* Усиление свечения при наведении */
+.chest.unlocked:hover::before {
+    opacity: 1.2;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.chest.opening .chest-image {
+    animation: chestOpen 0.6s ease forwards;
+    transform-origin: bottom center;
+}
+
+.chest.opened {
+    opacity: 1 !important;
+    filter: none !important;
+    pointer-events: none;
+    position: relative;
+    z-index: 5;
+}
+
+.chest.opened .chest-image {
+    transform: scale(1.3) translateY(-15%);
+    opacity: 1 !important;
+    animation: none;
+    position: relative;
+    z-index: 5;
+    /* Убрал drop-shadow, оставил только фоновое свечение */
+}
+
+/* Свечение через псевдоэлемент для открытого сундука */
+.chest.opened::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 180px; /* Фиксированный размер больше сундука */
+    height: 180px;
+    background: radial-gradient(circle,
+        rgba(255, 215, 0, 0.25) 10%,
+        rgba(255, 215, 0, 0.2) 25%,
+        rgba(255, 215, 0, 0.12) 40%,
+        rgba(255, 215, 0, 0.06) 55%,
+        rgba(255, 215, 0, 0.02) 70%,
+        transparent 85%);
+    pointer-events: none;
+    z-index: -1; /* Поместим за изображение */
+    filter: blur(25px); /* Увеличил размытие для мягкости */
+}
+
+/* Фикс для верхнего ряда сундуков - одинаковая трансформация для всех */
+.chest:nth-child(1).opened .chest-image,
+.chest:nth-child(2).opened .chest-image,
+.chest:nth-child(3).opened .chest-image {
+    transform: scale(1.3) translateY(-15%);
+    z-index: 5;
+}
+
+@keyframes chestPulse {
+    0%, 100% {
+        /* Убрал свечение из анимации */
+        transform: scale(1);
+    }
+    50% {
+        /* Убрал свечение из анимации */
+        transform: scale(1.05);
+    }
+}
+
+@keyframes chestOpen {
+    0% {
+        transform: scale(1) translateY(0) rotate(0deg);
+    }
+    25% {
+        transform: scale(1.15) translateY(-5%) rotate(-5deg);
+    }
+    50% {
+        transform: scale(1.3) translateY(-12%) rotate(5deg);
+    }
+    75% {
+        transform: scale(1.38) translateY(-16%) rotate(-3deg);
+    }
+    100% {
+        transform: scale(1.4) translateY(-8%) rotate(0deg);
+    }
+}
+
+
+.chest-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+    opacity: 0.5;
+}
+
+.chest-body::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+    opacity: 0.5;
+}
+
+.chest.opening .chest-lid {
+    transform: rotateX(-120deg);
+}
+
+.chest.opened .chest-lid {
+    transform: rotateX(-120deg);
+}
+
+.chest.opening .chest-lid {
+    transform: rotateX(-110deg);
+}
+
+.chest-lock {
+    font-size: 30px;
+    position: absolute;
+    z-index: 3;
+}
+
+.chest.unlocked .chest-lock {
+    display: none;
+}
+
+/* Контейнер для монет */
+.coins-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Монета */
+.coin {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: radial-gradient(circle at 30% 30%, #FFD700, #FFA500);
+    border-radius: 50%;
+    box-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: coinFly 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.coin::before {
+    content: '';
+    background: url('icons/arcoin.png?t=1758342804') center/contain no-repeat;
+}
+
+/* Анимация вылета монет */
+@keyframes coinFly {
+    0% {
+        transform: translate(0, 0) scale(0);
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+        transform: translate(0, -10px) scale(1);
+    }
+    100% {
+        transform: translate(var(--coin-x), var(--coin-y)) scale(0.8);
+        opacity: 0;
+    }
+}
+
+.chest-glow {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: -1;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.3), transparent);
+}
+
+.chest.unlocked:hover .chest-glow {
+    opacity: 1;
+    animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Модальное окно подписки */
+.subscription-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.subscription-modal.show {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, rgba(30, 30, 30, 0.95), rgba(0, 0, 0, 0.95));
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    max-width: 400px;
+}
+
+.modal-content h2 {
+    color: #FFD700;
+    margin-bottom: 15px;
+}
+
+.modal-content p {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 20px;
+}
+
+.special-tasks-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.special-task {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-info {
+    flex: 1;
+}
+
+.task-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.task-reward {
+    font-size: 12px;
+    color: rgba(255, 215, 0, 0.7);
+}
+
+.subscribe-btn {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    border: none;
+    color: #000;
+    padding: 12px 30px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 260px;
+}
+
+.subscribe-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+}
+
+.subscribe-btn.checking {
+    background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+    color: #fff;
+    animation: pulse 1.5s infinite;
+    padding: 12px 30px;
+}
+
+.subscribe-btn.completed {
+    background: linear-gradient(135deg, #2E7D32, #388E3C);
+    color: #fff;
+    cursor: not-allowed;
+    padding: 12px 30px;
+    width: 100%;
+    max-width: 260px;
+}
+
+.close-modal-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 10px 30px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close-modal-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Модальное окно награды */
+.reward-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.reward-modal.show {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Компактная версия модального окна */
+.reward-content-compact {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    max-width: 280px;
+    position: relative;
+    overflow: hidden;
+    animation: scaleIn 0.5s ease;
+}
+
+.reward-content-compact::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.5), transparent);
+}
+
+.reward-content-compact .reward-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.reward-content-compact .reward-coin {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+    animation: rotateCoin 3s linear infinite;
+}
+
+.reward-content-compact .reward-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFD700;
+    margin: 0;
+}
+
+.reward-content-compact .reward-amount {
+    font-size: 24px;
+    font-weight: 800;
+    color: #FFD700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    margin: 8px 0;
+}
+
+.reward-content-compact .reward-subtitle {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 15px;
+}
+
+.reward-content-compact .claim-btn {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    border: none;
+    color: #000;
+    padding: 10px 25px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.reward-content-compact .claim-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+}
+
+/* Старые стили для совместимости */
+.reward-content {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
+    border: 2px solid #FFD700;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+@keyframes rotateCoin {
+    0% { transform: rotateY(0deg); }
+    100% { transform: rotateY(360deg); }
+}
+
+.reward-icon {
+    font-size: 60px;
+    animation: bounce 1s ease infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.reward-text h2 {
+    font-size: 28px;
+    margin: 20px 0 10px;
+    color: #FFD700;
+}
+
+.reward-text p {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+#rewardAmount {
+    color: #FFD700;
+    font-weight: bold;
+    font-size: 32px;
+}
+
+.claim-btn {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    border: none;
+    color: #000;
+    padding: 15px 40px;
+    border-radius: 25px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s ease;
+}
+
+.claim-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+}
+
+/* Частицы на фоне */
+.particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #FFD700;
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: float 15s infinite linear;
+}
+
+.particle:nth-child(1) { left: 5%; animation-delay: 0s; animation-duration: 12s; }
+.particle:nth-child(2) { left: 15%; animation-delay: 2s; animation-duration: 15s; }
+.particle:nth-child(3) { left: 25%; animation-delay: 4s; animation-duration: 18s; }
+.particle:nth-child(4) { left: 35%; animation-delay: 6s; animation-duration: 14s; }
+.particle:nth-child(5) { left: 45%; animation-delay: 8s; animation-duration: 16s; }
+.particle:nth-child(6) { left: 55%; animation-delay: 1s; animation-duration: 13s; }
+.particle:nth-child(7) { left: 65%; animation-delay: 3s; animation-duration: 17s; }
+.particle:nth-child(8) { left: 75%; animation-delay: 5s; animation-duration: 11s; }
+.particle:nth-child(9) { left: 85%; animation-delay: 7s; animation-duration: 19s; }
+.particle:nth-child(10) { left: 90%; animation-delay: 9s; animation-duration: 12s; }
+.particle:nth-child(11) { left: 92%; animation-delay: 10s; animation-duration: 14s; }
+.particle:nth-child(12) { left: 98%; animation-delay: 11s; animation-duration: 16s; }
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(180deg); }
+    50% { transform: rotate(180deg); }
+    75% { transform: rotate(360deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes float {
+    from {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.3;
+    }
+    90% {
+        opacity: 0.3;
+    }
+    to {
+        transform: translateY(-100vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Кнопки подписки */
+.subscription-buttons {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sub-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 50px 18px 24px;
+    border-radius: 16px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.sub-btn::after {
+    content: '';
+    position: absolute;
+    right: 20px;
+    width: 20px;
+    height: 20px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'%3E%3C/polyline%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: transform 0.3s ease;
+}
+
+.sub-btn.check {
+    background: linear-gradient(135deg, rgba(91, 156, 246, 0.6) 0%, rgba(74, 127, 247, 0.5) 50%, rgba(59, 130, 246, 0.6) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    box-shadow: 0 8px 32px rgba(74, 127, 247, 0.4),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Убрали все иконки из кнопок */
+
+.sub-btn.compact {
+    padding: 12px 30px;
+    font-size: 15px;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 260px;
+    margin: 2px auto;
+    position: relative;
+}
+
+.sub-btn.subscribe {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.6) 0%, rgba(255, 82, 82, 0.5) 50%, rgba(239, 68, 68, 0.6) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    box-shadow: 0 8px 32px rgba(255, 82, 82, 0.4),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Убрали иконки из кнопок subscribe */
+
+.sub-btn.success {
+    background: linear-gradient(135deg, #2E7D32, #388E3C);
+    color: white;
+    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
+    padding: 12px 30px;
+    width: 100%;
+    max-width: 260px;
+}
+
+.sub-btn.success::before {
+    content: '✓';
+    margin-right: 12px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.sub-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.sub-btn:hover::after {
+    transform: translateX(3px);
+}
+
+.sub-btn:active {
+    transform: translateY(0);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .vault-title {
+        font-size: 32px;
+    }
+
+    .rewards-info {
+        margin: 10px 0 15px;
+    }
+
+    .chests-container {
+        gap: 8px;
+        margin: 30px auto 40px;
+        padding: 20px 10px;
+        max-width: 100%;
+        width: 320px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .chest {
+        width: 85px;
+        height: 85px;
+        margin: 2px;
+        flex: 0 0 85px;
+    }
+
+    .chest.opened .chest-image {
+        transform: scale(1.3) translateY(-5%);
+    }
+}

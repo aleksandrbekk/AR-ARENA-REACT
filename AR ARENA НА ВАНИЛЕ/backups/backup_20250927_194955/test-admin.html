@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR ARENA - Тест Админки</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .users-table {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        th {
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .success {
+            color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            color: #FFD700;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            margin: 2px;
+        }
+        .btn:hover {
+            background: rgba(255, 215, 0, 0.3);
+        }
+        .btn-danger {
+            background: rgba(255, 69, 58, 0.2);
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            color: #FF453A;
+        }
+        .btn-warning {
+            background: rgba(255, 159, 10, 0.2);
+            border: 1px solid rgba(255, 159, 10, 0.3);
+            color: #FF9F0A;
+        }
+        .btn-success {
+            background: rgba(52, 199, 89, 0.2);
+            border: 1px solid rgba(52, 199, 89, 0.3);
+            color: #34C759;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 AR ARENA - Тест Админки</h1>
+
+        <div id="connectionStatus" class="loading">Подключение к Supabase...</div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalUsers">-</div>
+                <div class="stat-label">Всего пользователей</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="onlineUsers">-</div>
+                <div class="stat-label">Онлайн сейчас</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="newToday">-</div>
+                <div class="stat-label">Новых сегодня</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgBalance">-</div>
+                <div class="stat-label">Средний баланс</div>
+            </div>
+        </div>
+
+        <div class="users-table">
+            <h3>👥 Управление пользователями</h3>
+            <div id="usersContent">
+                <div class="loading">Загрузка пользователей...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация Supabase
+        const SUPABASE_URL = 'https://syxjkircmiwpnpagznay.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5eGpraXJjbWl3cG5wYWd6bmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NjQ0MTEsImV4cCI6MjA3MzM0MDQxMX0.XUJWPrPOtsG_cynjfH38mJR2lJYThGTgEVMMu3MIw8g';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Функция отображения статуса
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.className = type === 'error' ? 'error' : (type === 'success' ? 'success' : 'loading');
+            statusEl.textContent = message;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Функция загрузки пользователей
+        async function loadUsers() {
+            try {
+                showStatus('Загружаю пользователей из Supabase...', 'info');
+
+                const { data: users, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (error) {
+                    throw error;
+                }
+
+                console.log('Загружено пользователей:', users?.length || 0);
+                console.log('Первые 3 пользователя:', users?.slice(0, 3));
+
+                // Обновляем статистику
+                document.getElementById('totalUsers').textContent = users?.length || 0;
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const newToday = users?.filter(u => new Date(u.created_at) >= today).length || 0;
+                document.getElementById('newToday').textContent = newToday;
+
+                const avgBalance = users?.length > 0 ?
+                    Math.round(users.reduce((sum, u) => sum + (u.balance_ar || 0), 0) / users.length) : 0;
+                document.getElementById('avgBalance').textContent = avgBalance;
+
+                // Онлайн (последние 5 минут)
+                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+                const onlineNow = users?.filter(u => {
+                    const lastActive = u.last_seen_at || u.last_active || u.last_login;
+                    return lastActive && new Date(lastActive) >= fiveMinutesAgo;
+                }).length || 0;
+                document.getElementById('onlineUsers').textContent = onlineNow;
+
+                // Создаем таблицу
+                const html = users?.length ?
+                    `<table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Имя</th>
+                                <th>Username</th>
+                                <th>Баланс AR</th>
+                                <th>Реферер</th>
+                                <th>Регистрация</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map(user => `
+                                <tr>
+                                    <td>${user.telegram_id}</td>
+                                    <td>${user.first_name || 'Нет имени'}</td>
+                                    <td>@${user.username || '-'}</td>
+                                    <td style="color: #FFD700; font-weight: 600;">${user.balance_ar || 0}</td>
+                                    <td>${user.referred_by || '-'}</td>
+                                    <td>${new Date(user.created_at).toLocaleDateString('ru-RU')}</td>
+                                    <td>
+                                        <button class="btn btn-danger" onclick="deleteUser('${user.telegram_id}')">Удалить</button>
+                                        <button class="btn btn-warning" onclick="blockUser('${user.telegram_id}')">Блок</button>
+                                        <button class="btn btn-success" onclick="addBalance('${user.telegram_id}')">+50 AR</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>` :
+                    '<p style="text-align: center; color: rgba(255,255,255,0.5); padding: 40px;">Нет пользователей в базе данных</p>';
+
+                document.getElementById('usersContent').innerHTML = html;
+                showStatus(`✅ Успешно загружено ${users?.length || 0} пользователей`, 'success');
+
+            } catch (error) {
+                console.error('Ошибка загрузки пользователей:', error);
+                showStatus(`❌ Ошибка загрузки: ${error.message}`, 'error');
+                document.getElementById('usersContent').innerHTML = `<div class="error">Ошибка загрузки пользователей: ${error.message}</div>`;
+            }
+        }
+
+        // Функции управления пользователями
+        window.deleteUser = async function(userId) {
+            if (!confirm('Удалить пользователя?')) return;
+
+            try {
+                const { error } = await supabase
+                    .from('users')
+                    .delete()
+                    .eq('telegram_id', userId);
+
+                if (error) throw error;
+
+                alert('Пользователь удален');
+                loadUsers();
+            } catch (error) {
+                alert('Ошибка удаления: ' + error.message);
+            }
+        }
+
+        window.blockUser = async function(userId) {
+            if (!confirm('Заблокировать пользователя?')) return;
+
+            try {
+                const { error } = await supabase
+                    .from('users')
+                    .update({ is_blocked: true })
+                    .eq('telegram_id', userId);
+
+                if (error) throw error;
+
+                alert('Пользователь заблокирован');
+                loadUsers();
+            } catch (error) {
+                alert('Ошибка блокировки: ' + error.message);
+            }
+        }
+
+        window.addBalance = async function(userId) {
+            try {
+                const { data: user } = await supabase
+                    .from('users')
+                    .select('balance_ar')
+                    .eq('telegram_id', userId)
+                    .single();
+
+                const newBalance = (user.balance_ar || 0) + 50;
+
+                const { error } = await supabase
+                    .from('users')
+                    .update({ balance_ar: newBalance })
+                    .eq('telegram_id', userId);
+
+                if (error) throw error;
+
+                alert('Баланс пополнен на 50 AR');
+                loadUsers();
+            } catch (error) {
+                alert('Ошибка пополнения: ' + error.message);
+            }
+        }
+
+        // Тест подключения к Supabase
+        async function testConnection() {
+            try {
+                showStatus('Тестирую подключение к Supabase...', 'info');
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count', { count: 'exact' })
+                    .limit(1);
+
+                if (error) {
+                    throw error;
+                }
+
+                showStatus('✅ Подключение к Supabase успешно!', 'success');
+                await loadUsers();
+
+            } catch (error) {
+                console.error('Ошибка подключения к Supabase:', error);
+                showStatus(`❌ Ошибка подключения: ${error.message}`, 'error');
+            }
+        }
+
+        // Запуск при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Запуск тестовой админки...');
+            testConnection();
+        });
+    </script>
+</body>
+</html>

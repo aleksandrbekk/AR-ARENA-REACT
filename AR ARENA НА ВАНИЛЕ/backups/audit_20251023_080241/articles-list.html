@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR ARENA - Обучающие статьи</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: white;
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(to bottom, rgba(15, 15, 15, 0.98), rgba(10, 10, 10, 0.95));
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .arrow-back {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .arrow-back:hover {
+            background: rgba(255, 215, 0, 0.15);
+            border-color: rgba(255, 215, 0, 0.3);
+            color: #FFD700;
+            transform: translateX(-3px);
+        }
+
+        .header-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .articles-count {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Page Title */
+        .page-title {
+            margin-bottom: 12px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 15px;
+            margin-bottom: 28px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-color: transparent;
+            color: #000;
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 215, 0, 0.3);
+        }
+
+        .tab-count {
+            display: inline-block;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: 6px;
+            font-weight: 700;
+        }
+
+        .tab.active .tab-count {
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        /* Articles Grid */
+        .articles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+            animation: fadeIn 0.8s ease-out 0.4s both;
+        }
+
+        .article-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .article-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.5), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .article-card:hover {
+            transform: translateY(-4px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+            border-color: rgba(255, 215, 0, 0.4);
+            box-shadow: 0 12px 30px rgba(255, 215, 0, 0.25);
+        }
+
+        .article-card:hover::before {
+            opacity: 1;
+        }
+
+        .article-cover-wrapper {
+            width: 100%;
+            height: 180px;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.08));
+        }
+
+        .article-cover-wrapper::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, transparent, rgba(10, 10, 10, 0.6));
+        }
+
+        .article-cover {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+
+        .article-card:hover .article-cover {
+            transform: scale(1.05);
+        }
+
+        .article-cover-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            filter: drop-shadow(0 6px 20px rgba(255, 215, 0, 0.4));
+        }
+
+        .article-body {
+            padding: 22px;
+        }
+
+        .article-badges {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .badge-category {
+            background: linear-gradient(135deg, #667EEA, #764BA2);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .badge-new {
+            background: linear-gradient(135deg, #11998E, #38EF7D);
+            color: #000;
+            box-shadow: 0 2px 10px rgba(17, 153, 142, 0.3);
+        }
+
+        .badge-read {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .article-title {
+            font-size: 19px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: white;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .article-meta {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .article-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .reward {
+            color: #FFD700;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* Loading State */
+        .loading-container {
+            text-align: center;
+            padding: 80px 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 215, 0, 0.2);
+            border-top-color: #FFD700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 15px;
+        }
+
+        /* Skeleton Loader */
+        .skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .skeleton-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .skeleton-cover {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-body {
+            padding: 22px;
+        }
+
+        .skeleton-title {
+            height: 24px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-text {
+            height: 16px;
+            width: 60%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+            border-radius: 6px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 100px 20px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .empty-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            font-size: 22px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 15px;
+        }
+
+        /* Debug Panel */
+        .debug-panel {
+            display: none; /* Hidden in production */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 999;
+            min-width: 220px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .debug-title {
+            color: #FFD700;
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 12px;
+            text-align: center;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .debug-item {
+            padding: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .debug-item:last-child {
+            border-bottom: none;
+        }
+
+        .debug-item span {
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .articles-grid,
+            .skeleton-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            h1 {
+                font-size: 26px;
+            }
+
+            .container {
+                padding: 25px 15px;
+            }
+
+            .categories {
+                gap: 10px;
+            }
+
+            .category-chip {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+
+            .article-cover-wrapper {
+                height: 160px;
+            }
+
+            .debug-panel {
+                bottom: 10px;
+                right: 10px;
+                font-size: 10px;
+                padding: 12px;
+                min-width: 180px;
+            }
+
+            .articles-count {
+                font-size: 12px;
+                padding: 5px 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            .header-title {
+                font-size: 15px;
+            }
+
+            .article-card {
+                border-radius: 16px;
+            }
+
+            .article-cover-wrapper {
+                height: 140px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="arrow-back" onclick="goBack()">←</div>
+                <span class="header-title">Обучающие статьи</span>
+            </div>
+            <div class="articles-count" id="articlesCount">
+                <span id="countText">0 статей</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-title">
+            <h1>📚 Обучающие статьи</h1>
+            <p class="subtitle">Читайте статьи и получайте награды в AR</p>
+        </div>
+
+        <div class="tabs" id="tabs">
+            <button class="tab active" data-tab="available">
+                Актуальные <span class="tab-count" id="availableCount"></span>
+            </button>
+            <button class="tab" data-tab="completed">
+                Выполненные <span class="tab-count" id="completedCount"></span>
+            </button>
+        </div>
+
+        <div class="articles-grid" id="articlesGrid">
+            <!-- Skeleton loaders -->
+            <div class="skeleton-grid" id="skeletonLoader">
+                <div class="skeleton-card">
+                    <div class="skeleton-cover"></div>
+                    <div class="skeleton-body">
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-text"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-cover"></div>
+                    <div class="skeleton-body">
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-text"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-cover"></div>
+                    <div class="skeleton-body">
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-text"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <div class="debug-title">🔧 Debug Info</div>
+        <div class="debug-item">Total: <span id="debugTotal">0</span></div>
+        <div class="debug-item">Filtered: <span id="debugFiltered">0</span></div>
+        <div class="debug-item">Category: <span id="debugCategory">all</span></div>
+        <div class="debug-item">Search: <span id="debugSearch">-</span></div>
+        <div class="debug-item">User ID: <span id="debugUserId">-</span></div>
+        <div class="debug-item">Read: <span id="debugRead">0</span></div>
+    </div>
+
+    <script src="supabase-client.js?v=20251013005"></script>
+    <script src="auth.js?v=20251013005"></script>
+    <script>
+        // Инициализация Supabase
+        const supabase = window.supabaseClient || window.db;
+
+        // Проверка инициализации Supabase
+        if (!supabase) {
+            console.error('❌ Supabase не инициализирован!');
+            alert('Ошибка: Supabase не загружен. Перезагрузите страницу.');
+        }
+
+        // Глобальные переменные
+        let allArticles = [];
+        let userReads = [];
+        let currentTab = 'available';
+        let user = null;
+
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
+        // Обновление debug панели
+        function updateDebug() {
+            try {
+                document.getElementById('debugTotal').textContent = allArticles.length;
+                document.getElementById('debugCategory').textContent = currentTab;
+                document.getElementById('debugSearch').textContent = '-';
+                document.getElementById('debugUserId').textContent = user ? user.telegram_id : 'Loading...';
+                document.getElementById('debugRead').textContent = userReads.length;
+            } catch (error) {
+                console.error('Debug update error:', error);
+            }
+        }
+
+        // Форматирование счетчика статей
+        function formatArticlesCount(count) {
+            const forms = ['статья', 'статьи', 'статей'];
+            const cases = [2, 0, 1, 1, 1, 2];
+            return count + ' ' + forms[(count % 100 > 4 && count % 100 < 20) ? 2 : cases[Math.min(count % 10, 5)]];
+        }
+
+        // Обновление счетчика
+        function updateCount(count) {
+            document.getElementById('countText').textContent = formatArticlesCount(count);
+            document.getElementById('debugFiltered').textContent = count;
+        }
+
+        // Загрузка пользователя
+        async function loadUser() {
+            try {
+                const tg = window.Telegram?.WebApp;
+                const telegramUser = tg?.initDataUnsafe?.user;
+
+                if (!telegramUser) {
+                    console.warn('Нет данных Telegram пользователя');
+                    user = { telegram_id: 'guest', username: 'Guest' };
+                    updateDebug();
+                    return;
+                }
+
+                // Получаем пользователя из БД
+                const { data: dbUser, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('telegram_id', telegramUser.id)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error('loadUser DB error:', error);
+                }
+
+                user = dbUser || {
+                    telegram_id: telegramUser.id,
+                    username: telegramUser.username
+                };
+
+                if (user) {
+                    await loadUserReads();
+                }
+                updateDebug();
+            } catch (error) {
+                console.error('loadUser error:', error);
+            }
+        }
+
+        // Загрузка прочитанных статей
+        async function loadUserReads() {
+            try {
+                const { data, error } = await supabase
+                    .from('article_reads')
+                    .select('article_id')
+                    .eq('user_id', user.telegram_id);
+
+                if (error) {
+                    console.error('loadUserReads error:', error);
+                    return;
+                }
+
+                userReads = data ? data.map(r => r.article_id) : [];
+                updateDebug();
+            } catch (error) {
+                console.error('loadUserReads error:', error);
+            }
+        }
+
+        // Загрузка статей
+        async function loadArticles() {
+            try {
+                const { data, error } = await supabase
+                    .from('articles')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('loadArticles error:', error);
+                    showError('Ошибка загрузки статей: ' + error.message);
+                    return;
+                }
+
+                allArticles = data || [];
+                updateDebug();
+                displayArticles();
+            } catch (error) {
+                console.error('loadArticles error:', error);
+                showError('Критическая ошибка: ' + error.message);
+            }
+        }
+
+        // Отображение статей
+        function displayArticles() {
+            try {
+                const grid = document.getElementById('articlesGrid');
+
+                // Удаляем skeleton loader
+                const skeleton = document.getElementById('skeletonLoader');
+                if (skeleton) skeleton.remove();
+
+                // Подсчитываем количество для обеих вкладок
+                const availableCount = allArticles.filter(a => !userReads.includes(a.id)).length;
+                const completedCount = allArticles.filter(a => userReads.includes(a.id)).length;
+
+                // Обновляем счетчики в табах
+                document.getElementById('availableCount').textContent = `(${availableCount})`;
+                document.getElementById('completedCount').textContent = `(${completedCount})`;
+
+                // Фильтрация по вкладкам
+                let filtered = [];
+
+                if (currentTab === 'available') {
+                    // Актуальные = НЕ прочитанные
+                    filtered = allArticles.filter(a => !userReads.includes(a.id));
+                } else if (currentTab === 'completed') {
+                    // Выполненные = прочитанные
+                    filtered = allArticles.filter(a => userReads.includes(a.id));
+                }
+
+                // Обновляем общий счетчик
+                updateCount(filtered.length);
+
+                // Если нет статей
+                if (filtered.length === 0) {
+                    const emptyMessage = currentTab === 'available'
+                        ? 'Все статьи прочитаны'
+                        : 'Вы ещё не прочитали ни одной статьи';
+                    showEmptyState(emptyMessage);
+                    return;
+                }
+
+                // Отображаем статьи
+                grid.innerHTML = filtered.map(article => {
+                    const isRead = userReads.includes(article.id);
+                    const hasCover = article.cover_image &&
+                                   article.cover_image !== '/icons/article.png' &&
+                                   article.cover_image !== 'icons/article.png' &&
+                                   article.cover_image.trim() !== '';
+
+                    return `
+                        <div class="article-card" onclick="openArticle('${article.id}')">
+                            <div class="article-cover-wrapper">
+                                ${hasCover
+                                    ? `<img src="${article.cover_image}" alt="${article.title}" class="article-cover">`
+                                    : `<div class="article-cover-placeholder">📖</div>`
+                                }
+                            </div>
+                            <div class="article-body">
+                                <div class="article-badges">
+                                    ${isRead
+                                        ? '<span class="badge badge-read">✅ Прочитано</span>'
+                                        : '<span class="badge badge-new">NEW</span>'
+                                    }
+                                </div>
+                                <div class="article-title">${article.title}</div>
+                                <div class="article-meta">
+                                    <span class="reward">+${article.reward_ar} AR</span>
+                                    <span>⏱ ${article.reading_time} мин</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('displayArticles error:', error);
+                showError('Ошибка отображения статей');
+            }
+        }
+
+        // Показать ошибку
+        function showError(message) {
+            const grid = document.getElementById('articlesGrid');
+            const skeleton = document.getElementById('skeletonLoader');
+            if (skeleton) skeleton.remove();
+
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">⚠️</div>
+                    <h3>Ошибка</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // Показать пустое состояние
+        function showEmptyState(message) {
+            const grid = document.getElementById('articlesGrid');
+            const skeleton = document.getElementById('skeletonLoader');
+            if (skeleton) skeleton.remove();
+
+            const description = currentTab === 'available'
+                ? 'Поздравляем! Вы прочитали все доступные статьи'
+                : 'Начните читать статьи, чтобы получать награды в AR';
+
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <h3>${message}</h3>
+                    <p>${description}</p>
+                </div>
+            `;
+            updateCount(0);
+        }
+
+        // Открыть статью
+        function openArticle(articleId) {
+            window.location.href = `article.html?id=${articleId}`;
+        }
+
+        // Кнопка "Назад"
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'tasks.html';
+            }
+        }
+
+        // Переключение вкладок
+        function switchTab(tab) {
+            try {
+                currentTab = tab;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+                updateDebug();
+                displayArticles();
+            } catch (error) {
+                console.error('Tab switch error:', error);
+            }
+        }
+
+        // Инициализация обработчиков вкладок
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchTab(tab.dataset.tab);
+                });
+            });
+        });
+
+        // Инициализация
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                console.log('🚀 Articles list page initialized');
+                await loadUser();
+                await loadArticles();
+            } catch (error) {
+                console.error('DOMContentLoaded error:', error);
+                showError('Ошибка инициализации');
+            }
+        });
+
+        // Автоматическое обновление при возврате на страницу
+        document.addEventListener('visibilitychange', async () => {
+            if (!document.hidden) {
+                console.log('🔄 Page became visible, refreshing articles...');
+                try {
+                    await loadArticles();
+                } catch (error) {
+                    console.error('Auto-refresh error:', error);
+                }
+            }
+        });
+
+        // Также обновляем при получении фокуса окна
+        window.addEventListener('focus', async () => {
+            console.log('🔄 Window focused, refreshing articles...');
+            try {
+                await loadArticles();
+            } catch (error) {
+                console.error('Focus refresh error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика реферальной системы</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #0f0;
+            font-size: 12px;
+        }
+        .section {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .error { color: #ff0000; }
+        .success { color: #00ff00; }
+        .warning { color: #ffff00; }
+        button {
+            background: #0f0;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 ДИАГНОСТИКА РЕФЕРАЛЬНОЙ СИСТЕМЫ</h1>
+
+    <div class="section">
+        <h3>1. TELEGRAM WEBAPPP</h3>
+        <div id="telegram-status"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. START_PARAM</h3>
+        <div id="start-param"></div>
+    </div>
+
+    <div class="section">
+        <h3>3. ТЕКУЩИЙ ПОЛЬЗОВАТЕЛЬ</h3>
+        <div id="current-user"></div>
+    </div>
+
+    <div class="section">
+        <h3>4. SUPABASE ПОДКЛЮЧЕНИЕ</h3>
+        <div id="supabase-status"></div>
+        <button onclick="testSupabase()">Тест подключения к БД</button>
+    </div>
+
+    <div class="section">
+        <h3>5. ТЕСТ РЕФЕРАЛЬНОЙ СИСТЕМЫ</h3>
+        <button onclick="simulateReferral()">Симулировать переход по реф ссылке</button>
+        <div id="referral-test"></div>
+    </div>
+
+    <div class="section">
+        <h3>6. ПРОВЕРКА ПОЛЬЗОВАТЕЛЯ В БД</h3>
+        <input type="text" id="check-telegram-id" placeholder="Telegram ID">
+        <button onclick="checkUser()">Проверить пользователя</button>
+        <div id="user-check"></div>
+    </div>
+
+    <div class="section">
+        <h3>7. ЛОГИ</h3>
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        const log = (msg, type = 'info') => {
+            const logsDiv = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'error' : type === 'success' ? 'success' : 'warning';
+            logsDiv.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
+        };
+
+        // Проверяем Telegram WebApp
+        const checkTelegram = () => {
+            const statusDiv = document.getElementById('telegram-status');
+            const tg = window.Telegram?.WebApp;
+
+            if (!tg) {
+                statusDiv.innerHTML = '<span class="error">❌ Telegram WebApp не доступен</span>';
+                log('Telegram WebApp не найден', 'error');
+                return;
+            }
+
+            statusDiv.innerHTML = `
+                <span class="success">✅ Telegram WebApp доступен</span><br>
+                <pre>Version: ${tg.version}
+Platform: ${tg.platform}
+InitData: ${tg.initData ? 'Есть' : 'Нет'}
+User: ${JSON.stringify(tg.initDataUnsafe?.user, null, 2)}</pre>
+            `;
+            log('Telegram WebApp загружен', 'success');
+        };
+
+        // Проверяем start_param
+        const checkStartParam = () => {
+            const paramDiv = document.getElementById('start-param');
+            const tg = window.Telegram?.WebApp;
+
+            let startParam = tg?.initDataUnsafe?.start_param;
+
+            // Проверяем все способы получения
+            const methods = {
+                'initDataUnsafe.start_param': tg?.initDataUnsafe?.start_param,
+                'URL hash tgWebAppStartParam': new URLSearchParams(window.location.hash.substring(1)).get('tgWebAppStartParam'),
+                'URL search start_param': new URLSearchParams(window.location.search).get('start_param'),
+            };
+
+            // Парсим initData
+            if (tg?.initData) {
+                const params = new URLSearchParams(tg.initData);
+                methods['Parsed from initData'] = params.get('start_param');
+            }
+
+            let html = '';
+            for (const [method, value] of Object.entries(methods)) {
+                const status = value ? '✅' : '❌';
+                html += `${status} ${method}: <span class="${value ? 'success' : 'error'}">${value || 'НЕТ'}</span><br>`;
+            }
+
+            paramDiv.innerHTML = html;
+
+            if (startParam) {
+                log(`start_param найден: ${startParam}`, 'success');
+                if (startParam.startsWith('ref_')) {
+                    const refId = startParam.replace('ref_', '');
+                    log(`Реферер ID: ${refId}`, 'success');
+                }
+            } else {
+                log('start_param не найден', 'warning');
+            }
+        };
+
+        // Проверяем текущего пользователя
+        const checkCurrentUser = () => {
+            const userDiv = document.getElementById('current-user');
+            const tg = window.Telegram?.WebApp;
+            const user = tg?.initDataUnsafe?.user;
+
+            if (user) {
+                userDiv.innerHTML = `
+                    <span class="success">✅ Пользователь найден</span><br>
+                    <pre>${JSON.stringify(user, null, 2)}</pre>
+                `;
+                log(`Пользователь: ${user.first_name} (ID: ${user.id})`, 'success');
+            } else {
+                userDiv.innerHTML = '<span class="error">❌ Пользователь не найден</span>';
+                log('Пользователь не найден', 'error');
+            }
+        };
+
+        // Проверяем Supabase
+        const checkSupabaseStatus = () => {
+            const statusDiv = document.getElementById('supabase-status');
+
+            if (typeof supabaseClient === 'undefined') {
+                statusDiv.innerHTML = '<span class="error">❌ Supabase не подключен</span>';
+                log('Supabase не найден', 'error');
+            } else {
+                statusDiv.innerHTML = '<span class="success">✅ Supabase подключен</span>';
+                log('Supabase доступен', 'success');
+            }
+        };
+
+        // Тест подключения к БД
+        async function testSupabase() {
+            log('Тестируем подключение к БД...');
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('count')
+                    .limit(1);
+
+                if (error) {
+                    log(`Ошибка БД: ${error.message}`, 'error');
+                } else {
+                    log('Подключение к БД успешно!', 'success');
+                }
+            } catch (e) {
+                log(`Критическая ошибка: ${e.message}`, 'error');
+            }
+        }
+
+        // Проверка пользователя в БД
+        async function checkUser() {
+            const telegramId = document.getElementById('check-telegram-id').value;
+            if (!telegramId) {
+                log('Введите Telegram ID', 'error');
+                return;
+            }
+
+            log(`Ищем пользователя ${telegramId}...`);
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('telegram_id', telegramId);
+
+                const resultDiv = document.getElementById('user-check');
+
+                if (error) {
+                    resultDiv.innerHTML = `<span class="error">Ошибка: ${error.message}</span>`;
+                    log(`Ошибка поиска: ${error.message}`, 'error');
+                } else if (data && data.length > 0) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ Пользователь найден</span>
+                        <pre>${JSON.stringify(data[0], null, 2)}</pre>
+                    `;
+                    log(`Пользователь найден: баланс ${data[0].balance_ar} AR`, 'success');
+                } else {
+                    resultDiv.innerHTML = '<span class="warning">⚠️ Пользователь не найден в БД</span>';
+                    log('Пользователь не зарегистрирован', 'warning');
+                }
+            } catch (e) {
+                log(`Критическая ошибка: ${e.message}`, 'error');
+            }
+        }
+
+        // Симуляция реферальной ссылки
+        function simulateReferral() {
+            const testRefId = '190202791';
+            log(`Симулируем переход по ссылке ref_${testRefId}`);
+
+            // Создаем фейковый start_param
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.initDataUnsafe.start_param = `ref_${testRefId}`;
+                log('start_param установлен', 'success');
+
+                // Перезапускаем проверку
+                checkStartParam();
+            } else {
+                log('Невозможно симулировать в браузере', 'error');
+            }
+        }
+
+        // Запускаем все проверки при загрузке
+        window.addEventListener('DOMContentLoaded', () => {
+            checkTelegram();
+            checkStartParam();
+            checkCurrentUser();
+            checkSupabaseStatus();
+            log('Диагностика запущена', 'info');
+        });
+    </script>
+</body>
+</html>
