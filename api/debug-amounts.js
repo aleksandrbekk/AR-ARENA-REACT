@@ -13,8 +13,17 @@ export default async function handler(req, res) {
             .from('premium_clients')
             .select('telegram_id, total_paid_usd, original_amount, currency, source, last_payment_at, payments_count')
             .eq('source', '0xprocessing')
+            .order('last_payment_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Also get Lava clients  
+        const { data: lavaClients } = await supabase
+            .from('premium_clients')
+            .select('telegram_id, total_paid_usd, original_amount, currency, source, last_payment_at, payments_count')
+            .eq('source', 'lava.top')
             .order('last_payment_at', { ascending: false })
-            .limit(10);
+            .limit(20);
 
         if (error) throw error;
 
