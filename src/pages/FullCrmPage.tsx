@@ -710,14 +710,9 @@ export function FullCrmPage() {
   const getInitial = (user: User) => (user.first_name || user.username || '?')[0]?.toUpperCase()
   const getPremiumInitial = (client: PremiumClient) => (client.first_name || client.username || '?')[0]?.toUpperCase()
 
-  // Получить чистую сумму после комиссии платёжки
-  // Lava.top берёт 8% комиссии
+  // Получить сумму платежа (Lava.top уже показывает чистую сумму после комиссии)
   const getNetAmount = (client: PremiumClient) => {
-    const amount = client.original_amount || client.total_paid_usd || 0
-    if (client.source === 'lava.top') {
-      return amount * 0.92 // минус 8% комиссии
-    }
-    return amount
+    return client.original_amount || client.total_paid_usd || 0
   }
 
   // Форматирование суммы с валютой (уже за вычетом комиссии)
@@ -1507,9 +1502,8 @@ export function FullCrmPage() {
                     })
 
                   paymentsFiltered.forEach(p => {
-                    let amount = p.amount || 0
-                    // Lava.top берёт 8% комиссии
-                    if (p.source === 'lava.top') amount *= 0.92
+                    const amount = p.amount || 0
+                    // Суммы в БД уже чистые (Lava показывает после комиссии)
 
                     if (isRubCurrency(p.currency, p.source)) totalRub += amount
                     else if (isEurCurrency(p.currency)) totalEur += amount
@@ -1531,8 +1525,8 @@ export function FullCrmPage() {
                     })
 
                   clientsFiltered.forEach(c => {
-                    let amount = c.original_amount || c.total_paid_usd || 0
-                    if (c.source === 'lava.top') amount *= 0.92
+                    const amount = c.original_amount || c.total_paid_usd || 0
+                    // Суммы в БД уже чистые (Lava показывает после комиссии)
 
                     if (isRubCurrency(c.currency || '', c.source || '')) totalRub += amount
                     else if (isEurCurrency(c.currency || '')) totalEur += amount
