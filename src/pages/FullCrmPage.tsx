@@ -1535,7 +1535,11 @@ export function FullCrmPage() {
                   const nonLavaRub: { id: string; telegram_id: number; amount: number; source: string | null }[] = []
 
                   clientsFiltered.forEach(c => {
-                    const amount = c.original_amount || c.total_paid_usd || 0
+                    // Для "Все время" — total_paid_usd (накопленная сумма)
+                    // Для конкретного месяца — original_amount (последний платёж)
+                    const amount = statsMonth === 'all'
+                      ? (c.total_paid_usd || 0)
+                      : (c.original_amount || 0)
                     // Суммы в БД уже чистые (Lava показывает после комиссии)
 
                     if (isRubCurrency(c.currency || '', c.source || '')) {
