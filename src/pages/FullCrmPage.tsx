@@ -1464,13 +1464,15 @@ export function FullCrmPage() {
                   c.source !== 'migration' && (c.total_paid_usd > 0 || (c.original_amount ?? 0) > 0)
                 )
 
-                // Фильтруем по выбранному месяцу (по last_payment_at)
-                const paidClientsThisMonth = allPaidClients.filter(c => {
-                  if (!c.last_payment_at) return false
-                  const paymentDate = new Date(c.last_payment_at)
-                  const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
-                  return paymentMonth === statsMonth
-                })
+                // Фильтруем по выбранному месяцу (по last_payment_at) или все время
+                const paidClientsThisMonth = statsMonth === 'all'
+                  ? allPaidClients
+                  : allPaidClients.filter(c => {
+                    if (!c.last_payment_at) return false
+                    const paymentDate = new Date(c.last_payment_at)
+                    const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+                    return paymentMonth === statsMonth
+                  })
 
                 // Хелпер для определения типа валюты
                 const isUsdCurrency = (c: PremiumClient) => {
@@ -1525,6 +1527,7 @@ export function FullCrmPage() {
                 }
 
                 const formatStatsMonth = (m: string) => {
+                  if (m === 'all') return 'Все время'
                   const [year, month] = m.split('-')
                   return `${monthNamesStats[month]} ${year}`
                 }
@@ -1540,6 +1543,7 @@ export function FullCrmPage() {
                         className="px-3 py-1.5 bg-zinc-800 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 appearance-none cursor-pointer"
                         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23FFD700'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '14px', paddingRight: '28px' }}
                       >
+                        <option value="all">Все время</option>
                         {availableStatsMonths.map(m => (
                           <option key={m} value={m}>{formatStatsMonth(m)}</option>
                         ))}
