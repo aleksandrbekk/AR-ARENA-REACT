@@ -8,61 +8,72 @@ export default async function handler(req, res) {
     );
 
     try {
-        // List all tables in public schema
-        const { data: tables, error: tablesError } = await supabase
-            .rpc('get_tables_list');
+        // 1. Fetch ALL transactions
+        const { data: transactions, error: txError } = await supabase
+            .from('transactions')
+            .select('*');
 
-        // If RPC doesn't exist, try direct query
-        let tableList = tables;
-        if (tablesError) {
-            // Fallback: query information_schema
-            const { data, error } = await supabase
-                .from('information_schema.tables')
-                .select('table_name')
-                .eq('table_schema', 'public');
+        if (txError) throw txError;
 
-            if (error) {
-                // Last resort: try known tables
-                tableList = ['payment_history', 'premium_clients', 'users', 'transactions', 'payments', 'orders'];
-            } else {
-                tableList = data?.map(t => t.table_name) || [];
-            }
-        }
+        // 2. Fetch ALL purchases
+        const { data: purchases, error: purchasesError } = await supabase
+            .from('purchases')
+            .select('*');
 
-        // Check each known payment-related table
-        const results = {};
-        const possibleTables = ['payment_history', 'payments', 'transactions', 'orders', 'invoices', 'purchases'];
-
-        for (const tableName of possibleTables) {
-            try {
-                const { count, error } = await supabase
-                    .from(tableName)
-                    .select('*', { count: 'exact', head: true });
-
-                if (!error) {
-                    results[tableName] = { exists: true, count };
-                } else {
-                    results[tableName] = { exists: false, error: error.message };
-                }
-            } catch (e) {
-                results[tableName] = { exists: false, error: e.message };
-            }
-        }
-
-        // Also check premium_clients for comparison
-        const { data: clients, error: clientsError } = await supabase
+        // 3. Fetch ALL premium_clients with Lava source
+        const { data: lavaClients, error: lavaError } = await supabase
             .from('premium_clients')
-            .select('id, total_paid_usd, original_amount, currency, source')
-            .order('total_paid_usd', { ascending: false })
-            .limit(5);
+            .select('telegram_id, total_paid_usd, original_amount, currency, source')
+            .eq('source', 'lava.top');
+
+        // 4. Analyze transactions
+        let txTotalRub = 0;
+        let txTotalUsd = 0;
+        let txByType = {};
+
+        transactions?.forEach(tx => {
+            const type = tx.type || 'unknown';
+            if (!txByType[type]) txByType[type] = { count: 0, total: 0 };
+            txByType[type].count++;
+            txByType[type].total += tx.amount || 0;
+
+            // Check currency
+            if (tx.currency === 'RUB') txTotalRub += tx.amount || 0;
+            else if (tx.currency === 'USD') txTotalUsd += tx.amount || 0;
+        });
+
+        // 5. Sum Lava clients
+        let lavaTotal = 0;
+        let lavaOriginalTotal = 0;
+        lavaClients?.forEach(c => {
+            lavaTotal += c.total_paid_usd || 0;
+            lavaOriginalTotal += c.original_amount || 0;
+        });
+
+        // 6. Get sample data
+        const sampleTx = transactions?.slice(0, 3) || [];
+        const samplePurchases = purchases?.slice(0, 3) || [];
 
         res.status(200).json({
-            table_check: results,
-            top_clients: clients || [],
-            clients_error: clientsError?.message || null
+            transactions: {
+                count: transactions?.length || 0,
+                total_rub: txTotalRub,
+                total_usd: txTotalUsd,
+                by_type: txByType,
+                sample: sampleTx
+            },
+            purchases: {
+                count: purchases?.length || 0,
+                sample: samplePurchases
+            },
+            lava_clients: {
+                count: lavaClients?.length || 0,
+                total_paid_usd: lavaTotal,
+                original_amount_sum: lavaOriginalTotal
+            }
         });
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: err.message, stack: err.stack });
     }
 }
