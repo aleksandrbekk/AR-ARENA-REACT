@@ -375,7 +375,7 @@ export function InboxPage() {
 
   // ============ RENDER: MAIN ============
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
+    <div className="h-screen bg-[#0a0a0a] flex flex-col overflow-hidden">
       {/* Top Bar for Tabs */}
       <div className="h-14 border-b border-zinc-800 flex items-center px-4 bg-[#0a0a0a] z-10">
         <div className="flex gap-4">
