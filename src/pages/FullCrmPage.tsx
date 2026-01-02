@@ -1476,11 +1476,17 @@ export function FullCrmPage() {
                 const hasPaymentHistory = paymentHistory.length > 0
 
                 // Хелперы для валют
-                const isUsdCurrency = (cur: string, source: string) => {
+                // Крипто (0xprocessing и крипто-валюты)
+                const isCryptoCurrency = (cur: string, source: string) => {
                   const c = (cur || '').toUpperCase()
-                  return c.includes('USD') || c.includes('USDT') || c.includes('USDC') ||
+                  return c.includes('USDT') || c.includes('USDC') ||
                     c.includes('BTC') || c.includes('ETH') || c.includes('TON') ||
                     c.includes('CRYPTO') || source === '0xprocessing'
+                }
+                // USD фиат (только Lava)
+                const isUsdCurrency = (cur: string, source: string) => {
+                  const c = (cur || '').toUpperCase()
+                  return c === 'USD' && source !== '0xprocessing'
                 }
                 const isEurCurrency = (cur: string) => (cur || '').toUpperCase() === 'EUR'
                 const isRubCurrency = (cur: string, source: string) => {
@@ -1488,7 +1494,7 @@ export function FullCrmPage() {
                   return c === 'RUB' || (!cur && source === 'lava.top')
                 }
 
-                let totalRub = 0, totalUsd = 0, totalEur = 0, paidCountThisMonth = 0
+                let totalRub = 0, totalUsd = 0, totalUsdt = 0, totalEur = 0, paidCountThisMonth = 0
 
                 if (hasPaymentHistory) {
                   // Используем payment_history для точной статистики
@@ -1507,6 +1513,7 @@ export function FullCrmPage() {
 
                     if (isRubCurrency(p.currency, p.source)) totalRub += amount
                     else if (isEurCurrency(p.currency)) totalEur += amount
+                    else if (isCryptoCurrency(p.currency, p.source)) totalUsdt += amount
                     else if (isUsdCurrency(p.currency, p.source)) totalUsd += amount
                   })
                   paidCountThisMonth = paymentsFiltered.length
@@ -1539,6 +1546,7 @@ export function FullCrmPage() {
                       }
                     }
                     else if (isEurCurrency(c.currency || '')) totalEur += amount
+                    else if (isCryptoCurrency(c.currency || '', c.source || '')) totalUsdt += amount
                     else if (isUsdCurrency(c.currency || '', c.source || '')) totalUsd += amount
                   })
                   paidCountThisMonth = clientsFiltered.length
@@ -1559,7 +1567,7 @@ export function FullCrmPage() {
                 // Средний чек
                 const USD_TO_RUB = 100
                 const EUR_TO_RUB = 110
-                const totalInRub = totalRub + (totalUsd * USD_TO_RUB) + (totalEur * EUR_TO_RUB)
+                const totalInRub = totalRub + (totalUsd * USD_TO_RUB) + (totalUsdt * USD_TO_RUB) + (totalEur * EUR_TO_RUB)
                 const avgCheck = paidCountThisMonth > 0 ? Math.round(totalInRub / paidCountThisMonth) : 0
 
                 // Доступные месяцы для выбора
@@ -1603,7 +1611,7 @@ export function FullCrmPage() {
                     </div>
 
                     {/* Выручка по валютам */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">RUB</div>
                         <div className="text-lg font-bold text-white">{Math.round(totalRub).toLocaleString('ru-RU')} ₽</div>
@@ -1611,6 +1619,10 @@ export function FullCrmPage() {
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">USD</div>
                         <div className="text-lg font-bold text-[#FFD700]">${Math.round(totalUsd).toLocaleString('en-US')}</div>
+                      </div>
+                      <div className="bg-zinc-900 rounded-xl p-3">
+                        <div className="text-white/40 text-[10px] mb-1">USDT</div>
+                        <div className="text-lg font-bold text-emerald-400">${Math.round(totalUsdt).toLocaleString('en-US')}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">EUR</div>
