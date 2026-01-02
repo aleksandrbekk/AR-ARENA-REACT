@@ -33,10 +33,23 @@ export default async function handler(req, res) {
             return date.getFullYear() === 2026 && date.getMonth() === 0;
         }) || [];
 
+        // Also check Lava USD/EUR
+        const { data: lavaClients } = await supabase
+            .from('premium_clients')
+            .select('telegram_id, total_paid_usd, original_amount, currency, source, last_payment_at')
+            .eq('source', 'lava.top')
+            .in('currency', ['USD', 'EUR']);
+
+        const lavaJan2026 = lavaClients?.filter(c => {
+            if (!c.last_payment_at) return false;
+            const date = new Date(c.last_payment_at);
+            return date.getFullYear() === 2026 && date.getMonth() === 0;
+        }) || [];
+
         res.status(200).json({
             total_crypto_clients: cryptoClients?.length || 0,
             by_month: byMonth,
-            january_2026: {
+            january_2026_crypto: {
                 count: jan2026.length,
                 total_usd: jan2026.reduce((sum, c) => sum + (c.total_paid_usd || 0), 0),
                 clients: jan2026.map(c => ({
@@ -45,6 +58,17 @@ export default async function handler(req, res) {
                     amount: c.original_amount,
                     currency: c.currency,
                     date: c.last_payment_at || c.created_at
+                }))
+            },
+            january_2026_lava_usd_eur: {
+                count: lavaJan2026.length,
+                total_usd: lavaJan2026.reduce((sum, c) => sum + (c.total_paid_usd || 0), 0),
+                clients: lavaJan2026.map(c => ({
+                    telegram_id: c.telegram_id,
+                    usd: c.total_paid_usd,
+                    amount: c.original_amount,
+                    currency: c.currency,
+                    date: c.last_payment_at
                 }))
             }
         });
