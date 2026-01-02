@@ -1524,15 +1524,32 @@ export function FullCrmPage() {
                       return paymentMonth === statsMonth
                     })
 
+                  // DEBUG: найти не-Lava RUB платежи
+                  const nonLavaRub: { id: string; telegram_id: number; amount: number; source: string | null }[] = []
+
                   clientsFiltered.forEach(c => {
                     const amount = c.original_amount || c.total_paid_usd || 0
                     // Суммы в БД уже чистые (Lava показывает после комиссии)
 
-                    if (isRubCurrency(c.currency || '', c.source || '')) totalRub += amount
+                    if (isRubCurrency(c.currency || '', c.source || '')) {
+                      totalRub += amount
+                      // Собираем не-Lava RUB платежи
+                      if (c.source !== 'lava.top') {
+                        nonLavaRub.push({ id: c.id, telegram_id: c.telegram_id, amount, source: c.source })
+                      }
+                    }
                     else if (isEurCurrency(c.currency || '')) totalEur += amount
                     else if (isUsdCurrency(c.currency || '', c.source || '')) totalUsd += amount
                   })
                   paidCountThisMonth = clientsFiltered.length
+
+                  // DEBUG: вывести в консоль
+                  if (nonLavaRub.length > 0) {
+                    console.log('=== НЕ-LAVA RUB ПЛАТЕЖИ ===')
+                    console.log('Количество:', nonLavaRub.length)
+                    console.log('Сумма:', nonLavaRub.reduce((s, p) => s + p.amount, 0))
+                    console.table(nonLavaRub)
+                  }
                 }
 
                 // Активные подписчики (expires > now)
