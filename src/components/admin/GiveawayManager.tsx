@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import type { Giveaway } from '../../types'
 
 export function GiveawayManager() {
+  const navigate = useNavigate()
   const [mode, setMode] = useState<'list' | 'edit'>('list')
   const [giveaways, setGiveaways] = useState<Giveaway[]>([])
   const [loading, setLoading] = useState(false)
@@ -292,6 +294,10 @@ export function GiveawayManager() {
             ) : (
               giveaways.map((g, idx) => {
                 const statusConfig = getStatusConfig(g.status)
+                const isCompleted = g.status === 'completed'
+                const isActive = g.status === 'active'
+                const needsPayout = isCompleted && !(g as any).prizes_distributed
+
                 return (
                   <motion.div
                     key={g.id}
@@ -299,106 +305,103 @@ export function GiveawayManager() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ delay: idx * 0.05 }}
-                    className={`relative rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-sm ${statusConfig.glow}`}
+                    className={`rounded-2xl border border-white/10 bg-zinc-900/80 overflow-hidden ${statusConfig.glow}`}
                   >
                     {/* Status indicator line */}
-                    <div className={`absolute top-0 left-0 right-0 h-1 ${
-                      g.status === 'active' ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
-                      g.status === 'completed' ? 'bg-gradient-to-r from-blue-500 to-blue-400' :
+                    <div className={`h-1 w-full ${
+                      isActive ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
+                      isCompleted ? 'bg-gradient-to-r from-blue-500 to-blue-400' :
                       g.status === 'cancelled' ? 'bg-gradient-to-r from-red-500 to-red-400' :
-                      'bg-gradient-to-r from-zinc-600 to-zinc-500'
+                      'bg-zinc-700'
                     }`} />
 
                     <div className="p-4">
-                      {/* Header Row */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0 pr-2">
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
-                              {statusConfig.label}
-                            </span>
-                            {g.status === 'completed' && (
-                              <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
-                                (g as any).prizes_distributed
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : 'bg-amber-500/20 text-amber-400'
-                              }`}>
-                                {(g as any).prizes_distributed ? 'Выплачено' : 'Ожидает'}
-                              </span>
-                            )}
-                          </div>
-                          <h3 className="text-base font-bold text-white truncate">{g.title || g.name}</h3>
-                          {g.subtitle && <p className="text-xs text-white/40 truncate">{g.subtitle}</p>}
-                        </div>
+                      {/* Row 1: Status badges */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-0.5 text-[10px] font-semibold rounded ${statusConfig.bg} ${statusConfig.text}`}>
+                          {statusConfig.label}
+                        </span>
+                        {needsPayout && (
+                          <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-amber-500/20 text-amber-400">
+                            Ожидает
+                          </span>
+                        )}
+                        {isCompleted && (g as any).prizes_distributed && (
+                          <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-500/20 text-emerald-400">
+                            Выплачено
+                          </span>
+                        )}
+                      </div>
 
-                        {/* Jackpot */}
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-[10px] text-white/40 mb-0.5">Джекпот</div>
-                          <div className="flex items-center gap-1 justify-end">
-                            <img src={`/icons/${g.currency === 'ar' ? 'arcoin' : 'BUL'}.png`} alt="" className="w-4 h-4" />
-                            <span className="text-base font-black text-[#FFD700]">
-                              {(g.jackpot_current_amount || 0).toLocaleString()}
-                            </span>
-                          </div>
+                      {/* Row 2: Title + Jackpot */}
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-sm font-bold text-white truncate">{g.title || g.name || 'Без названия'}</h3>
+                          {g.subtitle && <p className="text-[11px] text-white/40 truncate">{g.subtitle}</p>}
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0 bg-black/30 rounded-lg px-2 py-1">
+                          <img src={`/icons/${g.currency === 'ar' ? 'arcoin' : 'BUL'}.png`} alt="" className="w-4 h-4" />
+                          <span className="text-sm font-black text-[#FFD700]">
+                            {(g.jackpot_current_amount || 0).toLocaleString()}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Info Grid */}
+                      {/* Row 3: Info Grid */}
                       <div className="grid grid-cols-3 gap-2 mb-3">
-                        <div className="bg-black/30 rounded-lg p-2 text-center">
-                          <div className="text-[10px] text-white/40">Билет</div>
-                          <div className="text-xs font-bold text-white">{g.price} {g.currency?.toUpperCase()}</div>
-                        </div>
-                        <div className="bg-black/30 rounded-lg p-2 text-center">
-                          <div className="text-[10px] text-white/40">Призов</div>
-                          <div className="text-xs font-bold text-white">{g.prizes?.length || 0}</div>
-                        </div>
-                        <div className="bg-black/30 rounded-lg p-2 text-center">
-                          <div className="text-[10px] text-white/40">Конец</div>
-                          <div className="text-xs font-bold text-white">
-                            {g.end_date ? new Date(g.end_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—'}
+                        {[
+                          { label: 'Билет', value: `${g.price} ${g.currency?.toUpperCase()}` },
+                          { label: 'Призов', value: g.prizes?.length || 0 },
+                          { label: 'Конец', value: g.end_date ? new Date(g.end_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—' }
+                        ].map((item) => (
+                          <div key={item.label} className="bg-black/20 rounded-lg py-1.5 px-2 text-center">
+                            <div className="text-[9px] text-white/40 uppercase">{item.label}</div>
+                            <div className="text-[11px] font-bold text-white">{item.value}</div>
                           </div>
-                        </div>
+                        ))}
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex flex-wrap gap-2">
-                        {g.status === 'active' && (
+                      {/* Row 4: Actions - Grid for equal sizing */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {/* Primary Action */}
+                        {isActive ? (
                           <button
                             onClick={() => handleRunDraw(g.id)}
                             disabled={loading}
-                            className="py-2 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-500 hover:to-red-400"
+                            className="col-span-2 h-9 rounded-lg font-bold text-[11px] uppercase bg-red-500 text-white disabled:opacity-50"
                           >
                             Провести
                           </button>
-                        )}
-                        {g.status === 'completed' && !(g as any).prizes_distributed && (
+                        ) : needsPayout ? (
                           <button
                             onClick={() => handleDistributePrizes(g.id)}
                             disabled={loading}
-                            className="py-2 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-emerald-600 to-emerald-500 text-white"
+                            className="col-span-2 h-9 rounded-lg font-bold text-[11px] uppercase bg-emerald-500 text-white disabled:opacity-50"
                           >
                             Выплатить
                           </button>
-                        )}
-                        {g.status === 'completed' && (
+                        ) : isCompleted ? (
                           <button
-                            onClick={() => window.open(`/live/${g.id}`, '_blank')}
-                            className="py-2 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-blue-600 to-blue-500 text-white"
+                            onClick={() => navigate(`/live/${g.id}`)}
+                            className="col-span-2 h-9 rounded-lg font-bold text-[11px] uppercase bg-blue-500 text-white"
                           >
                             Live
                           </button>
+                        ) : (
+                          <div className="col-span-2" />
                         )}
+
+                        {/* Secondary Actions */}
                         <button
                           onClick={() => handleEdit(g)}
-                          className="py-2 px-3 rounded-xl font-medium text-xs transition-all bg-white/10 text-white/70 hover:text-white"
+                          className="h-9 rounded-lg font-medium text-[11px] bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
                         >
                           Ред.
                         </button>
                         <button
                           onClick={() => handleDelete(g.id, g.title || g.name || 'Розыгрыш')}
                           disabled={loading}
-                          className="py-2 px-3 rounded-xl font-medium text-xs transition-all bg-red-500/20 text-red-400"
+                          className="h-9 rounded-lg font-medium text-[11px] bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50"
                         >
                           Удал.
                         </button>
