@@ -19,7 +19,6 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage'
 import { PricingPage } from './pages/PricingPage'
 import { StreamPage } from './pages/StreamPage'
 import { StreamAdminPage } from './pages/StreamAdminPage'
-import { CrmPage } from './pages/CrmPage' // Legacy
 
 // Lazy Loaded Admin Modules for Unified Workspace
 const AdminLayoutLazy = lazy(() => import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout })))
@@ -77,7 +76,6 @@ const router = createBrowserRouter([
       // (Leaving them for backward compatibility until fully migrated)
       { path: "admin", element: <AdminPage /> },
       { path: "stream-admin", element: <StreamAdminPage /> },
-      { path: "crm-old", element: <CrmPage /> },
       { path: "farm-alt", element: <FarmPageGemini /> },
 
       // --- NEW UNIFIED ADMIN WORKSPACE ---
