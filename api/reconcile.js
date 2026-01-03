@@ -1,9 +1,5 @@
-// Lava CSV Reconciliation Script
-// Parses LAVA.csv and compares with premium_clients
 
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
-import path from 'path';
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -11,116 +7,54 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    try {
-        // 1. Read and parse CSV
-        const csvPath = path.join(process.cwd(), 'LAVA.csv');
-        const csvContent = fs.readFileSync(csvPath, 'utf-8');
-        const lines = csvContent.split('\n').filter(l => l.trim());
+    const { data: clients, error } = await supabase
+        .from('premium_clients')
+        .select('source, currency, total_paid_usd, original_amount');
 
-        // Skip header rows (first 4 lines)
-        const dataLines = lines.slice(4);
+    if (error) return res.json({ error });
 
-        const lavaTransactions = [];
-        const lavaSums = { RUB: 0, USD: 0, EUR: 0 };
-        const lavaNetSums = { RUB: 0, USD: 0, EUR: 0 };
+    // Group by source and currency
+    const stats = {};
 
-        for (const line of dataLines) {
-            const cols = line.split(';');
-            if (cols.length < 7) continue;
+    clients.forEach(c => {
+        const src = c.source || 'null';
+        const curr = c.currency || 'null';
+        const key = `${src}|${curr}`;
 
-            const txId = cols[0];
-            const amountStr = cols[4]?.replace(/\s/g, '').replace(',', '.');
-            const feeStr = cols[5]?.replace(/\s/g, '').replace(',', '.');
-            const currency = cols[6]?.trim();
-            const email = cols[7]?.trim();
-
-            const amount = parseFloat(amountStr) || 0;
-            const fee = parseFloat(feeStr) || 0;
-            const net = amount - fee;
-
-            // Extract telegram_id from email like "123456@premium.ararena.pro"
-            let telegramId = null;
-            const match = email?.match(/^(\d+)@/);
-            if (match) {
-                telegramId = parseInt(match[1]);
-            }
-
-            if (currency && lavaSums[currency] !== undefined) {
-                lavaSums[currency] += amount;
-                lavaNetSums[currency] += net;
-            }
-
-            lavaTransactions.push({
-                txId,
-                telegramId,
-                email,
-                amount,
-                fee,
-                net,
-                currency
-            });
+        if (!stats[key]) {
+            stats[key] = { source: src, currency: curr, count: 0, totalPaid: 0, originalSum: 0 };
         }
+        stats[key].count++;
+        stats[key].totalPaid += (c.total_paid_usd || 0);
+        stats[key].originalSum += (c.original_amount || 0);
+    });
 
-        // 2. Get our DB data
-        const { data: clients, error } = await supabase
-            .from('premium_clients')
-            .select('*')
-            .eq('source', 'lava.top');
+    // Lava expected (GROSS from dashboard)
+    const lavaExpected = {
+        RUB: 902101.40,
+        USD: 1035.20,
+        EUR: 1147.61
+    };
 
-        if (error) return res.json({ error });
-
-        const dbSums = { RUB: 0, USD: 0, EUR: 0 };
-        const dbByTelegramId = {};
-
-        clients.forEach(c => {
-            const curr = c.currency || 'RUB';
-            if (dbSums[curr] !== undefined) {
-                dbSums[curr] += (c.total_paid_usd || 0);
-            }
-            if (c.telegram_id) {
-                dbByTelegramId[c.telegram_id] = c;
-            }
-        });
-
-        // 3. Find missing transactions
-        const missing = [];
-        const found = [];
-
-        for (const tx of lavaTransactions) {
-            if (tx.telegramId && dbByTelegramId[tx.telegramId]) {
-                found.push({
-                    telegramId: tx.telegramId,
-                    lavaNet: tx.net,
-                    dbTotal: dbByTelegramId[tx.telegramId].total_paid_usd,
-                    currency: tx.currency
-                });
-            } else if (tx.telegramId) {
-                missing.push({
-                    telegramId: tx.telegramId,
-                    email: tx.email,
-                    net: tx.net,
-                    currency: tx.currency
-                });
-            }
+    // Get lava.top sums
+    const lavaCRM = { RUB: 0, USD: 0, EUR: 0 };
+    Object.values(stats).forEach(s => {
+        if (s.source === 'lava.top' && lavaCRM[s.currency] !== undefined) {
+            lavaCRM[s.currency] += s.totalPaid;
         }
+    });
 
-        // 4. Calculate differences
-        const diff = {
-            RUB: { lavaGross: lavaSums.RUB, lavaNet: lavaNetSums.RUB, db: dbSums.RUB, diff: dbSums.RUB - lavaNetSums.RUB },
-            USD: { lavaGross: lavaSums.USD, lavaNet: lavaNetSums.USD, db: dbSums.USD, diff: dbSums.USD - lavaNetSums.USD },
-            EUR: { lavaGross: lavaSums.EUR, lavaNet: lavaNetSums.EUR, db: dbSums.EUR, diff: dbSums.EUR - lavaNetSums.EUR }
-        };
+    const diff = {
+        RUB: { crm: lavaCRM.RUB.toFixed(2), lava: lavaExpected.RUB, diff: (lavaCRM.RUB - lavaExpected.RUB).toFixed(2) },
+        USD: { crm: lavaCRM.USD.toFixed(2), lava: lavaExpected.USD, diff: (lavaCRM.USD - lavaExpected.USD).toFixed(2) },
+        EUR: { crm: lavaCRM.EUR.toFixed(2), lava: lavaExpected.EUR, diff: (lavaCRM.EUR - lavaExpected.EUR).toFixed(2) }
+    };
 
-        return res.json({
-            lavaTransactionCount: lavaTransactions.length,
-            dbClientCount: clients.length,
-            sums: diff,
-            missingCount: missing.length,
-            missing: missing.slice(0, 10), // First 10
-            foundCount: found.length
-        });
-
-    } catch (e) {
-        return res.status(500).json({ error: e.message, stack: e.stack });
-    }
+    return res.json({
+        bySourceCurrency: Object.values(stats),
+        lavaCRM,
+        lavaExpected,
+        diff,
+        totalClients: clients.length
+    });
 }
