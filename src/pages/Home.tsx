@@ -103,7 +103,7 @@ export function Home() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
-          <div className="text-white text-xl">Loading...</div>
+          <div className="text-white text-xl">Загрузка...</div>
         </div>
       </Layout>
     )
@@ -150,7 +150,7 @@ export function Home() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
-          <div className="text-white text-xl">Loading...</div>
+          <div className="text-white text-xl">Загрузка...</div>
         </div>
       </Layout>
     )

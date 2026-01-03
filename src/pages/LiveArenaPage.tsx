@@ -10,6 +10,7 @@ import { Tour1Drum } from '../components/live/Tour1Drum'
 import { Tour2Squeeze } from '../components/live/Tour2Squeeze'
 import { SemifinalTraffic } from '../components/live/SemifinalTraffic'
 import { FinalBattle } from '../components/live/FinalBattle'
+import { HowToPlayButton } from '../components/HowToPlayButton'
 
 import type { Ticket, Player } from '../types'
 
@@ -617,6 +618,10 @@ export function LiveArenaPage() {
   // ==================== RENDER TOUR 1 ====================
   const renderTour1 = () => (
     <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
+      {/* How to Play button - top right */}
+      <div className="fixed top-[70px] right-4 z-40">
+        <HowToPlayButton variant="icon" />
+      </div>
       <div className="text-center mb-6">
         <h1 className="text-2xl font-black text-[#FFD700]">ОТБОРОЧНЫЙ ТУР</h1>
         <p className="text-white/60 text-sm mt-2">Выбираем 20 из {allTicketsRef.current.length} билетов</p>

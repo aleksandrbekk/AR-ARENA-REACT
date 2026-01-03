@@ -4,6 +4,7 @@ import { Layout } from '../components/layout/Layout'
 import { GiveawayCard } from '../components/giveaways/GiveawayCard'
 import { useGiveaways } from '../hooks/useGiveaways'
 import { Gift, Loader2, AlertCircle, FlaskConical } from 'lucide-react'
+import { HowToPlayButton } from '../components/HowToPlayButton'
 
 type TabType = 'active' | 'completed'
 
@@ -25,11 +26,14 @@ export function GiveawaysPage() {
         {/* Content Container */}
         <div className="relative z-10">
           {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center border border-[#FFD700]/10">
-              <Gift className="w-5 h-5 text-[#FFD700]" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center border border-[#FFD700]/10">
+                <Gift className="w-5 h-5 text-[#FFD700]" />
+              </div>
+              <h1 className="text-2xl font-bold text-white tracking-wide">Розыгрыши</h1>
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-wide">Розыгрыши</h1>
+            <HowToPlayButton variant="icon" />
           </div>
 
           {/* Tabs */}

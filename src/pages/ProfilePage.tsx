@@ -149,7 +149,7 @@ export function ProfilePage() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
-          <div className="text-white text-xl">Loading...</div>
+          <div className="text-white text-xl">Загрузка...</div>
         </div>
       </Layout>
     )

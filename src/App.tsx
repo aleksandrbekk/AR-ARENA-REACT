@@ -4,6 +4,7 @@ import { ToastProvider } from './components/ToastProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AuthProvider } from './providers/AuthProvider'
 import { useTelegramBackButton } from './hooks/useTelegramBackButton'
+import { OnboardingModal } from './components/OnboardingModal'
 
 // Public Pages
 import { Home } from './pages/Home'
@@ -39,6 +40,7 @@ function Root() {
   return (
     <ErrorBoundary>
       <ToastProvider>
+        <OnboardingModal />
         <Outlet />
       </ToastProvider>
     </ErrorBoundary>
@@ -83,7 +85,7 @@ const router = createBrowserRouter([
       {
         path: "app",
         element: (
-          <Suspense fallback={<div className="h-screen bg-[#0a0a0a] flex items-center justify-center text-[#FFD700]">Loading Workspace...</div>}>
+          <Suspense fallback={<div className="h-screen bg-[#0a0a0a] flex items-center justify-center text-[#FFD700]">Загрузка...</div>}>
             <AdminLayoutLazy />
           </Suspense>
         ),
@@ -91,16 +93,16 @@ const router = createBrowserRouter([
           // Index route for /app to handle redirection if needed or show default state
           {
             index: true,
-            element: <div className="h-full flex items-center justify-center text-white/50">Select a project...</div>
+            element: <div className="h-full flex items-center justify-center text-white/50">Выберите проект...</div>
           },
           // Если пользователь зашел просто на /app, его перекинет Layout (см. внутри AdminLayout)
           {
             path: ":projectId",
             children: [
               { path: "dashboard", element: <AdminPage /> }, // Reusing existing dashboard
-              { path: "crm", element: <Suspense fallback={<div>Loading CRM...</div>}><FullCrmPageLazy /></Suspense> },
-              { path: "inbox", element: <Suspense fallback={<div>Loading Inbox...</div>}><InboxPageLazy /></Suspense> },
-              { path: "settings", element: <div className="p-8 text-white">Project Settings Placeholder</div> }
+              { path: "crm", element: <Suspense fallback={<div>Загрузка CRM...</div>}><FullCrmPageLazy /></Suspense> },
+              { path: "inbox", element: <Suspense fallback={<div>Загрузка сообщений...</div>}><InboxPageLazy /></Suspense> },
+              { path: "settings", element: <div className="p-8 text-white">Настройки проекта</div> }
             ]
           }
         ]
@@ -109,8 +111,8 @@ const router = createBrowserRouter([
       // Redirects for old routes to new structure (optional, or kept for safety)
       // For now, let's keep old routes working as standalone, but user can access /app
       { path: "crm", element: <Navigate to="/full-crm" replace /> },
-      { path: "full-crm", element: <Suspense fallback={<div>Loading...</div>}><FullCrmPageLazy /></Suspense> },
-      { path: "inbox", element: <Suspense fallback={<div>Loading...</div>}><InboxPageLazy /></Suspense> }
+      { path: "full-crm", element: <Suspense fallback={<div>Загрузка...</div>}><FullCrmPageLazy /></Suspense> },
+      { path: "inbox", element: <Suspense fallback={<div>Загрузка...</div>}><InboxPageLazy /></Suspense> }
     ]
   }
 ])

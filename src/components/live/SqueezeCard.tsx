@@ -276,7 +276,7 @@ export function SqueezeCard({
           {/* Drag hint */}
           <div className="absolute bottom-3 left-0 right-0 text-center">
             <span className="text-[10px] text-white/30 uppercase tracking-wider">
-              {isDragging ? 'Release to reveal' : 'Drag to peek'}
+              {isDragging ? 'Отпусти для открытия' : 'Потяни чтобы подсмотреть'}
             </span>
           </div>
         </div>
