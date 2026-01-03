@@ -109,6 +109,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 tg.ready()
 
+                // Restore Fullscreen and Header Color
+                const platform = tg.platform
+                const isMobile = platform === 'android' || platform === 'ios'
+                if (isMobile) {
+                    tg.expand()
+                    if (typeof tg.requestFullscreen === 'function') {
+                        try { tg.requestFullscreen() } catch (e) { console.warn('requestFullscreen error', e) }
+                    }
+                }
+                tg.setHeaderColor('#0a0a0a')
+
                 const user = tg.initDataUnsafe?.user
                 if (!user) {
                     console.error('Telegram user data missing')
