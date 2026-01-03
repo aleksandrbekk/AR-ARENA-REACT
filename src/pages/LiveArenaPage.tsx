@@ -1,144 +1,188 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Tour1Drum } from '../components/live/Tour1Drum'
+import { ArenaRoulette } from '../components/live/ArenaRoulette'
+import { ArenaCard } from '../components/live/ArenaCard'
+import { ArenaBattle } from '../components/live/ArenaBattle'
 
-// MOCK DATA for testing
-const MOCK_WINNERS_TOUR_1 = Array.from({ length: 20 }, (_, i) => ({
-  ticket: 100000 + Math.floor(Math.random() * 900000),
-  user: `User_${i + 1}`
+// MOCK DATA
+const MOCK_PARTICIPANTS = Array.from({ length: 50 }, (_, i) => ({
+  id: i + 1,
+  username: `User ${i + 1}`,
+  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`
 }))
 
 export function LiveArenaPage() {
   const { id } = useParams()
+  const [stage, setStage] = useState<'intro' | 'tour1' | 'tour2' | 'semifinal' | 'final' | 'victory'>('intro')
 
+  // Tour 1 State
+  const [tour1Winners, setTour1Winners] = useState<number[]>([])
 
-  // Game State
-  const [currentStage, setCurrentStage] = useState<'intro' | 'tour1' | 'tour2' | 'semifinal' | 'final' | 'victory'>('intro')
+  // Tour 2 State
+  const [tour2Cards, setTour2Cards] = useState(MOCK_PARTICIPANTS.slice(0, 20))
+  const [flippedCards, setFlippedCards] = useState<number[]>([])
 
   const handleStart = () => {
-    setCurrentStage('tour1')
+    setStage('tour1')
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-hidden relative">
-      {/* Dynamic Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#FFD700]/10 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#FFA500]/10 blur-[120px] rounded-full animate-pulse delay-1000" />
+    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-hidden relative flex flex-col">
+      {/* Background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-[#FFD700]/5 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-[#FFA500]/5 blur-[150px] rounded-full" />
       </div>
 
       {/* Header */}
-      <div className="relative pt-[60px] pb-4 px-4 text-center z-10">
-        <motion.div
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="inline-block"
-        >
-          <h1 className="text-3xl font-black italic tracking-tighter">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFA500]">
-              AR ARENA
-            </span>
-            <span className="ml-2 text-white text-lg not-italic font-normal tracking-widest opacity-60">
-              LIVE
-            </span>
-          </h1>
-        </motion.div>
-      </div>
-
-      {/* Stage Indicator */}
-      <div className="flex justify-center gap-1 mb-8 px-4 relative z-10">
-        {['Tour 1', 'Tour 2', 'Semifinal', 'Final'].map((stage, idx) => {
-          const stages = ['tour1', 'tour2', 'semifinal', 'final']
-          const activeIdx = stages.indexOf(currentStage)
-          const isActive = idx === activeIdx
-          const isPassed = idx < activeIdx
-
-          return (
+      <header className="relative z-10 p-6 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-[#FFD700] to-[#FFA500] rounded-xl flex items-center justify-center font-black text-black text-xl">
+            AR
+          </div>
+          <div>
+            <h1 className="text-lg font-bold leading-none">ARENA LIVE</h1>
+            <p className="text-[10px] text-white/50 uppercase tracking-widest">{stage.replace('tour', 'STAGE ').toUpperCase()}</p>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          {['tour1', 'tour2', 'semifinal', 'final'].map((s) => (
             <div
-              key={stage}
-              className={`h-1 flex-1 rounded-full transition-all duration-500 ${isActive ? 'bg-[#FFD700] shadow-[0_0_10px_#FFD700]' :
-                isPassed ? 'bg-[#FFD700]/40' :
-                  'bg-white/10'
+              key={s}
+              className={`w-2 h-2 rounded-full ${stage === s || ['tour1', 'tour2', 'semifinal', 'final'].indexOf(stage) > ['tour1', 'tour2', 'semifinal', 'final'].indexOf(s)
+                  ? 'bg-[#FFD700]'
+                  : 'bg-white/10'
                 }`}
             />
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      </header>
 
-      {/* Main Content Area */}
-      <div className="relative z-10 min-h-[60vh] flex flex-col items-center">
+      {/* Main Content */}
+      <main className="flex-1 relative z-10 flex flex-col items-center justify-center p-4">
         <AnimatePresence mode="wait">
 
-          {currentStage === 'intro' && (
+          {/* INTRO */}
+          {stage === 'intro' && (
             <motion.div
               key="intro"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.1 }}
-              className="text-center p-8"
+              className="text-center"
             >
-              <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-[#FFD700] to-[#FFA500] rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(255,215,0,0.4)]">
-                <span className="text-4xl">🏆</span>
-              </div>
-              <h2 className="text-2xl font-bold mb-2">Grand Giveaway</h2>
-              <p className="text-white/50 mb-8 max-w-xs mx-auto">
-                150 participants are ready to fight for the jackpot!
-              </p>
-
+              <h1 className="text-4xl md:text-6xl font-black mb-6">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFA500]">
+                  GIVEAWAY
+                </span>
+                <br />
+                <span className="text-white text-2xl md:text-4xl font-light tracking-widest">
+                  EVENT
+                </span>
+              </h1>
               <button
                 onClick={handleStart}
-                className="px-8 py-3 bg-[#FFD700] text-black font-bold rounded-xl shadow-[0_0_20px_rgba(255,215,0,0.4)] relative overflow-hidden group"
+                className="px-10 py-4 bg-[#FFD700] text-black font-bold rounded-2xl text-xl hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,215,0,0.3)]"
               >
-                <div className="absolute inset-0 bg-white/30 translate-y-full group-hover:translate-y-0 transition-transform" />
-                <span className="relative">START DRAW</span>
+                START BROADCAST
               </button>
             </motion.div>
           )}
 
-          {currentStage === 'tour1' && (
+          {/* TOUR 1: ROULETTE */}
+          {stage === 'tour1' && (
             <motion.div
               key="tour1"
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              className="w-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full max-w-4xl"
             >
-              <div className="text-center mb-4">
-                <h3 className="text-xl font-bold text-[#FFD700]">STAGE 1: QUALIFICATION</h3>
-                <p className="text-xs text-white/50 uppercase tracking-widest">Finding 20 Lucky Tickets</p>
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-[#FFD700] mb-2">QUALIFICATION</h2>
+                <p className="text-white/50">Spinning for luck...</p>
               </div>
 
-              <Tour1Drum
-                candidates={[]}
-                winners={MOCK_WINNERS_TOUR_1}
-                onComplete={() => {
-                  setTimeout(() => setCurrentStage('tour2'), 2000)
-                }}
+              {/* Using Existing ArenaRoulette Component */}
+              <ArenaRoulette
+                participants={MOCK_PARTICIPANTS}
+                winnerId={42}
+                onComplete={() => setTimeout(() => setStage('tour2'), 3000)}
               />
             </motion.div>
           )}
 
-          {currentStage === 'tour2' && (
+          {/* TOUR 2: CARDS */}
+          {stage === 'tour2' && (
             <motion.div
               key="tour2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center pt-20"
+              exit={{ opacity: 0 }}
+              className="w-full max-w-5xl"
             >
-              <h2 className="text-2xl font-bold">Stage 2 Coming Soon...</h2>
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-[#FFD700] mb-2">ELIMINATION</h2>
+                <p className="text-white/50">Only 5 will remain</p>
+              </div>
+
+              <div className="grid grid-cols-4 md:grid-cols-5 gap-4">
+                {tour2Cards.map((p, idx) => (
+                  <ArenaCard
+                    key={p.id}
+                    username={p.username}
+                    avatar={p.avatar}
+                    isFlipped={flippedCards.includes(p.id)}
+                    delay={idx * 0.05}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-8 text-center">
+                <button
+                  onClick={() => setStage('final')}
+                  className="px-6 py-2 border border-white/20 rounded-full hover:bg-white/10"
+                >
+                  Skip to Final (Dev)
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* FINAL: BATTLE */}
+          {stage === 'final' && (
+            <motion.div
+              key="final"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full h-full"
+            >
+              {/* Using Existing ArenaBattle Component */}
+              <ArenaBattle
+                bullWins={true}
+                onComplete={() => setStage('victory')}
+              />
+            </motion.div>
+          )}
+
+          {/* VICTORY */}
+          {stage === 'victory' && (
+            <motion.div
+              key="victory"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center"
+            >
+              <div className="text-6xl mb-4">👑</div>
+              <h1 className="text-4xl font-bold text-[#FFD700]">WINNER!</h1>
+              <p className="text-2xl mt-4">User 42</p>
             </motion.div>
           )}
 
         </AnimatePresence>
-      </div>
-
-      {/* Footer Controls (for dev) */}
-      <div className="fixed bottom-4 left-0 right-0 p-4 text-center opacity-30 hover:opacity-100 transition-opacity">
-        <div className="text-[10px] text-white/50">
-          DEBUG: {id} | {currentStage}
-        </div>
-      </div>
+      </main>
     </div>
   )
 }
