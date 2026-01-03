@@ -187,6 +187,7 @@ export function Home() {
             onSkinsClick={() => navigate('/skins')}
             onFarmClick={() => navigate('/farm')}
             onGiveawaysClick={() => navigate('/giveaways')}
+            onDevTestClick={() => navigate('/live-test')}
           />
         </TapBull>
 
