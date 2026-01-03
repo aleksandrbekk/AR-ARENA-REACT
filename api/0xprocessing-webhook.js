@@ -402,24 +402,31 @@ export default async function handler(req, res) {
     // ============================================
     // 3. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ
     // ============================================
-    // Проверяем ВСЕ возможные имена полей для суммы от 0xProcessing
-    const amountUSD =
-      payload.AmountUSD ||
-      payload.amountUSD ||
-      payload.amountusd ||
-      payload.Amount ||
-      payload.amount ||
-      payload.AmountUsdt ||
-      payload.amountUsdt ||
-      payload.SumUSD ||
-      payload.sumUsd ||
-      payload.sum ||
-      payload.Sum ||
-      AmountUSD ||
-      Amount;
+    // Согласно документации 0xProcessing webhook содержит:
+    // - AmountUSD: Payment amount in USD equivalent (Double)
+    // - TotalAmountUSD: Full amount received in USD equivalent without fee (Double)
+    // - Amount: Payment amount in CRYPTOCURRENCY (NOT USD!)
+    // ВАЖНО: Используем !== undefined/null, т.к. || не работает если значение = 0
 
-    log(`💰 AMOUNT EXTRACTION: AmountUSD=${payload.AmountUSD}, Amount=${payload.Amount}, amount=${payload.amount}, SUM=${payload.sum}, FINAL=${amountUSD}`);
-    log(`💰 ALL PAYLOAD KEYS: ${Object.keys(payload).join(', ')}`);
+    let amountUSD = null;
+
+    // Приоритет: TotalAmountUSD > AmountUSD (оба в USD)
+    if (payload.TotalAmountUSD !== undefined && payload.TotalAmountUSD !== null) {
+      amountUSD = parseFloat(payload.TotalAmountUSD);
+      log(`💰 Using TotalAmountUSD: ${amountUSD}`);
+    } else if (payload.AmountUSD !== undefined && payload.AmountUSD !== null) {
+      amountUSD = parseFloat(payload.AmountUSD);
+      log(`💰 Using AmountUSD: ${amountUSD}`);
+    } else {
+      // Fallback - это НЕ должно происходить!
+      log(`⚠️ WARNING: No USD amount found in payload!`);
+      log(`⚠️ Available keys: ${Object.keys(payload).join(', ')}`);
+      log(`⚠️ Payload: ${JSON.stringify(payload)}`);
+      // Попробуем Amount, но это криптовалюта, не USD!
+      amountUSD = parseFloat(payload.Amount || 0);
+    }
+
+    log(`💰 FINAL amountUSD: ${amountUSD} | TotalAmountUSD=${payload.TotalAmountUSD}, AmountUSD=${payload.AmountUSD}, Amount=${payload.Amount}`);
 
     const period = getPeriodByAmount(amountUSD);
     log(`📅 Period determined: ${period.days} days (${period.name})`);
