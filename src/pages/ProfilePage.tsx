@@ -155,8 +155,7 @@ export function ProfilePage() {
     )
   }
 
-  // Calculate XP Progress
-  const xpProgress = gameState ? Math.min((gameState.xp / gameState.xp_to_next) * 100, 100) : 0
+
 
   return (
     <Layout>
@@ -191,21 +190,7 @@ export function ProfilePage() {
             <p className="text-white/60 text-sm mb-4">@{telegramUser.username}</p>
           )}
 
-          {/* XP Bar & Level */}
-          {gameState && (
-            <div className="w-full max-w-[200px] flex flex-col items-center gap-1">
-              <div className="flex justify-between w-full text-xs font-bold text-[#FFD700] uppercase tracking-wider">
-                <span>Lvl {gameState.level}</span>
-                <span>{Math.floor(gameState.xp)} / {gameState.xp_to_next} XP</span>
-              </div>
-              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 relative">
-                <div
-                  className="h-full bg-gradient-to-r from-[#FFD700] to-[#FFA500] shadow-[0_0_10px_#FFD700]"
-                  style={{ width: `${xpProgress}%`, transition: 'width 0.5s ease-out' }}
-                />
-              </div>
-            </div>
-          )}
+          <p className="text-white/40 text-xs">ID: {telegramUser.id}</p>
         </div>
 
         {/* Статистика */}
@@ -233,13 +218,6 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {/* Уровень */}
-          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-            <div className="text-white/60 text-xs mb-1">Уровень</div>
-            <div className="text-white text-2xl font-bold">
-              {gameState ? gameState.level : '1'}
-            </div>
-          </div>
 
           {/* Куплено скинов */}
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
@@ -337,10 +315,10 @@ export function ProfilePage() {
                 >
                   {/* Статус */}
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${g.is_winner
-                      ? 'bg-[#FFD700]/20'
-                      : g.status === 'active'
-                        ? 'bg-green-500/20'
-                        : 'bg-white/5'
+                    ? 'bg-[#FFD700]/20'
+                    : g.status === 'active'
+                      ? 'bg-green-500/20'
+                      : 'bg-white/5'
                     }`}>
                     {g.is_winner ? (
                       <TrophyIcon className="text-[#FFD700]" />
