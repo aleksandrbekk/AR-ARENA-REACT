@@ -461,8 +461,9 @@ export function LiveArenaPage() {
       await sleep(800)
 
       setWheelSpinning(true)
-      const baseAngle = turn.result === 'bull' ? 190 + Math.random() * 160 : 10 + Math.random() * 160
-      setWheelAngle(prev => prev + 1800 + baseAngle)
+      // Bull = top half (0-180), Bear = bottom half (180-360) based on wheel image
+      const baseAngle = turn.result === 'bull' ? 10 + Math.random() * 160 : 190 + Math.random() * 160
+      setWheelAngle(prev => prev + 1440 + baseAngle) // 4 rotations + landing angle
       await sleep(3000)
       setWheelSpinning(false)
       setLastResult(turn.result)
@@ -688,8 +689,8 @@ export function LiveArenaPage() {
           </div>
         </div>
 
-        {/* Player Cards */}
-        <div className="flex justify-center gap-2 mb-6 px-2">
+        {/* Player Cards - FIXED EQUAL WIDTH */}
+        <div className="grid grid-cols-5 gap-2 mb-6 px-2 max-w-md mx-auto">
           {semifinalPlayers.map((ticket) => {
             const hits = semifinalHits.get(ticket.ticket_number) || 0
             const eliminated = semifinalEliminated.get(ticket.ticket_number)
@@ -698,28 +699,28 @@ export function LiveArenaPage() {
             return (
               <div
                 key={ticket.ticket_number}
-                className={`flex-1 max-w-[72px] rounded-xl p-2 border-2 transition-all duration-500 ${
+                className={`rounded-xl p-1.5 border-2 transition-all duration-500 ${
                   eliminated ? 'border-red-500 bg-red-500/10' :
                   isCurrentSpin ? 'border-[#FFD700] bg-[#FFD700]/10 scale-105' :
                   'border-zinc-700 bg-zinc-900/80'
                 }`}
               >
                 {/* Traffic Light Indicator */}
-                <div className={`w-full h-2 rounded-full mb-2 transition-all duration-500 ${getIndicatorClass(hits)}`} />
+                <div className={`w-full h-1.5 rounded-full mb-1.5 transition-all duration-500 ${getIndicatorClass(hits)}`} />
 
                 <img
                   src={ticket.player.avatar}
                   alt=""
-                  className={`w-12 h-12 mx-auto rounded-full border-2 mb-1 ${
+                  className={`w-10 h-10 mx-auto rounded-full border-2 mb-1 object-cover ${
                     eliminated ? 'border-red-500 grayscale' :
-                    isCurrentSpin ? 'border-[#FFD700]' : 'border-white/50'
+                    isCurrentSpin ? 'border-[#FFD700]' : 'border-white/30'
                   }`}
                 />
-                <div className="text-[9px] text-white/80 text-center truncate">{ticket.player.name}</div>
-                <div className="text-xs font-bold text-[#FFD700] text-center">#{ticket.ticket_number}</div>
+                <div className="text-[8px] text-white/70 text-center truncate leading-tight">{ticket.player.name}</div>
+                <div className="text-[10px] font-bold text-[#FFD700] text-center">#{ticket.ticket_number}</div>
 
                 {eliminated && (
-                  <div className="text-[10px] font-bold text-red-400 text-center mt-1 bg-red-500/20 rounded py-0.5">
+                  <div className="text-[8px] font-bold text-red-400 text-center mt-0.5 bg-red-500/20 rounded py-0.5">
                     {eliminated} МЕСТО
                   </div>
                 )}
@@ -730,13 +731,18 @@ export function LiveArenaPage() {
 
         {/* Roulette */}
         <div className="relative mb-6">
-          {/* Cursor - centered above strip */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20">
-            <img src="/icons/Cursor.png" alt="cursor" className="w-10 h-10 drop-shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
-          </div>
+          {/* Cursor - ABOVE the strip with smooth animation */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex justify-center mb-2"
+          >
+            <img src="/icons/Cursor.png" alt="cursor" className="w-8 h-8 drop-shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
+          </motion.div>
 
           {/* Roulette Strip Container */}
-          <div className="mt-10 bg-zinc-900/90 border-2 border-[#FFD700]/30 rounded-2xl py-3 overflow-hidden">
+          <div className="bg-zinc-900/90 border-2 border-[#FFD700]/30 rounded-2xl py-3 overflow-hidden">
             <div
               className="flex transition-transform duration-[2.5s] ease-out"
               style={{
