@@ -144,7 +144,8 @@ export function ProfilePage() {
     })
   }
 
-  if (isLoading || loadingStats) {
+  // Non-blocking loading state
+  if (!telegramUser) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
@@ -154,15 +155,8 @@ export function ProfilePage() {
     )
   }
 
-  if (!telegramUser || !gameState || !stats) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-white text-xl">No data</div>
-        </div>
-      </Layout>
-    )
-  }
+  // Calculate XP Progress
+  const xpProgress = gameState ? Math.min((gameState.xp / gameState.xp_to_next) * 100, 100) : 0
 
   return (
     <Layout>
@@ -194,9 +188,24 @@ export function ProfilePage() {
             {telegramUser.last_name && ` ${telegramUser.last_name}`}
           </h1>
           {telegramUser.username && (
-            <p className="text-white/60 text-sm mb-1">@{telegramUser.username}</p>
+            <p className="text-white/60 text-sm mb-4">@{telegramUser.username}</p>
           )}
-          <p className="text-white/40 text-xs">ID: {telegramUser.id}</p>
+
+          {/* XP Bar & Level */}
+          {gameState && (
+            <div className="w-full max-w-[200px] flex flex-col items-center gap-1">
+              <div className="flex justify-between w-full text-xs font-bold text-[#FFD700] uppercase tracking-wider">
+                <span>Lvl {gameState.level}</span>
+                <span>{Math.floor(gameState.xp)} / {gameState.xp_to_next} XP</span>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 relative">
+                <div
+                  className="h-full bg-gradient-to-r from-[#FFD700] to-[#FFA500] shadow-[0_0_10px_#FFD700]"
+                  style={{ width: `${xpProgress}%`, transition: 'width 0.5s ease-out' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Статистика */}
@@ -205,7 +214,11 @@ export function ProfilePage() {
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
             <div className="text-white/60 text-xs mb-1">Всего тапов</div>
             <div className="text-white text-2xl font-bold">
-              {stats.total_taps.toLocaleString()}
+              {loadingStats || !stats ? (
+                <div className="h-8 w-16 bg-white/10 animate-pulse rounded" />
+              ) : (
+                stats.total_taps.toLocaleString()
+              )}
             </div>
           </div>
 
@@ -215,7 +228,7 @@ export function ProfilePage() {
             <div className="flex items-center gap-1">
               <img src="/icons/BUL.png" className="w-6 h-6" alt="BUL" />
               <span className="text-white text-2xl font-bold">
-                {gameState.balance_bul.toLocaleString()}
+                {gameState ? gameState.balance_bul.toLocaleString() : '0'}
               </span>
             </div>
           </div>
@@ -224,7 +237,7 @@ export function ProfilePage() {
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
             <div className="text-white/60 text-xs mb-1">Уровень</div>
             <div className="text-white text-2xl font-bold">
-              {gameState.level}
+              {gameState ? gameState.level : '1'}
             </div>
           </div>
 
@@ -232,7 +245,11 @@ export function ProfilePage() {
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
             <div className="text-white/60 text-xs mb-1">Куплено скинов</div>
             <div className="text-white text-2xl font-bold">
-              {stats.skins_owned}
+              {loadingStats || !stats ? (
+                <div className="h-8 w-8 bg-white/10 animate-pulse rounded" />
+              ) : (
+                stats.skins_owned
+              )}
             </div>
           </div>
         </div>
@@ -273,7 +290,11 @@ export function ProfilePage() {
         <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 mb-6">
           <div className="text-white/60 text-xs mb-1">Дата регистрации</div>
           <div className="text-white text-base">
-            {formatDate(stats.created_at)}
+            {loadingStats || !stats ? (
+              <div className="h-6 w-32 bg-white/10 animate-pulse rounded" />
+            ) : (
+              formatDate(stats.created_at)
+            )}
           </div>
         </div>
 
@@ -315,13 +336,12 @@ export function ProfilePage() {
                   className="flex items-center gap-3 p-3 bg-black/20 rounded-xl cursor-pointer hover:bg-black/30 transition-colors"
                 >
                   {/* Статус */}
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    g.is_winner
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${g.is_winner
                       ? 'bg-[#FFD700]/20'
                       : g.status === 'active'
-                      ? 'bg-green-500/20'
-                      : 'bg-white/5'
-                  }`}>
+                        ? 'bg-green-500/20'
+                        : 'bg-white/5'
+                    }`}>
                     {g.is_winner ? (
                       <TrophyIcon className="text-[#FFD700]" />
                     ) : g.status === 'active' ? (
