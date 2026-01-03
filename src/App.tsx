@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-rou
 import { ToastProvider } from './components/ToastProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AuthProvider } from './providers/AuthProvider'
+import { useTelegramBackButton } from './hooks/useTelegramBackButton'
 
 // Public Pages
 import { Home } from './pages/Home'
@@ -32,6 +33,9 @@ const InboxPageLazy = lazy(() => import('./pages/InboxPage').then(m => ({ defaul
 // Root Component that handles Telegram initialization
 // Root Component
 function Root() {
+  // Управление системной кнопкой "Назад" в Telegram
+  useTelegramBackButton()
+
   return (
     <ErrorBoundary>
       <ToastProvider>

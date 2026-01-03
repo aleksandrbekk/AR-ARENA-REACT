@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Tour1Drum } from '../components/live/Tour1Drum'
 import { SqueezeCard } from '../components/live/SqueezeCard'
@@ -46,6 +47,32 @@ const mockFinalists3: Ticket[] = mockFinalists3Raw.map((p, i) => ({
 
 export function LiveArenaTestPage() {
     const [mode, setMode] = useState<TestMode>('menu')
+    const navigate = useNavigate()
+
+    // ===================== TELEGRAM BACK BUTTON =====================
+    const handleBack = useCallback(() => {
+        if (mode === 'menu') {
+            // На главном меню - выходим на страницу розыгрышей
+            navigate('/giveaways')
+        } else {
+            // Внутри теста - возвращаемся в меню
+            setMode('menu')
+        }
+    }, [mode, navigate])
+
+    useEffect(() => {
+        const tg = window.Telegram?.WebApp
+        if (!tg?.BackButton) return
+
+        // Показываем кнопку "Назад"
+        tg.BackButton.show()
+        tg.BackButton.onClick(handleBack)
+
+        return () => {
+            tg.BackButton.offClick(handleBack)
+            tg.BackButton.hide()
+        }
+    }, [handleBack])
 
     // ===================== HOOKS =====================
     const { initAudio, playClick, playSuccess, playFailure, playRouletteTicks, playImpact } = useArenaSounds()
