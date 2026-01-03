@@ -856,7 +856,7 @@ export function LiveArenaPage() {
                           : 'bg-zinc-900 border-zinc-700'
                       }`}
                     >
-                      <img src="/icons/bull.png" alt="bull" className="w-5 h-5" />
+                      <img src="/icons/bull.png" alt="bull" className="w-6 h-6" />
                     </div>
                   ))}
                 </div>
@@ -870,7 +870,7 @@ export function LiveArenaPage() {
                           : 'bg-zinc-900 border-zinc-700'
                       }`}
                     >
-                      <img src="/icons/bear.png" alt="bear" className="w-5 h-5" />
+                      <img src="/icons/bear.png" alt="bear" className="w-6 h-6" />
                     </div>
                   ))}
                 </div>
