@@ -139,7 +139,7 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
       </div>
 
       {/* Winners Grid - Responsive without fixed height */}
-      <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+      <div className="w-full grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
         <AnimatePresence mode="popLayout">
           {foundWinners.map((w, i) => {
             const isNew = i === lastFoundIndex
@@ -207,13 +207,11 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-white/40 text-xs font-medium">#{i + 1}</span>
-                      <span className="text-white font-medium text-sm truncate">
-                        {w.user}
-                      </span>
+                    <div className="text-white font-medium text-sm truncate" title={w.user}>
+                      <span className="text-white/40 text-xs mr-1">#{i + 1}</span>
+                      {w.user}
                     </div>
-                    <div className="font-mono text-[#FFD700] font-bold text-sm tracking-wide">
+                    <div className="font-mono text-[#FFD700] font-bold text-xs">
                       {w.ticket.toString().padStart(6, '0')}
                     </div>
                   </div>
