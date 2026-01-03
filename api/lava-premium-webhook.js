@@ -101,10 +101,11 @@ function getGrossAmount(payload) {
 }
 
 // Получить ЧИСТУЮ сумму (сколько пришло в магазин) - для статистики
+// Lava берет 8% комиссии, поэтому Net = Gross * 0.92
 function getNetAmount(payload) {
-  const { payment, shopAmount, amount: rawAmount } = payload;
+  const { payment, shopAmount, amount: rawAmount, buyerAmount } = payload;
 
-  // payment.amount - сумма зачисления (Net)
+  // payment.amount - сумма зачисления (Net) - если Lava присылает явно
   if (payment?.amount) {
     console.log(`💵 Using payment.amount (Net) for DB: ${payment.amount}`);
     return parseFloat(payment.amount);
@@ -116,9 +117,12 @@ function getNetAmount(payload) {
     return parseFloat(shopAmount);
   }
 
-  // Fallback - если нет явного Net, берем что есть (лучше завысить, чем 0)
-  console.log(`💵 Using rawAmount (Fallback) for DB: ${rawAmount}`);
-  return parseFloat(rawAmount || 0);
+  // Fallback - если нет явного Net, применяем 8% комиссию к Gross
+  // Берем buyerAmount (Gross) или rawAmount
+  const grossAmount = parseFloat(buyerAmount || rawAmount || 0);
+  const netAmount = grossAmount * 0.92; // 8% комиссия Lava
+  console.log(`💵 Calculated Net from Gross (${grossAmount} * 0.92 = ${netAmount}) for DB`);
+  return netAmount;
 }
 
 // Supabase клиент
