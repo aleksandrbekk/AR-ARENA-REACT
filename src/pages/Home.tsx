@@ -110,11 +110,11 @@ export function Home() {
 
   // Показываем ошибку только если нет данных
   if (error && !gameState && !telegramUser) {
-    const isConnectionError = error.includes('Failed to fetch') || 
-                              error.includes('ERR_NAME_NOT_RESOLVED') || 
-                              error.includes('Load failed') ||
-                              error.includes('TypeError')
-    
+    const isConnectionError = error.includes('Failed to fetch') ||
+      error.includes('ERR_NAME_NOT_RESOLVED') ||
+      error.includes('Load failed') ||
+      error.includes('TypeError')
+
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center h-full gap-4 px-4">
@@ -123,7 +123,7 @@ export function Home() {
               <>
                 <div className="mb-2">⚠️ Ошибка подключения к Supabase</div>
                 <div className="text-sm text-gray-400 mt-4">
-                  Проект Supabase недоступен.<br/>
+                  Проект Supabase недоступен.<br />
                   Проверьте статус проекта в панели управления.
                 </div>
               </>
@@ -141,7 +141,7 @@ export function Home() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
-          <div className="text-white text-xl">Loading...</div>
+          <div className="text-white text-xl">Loading v2...</div>
         </div>
       </Layout>
     )
