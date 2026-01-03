@@ -101,7 +101,7 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
           <div className="bg-[#0a0a0a] rounded-2xl overflow-hidden px-10 py-6 text-center relative">
             {/* Label */}
             <div className="text-xs text-[#FFD700]/70 uppercase tracking-[0.3em] mb-3 font-medium">
-              Searching Ticket
+              Поиск билета
             </div>
 
             {/* Ticket number */}
@@ -129,7 +129,7 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
         <div className="flex items-center gap-2">
           <span className="text-lg">✨</span>
           <span className="text-sm font-bold text-[#FFD700] uppercase tracking-wider">
-            Qualified
+            Прошли
           </span>
           <span className="text-white/60 font-mono text-sm">
             {foundWinners.length}/{winners.length}

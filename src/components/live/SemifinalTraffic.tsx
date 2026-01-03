@@ -55,7 +55,7 @@ export function SemifinalTraffic({
                         >
                             SEMIFINAL
                         </motion.h1>
-                        <p className="text-white/60 text-sm">Traffic Light Roulette</p>
+                        <p className="text-white/60 text-sm">Обратный светофор</p>
                     </div>
 
                     {/* Legend with neon dots */}
@@ -70,7 +70,7 @@ export function SemifinalTraffic({
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full shadow-[0_0_8px_#ef4444,0_0_16px_rgba(239,68,68,0.5)]" style={{ background: 'linear-gradient(to bottom, #f87171, #ef4444)' }} />
-                            <span className="text-xs text-white/70">OUT</span>
+                            <span className="text-xs text-white/70">ВЫБЫЛ</span>
                         </div>
                     </div>
                 </>
@@ -144,7 +144,7 @@ export function SemifinalTraffic({
                                 #{ticket.ticket_number}
                             </div>
 
-                            {/* Eliminated badge with animation - ❌ OUT */}
+                            {/* Eliminated badge with animation - ❌ ВЫБЫЛ */}
                             <AnimatePresence>
                                 {eliminatedPlace && (
                                     <motion.div
@@ -155,7 +155,7 @@ export function SemifinalTraffic({
                                         data-testid="out-badge"
                                     >
                                         <div className="bg-red-600/95 backdrop-blur-sm text-white text-[11px] font-black px-2.5 py-1 rounded-lg border-2 border-red-400 shadow-[0_0_25px_rgba(239,68,68,0.9)]">
-                                            ❌ OUT
+                                            ❌ ВЫБЫЛ
                                         </div>
                                     </motion.div>
                                 )}

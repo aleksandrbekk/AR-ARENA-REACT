@@ -15,7 +15,7 @@ type TestMode = 'menu' | 'tour1' | 'tour2' | 'semifinal' | 'final'
 const generateMockWinners = (count: number) =>
     Array.from({ length: count }, (_, i) => ({
         ticket: 100000 + Math.floor(Math.random() * 50000),
-        user: `Player ${i + 1}`,
+        user: `Игрок ${i + 1}`,
         avatar: `https://ui-avatars.com/api/?name=P${i + 1}&background=${['FFD700', 'FFA500', '22c55e', '3b82f6'][i % 4]}&color=000&bold=true`
     }))
 
@@ -205,6 +205,7 @@ export function LiveArenaTestPage() {
         const turnOrder = [0, 1, 2]
         let turnIdx = 0
         let placesAssigned = 0
+        let currentAngle = 0 // Track angle locally
 
         while (placesAssigned < 3 && turnIdx < 20) {
             const playerIdx = turnOrder[turnIdx % 3]
@@ -218,18 +219,23 @@ export function LiveArenaTestPage() {
             setLastResult(null)
             await new Promise(r => setTimeout(r, 800))
 
-            // Spin wheel
+            // Spin wheel - random angle first, then determine result
             setWheelSpinning(true)
-            const result: 'bull' | 'bear' = Math.random() < 0.5 ? 'bull' : 'bear'
-            const baseAngle = result === 'bull'
-                ? 210 + Math.random() * 120
-                : 30 + Math.random() * 120
+            const spinAmount = 1800 + Math.random() * 720 // 5-7 full rotations
+            const newAngle = currentAngle + spinAmount
+            currentAngle = newAngle
 
-            setWheelAngle(prev => prev + 1800 + baseAngle)
+            setWheelAngle(newAngle)
             playRouletteTicks(20)
 
             await new Promise(r => setTimeout(r, 3000))
             setWheelSpinning(false)
+
+            // Determine result by final angle
+            // Wheel: Left (180-360°) = BULL (green), Right (0-180°) = BEAR (red)
+            const normalized = newAngle % 360
+            const result: 'bull' | 'bear' = normalized >= 180 ? 'bull' : 'bear'
+
             setLastResult(result)
             playImpact()
             triggerImpact()
@@ -292,14 +298,14 @@ export function LiveArenaTestPage() {
         return (
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4 flex flex-col items-center">
                 <h1 className="text-3xl font-black text-[#FFD700] mb-2">DEV TEST</h1>
-                <p className="text-white/50 text-sm mb-8">Arena Components Playground</p>
+                <p className="text-white/50 text-sm mb-8">Тест компонентов арены</p>
 
                 <div className="w-full max-w-sm space-y-4">
                     {[
                         { id: 'tour1' as const, label: 'TOUR 1', desc: 'Drum / Барабан', icon: '🎰' },
-                        { id: 'tour2' as const, label: 'TOUR 2', desc: 'Squeeze Cards', icon: '🃏' },
-                        { id: 'semifinal' as const, label: 'SEMIFINAL', desc: 'Traffic Light Roulette', icon: '🚦' },
-                        { id: 'final' as const, label: 'FINAL', desc: 'Bulls & Bears Wheel', icon: '🎯' },
+                        { id: 'tour2' as const, label: 'TOUR 2', desc: 'Карты судьбы', icon: '🃏' },
+                        { id: 'semifinal' as const, label: 'SEMIFINAL', desc: 'Обратный светофор', icon: '🚦' },
+                        { id: 'final' as const, label: 'FINAL', desc: 'Быки и Медведи', icon: '🎯' },
                     ].map((item, i) => (
                         <motion.button
                             key={item.id}
@@ -323,8 +329,8 @@ export function LiveArenaTestPage() {
                 </div>
 
                 <div className="mt-8 text-center text-white/30 text-xs">
-                    <p>Touch to test haptics & sounds</p>
-                    <p className="mt-1">Works best in Telegram</p>
+                    <p>Тест вибрации и звуков</p>
+                    <p className="mt-1">Лучше всего работает в Telegram</p>
                 </div>
             </div>
         )
@@ -359,7 +365,7 @@ export function LiveArenaTestPage() {
                 <BackButton />
                 <div className="text-center mb-6 pt-8">
                     <h1 className="text-2xl font-black text-[#FFD700]">TOUR 1 TEST</h1>
-                    <p className="text-white/50 text-sm">Drum Animation</p>
+                    <p className="text-white/50 text-sm">Барабан</p>
                 </div>
                 <Tour1Drum
                     candidates={mockWinners20}
@@ -432,7 +438,7 @@ export function LiveArenaTestPage() {
                 <BackButton />
                 <div className="text-center mb-4 pt-8">
                     <h1 className="text-2xl font-black text-[#FFD700]">SEMIFINAL TEST</h1>
-                    <p className="text-white/50 text-sm mb-4">Traffic Light Roulette</p>
+                    <p className="text-white/50 text-sm mb-4">Обратный светофор</p>
                     <button
                         onClick={runSemifinalDemo}
                         data-testid="run-demo-btn"

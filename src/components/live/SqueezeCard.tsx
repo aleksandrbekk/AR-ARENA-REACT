@@ -22,7 +22,7 @@ const MAX_DRAG = 150 // max drag distance in px
  */
 export function SqueezeCard({
   result,
-  playerName = 'Player',
+  playerName = 'Игрок',
   playerAvatar,
   ticketNumber,
   isRevealed: externalRevealed,
@@ -53,13 +53,13 @@ export function SqueezeCard({
       border: '#22c55e',
       glow: 'rgba(34, 197, 94, 0.5)',
       bg: 'linear-gradient(135deg, #166534 0%, #15803d 50%, #22c55e 100%)',
-      text: 'PASSED'
+      text: 'ПРОШЁЛ'
     },
     red: {
       border: '#ef4444',
       glow: 'rgba(239, 68, 68, 0.5)',
       bg: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 50%, #ef4444 100%)',
-      text: 'OUT'
+      text: 'ВЫБЫЛ'
     }
   }
 

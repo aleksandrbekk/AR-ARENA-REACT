@@ -93,7 +93,7 @@ export function FinalBattle({
                         data-testid="run-demo-btn"
                         className="px-6 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-full hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,215,0,0.3)]"
                     >
-                        RUN DEMO
+                        ЗАПУСТИТЬ
                     </button>
                 </div>
             )}
