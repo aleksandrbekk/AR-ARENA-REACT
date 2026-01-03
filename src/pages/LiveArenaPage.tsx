@@ -461,8 +461,8 @@ export function LiveArenaPage() {
       await sleep(800)
 
       setWheelSpinning(true)
-      // Bull = top half (0-180), Bear = bottom half (180-360) based on wheel image
-      const baseAngle = turn.result === 'bull' ? 10 + Math.random() * 160 : 190 + Math.random() * 160
+      // Bull = LEFT half (190-350°), Bear = RIGHT half (10-170°) based on wheel image
+      const baseAngle = turn.result === 'bull' ? 190 + Math.random() * 160 : 10 + Math.random() * 160
       setWheelAngle(prev => prev + 1440 + baseAngle) // 4 rotations + landing angle
       await sleep(3000)
       setWheelSpinning(false)
@@ -689,8 +689,8 @@ export function LiveArenaPage() {
           </div>
         </div>
 
-        {/* Player Cards - FIXED EQUAL WIDTH */}
-        <div className="grid grid-cols-5 gap-2 mb-6 px-2 max-w-md mx-auto">
+        {/* Player Cards - EQUAL WIDTH with flex: 1 like vanilla */}
+        <div className="flex gap-2 mb-6 px-2">
           {semifinalPlayers.map((ticket) => {
             const hits = semifinalHits.get(ticket.ticket_number) || 0
             const eliminated = semifinalEliminated.get(ticket.ticket_number)
@@ -699,7 +699,8 @@ export function LiveArenaPage() {
             return (
               <div
                 key={ticket.ticket_number}
-                className={`rounded-xl p-1.5 border-2 transition-all duration-500 ${
+                style={{ flex: 1, minWidth: 0 }}
+                className={`rounded-xl p-1.5 border-2 transition-all duration-500 flex flex-col items-center ${
                   eliminated ? 'border-red-500 bg-red-500/10' :
                   isCurrentSpin ? 'border-[#FFD700] bg-[#FFD700]/10 scale-105' :
                   'border-zinc-700 bg-zinc-900/80'
@@ -711,16 +712,16 @@ export function LiveArenaPage() {
                 <img
                   src={ticket.player.avatar}
                   alt=""
-                  className={`w-10 h-10 mx-auto rounded-full border-2 mb-1 object-cover ${
+                  className={`w-10 h-10 rounded-full border-2 mb-1 object-cover ${
                     eliminated ? 'border-red-500 grayscale' :
                     isCurrentSpin ? 'border-[#FFD700]' : 'border-white/30'
                   }`}
                 />
-                <div className="text-[8px] text-white/70 text-center truncate leading-tight">{ticket.player.name}</div>
+                <div className="text-[8px] text-white/70 text-center truncate w-full leading-tight">{ticket.player.name}</div>
                 <div className="text-[10px] font-bold text-[#FFD700] text-center">#{ticket.ticket_number}</div>
 
                 {eliminated && (
-                  <div className="text-[8px] font-bold text-red-400 text-center mt-0.5 bg-red-500/20 rounded py-0.5">
+                  <div className="text-[8px] font-bold text-red-400 text-center mt-0.5 bg-red-500/20 rounded py-0.5 w-full">
                     {eliminated} МЕСТО
                   </div>
                 )}
