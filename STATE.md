@@ -1,40 +1,40 @@
 # Current State
 
 ## 🚀 Active Task
-**Dev Test Panel for Live Arena Components**
+**Локализация + Онбординг + Как играть**
 
-### ✅ Done
-- **Dev Test Panel** (`/live-test`):
-  - 4 big test buttons: TOUR 1, TOUR 2, SEMIFINAL, FINAL.
-  - Each button renders isolated component with mock data.
-  - Tour 1: Drum animation with winner search.
-  - Tour 2: SqueezeCard with tap-to-reveal + triggerTension haptics.
-  - Semifinal: Traffic Light roulette demo with RUN DEMO button.
-  - Final: Bulls & Bears wheel demo with RUN DEMO button.
-  - Added DEV button (🧪) on Home page SideButtons for quick access.
-  - All sounds (useArenaSounds) and haptics (useArenaHaptics) integrated.
+### ✅ Done (Сегодня)
+- **Локализация на русский**:
+  - App.tsx: все Loading... → Загрузка...
+  - Home.tsx, ProfilePage.tsx: Загрузка...
+  - SqueezeCard.tsx: "Потяни чтобы подсмотреть" / "Отпусти для открытия"
 
-- **Live Arena - Refactoring**:
-  - Split `LiveArenaPage.tsx` (1000+ lines) into modular components.
-  - Created `Tour2Squeeze`, `SemifinalTraffic`, `FinalBattle`.
-  - Fixed `SqueezeCard` initial size bug.
-  - Consolidated types in `src/types/index.ts`.
+- **OnboardingModal** (`src/components/OnboardingModal.tsx`):
+  - 3 слайда приветствия при первом входе
+  - Сохраняет в localStorage `onboarding_seen: true`
+  - Анимированные переходы, dots навигация
+  - Кнопки "Далее" / "Понятно!" / "Пропустить"
 
-- **SFX & Haptics**:
-  - `useArenaSounds`: Web Audio API (Click, Impact, Success, Failure, Win, RouletteTicks).
-  - `useArenaHaptics`: TMA HapticFeedback + Squeeze tension effects.
-  - Integrated into `LiveArenaPage.tsx` and `LiveArenaTestPage.tsx`.
+- **HowToPlayButton** (`src/components/HowToPlayButton.tsx`):
+  - Креативная модалка с правилами Live Arena
+  - Timeline дизайн: Тур 1 → Тур 2 → Полуфинал → Финал
+  - Иконки, анимации, подсказки для каждого этапа
+  - Призовой фонд: 1 место 50%, 2 место 30%, 3 место 20%
+  - Добавлен на GiveawaysPage (header) и LiveArenaPage (tour1)
 
-### ⏳ Next Steps (Parallel Agents)
-1. **[x] Agent Anya (UI):** `Tour1Drum` - ✅ DONE (Avatars, Badges, Flow).
-2. **[x] Agent Vasya/Valera (Logic):** `SqueezeCard` - ✅ DONE (Drag, Spring physics, Haptics).
-3. **Agent Borya (Polish):** `SemifinalTraffic` - Neon lights & Smooth Roulette.
-4. **[x] Agent Grisha (Polish):** `FinalBattle` - ✅ DONE:
-   - Integrated FinalBattle component into LiveArenaTestPage (replaced inline code).
-   - Wheel: cubic-bezier(0.17, 0.67, 0.12, 0.99) smooth spin.
-   - Result: spring animation (scale + rotate) for bull/bear.
-   - Players: glow for active, grayscale+opacity for eliminated.
-   - Victory: confetti + gold pulsing badge.
-   - Defeat: shake animation + red badge.
-   - Playwright test: `tests/final.spec.ts` (places assignment check).
-5. **Manager:** Verify all changes.
+- **Tour1Drum fix** (предыдущий коммит):
+  - Барабан показывает реальный номер билета победителя
+  - Пауза 400мс при показе билета
+  - Зелёная подсветка + glow при показе
+  - Последний билет остаётся на экране в конце
+
+### 🏗️ Ранее сделано
+- **Dev Test Panel** (`/live-test`): 4 кнопки для тестирования компонентов
+- **Live Arena Components**: Tour1Drum, Tour2Squeeze, SemifinalTraffic, FinalBattle
+- **SFX & Haptics**: useArenaSounds (Web Audio), useArenaHaptics (TMA)
+
+### ⏳ Готово к тестированию
+- Открой https://ararena.pro в Telegram
+- Первый вход: должна появиться OnboardingModal
+- На странице Розыгрышей: кнопка "?" справа вверху → правила
+- На Live Arena (tour1): кнопка "?" справа вверху
