@@ -66,6 +66,7 @@ export function LiveArenaPage() {
   const [semifinalHits, setSemifinalHits] = useState<Map<number, number>>(new Map())
   const [semifinalEliminated, setSemifinalEliminated] = useState<Map<number, number>>(new Map())
   const [rouletteOffset, setRouletteOffset] = useState(0)
+  const [rouletteTransition, setRouletteTransition] = useState(false) // Controls smooth/instant
   const [showSemifinalPrizes, setShowSemifinalPrizes] = useState(false)
   const [currentSpinTicket, setCurrentSpinTicket] = useState<number | null>(null)
 
@@ -74,8 +75,8 @@ export function LiveArenaPage() {
   const [finalScores, setFinalScores] = useState<{ bulls: number; bears: number; place: number | null }[]>([])
   const [finalTurnOrder, setFinalTurnOrder] = useState<number[]>([])
   const [currentFinalPlayer, setCurrentFinalPlayer] = useState<number | null>(null)
-  const [wheelAngle, setWheelAngle] = useState(0)
-  const [wheelSpinning, setWheelSpinning] = useState(false)
+  const [cursorState, setCursorState] = useState<'idle' | 'spinning' | 'stopping'>('idle')
+  const [finalAngle, setFinalAngle] = useState(0)
   const [lastResult, setLastResult] = useState<'bull' | 'bear' | null>(null)
 
   // Results
@@ -386,28 +387,32 @@ export function LiveArenaPage() {
     const eliminatedMap = new Map<number, number>()
     let eliminatedCount = 0
 
-    // Track cumulative offset for smooth continuous scrolling
-    let cumulativeOffset = 0
-
     for (const spin of results.semifinal.spins) {
       const spinTicketNum = typeof spin.ticket === 'number' ? spin.ticket : (spin.ticket as any)?.ticket_number || (spin as any).ticket_number
 
-      // Like vanilla: calculate target position first, then smooth animate
+      // LIKE VANILLA: reset position first (no transition), then smooth scroll
       setCurrentSpinTicket(null)
 
+      // Step 1: Disable transition and reset to 0
+      setRouletteTransition(false)
+      setRouletteOffset(0)
+      await sleep(50) // Let DOM update
+
+      // Step 2: Calculate target position
       // Item width 100px + gap 12px = 112px per item
       const ticketIndex = semifinalists.findIndex(t => t.ticket_number === spinTicketNum)
       const itemWidth = 112
       const itemsPerRep = semifinalists.length
 
-      // Calculate how many full repetitions to scroll (2-3 reps for visual effect)
-      const extraReps = 2 + Math.floor(Math.random() * 2) // 2-3 extra repetitions
-      const targetOffset = cumulativeOffset - (extraReps * itemsPerRep * itemWidth) - (ticketIndex * itemWidth)
+      // Target: center (rep 5 of 10) + winner ticket index
+      // Plus some extra scrolling (3-4 reps worth) for visual effect
+      const extraScroll = (3 + Math.floor(Math.random() * 2)) * itemsPerRep * itemWidth
+      const targetOffset = -(extraScroll + ticketIndex * itemWidth)
 
-      // Smooth scroll to target over 4 seconds (like vanilla)
+      // Step 3: Enable transition and move to target
+      setRouletteTransition(true)
       setRouletteOffset(targetOffset)
-      cumulativeOffset = targetOffset
-      await sleep(4000)
+      await sleep(4000) // Wait for 4s animation
 
       setCurrentSpinTicket(spinTicketNum)
 
@@ -461,21 +466,29 @@ export function LiveArenaPage() {
     for (const turn of results.final.turns) {
       if (scores.filter(s => s.place !== null).length >= 3) break
 
+      // SKIP turns for players who already have a place!
+      if (scores[turn.player].place !== null) continue
+
       setCurrentFinalPlayer(turn.player)
       setLastResult(null)
       await sleep(800)
 
-      setWheelSpinning(true)
-      // Bull = LEFT half (green), Bear = RIGHT half (red)
-      // Safe zones with margin from boundaries (180° and 0°/360°):
-      // Bull: 210-330° (center ~270°, safe from both boundaries)
-      // Bear: 30-150° (center ~90°, safe from both boundaries)
+      // Start spinning animation (like vanilla)
+      setCursorState('spinning')
+      setLastResult(null)
+      await sleep(500) // Brief spin before calculating result
+
+      // Calculate final angle - EXACTLY like vanilla:
+      // Bull = LEFT side (190-350°), Bear = RIGHT side (10-170°)
       const baseAngle = turn.result === 'bull'
-        ? 210 + Math.random() * 120  // 210-330° for bull (safe margin)
-        : 30 + Math.random() * 120   // 30-150° for bear (safe margin)
-      setWheelAngle(prev => prev + 1800 + baseAngle) // 5 rotations + landing angle (like vanilla)
-      await sleep(3000)
-      setWheelSpinning(false)
+        ? 190 + Math.random() * 160  // 190-350° for bull
+        : 10 + Math.random() * 160   // 10-170° for bear
+      const newFinalAngle = 1800 + baseAngle // 5 full rotations + landing
+      setFinalAngle(newFinalAngle)
+      setCursorState('stopping')
+      await sleep(3000) // Wait for stopping animation
+
+      setCursorState('idle')
       setLastResult(turn.result)
 
       if (turn.result === 'bull') {
@@ -759,7 +772,7 @@ export function LiveArenaPage() {
               style={{
                 gap: '12px',
                 transform: `translateX(calc(50% + ${rouletteOffset}px - 50px))`,
-                transition: 'transform 4s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                transition: rouletteTransition ? 'transform 4s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none'
               }}
             >
               {Array(10).fill(null).flatMap((_, repIdx) =>
@@ -892,7 +905,7 @@ export function LiveArenaPage() {
       </div>
 
       {/* Wheel - cursor rotates around wheel center, wheel stays still */}
-      <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
+      <div className="relative w-80 h-80 mx-auto flex items-center justify-center">
         {/* Static wheel image */}
         <img
           src="/icons/rulet.png"
@@ -900,19 +913,25 @@ export function LiveArenaPage() {
           className="w-full h-full"
         />
 
-        {/* Rotating cursor - positioned at top, rotates around wheel center */}
+        {/* Rotating cursor - like vanilla: positioned at top, rotates around wheel center */}
         <img
           src="/icons/Cursor.png"
           alt="cursor"
-          className={`absolute w-10 h-10 top-0 left-1/2 -ml-5 z-10 transition-transform ${wheelSpinning ? 'duration-[3s] ease-out' : ''}`}
+          className="absolute w-10 h-10 top-0 left-1/2 -ml-5 z-10"
           style={{
-            transformOrigin: 'center 128px', // half of 256px wheel = rotate around center
-            transform: `rotate(${wheelAngle}deg)`
-          }}
+            transformOrigin: 'center 160px', // half of 320px wheel = rotate around center
+            animation: cursorState === 'spinning'
+              ? 'cursor-spin 0.1s linear infinite'
+              : cursorState === 'stopping'
+              ? 'cursor-stop 3s cubic-bezier(0.17, 0.67, 0.12, 0.99) forwards'
+              : 'none',
+            '--final-angle': `${finalAngle}deg`,
+            transform: cursorState === 'idle' ? `rotate(${finalAngle % 360}deg)` : undefined
+          } as React.CSSProperties}
         />
 
         {/* Result indicator */}
-        {lastResult && !wheelSpinning && (
+        {lastResult && cursorState === 'idle' && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -926,6 +945,18 @@ export function LiveArenaPage() {
           </motion.div>
         )}
       </div>
+
+      {/* CSS Keyframes for cursor animation */}
+      <style>{`
+        @keyframes cursor-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes cursor-stop {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(var(--final-angle)); }
+        }
+      `}</style>
     </div>
   )
 
