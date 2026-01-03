@@ -609,7 +609,7 @@ export function GiveawayManager() {
                 <input
                   type="number"
                   placeholder="Сумма"
-                  value={prize.amount}
+                  value={prize.amount || ''}
                   onChange={e => updatePrize(idx, 'amount', Number(e.target.value))}
                   className="flex-1 bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
                 />
@@ -617,7 +617,7 @@ export function GiveawayManager() {
                   <input
                     type="number"
                     placeholder="%"
-                    value={prize.percentage}
+                    value={prize.percentage || ''}
                     onChange={e => updatePrize(idx, 'percentage', Number(e.target.value))}
                     className="w-16 bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
                   />
