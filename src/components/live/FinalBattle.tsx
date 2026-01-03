@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import type { Ticket } from '../../types'
 
@@ -26,34 +26,32 @@ export function FinalBattle({
     onRunDemo,
     embedded = false
 }: FinalBattleProps) {
-    const [showVictory, setShowVictory] = useState<number | null>(null)
-    const [showDefeat, setShowDefeat] = useState<number | null>(null)
+    const confettiFired = useRef(false)
 
-    // Watch for 3 bulls (victory) or 3 bears (defeat)
+    // Check if game is finished (all 3 places assigned)
+    const gameFinished = scores.filter(s => s.place !== null).length === 3
+
+    // Fire confetti ONCE when game finishes and there's a winner
     useEffect(() => {
-        scores.forEach((score, idx) => {
-            if (score.bulls === 3 && score.place !== null && showVictory !== idx) {
-                setShowVictory(idx)
-                // Trigger confetti
+        if (gameFinished && !confettiFired.current) {
+            const winner = scores.find(s => s.place === 1)
+            if (winner) {
+                confettiFired.current = true
                 confetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 },
+                    particleCount: 80,
+                    spread: 60,
+                    origin: { y: 0.7 },
                     colors: ['#FFD700', '#FFA500', '#22c55e']
                 })
             }
-            if (score.bears === 3 && score.place !== null && showDefeat !== idx) {
-                setShowDefeat(idx)
-            }
-        })
-    }, [scores, showVictory, showDefeat])
+        }
+    }, [gameFinished, scores])
 
-    // Reset effects when scores reset
+    // Reset confetti flag when scores reset
     useEffect(() => {
         const allZero = scores.every(s => s.bulls === 0 && s.bears === 0)
         if (allZero) {
-            setShowVictory(null)
-            setShowDefeat(null)
+            confettiFired.current = false
         }
     }, [scores])
 
@@ -62,16 +60,16 @@ export function FinalBattle({
         const isWinner = score.bulls === 3
         const isEliminated = score.bears === 3
 
-        if (isWinner) {
+        if (gameFinished && isWinner) {
             return 'border-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.8)] scale-105'
         }
-        if (isEliminated) {
+        if (gameFinished && isEliminated) {
             return 'border-red-500 grayscale opacity-60'
         }
         if (isCurrent) {
             return 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.7)] scale-110'
         }
-        if (score.place) {
+        if (score.place && gameFinished) {
             return 'border-[#FFD700]'
         }
         return 'border-[#FFD700]/50'
@@ -104,21 +102,21 @@ export function FinalBattle({
                     const score = scores[idx]
                     const orderNum = turnOrder.indexOf(idx) + 1
                     const isWinner = score?.bulls === 3
+                    const isEliminated = score?.bears === 3
+
+                    // Show place only when game is finished
+                    const showPlace = gameFinished && score?.place
 
                     return (
                         <motion.div
                             key={idx}
                             className="flex flex-col items-center"
                             animate={
-                                showDefeat === idx
-                                    ? { x: [0, -5, 5, -5, 5, 0] }
+                                gameFinished && isEliminated
+                                    ? { x: [0, -3, 3, -3, 3, 0] }
                                     : {}
                             }
-                            transition={
-                                showDefeat === idx
-                                    ? { duration: 0.5, ease: 'easeInOut' }
-                                    : {}
-                            }
+                            transition={{ duration: 0.4 }}
                         >
                             {/* Avatar with order badge */}
                             <div className="relative mb-2">
@@ -126,8 +124,8 @@ export function FinalBattle({
                                     src={ticket.player.avatar}
                                     alt=""
                                     className={`w-20 h-20 rounded-full border-3 transition-all duration-300 ${getPlayerCardClass(idx, score || { bulls: 0, bears: 0, place: null })}`}
-                                    animate={isWinner ? { scale: [1, 1.1, 1] } : {}}
-                                    transition={isWinner ? { duration: 0.6, repeat: 2 } : {}}
+                                    animate={gameFinished && isWinner ? { scale: [1, 1.1, 1] } : {}}
+                                    transition={gameFinished && isWinner ? { duration: 0.6, repeat: 2 } : {}}
                                 />
                                 {orderNum > 0 && (
                                     <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black text-xs font-bold flex items-center justify-center border-2 border-black">
@@ -136,21 +134,21 @@ export function FinalBattle({
                                 )}
                             </div>
 
-                            {/* Name / Place */}
+                            {/* Name / Place - show place ONLY when game finished */}
                             <motion.div
                                 className={`px-4 py-2 rounded-xl text-center mb-2 min-w-[90px] transition-all duration-300 ${
-                                    score?.place === 1
+                                    showPlace && score?.place === 1
                                         ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold shadow-[0_0_30px_rgba(255,215,0,0.8)]'
-                                        : score?.place === 2
+                                        : showPlace && score?.place === 2
                                             ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-black font-bold shadow-[0_0_15px_rgba(192,192,192,0.5)]'
-                                            : score?.place === 3
+                                            : showPlace && score?.place === 3
                                                 ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold shadow-[0_0_15px_rgba(217,119,6,0.5)]'
                                                 : 'bg-zinc-800 text-white'
                                 }`}
-                                animate={score?.place === 1 ? { scale: [1, 1.05, 1] } : {}}
-                                transition={score?.place === 1 ? { duration: 0.5, repeat: 3 } : {}}
+                                animate={showPlace && score?.place === 1 ? { scale: [1, 1.05, 1] } : {}}
+                                transition={showPlace && score?.place === 1 ? { duration: 0.5, repeat: 3 } : {}}
                             >
-                                {score?.place
+                                {showPlace
                                     ? `${score.place} МЕСТО`
                                     : ticket.player.name}
                             </motion.div>
@@ -218,7 +216,7 @@ export function FinalBattle({
                     }}
                 />
 
-                {/* Result indicator with spring animation */}
+                {/* Result indicator with spring animation - only show briefly */}
                 <AnimatePresence>
                     {lastResult && !wheelSpinning && (
                         <motion.div
