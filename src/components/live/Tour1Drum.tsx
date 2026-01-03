@@ -31,6 +31,7 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
   const [foundWinners, setFoundWinners] = useState<Winner[]>([])
   const [isSpinning, setIsSpinning] = useState(true)
   const [lastFoundIndex, setLastFoundIndex] = useState<number>(-1)
+  const [showingWinner, setShowingWinner] = useState(false)
 
   // Simulation of finding winners one by one
   useEffect(() => {
@@ -38,22 +39,34 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
 
     let currentIndex = 0
     const totalWinners = winners.length
+    let isPaused = false
 
     const spinInterval = setInterval(() => {
-      // Random ticket noise
-      setCurrentTicket(Math.floor(Math.random() * 999999))
+      // Random ticket noise — только когда не показываем победителя
+      if (!isPaused) {
+        setCurrentTicket(Math.floor(Math.random() * 999999))
+      }
     }, 50)
 
-    const findWinnerInterval = setInterval(() => {
+    const findNextWinner = () => {
       if (currentIndex >= totalWinners) {
         clearInterval(spinInterval)
-        clearInterval(findWinnerInterval)
         setIsSpinning(false)
+        // Показываем последний найденный билет
+        if (winners.length > 0) {
+          setCurrentTicket(winners[winners.length - 1].ticket)
+        }
         onComplete()
         return
       }
 
       const winner = winners[currentIndex]
+
+      // Пауза на барабане — показываем найденный билет
+      isPaused = true
+      setShowingWinner(true)
+      setCurrentTicket(winner.ticket)
+
       setFoundWinners(prev => [...prev, winner])
       setLastFoundIndex(currentIndex)
 
@@ -71,11 +84,22 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
       })
 
       currentIndex++
-    }, 800) // Find one winner every 800ms
+
+      // Через 400ms возобновляем вращение
+      setTimeout(() => {
+        isPaused = false
+        setShowingWinner(false)
+        // Следующий победитель через 400ms после возобновления
+        setTimeout(findNextWinner, 400)
+      }, 400)
+    }
+
+    // Стартуем поиск первого победителя через 500ms
+    const startTimeout = setTimeout(findNextWinner, 500)
 
     return () => {
       clearInterval(spinInterval)
-      clearInterval(findWinnerInterval)
+      clearTimeout(startTimeout)
     }
   }, [isSpinning, winners, onComplete])
 
@@ -105,10 +129,15 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
             </div>
 
             {/* Ticket number */}
-            <div className="text-5xl font-black text-white font-mono tracking-[0.15em] relative z-10">
-              <span className="bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
-                {currentTicket.toString().padStart(6, '0')}
-              </span>
+            <div
+              className={`text-5xl font-black font-mono tracking-[0.15em] relative z-10 transition-all duration-200 ${
+                showingWinner
+                  ? 'text-[#22c55e] scale-110'
+                  : 'text-white'
+              }`}
+              style={showingWinner ? { textShadow: '0 0 20px rgba(34, 197, 94, 0.8)' } : {}}
+            >
+              {currentTicket.toString().padStart(6, '0')}
             </div>
 
             {/* Scanline effect */}
