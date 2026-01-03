@@ -88,13 +88,6 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
     return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length]
   }
 
-  // Get rank badge for top 3
-  const getRankBadge = (index: number) => {
-    if (index === 0) return { emoji: '🥇', color: '#FFD700' }
-    if (index === 1) return { emoji: '🥈', color: '#C0C0C0' }
-    if (index === 2) return { emoji: '🥉', color: '#CD7F32' }
-    return null
-  }
 
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto px-4">
@@ -146,10 +139,9 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
       </div>
 
       {/* Winners Grid - Responsive without fixed height */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         <AnimatePresence mode="popLayout">
           {foundWinners.map((w, i) => {
-            const rankBadge = getRankBadge(i)
             const isNew = i === lastFoundIndex
 
             return (
@@ -190,13 +182,7 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
                 <div className="relative p-3 flex items-center gap-3">
                   {/* Avatar with gradient border */}
                   <div className="relative flex-shrink-0">
-                    {/* Glow for top 3 */}
-                    {rankBadge && (
-                      <div
-                        className="absolute -inset-1 rounded-full blur-md opacity-50"
-                        style={{ background: rankBadge.color }}
-                      />
-                    )}
+
 
                     {/* Avatar container */}
                     <div className="relative w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-[#FFD700]/60 to-[#FFA500]/40">
@@ -216,12 +202,7 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
                       )}
                     </div>
 
-                    {/* Rank badge */}
-                    {rankBadge && (
-                      <div className="absolute -top-1 -right-1 text-sm">
-                        {rankBadge.emoji}
-                      </div>
-                    )}
+
                   </div>
 
                   {/* Info */}

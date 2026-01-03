@@ -204,95 +204,94 @@ export function SqueezeCard({
         />
       </motion.div>
 
-      {/* Card back (draggable) */}
-      {!isRevealed && (
-        <motion.div
-          className="absolute inset-0 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing"
-          drag="y"
-          dragConstraints={{ top: 0, bottom: MAX_DRAG }}
-          dragElastic={0.1}
-          onDragStart={() => setIsDragging(true)}
-          onDrag={handleDrag}
-          onDragEnd={handleDragEnd}
-          onTap={handleTap}
-          animate={peelControls}
+      {/* Card back (draggable) - Keep mounted to prevent Drag Unmount Error #300 */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing"
+        drag={isRevealed ? false : "y"}
+        dragConstraints={{ top: 0, bottom: MAX_DRAG }}
+        dragElastic={0.1}
+        onDragStart={() => setIsDragging(true)}
+        onDrag={handleDrag}
+        onDragEnd={handleDragEnd}
+        onTap={handleTap}
+        animate={peelControls}
+        style={{
+          y: dragY,
+          rotateX,
+          rotateY,
+          x: cardX,
+          opacity: isRevealed ? 0 : 1,
+          pointerEvents: isRevealed ? 'none' : 'auto', // Disable interaction when revealed
+          transformOrigin: 'bottom center',
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {/* Card back design */}
+        <div
+          className="absolute inset-0"
           style={{
-            y: dragY,
-            rotateX,
-            rotateY,
-            x: cardX,
-            transformOrigin: 'bottom center',
-            transformStyle: 'preserve-3d',
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
+            border: '3px solid rgba(255, 215, 0, 0.3)'
           }}
         >
-          {/* Card back design */}
+          {/* Pattern */}
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 opacity-20"
             style={{
-              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
-              border: '3px solid rgba(255, 215, 0, 0.3)'
+              backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,215,0,0.1) 10px, rgba(255,215,0,0.1) 20px)`
             }}
-          >
-            {/* Pattern */}
+          />
+
+          {/* Center logo */}
+          <div className="absolute inset-0 flex items-center justify-center">
             <div
-              className="absolute inset-0 opacity-20"
+              className="w-20 h-20 rounded-2xl flex items-center justify-center"
               style={{
-                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,215,0,0.1) 10px, rgba(255,215,0,0.1) 20px)`
+                background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,165,0,0.1) 100%)',
+                border: '2px solid rgba(255,215,0,0.3)',
+                boxShadow: '0 0 30px rgba(255,215,0,0.2)'
               }}
-            />
-
-            {/* Center logo */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,165,0,0.1) 100%)',
-                  border: '2px solid rgba(255,215,0,0.3)',
-                  boxShadow: '0 0 30px rgba(255,215,0,0.2)'
-                }}
-              >
-                <span className="text-[#FFD700] font-black text-2xl">AR</span>
-              </div>
-            </div>
-
-            {/* Corner decorations */}
-            {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => (
-              <div
-                key={corner}
-                className={`absolute w-6 h-6 ${
-                  corner === 'top-left' ? 'top-2 left-2' :
-                  corner === 'top-right' ? 'top-2 right-2' :
-                  corner === 'bottom-left' ? 'bottom-2 left-2' : 'bottom-2 right-2'
-                }`}
-                style={{
-                  borderTop: corner.includes('top') ? '2px solid rgba(255,215,0,0.4)' : 'none',
-                  borderBottom: corner.includes('bottom') ? '2px solid rgba(255,215,0,0.4)' : 'none',
-                  borderLeft: corner.includes('left') ? '2px solid rgba(255,215,0,0.4)' : 'none',
-                  borderRight: corner.includes('right') ? '2px solid rgba(255,215,0,0.4)' : 'none',
-                }}
-              />
-            ))}
-
-            {/* Drag hint */}
-            <div className="absolute bottom-3 left-0 right-0 text-center">
-              <span className="text-[10px] text-white/30 uppercase tracking-wider">
-                {isDragging ? 'Release to reveal' : 'Drag to peek'}
-              </span>
+            >
+              <span className="text-[#FFD700] font-black text-2xl">AR</span>
             </div>
           </div>
 
-          {/* Dynamic shine on drag */}
-          <motion.div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: useTransform(dragY, [0, MAX_DRAG], [
-                'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 30%)',
-                'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%)'
-              ])
-            }}
-          />
-        </motion.div>
-      )}
+          {/* Corner decorations */}
+          {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => (
+            <div
+              key={corner}
+              className={`absolute w-6 h-6 ${corner === 'top-left' ? 'top-2 left-2' :
+                  corner === 'top-right' ? 'top-2 right-2' :
+                    corner === 'bottom-left' ? 'bottom-2 left-2' : 'bottom-2 right-2'
+                }`}
+              style={{
+                borderTop: corner.includes('top') ? '2px solid rgba(255,215,0,0.4)' : 'none',
+                borderBottom: corner.includes('bottom') ? '2px solid rgba(255,215,0,0.4)' : 'none',
+                borderLeft: corner.includes('left') ? '2px solid rgba(255,215,0,0.4)' : 'none',
+                borderRight: corner.includes('right') ? '2px solid rgba(255,215,0,0.4)' : 'none',
+              }}
+            />
+          ))}
+
+          {/* Drag hint */}
+          <div className="absolute bottom-3 left-0 right-0 text-center">
+            <span className="text-[10px] text-white/30 uppercase tracking-wider">
+              {isDragging ? 'Release to reveal' : 'Drag to peek'}
+            </span>
+          </div>
+        </div>
+
+        {/* Dynamic shine on drag */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: useTransform(dragY, [0, MAX_DRAG], [
+              'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 30%)',
+              'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%)'
+            ])
+          }}
+        />
+      </motion.div>
 
       {/* Card shadow */}
       <motion.div

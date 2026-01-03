@@ -26,7 +26,7 @@
   - Integrated into `LiveArenaPage.tsx` and `LiveArenaTestPage.tsx`.
 
 ### ⏳ Next Steps (Parallel Agents)
-1. **Agent Anya (UI):** `Tour1Drum` - Avatars & Responsive Grid.
-2. **Agent Valera (Logic):** `SqueezeCard` - Drag gestures & Haptics.
+1. **[x] Agent Anya (UI):** `Tour1Drum` - ✅ DONE (Avatars, Badges, Flow).
+2. **[x] Agent Vasya/Valera (Logic):** `SqueezeCard` - ✅ DONE (Drag, Spring physics, Haptics).
 3. **Agent Borya (Polish):** `SemifinalTraffic` - Neon lights & Smooth Roulette.
 4. **Manager:** Verify all changes.
