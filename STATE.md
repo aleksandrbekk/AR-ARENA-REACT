@@ -29,4 +29,12 @@
 1. **[x] Agent Anya (UI):** `Tour1Drum` - ✅ DONE (Avatars, Badges, Flow).
 2. **[x] Agent Vasya/Valera (Logic):** `SqueezeCard` - ✅ DONE (Drag, Spring physics, Haptics).
 3. **Agent Borya (Polish):** `SemifinalTraffic` - Neon lights & Smooth Roulette.
-4. **Manager:** Verify all changes.
+4. **[x] Agent Grisha (Polish):** `FinalBattle` - ✅ DONE:
+   - Integrated FinalBattle component into LiveArenaTestPage (replaced inline code).
+   - Wheel: cubic-bezier(0.17, 0.67, 0.12, 0.99) smooth spin.
+   - Result: spring animation (scale + rotate) for bull/bear.
+   - Players: glow for active, grayscale+opacity for eliminated.
+   - Victory: confetti + gold pulsing badge.
+   - Defeat: shake animation + red badge.
+   - Playwright test: `tests/final.spec.ts` (places assignment check).
+5. **Manager:** Verify all changes.

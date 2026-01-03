@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Tour1Drum } from '../components/live/Tour1Drum'
 import { SqueezeCard } from '../components/live/SqueezeCard'
 import { SemifinalTraffic } from '../components/live/SemifinalTraffic'
+import { FinalBattle } from '../components/live/FinalBattle'
 import { useArenaSounds } from '../hooks/useArenaSounds'
 import { useArenaHaptics } from '../hooks/useArenaHaptics'
 import type { Ticket } from '../types'
@@ -23,6 +24,17 @@ const mockFinalists3Raw = mockFinalists5Raw.slice(0, 3)
 
 // Convert to Ticket[] format for SemifinalTraffic
 const mockFinalists5: Ticket[] = mockFinalists5Raw.map((p, i) => ({
+    user_id: `user_${i}`,
+    ticket_number: p.ticket,
+    player: {
+        id: `player_${i}`,
+        name: p.user,
+        avatar: p.avatar
+    }
+}))
+
+// Convert to Ticket[] format for FinalBattle
+const mockFinalists3: Ticket[] = mockFinalists3Raw.map((p, i) => ({
     user_id: `user_${i}`,
     ticket_number: p.ticket,
     player: {
@@ -405,7 +417,7 @@ export function LiveArenaTestPage() {
         )
     }
 
-    // ===================== FINAL =====================
+    // ===================== FINAL - Using FinalBattle Component =====================
     if (mode === 'final') {
         return (
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
@@ -413,105 +425,19 @@ export function LiveArenaTestPage() {
                 <div className="text-center mb-4 pt-8">
                     <h1 className="text-2xl font-black text-[#FFD700]">FINAL TEST</h1>
                     <p className="text-white/50 text-sm mb-4">Bulls & Bears Battle</p>
-                    <button
-                        onClick={runFinalDemo}
-                        className="px-6 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-full"
-                    >
-                        RUN DEMO
-                    </button>
                 </div>
 
-                {/* Players */}
-                <div className="flex justify-center items-end gap-4 mb-8">
-                    {mockFinalists3Raw.map((player, idx) => {
-                        const score = finalScores[idx]
-                        const isCurrent = currentFinalPlayer === idx
-
-                        return (
-                            <div key={idx} className="flex flex-col items-center">
-                                <div className="relative mb-2">
-                                    <img
-                                        src={player.avatar}
-                                        alt=""
-                                        className={`w-16 h-16 rounded-full border-3 transition-all duration-300 ${isCurrent ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.7)] scale-110' :
-                                            score?.place ? 'border-[#FFD700]' : 'border-[#FFD700]/50'
-                                            }`}
-                                    />
-                                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black text-xs font-bold flex items-center justify-center border-2 border-black">
-                                        {idx + 1}
-                                    </div>
-                                </div>
-
-                                <div className={`px-3 py-1 rounded-lg text-center mb-2 text-sm ${score?.place === 1 ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold' :
-                                    score?.place === 2 ? 'bg-gray-400 text-black font-bold' :
-                                        score?.place === 3 ? 'bg-amber-600 text-white font-bold' :
-                                            'bg-zinc-800 text-white'
-                                    }`}>
-                                    {score?.place ? `${score.place} МЕСТО` : player.user}
-                                </div>
-
-                                {/* Bulls & Bears */}
-                                <div className="space-y-1">
-                                    <div className="flex gap-1">
-                                        {[0, 1, 2].map(i => (
-                                            <div
-                                                key={`bull-${i}`}
-                                                className={`w-6 h-6 rounded flex items-center justify-center border transition-all ${(score?.bulls || 0) > i
-                                                    ? 'bg-green-500 border-green-400'
-                                                    : 'bg-zinc-900 border-zinc-700'
-                                                    }`}
-                                            >
-                                                <span className="text-xs">🐂</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-1">
-                                        {[0, 1, 2].map(i => (
-                                            <div
-                                                key={`bear-${i}`}
-                                                className={`w-6 h-6 rounded flex items-center justify-center border transition-all ${(score?.bears || 0) > i
-                                                    ? 'bg-red-500 border-red-400'
-                                                    : 'bg-zinc-900 border-zinc-700'
-                                                    }`}
-                                            >
-                                                <span className="text-xs">🐻</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
-
-                {/* Wheel */}
-                <div className="relative w-56 h-56 mx-auto flex items-center justify-center">
-                    <img src="/icons/rulet.png" alt="wheel" className="w-full h-full" />
-                    <img
-                        src="/icons/Cursor.png"
-                        alt="cursor"
-                        className={`absolute w-8 h-8 top-0 left-1/2 -ml-4 z-10 transition-transform ${wheelSpinning ? 'duration-[3s] ease-out' : ''}`}
-                        style={{
-                            transformOrigin: 'center 112px',
-                            transform: `rotate(${wheelAngle}deg)`
-                        }}
-                    />
-                    {lastResult && !wheelSpinning && (
-                        <motion.div
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="absolute inset-0 flex items-center justify-center"
-                        >
-                            <span className={`text-6xl ${lastResult === 'bull' ? 'drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]'}`}>
-                                {lastResult === 'bull' ? '🐂' : '🐻'}
-                            </span>
-                        </motion.div>
-                    )}
-                </div>
-
-                <div className="text-center mt-4 text-white/30 text-xs">
-                    3 Bulls = WIN | 3 Bears = OUT
-                </div>
+                <FinalBattle
+                    players={mockFinalists3}
+                    scores={finalScores}
+                    turnOrder={[0, 1, 2]}
+                    currentFinalPlayer={currentFinalPlayer}
+                    wheelAngle={wheelAngle}
+                    wheelSpinning={wheelSpinning}
+                    lastResult={lastResult}
+                    onRunDemo={runFinalDemo}
+                    embedded={true}
+                />
             </div>
         )
     }
