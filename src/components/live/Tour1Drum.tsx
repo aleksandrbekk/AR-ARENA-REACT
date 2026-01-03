@@ -88,25 +88,20 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
                     <div className="h-px flex-1 bg-white/10" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     <AnimatePresence>
                         {foundWinners.map((w, i) => (
                             <motion.div
                                 key={w.ticket}
-                                initial={{ opacity: 0, scale: 0.8, x: -20 }}
-                                animate={{ opacity: 1, scale: 1, x: 0 }}
-                                className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-center justify-between"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-white/5 border border-white/10 rounded-lg p-2 flex flex-col items-center justify-center gap-1 text-center h-20"
                             >
-                                <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-[#FFD700]/20 flex items-center justify-center text-[10px] text-[#FFD700] font-bold">
-                                        {i + 1}
-                                    </div>
-                                    <div className="text-xs text-white truncate max-w-[80px]">
-                                        {w.user}
-                                    </div>
+                                <div className="text-[10px] text-white/50 font-bold uppercase tracking-wider">
+                                    #{i + 1} • {w.user}
                                 </div>
-                                <div className="font-mono text-[#FFD700] font-bold text-sm">
-                                    #{w.ticket}
+                                <div className="font-mono text-[#FFD700] font-bold text-lg">
+                                    {w.ticket}
                                 </div>
                             </motion.div>
                         ))}
