@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ArenaRoulette } from '../components/live/ArenaRoulette'
 import { ArenaCard } from '../components/live/ArenaCard'
 import { ArenaBattle } from '../components/live/ArenaBattle'
@@ -13,15 +12,14 @@ const MOCK_PARTICIPANTS = Array.from({ length: 50 }, (_, i) => ({
 }))
 
 export function LiveArenaPage() {
-  const { id } = useParams()
+
   const [stage, setStage] = useState<'intro' | 'tour1' | 'tour2' | 'semifinal' | 'final' | 'victory'>('intro')
 
-  // Tour 1 State
-  const [tour1Winners, setTour1Winners] = useState<number[]>([])
+
 
   // Tour 2 State
-  const [tour2Cards, setTour2Cards] = useState(MOCK_PARTICIPANTS.slice(0, 20))
-  const [flippedCards, setFlippedCards] = useState<number[]>([])
+  const [tour2Cards] = useState(MOCK_PARTICIPANTS.slice(0, 20))
+  const [flippedCards] = useState<number[]>([])
 
   const handleStart = () => {
     setStage('tour1')
@@ -51,8 +49,8 @@ export function LiveArenaPage() {
             <div
               key={s}
               className={`w-2 h-2 rounded-full ${stage === s || ['tour1', 'tour2', 'semifinal', 'final'].indexOf(stage) > ['tour1', 'tour2', 'semifinal', 'final'].indexOf(s)
-                  ? 'bg-[#FFD700]'
-                  : 'bg-white/10'
+                ? 'bg-[#FFD700]'
+                : 'bg-white/10'
                 }`}
             />
           ))}
