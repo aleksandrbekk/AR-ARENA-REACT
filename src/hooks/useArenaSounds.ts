@@ -7,6 +7,7 @@ import { useRef, useCallback } from 'react'
 export function useArenaSounds() {
   const audioContextRef = useRef<AudioContext | null>(null)
   const isInitializedRef = useRef(false)
+  const scheduledTimeoutsRef = useRef<Set<number>>(new Set())
 
   // Инициализация AudioContext (обход Autoplay Policy)
   const initAudio = useCallback(() => {
@@ -325,11 +326,29 @@ export function useArenaSounds() {
 
     // Финальный удар
     const finalTime = currentTime + 0.1
-    setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
+      scheduledTimeoutsRef.current.delete(timeoutId)
       playImpact()
       onComplete?.()
     }, (finalTime - ctx.currentTime) * 1000)
+    scheduledTimeoutsRef.current.add(timeoutId)
   }, [getContext, playImpact])
+
+  /**
+   * stopAllSounds - Останавливает все звуки и отменяет таймеры
+   */
+  const stopAllSounds = useCallback(() => {
+    // Отменяем все запланированные таймауты
+    scheduledTimeoutsRef.current.forEach(id => window.clearTimeout(id))
+    scheduledTimeoutsRef.current.clear()
+
+    // Закрываем и пересоздаём AudioContext для немедленной остановки
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {})
+      audioContextRef.current = null
+      isInitializedRef.current = false
+    }
+  }, [])
 
   return {
     initAudio,
@@ -339,6 +358,7 @@ export function useArenaSounds() {
     playFailure,
     playWin,
     playRouletteTicks,
+    stopAllSounds,
     isInitialized: isInitializedRef.current
   }
 }

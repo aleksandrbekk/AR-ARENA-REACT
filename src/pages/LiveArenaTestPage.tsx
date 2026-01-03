@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Tour1Drum } from '../components/live/Tour1Drum'
@@ -49,8 +49,27 @@ export function LiveArenaTestPage() {
     const [mode, setMode] = useState<TestMode>('menu')
     const navigate = useNavigate()
 
+    // ===================== HOOKS (must be before callbacks that use them) =====================
+    const { initAudio, playClick, playSuccess, playFailure, playRouletteTicks, playImpact, stopAllSounds } = useArenaSounds()
+    const { triggerTick, triggerImpact, triggerSuccess, triggerError, triggerTension } = useArenaHaptics()
+
+    // AbortController for stopping demos
+    const abortControllerRef = useRef<AbortController | null>(null)
+
+    // Stop demos and sounds when leaving
+    const stopDemo = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+            abortControllerRef.current = null
+        }
+        stopAllSounds()
+    }, [stopAllSounds])
+
     // ===================== TELEGRAM BACK BUTTON =====================
     const handleBack = useCallback(() => {
+        // Stop all sounds first
+        stopDemo()
+
         if (mode === 'menu') {
             // На главном меню - выходим на страницу розыгрышей
             navigate('/giveaways')
@@ -58,7 +77,7 @@ export function LiveArenaTestPage() {
             // Внутри теста - возвращаемся в меню
             setMode('menu')
         }
-    }, [mode, navigate])
+    }, [mode, navigate, stopDemo])
 
     useEffect(() => {
         const tg = window.Telegram?.WebApp
@@ -74,9 +93,12 @@ export function LiveArenaTestPage() {
         }
     }, [handleBack])
 
-    // ===================== HOOKS =====================
-    const { initAudio, playClick, playSuccess, playFailure, playRouletteTicks, playImpact } = useArenaSounds()
-    const { triggerTick, triggerImpact, triggerSuccess, triggerError, triggerTension } = useArenaHaptics()
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            stopDemo()
+        }
+    }, [stopDemo])
 
     // ===================== TOUR 2 STATE =====================
     const [squeezeResults] = useState(() => {
@@ -283,7 +305,10 @@ export function LiveArenaTestPage() {
         }
     }
 
-    const resetToMenu = () => {
+    const resetToMenu = useCallback(() => {
+        // Stop all running demos and sounds
+        stopDemo()
+
         setMode('menu')
         setSemifinalHits(new Map())
         setSemifinalEliminated(new Map())
@@ -298,7 +323,7 @@ export function LiveArenaTestPage() {
         setCurrentFinalPlayer(null)
         setWheelAngle(0)
         setLastResult(null)
-    }
+    }, [stopDemo])
 
     // ===================== MENU =====================
     if (mode === 'menu') {
