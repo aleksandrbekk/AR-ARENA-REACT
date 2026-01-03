@@ -386,23 +386,28 @@ export function LiveArenaPage() {
     const eliminatedMap = new Map<number, number>()
     let eliminatedCount = 0
 
+    // Track cumulative offset for smooth continuous scrolling
+    let cumulativeOffset = 0
+
     for (const spin of results.semifinal.spins) {
       const spinTicketNum = typeof spin.ticket === 'number' ? spin.ticket : (spin.ticket as any)?.ticket_number || (spin as any).ticket_number
 
-      // Spin animation - start by scrolling fast
+      // Like vanilla: calculate target position first, then smooth animate
       setCurrentSpinTicket(null)
-      setRouletteOffset(prev => prev - 2000)
-      await sleep(100)
 
-      // Calculate target position - item width 100px + gap 12px = 112px per item
-      // Target middle repetition (rep 5 of 10) to have items on both sides
+      // Item width 100px + gap 12px = 112px per item
       const ticketIndex = semifinalists.findIndex(t => t.ticket_number === spinTicketNum)
-      const itemWidth = 112 // 100px item + 12px gap
-      const targetRep = 5 // middle repetition
-      const globalIndex = targetRep * semifinalists.length + ticketIndex
-      const targetOffset = -(globalIndex * itemWidth)
+      const itemWidth = 112
+      const itemsPerRep = semifinalists.length
+
+      // Calculate how many full repetitions to scroll (2-3 reps for visual effect)
+      const extraReps = 2 + Math.floor(Math.random() * 2) // 2-3 extra repetitions
+      const targetOffset = cumulativeOffset - (extraReps * itemsPerRep * itemWidth) - (ticketIndex * itemWidth)
+
+      // Smooth scroll to target over 4 seconds (like vanilla)
       setRouletteOffset(targetOffset)
-      await sleep(2500)
+      cumulativeOffset = targetOffset
+      await sleep(4000)
 
       setCurrentSpinTicket(spinTicketNum)
 
@@ -461,9 +466,14 @@ export function LiveArenaPage() {
       await sleep(800)
 
       setWheelSpinning(true)
-      // Bull = LEFT half (190-350°), Bear = RIGHT half (10-170°) based on wheel image
-      const baseAngle = turn.result === 'bull' ? 190 + Math.random() * 160 : 10 + Math.random() * 160
-      setWheelAngle(prev => prev + 1440 + baseAngle) // 4 rotations + landing angle
+      // Bull = LEFT half (green), Bear = RIGHT half (red)
+      // Safe zones with margin from boundaries (180° and 0°/360°):
+      // Bull: 210-330° (center ~270°, safe from both boundaries)
+      // Bear: 30-150° (center ~90°, safe from both boundaries)
+      const baseAngle = turn.result === 'bull'
+        ? 210 + Math.random() * 120  // 210-330° for bull (safe margin)
+        : 30 + Math.random() * 120   // 30-150° for bear (safe margin)
+      setWheelAngle(prev => prev + 1800 + baseAngle) // 5 rotations + landing angle (like vanilla)
       await sleep(3000)
       setWheelSpinning(false)
       setLastResult(turn.result)
@@ -745,10 +755,11 @@ export function LiveArenaPage() {
           {/* Roulette Strip Container */}
           <div className="bg-zinc-900/90 border-2 border-[#FFD700]/30 rounded-2xl py-3 overflow-hidden">
             <div
-              className="flex transition-transform duration-[2.5s] ease-out"
+              className="flex"
               style={{
                 gap: '12px',
-                transform: `translateX(calc(50% + ${rouletteOffset}px - 50px))`
+                transform: `translateX(calc(50% + ${rouletteOffset}px - 50px))`,
+                transition: 'transform 4s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
               }}
             >
               {Array(10).fill(null).flatMap((_, repIdx) =>
