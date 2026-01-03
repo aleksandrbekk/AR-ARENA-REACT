@@ -336,13 +336,12 @@ export function LiveArenaTestPage() {
     const isTelegram = !!window.Telegram?.WebApp?.BackButton
 
     const BackButton = () => {
-        // В Telegram используем системную кнопку, не рисуем свою
-        if (isTelegram) return null
-
+        // Скрываем на мобилках — в Telegram fullscreen есть своя кнопка
+        // Показываем только на десктопе (sm: 640px+)
         return (
             <button
                 onClick={resetToMenu}
-                className="fixed top-[60px] left-4 z-50 px-4 py-2 bg-zinc-800 rounded-full text-white/70 hover:text-white border border-zinc-700 hover:border-[#FFD700] transition-all flex items-center gap-2"
+                className="hidden sm:flex fixed top-4 left-4 z-50 px-4 py-2 bg-zinc-800 rounded-full text-white/70 hover:text-white border border-zinc-700 hover:border-[#FFD700] transition-all items-center gap-2"
             >
                 ← Menu
             </button>
