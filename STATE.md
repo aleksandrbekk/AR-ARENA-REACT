@@ -15,6 +15,8 @@
 - **Payment Discrepancy Fix**:
   - Analyzed `lava-premium-webhook.js` and separated Gross (Tariff) vs Net (DB) amounts.
   - Now prioritizing `buyerAmount` for identifying plans and `payment.amount` for recording revenue.
+- **UI UX Fixes**:
+  - **Pricing Page**: Replaced native Close button (or lack thereof) with Telegram Native BackButton to prevent accidental app closure.
 
 
 ### ⏳ Next Steps

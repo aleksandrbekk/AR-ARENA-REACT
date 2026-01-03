@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { PaymentModal } from '../components/premium/PaymentModal'
 import { supabase } from '../lib/supabase'
@@ -362,6 +363,8 @@ export function PricingPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedTariffForPayment, setSelectedTariffForPayment] = useState<Tariff | null>(null)
 
+  const navigate = useNavigate()
+
   // Регистрация пользователя при открытии страницы
   useEffect(() => {
     const registerUser = async () => {
@@ -384,6 +387,28 @@ export function PricingPage() {
 
     registerUser()
   }, [])
+
+  // Обработка кнопки "Назад"
+  useEffect(() => {
+    // @ts-ignore
+    const tg = window.Telegram?.WebApp
+    if (!tg) return
+
+    // Показываем кнопку назад
+    tg.BackButton.show()
+
+    const handleBack = () => {
+      navigate(-1)
+    }
+
+    tg.BackButton.onClick(handleBack)
+
+    return () => {
+      // Скрываем кнопку при уходе со страницы
+      tg.BackButton.hide()
+      tg.BackButton.offClick(handleBack)
+    }
+  }, [navigate])
 
   const handleBuyClick = (tariff: Tariff) => {
     setSelectedTariffForPayment(tariff)
