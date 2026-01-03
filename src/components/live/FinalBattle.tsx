@@ -140,23 +140,19 @@ export function FinalBattle({
                             {/* Name / Place */}
                             <motion.div
                                 className={`px-4 py-2 rounded-xl text-center mb-2 min-w-[90px] transition-all duration-300 ${
-                                    isWinner
+                                    score?.place === 1
                                         ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold shadow-[0_0_30px_rgba(255,215,0,0.8)]'
                                         : score?.place === 2
-                                            ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-black font-bold'
-                                            : isEliminated
-                                                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white font-bold shadow-[0_0_20px_rgba(239,68,68,0.6)]'
+                                            ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-black font-bold shadow-[0_0_15px_rgba(192,192,192,0.5)]'
+                                            : score?.place === 3
+                                                ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold shadow-[0_0_15px_rgba(217,119,6,0.5)]'
                                                 : 'bg-zinc-800 text-white'
                                 }`}
-                                animate={isWinner ? { scale: [1, 1.05, 1] } : {}}
-                                transition={isWinner ? { duration: 0.5, repeat: 3 } : {}}
+                                animate={score?.place === 1 ? { scale: [1, 1.05, 1] } : {}}
+                                transition={score?.place === 1 ? { duration: 0.5, repeat: 3 } : {}}
                             >
                                 {score?.place
-                                    ? isWinner
-                                        ? '🏆 1 МЕСТО'
-                                        : isEliminated
-                                            ? '💀 ВЫБЫЛ'
-                                            : `${score.place} МЕСТО`
+                                    ? `${score.place} МЕСТО`
                                     : ticket.player.name}
                             </motion.div>
 
@@ -255,7 +251,7 @@ export function FinalBattle({
             </div>
 
             <div className="text-center mt-4 text-white/30 text-xs">
-                3 Bulls = 🏆 ПОБЕДА | 3 Bears = 💀 ВЫБЫВАНИЕ
+                3 Bulls = ПОБЕДА | 3 Bears = ВЫБЫВАНИЕ
             </div>
         </div>
     )
