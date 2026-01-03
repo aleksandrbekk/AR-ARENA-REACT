@@ -136,10 +136,10 @@ export function SqueezeCard({
         }}
       >
         {/* Result content */}
-        <div className="flex flex-col items-center justify-center h-full p-3">
+        <div className="flex flex-col items-center justify-center h-full p-2">
           {/* Avatar */}
           <motion.div
-            className="w-16 h-16 rounded-full overflow-hidden mb-2 border-4"
+            className="w-12 h-12 rounded-full overflow-hidden mb-1.5 border-3"
             style={{ borderColor: colors.border }}
             initial={{ scale: 0, rotate: -180 }}
             animate={{
@@ -151,20 +151,20 @@ export function SqueezeCard({
             {playerAvatar ? (
               <img src={playerAvatar} alt={playerName} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-xl font-bold bg-black/30">
+              <div className="w-full h-full flex items-center justify-center text-base font-bold bg-black/30">
                 {playerName.charAt(0).toUpperCase()}
               </div>
             )}
           </motion.div>
 
-          {/* Player name */}
+          {/* Player name - truncated to ~8 chars */}
           <motion.div
-            className="text-white font-bold text-sm text-center truncate w-full"
+            className="text-white font-bold text-[10px] text-center truncate w-full px-1 leading-tight"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: isRevealed ? 1 : 0, y: isRevealed ? 0 : 10 }}
             transition={{ delay: 0.2 }}
           >
-            {playerName}
+            {playerName.length > 10 ? playerName.slice(0, 8) + '…' : playerName}
           </motion.div>
 
           {/* Ticket */}
@@ -181,11 +181,11 @@ export function SqueezeCard({
 
           {/* Status badge */}
           <motion.div
-            className="mt-2 px-4 py-1.5 rounded-full font-black text-base tracking-wider"
+            className="mt-1.5 px-3 py-1 rounded-full font-black text-xs tracking-wider"
             style={{
               background: 'rgba(0,0,0,0.4)',
               color: colors.border,
-              textShadow: `0 0 20px ${colors.glow}`
+              textShadow: `0 0 15px ${colors.glow}`
             }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: isRevealed ? 1 : 0, opacity: isRevealed ? 1 : 0 }}
