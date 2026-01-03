@@ -8,6 +8,9 @@ import { useNavigate, useLocation } from 'react-router-dom'
  * - При клике делает navigate(-1) или переход на /
  * - Автоматически скрывает на главной странице
  */
+// Страницы, которые сами управляют BackButton
+const SELF_MANAGED_PAGES = ['/live-test']
+
 export function useTelegramBackButton() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -17,6 +20,10 @@ export function useTelegramBackButton() {
     if (!tg?.BackButton) return
 
     const isHomePage = location.pathname === '/'
+    const isSelfManaged = SELF_MANAGED_PAGES.includes(location.pathname)
+
+    // Если страница сама управляет BackButton — не трогаем
+    if (isSelfManaged) return
 
     if (isHomePage) {
       // На главной — скрываем кнопку назад
