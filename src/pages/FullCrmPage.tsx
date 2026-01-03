@@ -1622,19 +1622,19 @@ export function FullCrmPage() {
                     <div className="grid grid-cols-4 gap-2">
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">RUB</div>
-                        <div className="text-lg font-bold text-white">{Math.round(totalRub).toLocaleString('ru-RU')} ₽</div>
+                        <div className="text-base font-bold text-white whitespace-nowrap">{Math.round(totalRub).toLocaleString('ru-RU')} ₽</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">USD</div>
-                        <div className="text-lg font-bold text-[#FFD700]">${Math.round(totalUsd).toLocaleString('en-US')}</div>
+                        <div className="text-base font-bold text-[#FFD700] whitespace-nowrap">${Math.round(totalUsd).toLocaleString('en-US')}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">USDT</div>
-                        <div className="text-lg font-bold text-emerald-400">${Math.round(totalUsdt).toLocaleString('en-US')}</div>
+                        <div className="text-base font-bold text-emerald-400 whitespace-nowrap">${Math.round(totalUsdt).toLocaleString('en-US')}</div>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-3">
                         <div className="text-white/40 text-[10px] mb-1">EUR</div>
-                        <div className="text-lg font-bold text-blue-400">€{Math.round(totalEur).toLocaleString('de-DE')}</div>
+                        <div className="text-base font-bold text-blue-400 whitespace-nowrap">€{Math.round(totalEur).toLocaleString('de-DE')}</div>
                       </div>
                     </div>
 
