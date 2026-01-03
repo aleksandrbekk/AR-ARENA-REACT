@@ -133,7 +133,7 @@ export function LiveArenaTestPage() {
             mockFinalists5[1].ticket_number, // 3 hits = eliminated (4th place)
         ]
 
-        let cumulativeOffset = 0
+        let spinCount = 0
 
         for (const ticketNum of spinsData) {
             // Check if already eliminated
@@ -142,14 +142,21 @@ export function LiveArenaTestPage() {
             setCurrentSpinTicket(null)
 
             // Calculate offset for roulette animation
+            // Each slot is 90px (80px width + 10px gap)
+            // Slot N shows players[N % 5]
+            // To center slot N: offset = -(N * 90)
             const ticketIndex = mockFinalists5.findIndex(t => t.ticket_number === ticketNum)
-            const itemWidth = 90 // w-[80px] + gap
+            const itemWidth = 90
             const itemsPerRep = 5
-            const extraReps = 2 + Math.floor(Math.random() * 2)
-            const targetOffset = cumulativeOffset - (extraReps * itemsPerRep * itemWidth) - (ticketIndex * itemWidth)
+
+            // Each spin adds 2-3 full repetitions + lands on correct ticket
+            // Start from repetition 5 to have room for multiple spins
+            const targetRepetition = 5 + spinCount * 3 + Math.floor(Math.random() * 2)
+            const targetSlot = targetRepetition * itemsPerRep + ticketIndex
+            const targetOffset = -(targetSlot * itemWidth)
 
             setRouletteOffset(targetOffset)
-            cumulativeOffset = targetOffset
+            spinCount++
 
             playRouletteTicks(25)
             triggerTick()

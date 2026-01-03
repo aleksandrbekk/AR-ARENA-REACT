@@ -221,14 +221,6 @@ export function SemifinalTraffic({
                     </div>
                 </motion.div>
 
-                {/* Pointer triangle - neon */}
-                <div className="flex justify-center -mt-0.5 mb-0.5 relative z-10">
-                    <div
-                        className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-[#FFD700]"
-                        style={{ filter: 'drop-shadow(0 0 6px #FFD700) drop-shadow(0 0 12px rgba(255,215,0,0.8))' }}
-                    />
-                </div>
-
                 {/* Roulette Strip - SHORTER height */}
                 <div className="relative">
                     {/* Edge fades */}
@@ -254,7 +246,7 @@ export function SemifinalTraffic({
                                 transition: 'transform 4s cubic-bezier(0.12, 0.9, 0.22, 1)'
                             }}
                         >
-                            {Array(10).fill(null).flatMap((_, repIdx) =>
+                            {Array(50).fill(null).flatMap((_, repIdx) =>
                                 players.map((t, tIdx) => {
                                     const hitCount = hits.get(t.ticket_number) || 0
                                     const isEliminated = eliminated.has(t.ticket_number)
@@ -311,7 +303,10 @@ export function SemifinalTraffic({
                         exit={{ opacity: 0, y: 20 }}
                         className="grid grid-cols-2 gap-3 max-w-[280px] mx-auto"
                     >
-                        {[5, 4].map((place, idx) => {
+                        {[
+                            { place: 5, prize: 10 },
+                            { place: 4, prize: 15 }
+                        ].map(({ place, prize }, idx) => {
                             const ticketNum = [...eliminated.entries()].find(([_, p]) => p === place)?.[0]
                             const player = ticketNum ? players.find(t => t.ticket_number === ticketNum) : null
 
@@ -338,7 +333,10 @@ export function SemifinalTraffic({
                                             <span className="text-xl text-red-500/50">?</span>
                                         )}
                                     </div>
-                                    <div className="text-sm font-bold text-red-400/90 relative z-10">{place}TH PLACE</div>
+                                    <div className="text-sm font-bold text-red-400/90 relative z-10">{place} МЕСТО</div>
+                                    <div className="text-xs text-[#FFD700] font-bold mt-1 relative z-10">
+                                        {prize} билетов
+                                    </div>
                                     {player && (
                                         <div className="text-[10px] text-white/50 mt-0.5 relative z-10 truncate">
                                             {player.player.name}
