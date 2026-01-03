@@ -333,7 +333,10 @@ export function LiveArenaTestPage() {
     // ===================== BACK BUTTON =====================
     // В Telegram используем системную кнопку BackButton
     // На десктопе (браузер) показываем UI кнопку
-    const isTelegram = !!window.Telegram?.WebApp?.BackButton
+    // Проверяем platform — он есть только в реальном Telegram
+    const isTelegram = typeof window !== 'undefined' &&
+        !!window.Telegram?.WebApp?.platform &&
+        window.Telegram.WebApp.platform !== 'unknown'
 
     const BackButton = () => {
         // В Telegram полностью скрываем — там системная кнопка
