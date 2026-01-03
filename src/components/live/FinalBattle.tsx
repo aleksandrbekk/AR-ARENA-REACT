@@ -103,7 +103,6 @@ export function FinalBattle({
                 {players.map((ticket, idx) => {
                     const score = scores[idx]
                     const orderNum = turnOrder.indexOf(idx) + 1
-                    const isEliminated = score?.bears === 3
                     const isWinner = score?.bulls === 3
 
                     return (
