@@ -1,4 +1,4 @@
-import { createChart, ColorType, type IChartApi, type ISeriesApi, type Time } from 'lightweight-charts'
+import { createChart, ColorType, CandlestickSeries, type IChartApi, type ISeriesApi, type Time } from 'lightweight-charts'
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -50,7 +50,7 @@ export function ChartBattle({
             },
         })
 
-        const series = chart.addCandlestickSeries({
+        const series = chart.addSeries(CandlestickSeries, {
             upColor: '#26a69a',
             downColor: '#ef5350',
             borderVisible: false,
