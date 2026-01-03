@@ -12,17 +12,14 @@
   - `AutomationRules` UI component functioning.
   - **Connected to Supabase**: Created `automation_rules` table and implemented full CRUD (Create, Read, Update, Delete) in the UI.
   - Fixes: `FullCrmPage.tsx` build errors resolved.
-- **Payment Discrepancy Fix**:
-  - Analyzed `lava-premium-webhook.js` and separated Gross (Tariff) vs Net (DB) amounts.
-  - Now prioritizing `buyerAmount` for identifying plans and `payment.amount` for recording revenue.
-- **UI UX Fixes**:
-  - **Pricing Page**: Replaced native Close button (or lack thereof) with Telegram Native BackButton to prevent accidental app closure.
 
+### ✅ Done
+- **Giveaway Admin Fix**: Created `fix_giveaways_schema.sql` to solve `currency` column error.
+- **Visuals - Live Arena**:
+  - Implemented `LiveArenaPage.tsx` with mock data mode.
+  - Implemented `Tour1Drum.tsx` (Stage 1 animation).
+  - Added routing `/live/:id`.
 
 ### ⏳ Next Steps
-- **Backend Logic**: Implement the actual message interception logic (webhook or process) that *uses* these rules to auto-reply.
-- **Testing**: Verify auto-responses in a real Telegram bot conversation.
-
-## 📝 Notes
-- Rules are now stored in `automation_rules` table.
-- Admin Panel is live at `https://ararena.pro/inbox` (or `/app/...`).
+- **User Action**: Run SQL fix.
+- **Visuals**: Implement Tour 2 (Cards) and Semifinal (Traffic Light).
