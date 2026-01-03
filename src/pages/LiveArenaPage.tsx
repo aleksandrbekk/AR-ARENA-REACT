@@ -428,7 +428,7 @@ export function LiveArenaPage() {
     await displayModal({
       title: 'ФИНАЛ',
       duration: 3000,
-      goal: 'Битва быка и медведя!\n🐂 3 быка = ПОБЕДА\n🐻 3 медведя = ВЫЛЕТ'
+      goal: 'Битва быка и медведя!\n3 быка = ПОБЕДА\n3 медведя = ВЫЛЕТ'
     })
 
     setCurrentStage('final')
@@ -856,7 +856,7 @@ export function LiveArenaPage() {
                           : 'bg-zinc-900 border-zinc-700'
                       }`}
                     >
-                      <span className="text-lg">🐂</span>
+                      <img src="/icons/bull.png" alt="bull" className="w-5 h-5" />
                     </div>
                   ))}
                 </div>
@@ -870,7 +870,7 @@ export function LiveArenaPage() {
                           : 'bg-zinc-900 border-zinc-700'
                       }`}
                     >
-                      <span className="text-lg">🐻</span>
+                      <img src="/icons/bear.png" alt="bear" className="w-5 h-5" />
                     </div>
                   ))}
                 </div>
@@ -907,9 +907,11 @@ export function LiveArenaPage() {
             animate={{ scale: 1, opacity: 1 }}
             className="absolute inset-0 flex items-center justify-center"
           >
-            <div className={`text-6xl ${lastResult === 'bull' ? 'drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]'}`}>
-              {lastResult === 'bull' ? '🐂' : '🐻'}
-            </div>
+            <img
+              src={lastResult === 'bull' ? '/icons/bull.png' : '/icons/bear.png'}
+              alt={lastResult}
+              className={`w-20 h-20 ${lastResult === 'bull' ? 'drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]'}`}
+            />
           </motion.div>
         )}
       </div>
