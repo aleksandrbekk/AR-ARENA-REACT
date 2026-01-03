@@ -398,10 +398,29 @@ export default async function handler(req, res) {
 
     log(`👤 Telegram ID: ${telegramId || 'N/A'}, Username: ${username || 'N/A'}`);
 
+
     // ============================================
     // 3. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ
     // ============================================
-    const amountUSD = AmountUSD || Amount;
+    // Проверяем ВСЕ возможные имена полей для суммы от 0xProcessing
+    const amountUSD =
+      payload.AmountUSD ||
+      payload.amountUSD ||
+      payload.amountusd ||
+      payload.Amount ||
+      payload.amount ||
+      payload.AmountUsdt ||
+      payload.amountUsdt ||
+      payload.SumUSD ||
+      payload.sumUsd ||
+      payload.sum ||
+      payload.Sum ||
+      AmountUSD ||
+      Amount;
+
+    log(`💰 AMOUNT EXTRACTION: AmountUSD=${payload.AmountUSD}, Amount=${payload.Amount}, amount=${payload.amount}, SUM=${payload.sum}, FINAL=${amountUSD}`);
+    log(`💰 ALL PAYLOAD KEYS: ${Object.keys(payload).join(', ')}`);
+
     const period = getPeriodByAmount(amountUSD);
     log(`📅 Period determined: ${period.days} days (${period.name})`);
 
