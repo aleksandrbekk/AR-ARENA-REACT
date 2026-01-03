@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabase
         .from('premium_clients')
-        .update({ source: 'lava.top' })
+        .update({ source: 'lava.top', currency: 'RUB' })
         .eq('telegram_id', 655208634)
         .select();
 
