@@ -1,4 +1,16 @@
 // Telegram WebApp
+export interface Player {
+  id: string
+  name: string
+  avatar: string
+}
+
+export interface Ticket {
+  user_id: string
+  ticket_number: number
+  player: Player
+}
+
 export interface TelegramUser {
   id: number;
   first_name: string;

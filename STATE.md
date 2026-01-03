@@ -1,9 +1,15 @@
 # Current State
 
 ## 🚀 Active Task
-**Inbox Automation & Supabase Integration (Stage 3)**
+**Live Arena Visual Polish & Refactoring**
 
 ### ✅ Done
+### ✅ Done
+- **Live Arena - Refactoring**:
+  - Split `LiveArenaPage.tsx` (1000+ lines) into modular components.
+  - Created `Tour2Squeeze`, `SemifinalTraffic`, `FinalBattle`.
+  - Fixed `SqueezeCard` initial size bug.
+  - Consolidated types in `src/types/index.ts`.
 - **Unified Admin Layout (Stage 2)**:
   - Sidebar, Project Selector (with fallback), Lazy Routing.
   - `/app` works, `/inbox` works standalone.

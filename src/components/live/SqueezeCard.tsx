@@ -99,8 +99,8 @@ export function SqueezeCard({
 
   return (
     <div
-      className="relative w-full aspect-[2/2.8]" // 200/280 approx 2/2.8 or roughly 5/7
-      style={{ perspective: '1000px' }}
+      className="relative w-full"
+      style={{ perspective: '1000px', aspectRatio: '5/7' }}
     >
       {/* Результат (под рубашкой) */}
       <motion.div
@@ -252,9 +252,9 @@ export function SqueezeCard({
             <div
               key={corner}
               className={`absolute w-8 h-8 ${corner === 'top-left' ? 'top-3 left-3' :
-                  corner === 'top-right' ? 'top-3 right-3' :
-                    corner === 'bottom-left' ? 'bottom-3 left-3' :
-                      'bottom-3 right-3'
+                corner === 'top-right' ? 'top-3 right-3' :
+                  corner === 'bottom-left' ? 'bottom-3 left-3' :
+                    'bottom-3 right-3'
                 }`}
               style={{
                 borderTop: corner.includes('top') ? '2px solid rgba(255,215,0,0.4)' : 'none',

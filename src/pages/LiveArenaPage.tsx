@@ -7,19 +7,11 @@ import { supabase } from '../lib/supabase'
 import { useArenaSounds } from '../hooks/useArenaSounds'
 import { useArenaHaptics } from '../hooks/useArenaHaptics'
 import { Tour1Drum } from '../components/live/Tour1Drum'
-import { SqueezeCard } from '../components/live/SqueezeCard'
+import { Tour2Squeeze } from '../components/live/Tour2Squeeze'
+import { SemifinalTraffic } from '../components/live/SemifinalTraffic'
+import { FinalBattle } from '../components/live/FinalBattle'
 
-interface Player {
-  id: string
-  name: string
-  avatar: string
-}
-
-interface Ticket {
-  user_id: string
-  ticket_number: number
-  player: Player
-}
+import type { Ticket, Player } from '../types'
 
 interface ModalConfig {
   title: string
@@ -638,300 +630,11 @@ export function LiveArenaPage() {
     </div>
   )
 
-  // ==================== RENDER TOUR 2 ====================
-  const renderTour2 = () => (
-    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-black text-[#FFD700]">ВТОРОЙ ТУР</h1>
-        <p className="text-white/60 text-sm mt-2">Выбираем ТОП-5 финалистов</p>
-        <div className="flex justify-center gap-6 mt-3">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]" />
-            <span className="text-xs text-white/70">Проходит</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
-            <span className="text-xs text-white/70">Выбывает</span>
-          </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg mx-auto">
-        {tour2Cards.map((ticket, idx) => {
-          const result = tour2Results.get(idx)
-          const isRevealed = tour2Results.has(idx)
 
-          return (
-            <div key={idx} className="">
-              <SqueezeCard
-                isRevealed={isRevealed}
-                result={result || 'red'} // Default to red if not set (won't be shown unrevealed anyway)
-                playerName={ticket.player.name}
-                playerAvatar={ticket.player.avatar}
-                ticketNumber={ticket.ticket_number}
-              />
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
 
-  // ==================== RENDER SEMIFINAL (REDESIGNED) ====================
-  const renderSemifinal = () => {
-    const getIndicatorClass = (hits: number) => {
-      if (hits === 0) return 'bg-zinc-700'
-      if (hits === 1) return 'bg-gradient-to-r from-green-500 to-emerald-400 shadow-[0_0_12px_#22c55e] animate-pulse'
-      if (hits === 2) return 'bg-gradient-to-r from-yellow-500 to-amber-400 shadow-[0_0_12px_#eab308] animate-pulse'
-      return 'bg-gradient-to-r from-red-500 to-red-600 shadow-[0_0_12px_#ef4444] animate-pulse'
-    }
 
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
-        <div className="text-center mb-4">
-          <h1 className="text-2xl font-black text-[#FFD700]">ПОЛУФИНАЛ</h1>
-          <p className="text-white/60 text-sm">Обратный светофор</p>
-        </div>
 
-        {/* Legend */}
-        <div className="flex justify-center gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_6px_#22c55e]" />
-            <span className="text-xs text-white/70">1-й штраф</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_6px_#eab308]" />
-            <span className="text-xs text-white/70">2-й штраф</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]" />
-            <span className="text-xs text-white/70">ВЫЛЕТ</span>
-          </div>
-        </div>
-
-        {/* Player Cards - EQUAL WIDTH with flex: 1 like vanilla */}
-        <div className="flex gap-2 mb-6 px-2">
-          {semifinalPlayers.map((ticket) => {
-            const hits = semifinalHits.get(ticket.ticket_number) || 0
-            const eliminated = semifinalEliminated.get(ticket.ticket_number)
-            const isCurrentSpin = currentSpinTicket === ticket.ticket_number
-
-            return (
-              <div
-                key={ticket.ticket_number}
-                style={{ flex: 1, minWidth: 0 }}
-                className={`rounded-xl p-1.5 border-2 transition-all duration-500 flex flex-col items-center ${eliminated ? 'border-red-500 bg-red-500/10' :
-                  isCurrentSpin ? 'border-[#FFD700] bg-[#FFD700]/10 scale-105' :
-                    'border-zinc-700 bg-zinc-900/80'
-                  }`}
-              >
-                {/* Traffic Light Indicator */}
-                <div className={`w-full h-1.5 rounded-full mb-1.5 transition-all duration-500 ${getIndicatorClass(hits)}`} />
-
-                <img
-                  src={ticket.player.avatar}
-                  alt=""
-                  className={`w-10 h-10 rounded-full border-2 mb-1 object-cover ${eliminated ? 'border-red-500 grayscale' :
-                    isCurrentSpin ? 'border-[#FFD700]' : 'border-white/30'
-                    }`}
-                />
-                <div className="text-[8px] text-white/70 text-center truncate w-full leading-tight">{ticket.player.name}</div>
-                <div className="text-[10px] font-bold text-[#FFD700] text-center">#{ticket.ticket_number}</div>
-
-                {eliminated && (
-                  <div className="text-[8px] font-bold text-red-400 text-center mt-0.5 bg-red-500/20 rounded py-0.5 w-full">
-                    {eliminated} МЕСТО
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Roulette */}
-        <div className="relative mb-6">
-          {/* Cursor - ABOVE the strip with smooth animation */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex justify-center mb-2"
-          >
-            <img src="/icons/Cursor.png" alt="cursor" className="w-8 h-8 drop-shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
-          </motion.div>
-
-          {/* Roulette Strip Container */}
-          <div className="bg-zinc-900/90 border-2 border-[#FFD700]/30 rounded-2xl py-3 overflow-hidden">
-            <div
-              className="flex"
-              style={{
-                gap: '12px',
-                transform: `translateX(calc(50% + ${rouletteOffset}px - 50px))`,
-                transition: 'transform 4s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-              }}
-            >
-              {Array(10).fill(null).flatMap((_, repIdx) =>
-                semifinalPlayers.map((t, tIdx) => {
-                  const hits = semifinalHits.get(t.ticket_number) || 0
-                  const hitClass = hits === 1 ? 'border-green-500 bg-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
-                    hits === 2 ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.5)]' :
-                      hits === 3 ? 'border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
-                        'border-[#FFD700]/30 bg-zinc-800/50 text-white'
-
-                  return (
-                    <div
-                      key={`${repIdx}-${tIdx}`}
-                      className={`flex-shrink-0 w-[100px] h-14 rounded-xl border-2 flex items-center justify-center font-bold text-lg transition-all ${hitClass}`}
-                    >
-                      #{t.ticket_number}
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Prize Cards */}
-        {showSemifinalPrizes && (
-          <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto">
-            {[5, 4].map(place => {
-              const ticketNum = [...semifinalEliminated.entries()].find(([_, p]) => p === place)?.[0]
-              const player = ticketNum ? semifinalPlayers.find(t => t.ticket_number === ticketNum) : null
-
-              return (
-                <div key={place} className="bg-zinc-900 rounded-xl p-4 border border-[#FFD700]/30 text-center">
-                  <div className="w-14 h-14 mx-auto rounded-full bg-zinc-800 border-2 border-[#FFD700]/50 flex items-center justify-center mb-2 overflow-hidden">
-                    {player ? (
-                      <img src={player.player.avatar} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-2xl text-[#FFD700]">?</span>
-                    )}
-                  </div>
-                  <div className="text-lg font-bold text-white">{place} МЕСТО</div>
-                  {player && <div className="text-xs text-[#FFD700] mt-1">{player.player.name}</div>}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // ==================== RENDER FINAL (REDESIGNED) ====================
-  const renderFinal = () => (
-    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-black text-[#FFD700]">ФИНАЛ</h1>
-        <p className="text-white/60 text-sm">Битва быка и медведя</p>
-      </div>
-
-      {/* Players */}
-      <div className="flex justify-center items-end gap-6 mb-8">
-        {finalPlayers.map((ticket, idx) => {
-          const score = finalScores[idx]
-          const isCurrent = currentFinalPlayer === idx
-          const orderNum = finalTurnOrder.indexOf(idx) + 1
-
-          return (
-            <div key={idx} className="flex flex-col items-center">
-              {/* Avatar with order badge */}
-              <div className="relative mb-2">
-                <img
-                  src={ticket.player.avatar}
-                  alt=""
-                  className={`w-20 h-20 rounded-full border-3 transition-all duration-300 ${isCurrent ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.7)] scale-110' :
-                    score?.place ? 'border-[#FFD700]' : 'border-[#FFD700]/50'
-                    }`}
-                />
-                {orderNum > 0 && (
-                  <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black text-xs font-bold flex items-center justify-center border-2 border-black">
-                    {orderNum}
-                  </div>
-                )}
-              </div>
-
-              {/* Name / Place */}
-              <div className={`px-4 py-2 rounded-xl text-center mb-2 min-w-[90px] ${score?.place === 1 ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold shadow-[0_0_20px_rgba(255,215,0,0.6)]' :
-                score?.place === 2 ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-black font-bold' :
-                  score?.place === 3 ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold' :
-                    'bg-zinc-800 text-white'
-                }`}>
-                {score?.place ? `${score.place} МЕСТО` : ticket.player.name}
-              </div>
-
-              {/* Bulls & Bears Grid */}
-              <div className="space-y-1">
-                <div className="flex gap-1">
-                  {[0, 1, 2].map(i => (
-                    <div
-                      key={`bull-${i}`}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${(score?.bulls || 0) > i
-                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]'
-                        : 'bg-zinc-900 border-zinc-700'
-                        }`}
-                    >
-                      <img src="/icons/bull.png" alt="bull" className="w-6 h-6" />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-1">
-                  {[0, 1, 2].map(i => (
-                    <div
-                      key={`bear-${i}`}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${(score?.bears || 0) > i
-                        ? 'bg-gradient-to-br from-red-500 to-red-700 border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
-                        : 'bg-zinc-900 border-zinc-700'
-                        }`}
-                    >
-                      <img src="/icons/bear.png" alt="bear" className="w-6 h-6" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Wheel - cursor rotates around wheel center, wheel stays still */}
-      <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
-        {/* Static wheel image */}
-        <img
-          src="/icons/rulet.png"
-          alt="wheel"
-          className="w-full h-full"
-        />
-
-        {/* Rotating cursor - positioned at top, rotates around wheel center */}
-        <img
-          src="/icons/Cursor.png"
-          alt="cursor"
-          className={`absolute w-10 h-10 top-0 left-1/2 -ml-5 z-10 transition-transform ${wheelSpinning ? 'duration-[3s] ease-out' : ''}`}
-          style={{
-            transformOrigin: 'center 128px', // half of 256px wheel = rotate around center
-            transform: `rotate(${wheelAngle}deg)`
-          }}
-        />
-
-        {/* Result indicator */}
-        {lastResult && !wheelSpinning && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="absolute inset-0 flex items-center justify-center"
-          >
-            <img
-              src={lastResult === 'bull' ? '/icons/bull.png' : '/icons/bear.png'}
-              alt={lastResult}
-              className={`w-20 h-20 ${lastResult === 'bull' ? 'drop-shadow-[0_0_20px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]'}`}
-            />
-          </motion.div>
-        )}
-      </div>
-    </div>
-  )
 
   // ==================== RENDER RESULTS ====================
   const renderResults = () => (
@@ -1019,12 +722,43 @@ export function LiveArenaPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <AnimatePresence>{showModal && renderModal()}</AnimatePresence>
+
       {currentStage === 'tour1' && renderTour1()}
-      {currentStage === 'tour2' && renderTour2()}
-      {currentStage === 'semifinal' && renderSemifinal()}
-      {currentStage === 'final' && renderFinal()}
+
+      {currentStage === 'tour2' && (
+        <Tour2Squeeze
+          candidates={tour2Cards}
+          results={tour2Results}
+
+        />
+      )}
+
+      {currentStage === 'semifinal' && (
+        <SemifinalTraffic
+          players={semifinalPlayers}
+          hits={semifinalHits}
+          eliminated={semifinalEliminated}
+          rouletteOffset={rouletteOffset}
+          currentSpinTicket={currentSpinTicket}
+          showPrizes={showSemifinalPrizes}
+        />
+      )}
+
+      {currentStage === 'final' && (
+        <FinalBattle
+          players={finalPlayers}
+          scores={finalScores}
+          turnOrder={finalTurnOrder}
+          currentFinalPlayer={currentFinalPlayer}
+          wheelAngle={wheelAngle}
+          wheelSpinning={wheelSpinning}
+          lastResult={lastResult}
+        />
+      )}
+
       {currentStage === 'results' && renderResults()}
       {renderConfetti()}
     </div>
   )
 }
+
