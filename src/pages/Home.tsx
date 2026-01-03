@@ -6,6 +6,7 @@ import { TapBull } from '../components/TapBull'
 import { SideButtons } from '../components/SideButtons'
 import { FloatingNumber } from '../components/FloatingNumber'
 import { Particles } from '../components/Particles'
+import { BrowserFallback } from '../components/BrowserFallback'
 import { useAuth } from '../hooks/useAuth'
 import { useTap } from '../hooks/useTap'
 import { useEnergy } from '../hooks/useEnergy'
@@ -110,6 +111,14 @@ export function Home() {
 
   // Показываем ошибку только если нет данных
   if (error && !gameState && !telegramUser) {
+    // Если открыли в браузере (не в Telegram) - показываем красивый экран
+    const isTelegramError = error.includes('Invalid Telegram session') ||
+      error.includes('only works in Telegram')
+
+    if (isTelegramError) {
+      return <BrowserFallback />
+    }
+
     const isConnectionError = error.includes('Failed to fetch') ||
       error.includes('ERR_NAME_NOT_RESOLVED') ||
       error.includes('Load failed') ||
