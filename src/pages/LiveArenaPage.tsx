@@ -656,13 +656,13 @@ export function LiveArenaPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 max-w-lg mx-auto">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg mx-auto">
         {tour2Cards.map((ticket, idx) => {
           const result = tour2Results.get(idx)
           const isRevealed = tour2Results.has(idx)
 
           return (
-            <div key={idx} className="scale-90">
+            <div key={idx} className="">
               <SqueezeCard
                 isRevealed={isRevealed}
                 result={result || 'red'} // Default to red if not set (won't be shown unrevealed anyway)

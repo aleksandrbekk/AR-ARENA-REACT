@@ -99,7 +99,7 @@ export function SqueezeCard({
 
   return (
     <div
-      className="relative w-[200px] h-[280px]"
+      className="relative w-full aspect-[2/2.8]" // 200/280 approx 2/2.8 or roughly 5/7
       style={{ perspective: '1000px' }}
     >
       {/* Результат (под рубашкой) */}
@@ -251,12 +251,11 @@ export function SqueezeCard({
           {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => (
             <div
               key={corner}
-              className={`absolute w-8 h-8 ${
-                corner === 'top-left' ? 'top-3 left-3' :
-                corner === 'top-right' ? 'top-3 right-3' :
-                corner === 'bottom-left' ? 'bottom-3 left-3' :
-                'bottom-3 right-3'
-              }`}
+              className={`absolute w-8 h-8 ${corner === 'top-left' ? 'top-3 left-3' :
+                  corner === 'top-right' ? 'top-3 right-3' :
+                    corner === 'bottom-left' ? 'bottom-3 left-3' :
+                      'bottom-3 right-3'
+                }`}
               style={{
                 borderTop: corner.includes('top') ? '2px solid rgba(255,215,0,0.4)' : 'none',
                 borderBottom: corner.includes('bottom') ? '2px solid rgba(255,215,0,0.4)' : 'none',
