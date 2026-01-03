@@ -1,7 +1,8 @@
-import { useEffect, Suspense, lazy } from 'react'
+import { Suspense, lazy } from 'react'
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom'
 import { ToastProvider } from './components/ToastProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AuthProvider } from './providers/AuthProvider'
 
 // Public Pages
 import { Home } from './pages/Home'
@@ -29,26 +30,12 @@ const InboxPageLazy = lazy(() => import('./pages/InboxPage').then(m => ({ defaul
 
 // Root Component that handles Telegram initialization
 function Root() {
-  useEffect(() => {
-    const tg = window.Telegram?.WebApp
-    if (tg) {
-      tg.ready()
-      const platform = tg.platform
-      const isMobile = platform === 'android' || platform === 'ios'
-      if (isMobile) {
-        tg.expand()
-        if (typeof tg.requestFullscreen === 'function') {
-          try { tg.requestFullscreen() } catch (e) { console.warn('requestFullscreen error', e) }
-        }
-      }
-      tg.setHeaderColor('#0a0a0a')
-    }
-  }, [])
-
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <Outlet />
+        <AuthProvider>
+          <Outlet />
+        </AuthProvider>
       </ToastProvider>
     </ErrorBoundary>
   )
