@@ -17,13 +17,16 @@
     "canvas-confetti": "^1.9.4",
     "dompurify": "^3.3.1",
     "framer-motion": "^12.23.25",
+    "lightweight-charts": "^5.1.0",
     "lucide-react": "^0.555.0",
     "pg": "^8.16.3",
     "postcss": "^8.5.6",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "react-parallax-tilt": "^1.7.315",
     "react-router-dom": "^7.11.0",
-    "tailwindcss": "^4.1.17"
+    "tailwindcss": "^4.1.17",
+    "use-sound": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

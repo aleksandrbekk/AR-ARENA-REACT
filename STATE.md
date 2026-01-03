@@ -16,10 +16,12 @@
 ### ✅ Done
 - **Giveaway Admin Fix**: Created `fix_giveaways_schema.sql` to solve `currency` column error.
 - **Visuals - Live Arena**:
-  - Implemented `LiveArenaPage.tsx` with mock data mode.
-  - Implemented `Tour1Drum.tsx` (Stage 1 animation).
-  - Added routing `/live/:id`.
+  - Found and integrated existing components: `ArenaRoulette` (Tour 1), `ArenaCard` (Tour 2), `ArenaBattle` (Final).
+  - **Premium Upgrade (In Progress)**:
+    - Installed `lightweight-charts`, `use-sound`.
+    - Created **Chart Battle Demo**: `/demo/battle`.
+    - Implemented `ChartBattle.tsx` (Real-time candle fight).
 
 ### ⏳ Next Steps
-- **User Action**: Run SQL fix.
-- **Visuals**: Implement Tour 2 (Cards) and Semifinal (Traffic Light).
+- **Verify**: Check `/demo/battle` to see the new Chart mechanic.
+- **Next Mechanics**: Implement 3D Drums and Squeeze Cards.

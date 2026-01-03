@@ -21,6 +21,7 @@ import { PricingPage } from './pages/PricingPage'
 import { StreamPage } from './pages/StreamPage'
 import { StreamAdminPage } from './pages/StreamAdminPage'
 import { VaultPage } from './pages/VaultPage'
+import { ChartBattleDemoPage } from './pages/demo/ChartBattleDemoPage'
 
 // Lazy Loaded Admin Modules for Unified Workspace
 const AdminLayoutLazy = lazy(() => import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout })))
@@ -64,6 +65,7 @@ const router = createBrowserRouter([
       { path: "stream", element: <StreamPage /> },
       { path: "live", element: <StreamPage /> },
       { path: "vault", element: <VaultPage /> },
+      { path: "demo/battle", element: <ChartBattleDemoPage /> },
 
       // --- LEGACY / STANDALONE ADMIN ROUTES ---
       // (Leaving them for backward compatibility until fully migrated)
