@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useArenaSounds } from '../hooks/useArenaSounds'
 import { useArenaHaptics } from '../hooks/useArenaHaptics'
+import { Tour1Drum } from '../components/live/Tour1Drum'
+import { SqueezeCard } from '../components/live/SqueezeCard'
 
 interface Player {
   id: string
@@ -48,6 +50,7 @@ export function LiveArenaPage() {
   const allPlayersRef = useRef<Player[]>([])
   const giveawayDataRef = useRef<any>(null)
   const drawResultsRef = useRef<DrawResults | null>(null)
+  const stageResolver = useRef<(() => void) | null>(null)
 
   // SFX & Haptics
   const { initAudio, playClick, playImpact, playSuccess, playFailure, playWin, playRouletteTicks } = useArenaSounds()
@@ -60,8 +63,7 @@ export function LiveArenaPage() {
 
   // Tour 1
   const [tour1Winners, setTour1Winners] = useState<Ticket[]>([])
-  const [tour1FlippedDrums, setTour1FlippedDrums] = useState<Set<number>>(new Set())
-  const [tour1SpunDrums, setTour1SpunDrums] = useState<Set<number>>(new Set())
+
 
   // Tour 2
   const [tour2Cards, setTour2Cards] = useState<Ticket[]>([])
@@ -323,30 +325,23 @@ export function LiveArenaPage() {
       goal: '✓ Все билеты участвуют в розыгрыше\n✓ Больше билетов = выше шанс\n✓ 20 барабанов выберут 20 счастливчиков'
     })
 
-    setCurrentStage('tour1')
     const tour1WinnerTickets = results.tour1.winners.map((winner: any) => {
       const ticketNum = typeof winner === 'number' ? winner : winner.ticket_number
       return tickets.find(t => t.ticket_number === ticketNum)
     }).filter((t): t is Ticket => !!t)
     setTour1Winners(tour1WinnerTickets)
+    setCurrentStage('tour1')
 
     await sleep(500)
 
-    for (let i = 0; i < 20; i++) {
-      setTour1FlippedDrums(prev => new Set([...prev, i]))
-      playClick()
-      triggerTick()
-      await sleep(80)
-    }
-    await sleep(800)
+    setTour1Winners(tour1WinnerTickets)
 
-    for (let i = 0; i < 20; i++) {
-      setTimeout(() => {
-        setTour1SpunDrums(prev => new Set([...prev, i]))
-        if (i % 2 === 0) playClick() // Don't spam too much
-      }, 1500 + i * 100)
-    }
-    await sleep(1500 + 20 * 100 + 2000)
+    await sleep(500)
+
+    // Wait for Tour1Drum to complete
+    await new Promise<void>(resolve => {
+      stageResolver.current = resolve
+    })
 
     await sleep(2000)
 
@@ -635,32 +630,11 @@ export function LiveArenaPage() {
         <p className="text-white/60 text-sm mt-2">Выбираем 20 из {allTicketsRef.current.length} билетов</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 max-w-lg mx-auto">
-        {tour1Winners.map((ticket, idx) => (
-          <div key={idx} className="aspect-[2/3]" style={{ perspective: '1000px' }}>
-            <div
-              className="w-full h-full relative transition-transform duration-700"
-              style={{
-                transformStyle: 'preserve-3d',
-                transform: tour1FlippedDrums.has(idx) ? 'rotateY(180deg)' : 'rotateY(0deg)'
-              }}
-            >
-              <div className="absolute inset-0 rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden' }}>
-                <img src="/icons/karta.png" alt="card" className="w-full h-full object-cover" />
-              </div>
-              <div
-                className={`absolute inset-0 rounded-xl bg-gradient-to-b from-zinc-800 to-zinc-900 border-2 ${tour1SpunDrums.has(idx) ? 'border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.5)]' : 'border-zinc-700'
-                  } flex flex-col items-center justify-center p-2`}
-                style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-              >
-                <img src={ticket.player.avatar} alt="" className="w-10 h-10 rounded-full border-2 border-[#FFD700] mb-1" />
-                <div className="text-[9px] text-white/80 text-center truncate w-full">{ticket.player.name}</div>
-                <div className="text-xs font-bold text-[#FFD700]">#{ticket.ticket_number}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <Tour1Drum
+        candidates={allTicketsRef.current.map(t => ({ ticket: t.ticket_number, user: t.player.name }))}
+        winners={tour1Winners.map(t => ({ ticket: t.ticket_number, user: t.player.name }))}
+        onComplete={() => stageResolver.current?.()}
+      />
     </div>
   )
 
@@ -685,19 +659,17 @@ export function LiveArenaPage() {
       <div className="grid grid-cols-4 gap-2 max-w-lg mx-auto">
         {tour2Cards.map((ticket, idx) => {
           const result = tour2Results.get(idx)
+          const isRevealed = tour2Results.has(idx)
+
           return (
-            <div
-              key={idx}
-              className={`rounded-xl bg-zinc-900 border-2 p-2 flex flex-col items-center transition-all duration-500 ${result === 'green' ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
-                result === 'red' ? 'border-red-500 opacity-40' : 'border-zinc-700'
-                }`}
-            >
-              <div className={`w-full h-1.5 rounded-full mb-2 transition-all ${result === 'green' ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' :
-                result === 'red' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : 'bg-zinc-700'
-                }`} />
-              <img src={ticket.player.avatar} alt="" className="w-10 h-10 rounded-full border border-zinc-600 mb-1" />
-              <div className="text-[9px] text-white/70 truncate w-full text-center">{ticket.player.name}</div>
-              <div className="text-xs font-bold text-[#FFD700]">#{ticket.ticket_number}</div>
+            <div key={idx} className="scale-90">
+              <SqueezeCard
+                isRevealed={isRevealed}
+                result={result || 'red'} // Default to red if not set (won't be shown unrevealed anyway)
+                playerName={ticket.player.name}
+                playerAvatar={ticket.player.avatar}
+                ticketNumber={ticket.ticket_number}
+              />
             </div>
           )
         })}
