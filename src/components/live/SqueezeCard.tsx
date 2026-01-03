@@ -1,32 +1,53 @@
-import { motion, useAnimationControls } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { motion, useMotionValue, useTransform, useAnimationControls } from 'framer-motion'
+import type { PanInfo } from 'framer-motion'
+import { useState, useRef, useCallback } from 'react'
 
 interface SqueezeCardProps {
-  isRevealed: boolean
   result: 'green' | 'red'
   playerName?: string
   playerAvatar?: string
   ticketNumber?: number
-  onRevealComplete?: () => void
+  isRevealed?: boolean // External control (for automated reveals)
+  onReveal?: () => void
+  onRevealComplete?: () => void // Backward compat alias
+  onDragProgress?: (progress: number) => void // 0-1 for haptics
 }
 
+const REVEAL_THRESHOLD = 0.4 // 40% = reveal
+const MAX_DRAG = 150 // max drag distance in px
+
 /**
- * SqueezeCard - Карта с драматичным "Squeeze" эффектом открытия
- * Эффект отклеивания с верхнего правого угла
+ * SqueezeCard - Interactive card with poker-style "squeeze" reveal
+ * Drag to peek, release to snap back or reveal
  */
 export function SqueezeCard({
-  isRevealed,
   result,
   playerName = 'Player',
   playerAvatar,
   ticketNumber,
-  onRevealComplete
+  isRevealed: externalRevealed,
+  onReveal,
+  onRevealComplete,
+  onDragProgress
 }: SqueezeCardProps) {
-  const peelControls = useAnimationControls()
-  const [showResult, setShowResult] = useState(false)
-  const [peelProgress, setPeelProgress] = useState(0)
+  const [internalRevealed, setInternalRevealed] = useState(false)
 
-  // Цвета результата
+  // Use external control if provided, otherwise internal state
+  const isRevealed = externalRevealed !== undefined ? externalRevealed : internalRevealed
+  const [isDragging, setIsDragging] = useState(false)
+  const peelControls = useAnimationControls()
+  const lastProgressRef = useRef(0)
+
+  // Motion values for drag
+  const dragY = useMotionValue(0)
+
+  // Transform drag to rotation (peek effect)
+  const rotateX = useTransform(dragY, [0, MAX_DRAG], [0, 35])
+  const rotateY = useTransform(dragY, [0, MAX_DRAG], [0, -25])
+  const cardX = useTransform(dragY, [0, MAX_DRAG], [0, -15])
+  const peekOpacity = useTransform(dragY, [0, MAX_DRAG * 0.3, MAX_DRAG], [0, 0.3, 0.8])
+
+  // Result colors
   const resultColors = {
     green: {
       border: '#22c55e',
@@ -44,265 +65,248 @@ export function SqueezeCard({
 
   const colors = resultColors[result]
 
-  useEffect(() => {
-    if (isRevealed) {
-      // Запускаем анимацию отклеивания
-      const animate = async () => {
-        // Фаза 1: Начинаем отгибать угол (0-30%)
-        await peelControls.start({
-          rotateY: -25,
-          rotateX: 15,
-          x: -20,
-          transition: { duration: 0.8, ease: 'easeOut' }
-        })
-        setPeelProgress(30)
+  // Handle drag for haptic feedback
+  const handleDrag = useCallback((_: any, info: PanInfo) => {
+    const progress = Math.min(Math.abs(info.offset.y) / MAX_DRAG, 1)
 
-        // Фаза 2: Показываем краешек результата (30-60%)
-        await peelControls.start({
-          rotateY: -45,
-          rotateX: 25,
-          x: -40,
-          transition: { duration: 0.7, ease: 'easeInOut' }
-        })
-        setPeelProgress(60)
-
-        // Пауза для саспенса
-        await new Promise(r => setTimeout(r, 300))
-
-        // Фаза 3: Полное открытие (60-100%)
-        await peelControls.start({
-          rotateY: -180,
-          rotateX: 0,
-          x: 0,
-          opacity: 0,
-          transition: { duration: 0.6, ease: 'easeIn' }
-        })
-        setPeelProgress(100)
-        setShowResult(true)
-        onRevealComplete?.()
-      }
-
-      animate()
-    } else {
-      // Сброс
-      peelControls.start({
-        rotateY: 0,
-        rotateX: 0,
-        x: 0,
-        opacity: 1,
-        transition: { duration: 0.3 }
-      })
-      setPeelProgress(0)
-      setShowResult(false)
+    // Call haptic progress callback (debounced by progress delta)
+    if (onDragProgress && Math.abs(progress - lastProgressRef.current) > 0.05) {
+      onDragProgress(progress)
+      lastProgressRef.current = progress
     }
-  }, [isRevealed, peelControls, onRevealComplete])
+  }, [onDragProgress])
+
+  // Handle drag end - snap back or reveal
+  const handleDragEnd = useCallback((_: any, info: PanInfo) => {
+    setIsDragging(false)
+    const progress = Math.abs(info.offset.y) / MAX_DRAG
+
+    if (progress >= REVEAL_THRESHOLD) {
+      // REVEAL!
+      doReveal()
+    } else {
+      // Snap back
+      dragY.set(0)
+      lastProgressRef.current = 0
+    }
+  }, [dragY])
+
+  // Full reveal animation
+  const doReveal = async () => {
+    if (isRevealed) return
+
+    // Animate card flying away
+    await peelControls.start({
+      rotateY: -180,
+      rotateX: 0,
+      x: 0,
+      opacity: 0,
+      transition: { duration: 0.5, ease: 'easeIn' }
+    })
+
+    setInternalRevealed(true)
+    onReveal?.()
+    onRevealComplete?.()
+  }
+
+  // Handle tap to reveal (alternative to drag)
+  const handleTap = () => {
+    if (!isRevealed && !isDragging) {
+      doReveal()
+    }
+  }
 
   return (
     <div
-      className="relative w-full"
+      className="relative w-full touch-none"
       style={{ perspective: '1000px', aspectRatio: '5/7' }}
     >
-      {/* Результат (под рубашкой) */}
+      {/* Result card (underneath) */}
       <motion.div
         className="absolute inset-0 rounded-2xl overflow-hidden"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{
-          opacity: showResult ? 1 : (peelProgress > 30 ? 0.3 + peelProgress * 0.007 : 0),
-          scale: showResult ? 1 : 0.95
+          opacity: isRevealed ? 1 : peekOpacity.get(),
+          scale: isRevealed ? 1 : 0.95
         }}
-        transition={{ duration: 0.4 }}
         style={{
           background: colors.bg,
           border: `3px solid ${colors.border}`,
-          boxShadow: showResult ? `0 0 40px ${colors.glow}, inset 0 0 30px rgba(255,255,255,0.1)` : 'none'
+          boxShadow: isRevealed ? `0 0 40px ${colors.glow}, inset 0 0 30px rgba(255,255,255,0.1)` : 'none'
         }}
       >
-        {/* Внутреннее содержимое результата */}
-        <div className="flex flex-col items-center justify-center h-full p-4">
-          {/* Аватар */}
+        {/* Result content */}
+        <div className="flex flex-col items-center justify-center h-full p-3">
+          {/* Avatar */}
           <motion.div
-            className="w-20 h-20 rounded-full overflow-hidden mb-4 border-4"
+            className="w-16 h-16 rounded-full overflow-hidden mb-2 border-4"
             style={{ borderColor: colors.border }}
             initial={{ scale: 0, rotate: -180 }}
             animate={{
-              scale: showResult ? 1 : 0,
-              rotate: showResult ? 0 : -180
+              scale: isRevealed ? 1 : 0,
+              rotate: isRevealed ? 0 : -180
             }}
-            transition={{ delay: 0.2, duration: 0.5, type: 'spring' }}
+            transition={{ delay: 0.1, duration: 0.4, type: 'spring' }}
           >
             {playerAvatar ? (
-              <img
-                src={playerAvatar}
-                alt={playerName}
-                className="w-full h-full object-cover"
-              />
+              <img src={playerAvatar} alt={playerName} className="w-full h-full object-cover" />
             ) : (
-              <div
-                className="w-full h-full flex items-center justify-center text-2xl font-bold"
-                style={{ background: 'rgba(0,0,0,0.3)' }}
-              >
+              <div className="w-full h-full flex items-center justify-center text-xl font-bold bg-black/30">
                 {playerName.charAt(0).toUpperCase()}
               </div>
             )}
           </motion.div>
 
-          {/* Имя игрока */}
+          {/* Player name */}
           <motion.div
-            className="text-white font-bold text-lg text-center truncate w-full"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: showResult ? 1 : 0, y: showResult ? 0 : 20 }}
-            transition={{ delay: 0.3 }}
+            className="text-white font-bold text-sm text-center truncate w-full"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: isRevealed ? 1 : 0, y: isRevealed ? 0 : 10 }}
+            transition={{ delay: 0.2 }}
           >
             {playerName}
           </motion.div>
 
-          {/* Номер билета */}
+          {/* Ticket */}
           {ticketNumber && (
             <motion.div
-              className="text-white/60 text-sm mt-1"
+              className="text-white/60 text-xs mt-0.5"
               initial={{ opacity: 0 }}
-              animate={{ opacity: showResult ? 1 : 0 }}
-              transition={{ delay: 0.4 }}
+              animate={{ opacity: isRevealed ? 1 : 0 }}
+              transition={{ delay: 0.25 }}
             >
-              Ticket #{ticketNumber}
+              #{ticketNumber}
             </motion.div>
           )}
 
-          {/* Статус */}
+          {/* Status badge */}
           <motion.div
-            className="mt-4 px-6 py-2 rounded-full font-black text-xl tracking-wider"
+            className="mt-2 px-4 py-1.5 rounded-full font-black text-base tracking-wider"
             style={{
               background: 'rgba(0,0,0,0.4)',
               color: colors.border,
               textShadow: `0 0 20px ${colors.glow}`
             }}
             initial={{ scale: 0, opacity: 0 }}
-            animate={{
-              scale: showResult ? 1 : 0,
-              opacity: showResult ? 1 : 0
-            }}
-            transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
+            animate={{ scale: isRevealed ? 1 : 0, opacity: isRevealed ? 1 : 0 }}
+            transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
           >
             {colors.text}
           </motion.div>
         </div>
 
-        {/* Блик на результате */}
+        {/* Shine overlay */}
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%)',
-          }}
+          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%)' }}
           initial={{ opacity: 0 }}
-          animate={{ opacity: showResult ? 1 : 0 }}
-          transition={{ delay: 0.3 }}
+          animate={{ opacity: isRevealed ? 1 : 0 }}
         />
       </motion.div>
 
-      {/* Рубашка карты (сверху) */}
-      <motion.div
-        className="absolute inset-0 rounded-2xl overflow-hidden"
-        animate={peelControls}
-        style={{
-          transformOrigin: 'left center',
-          transformStyle: 'preserve-3d',
-          backfaceVisibility: 'hidden'
-        }}
-      >
-        {/* Основной фон рубашки */}
-        <div
-          className="absolute inset-0"
+      {/* Card back (draggable) */}
+      {!isRevealed && (
+        <motion.div
+          className="absolute inset-0 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing"
+          drag="y"
+          dragConstraints={{ top: 0, bottom: MAX_DRAG }}
+          dragElastic={0.1}
+          onDragStart={() => setIsDragging(true)}
+          onDrag={handleDrag}
+          onDragEnd={handleDragEnd}
+          onTap={handleTap}
+          animate={peelControls}
           style={{
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
-            border: '3px solid rgba(255, 215, 0, 0.3)'
+            y: dragY,
+            rotateX,
+            rotateY,
+            x: cardX,
+            transformOrigin: 'bottom center',
+            transformStyle: 'preserve-3d',
           }}
         >
-          {/* Паттерн рубашки */}
+          {/* Card back design */}
           <div
-            className="absolute inset-0 opacity-20"
+            className="absolute inset-0"
             style={{
-              backgroundImage: `
-                repeating-linear-gradient(
-                  45deg,
-                  transparent,
-                  transparent 10px,
-                  rgba(255,215,0,0.1) 10px,
-                  rgba(255,215,0,0.1) 20px
-                )
-              `
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
+              border: '3px solid rgba(255, 215, 0, 0.3)'
             }}
-          />
-
-          {/* Центральный логотип */}
-          <div className="absolute inset-0 flex items-center justify-center">
+          >
+            {/* Pattern */}
             <div
-              className="w-24 h-24 rounded-2xl flex items-center justify-center"
+              className="absolute inset-0 opacity-20"
               style={{
-                background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,165,0,0.1) 100%)',
-                border: '2px solid rgba(255,215,0,0.3)',
-                boxShadow: '0 0 30px rgba(255,215,0,0.2)'
+                backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,215,0,0.1) 10px, rgba(255,215,0,0.1) 20px)`
               }}
-            >
-              <span className="text-[#FFD700] font-black text-3xl">AR</span>
+            />
+
+            {/* Center logo */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,165,0,0.1) 100%)',
+                  border: '2px solid rgba(255,215,0,0.3)',
+                  boxShadow: '0 0 30px rgba(255,215,0,0.2)'
+                }}
+              >
+                <span className="text-[#FFD700] font-black text-2xl">AR</span>
+              </div>
+            </div>
+
+            {/* Corner decorations */}
+            {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => (
+              <div
+                key={corner}
+                className={`absolute w-6 h-6 ${
+                  corner === 'top-left' ? 'top-2 left-2' :
+                  corner === 'top-right' ? 'top-2 right-2' :
+                  corner === 'bottom-left' ? 'bottom-2 left-2' : 'bottom-2 right-2'
+                }`}
+                style={{
+                  borderTop: corner.includes('top') ? '2px solid rgba(255,215,0,0.4)' : 'none',
+                  borderBottom: corner.includes('bottom') ? '2px solid rgba(255,215,0,0.4)' : 'none',
+                  borderLeft: corner.includes('left') ? '2px solid rgba(255,215,0,0.4)' : 'none',
+                  borderRight: corner.includes('right') ? '2px solid rgba(255,215,0,0.4)' : 'none',
+                }}
+              />
+            ))}
+
+            {/* Drag hint */}
+            <div className="absolute bottom-3 left-0 right-0 text-center">
+              <span className="text-[10px] text-white/30 uppercase tracking-wider">
+                {isDragging ? 'Release to reveal' : 'Drag to peek'}
+              </span>
             </div>
           </div>
 
-          {/* Угловые декорации */}
-          {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => (
-            <div
-              key={corner}
-              className={`absolute w-8 h-8 ${corner === 'top-left' ? 'top-3 left-3' :
-                corner === 'top-right' ? 'top-3 right-3' :
-                  corner === 'bottom-left' ? 'bottom-3 left-3' :
-                    'bottom-3 right-3'
-                }`}
-              style={{
-                borderTop: corner.includes('top') ? '2px solid rgba(255,215,0,0.4)' : 'none',
-                borderBottom: corner.includes('bottom') ? '2px solid rgba(255,215,0,0.4)' : 'none',
-                borderLeft: corner.includes('left') ? '2px solid rgba(255,215,0,0.4)' : 'none',
-                borderRight: corner.includes('right') ? '2px solid rgba(255,215,0,0.4)' : 'none',
-              }}
-            />
-          ))}
-        </div>
+          {/* Dynamic shine on drag */}
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: useTransform(dragY, [0, MAX_DRAG], [
+                'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 30%)',
+                'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%)'
+              ])
+            }}
+          />
+        </motion.div>
+      )}
 
-        {/* Динамический блик при отгибании */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `linear-gradient(
-              ${135 + peelProgress}deg,
-              rgba(255,255,255,${0.1 + peelProgress * 0.003}) 0%,
-              transparent ${30 + peelProgress * 0.5}%
-            )`,
-          }}
-        />
-
-        {/* Тень от сгиба */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `linear-gradient(
-              to left,
-              rgba(0,0,0,${peelProgress * 0.005}) 0%,
-              transparent 50%
-            )`,
-          }}
-        />
-      </motion.div>
-
-      {/* Тень под картой */}
+      {/* Card shadow */}
       <motion.div
-        className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[90%] h-8 rounded-full blur-xl"
+        className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-[85%] h-6 rounded-full blur-xl"
         style={{ background: 'rgba(0,0,0,0.5)' }}
         animate={{
-          scaleX: showResult ? 1.1 : 1,
-          opacity: showResult ? 0.8 : 0.5
+          scaleX: isRevealed ? 1.1 : 1,
+          scaleY: isDragging ? 1.3 : 1,
+          opacity: isRevealed ? 0.8 : 0.5
         }}
       />
 
-      {/* Частицы при полном открытии */}
-      {showResult && (
+      {/* Reveal particles */}
+      {isRevealed && (
         <>
           {[...Array(8)].map((_, i) => (
             <motion.div
@@ -314,23 +318,14 @@ export function SqueezeCard({
                 top: '50%',
                 boxShadow: `0 0 10px ${colors.glow}`
               }}
-              initial={{
-                x: 0,
-                y: 0,
-                scale: 0,
-                opacity: 1
-              }}
+              initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
               animate={{
-                x: Math.cos(i * Math.PI / 4) * 120,
-                y: Math.sin(i * Math.PI / 4) * 120,
+                x: Math.cos(i * Math.PI / 4) * 100,
+                y: Math.sin(i * Math.PI / 4) * 100,
                 scale: [0, 1.5, 0],
                 opacity: [1, 1, 0]
               }}
-              transition={{
-                duration: 0.8,
-                delay: i * 0.05,
-                ease: 'easeOut'
-              }}
+              transition={{ duration: 0.6, delay: i * 0.03, ease: 'easeOut' }}
             />
           ))}
         </>

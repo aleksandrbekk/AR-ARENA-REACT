@@ -27,7 +27,6 @@ export function LiveArenaTestPage() {
     const { triggerTick, triggerImpact, triggerSuccess, triggerError, triggerTension } = useArenaHaptics()
 
     // ===================== TOUR 2 STATE =====================
-    const [revealedCards, setRevealedCards] = useState<Set<number>>(new Set())
     const [squeezeResults] = useState(() =>
         mockWinners20.map((w, i) => ({
             ...w,
@@ -53,22 +52,6 @@ export function LiveArenaTestPage() {
     const [lastResult, setLastResult] = useState<'bull' | 'bear' | null>(null)
 
     // ===================== HANDLERS =====================
-    const handleRevealCard = (idx: number) => {
-        if (revealedCards.has(idx)) return
-        triggerTension(1500) // Start tension haptics
-        playClick()
-        setRevealedCards(prev => new Set([...prev, idx]))
-    }
-
-    const handleRevealAll = async () => {
-        for (let i = 0; i < 20; i++) {
-            if (!revealedCards.has(i)) {
-                handleRevealCard(i)
-                await new Promise(r => setTimeout(r, 200))
-            }
-        }
-    }
-
     const runSemifinalDemo = async () => {
         // Reset
         setSemifinalHits(new Map())
@@ -218,7 +201,6 @@ export function LiveArenaTestPage() {
 
     const resetToMenu = () => {
         setMode('menu')
-        setRevealedCards(new Set())
         setSemifinalHits(new Map())
         setSemifinalEliminated(new Map())
         setRouletteOffset(0)
@@ -305,31 +287,49 @@ export function LiveArenaTestPage() {
 
     // ===================== TOUR 2 =====================
     if (mode === 'tour2') {
+        // Haptic feedback on drag progress
+        const handleDragProgress = (progress: number) => {
+            // Trigger tension haptics based on drag progress
+            if (progress > 0.3) {
+                triggerTension(100)
+            }
+            if (progress > 0.6) {
+                triggerTick()
+            }
+        }
+
+        const handleReveal = (index: number) => {
+            const result = squeezeResults[index].result
+            if (result === 'green') {
+                playSuccess()
+                triggerSuccess()
+            } else {
+                playFailure()
+                triggerError()
+            }
+            playImpact()
+        }
+
         return (
-            <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
+            <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4 pb-8">
                 <BackButton />
                 <div className="text-center mb-4 pt-8">
                     <h1 className="text-2xl font-black text-[#FFD700]">TOUR 2 TEST</h1>
-                    <p className="text-white/50 text-sm mb-4">Tap cards to reveal (with Squeeze effect)</p>
-                    <button
-                        onClick={handleRevealAll}
-                        className="px-6 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-full"
-                    >
-                        REVEAL ALL
-                    </button>
+                    <p className="text-white/50 text-sm mb-2">Drag cards down to peek, release to reveal</p>
+                    <p className="text-white/30 text-xs">Or tap to instant reveal</p>
                 </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-w-lg mx-auto">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 max-w-lg mx-auto">
                     {squeezeResults.map((winner, i) => (
-                        <div key={i} onClick={() => handleRevealCard(i)} className="cursor-pointer">
-                            <SqueezeCard
-                                isRevealed={revealedCards.has(i)}
-                                result={winner.result}
-                                playerName={winner.user}
-                                playerAvatar={winner.avatar}
-                                ticketNumber={winner.ticket}
-                            />
-                        </div>
+                        <SqueezeCard
+                            key={i}
+                            result={winner.result}
+                            playerName={winner.user}
+                            playerAvatar={winner.avatar}
+                            ticketNumber={winner.ticket}
+                            onReveal={() => handleReveal(i)}
+                            onDragProgress={handleDragProgress}
+                        />
                     ))}
                 </div>
 

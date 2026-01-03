@@ -25,11 +25,8 @@
   - `useArenaHaptics`: TMA HapticFeedback + Squeeze tension effects.
   - Integrated into `LiveArenaPage.tsx` and `LiveArenaTestPage.tsx`.
 
-### ⏳ Next Steps
-- **TEST**: Open `/live-test` on phone (Telegram) and verify:
-  - Tour 1: Drum animation + sounds.
-  - Tour 2: Squeeze card reveal + tension haptics.
-  - Semifinal: Roulette spin + traffic light colors.
-  - Final: Wheel spin + bulls/bears result.
-- **FIX**: Any visual bugs found during testing.
-- **INTEGRATE**: Apply tested visuals to main `LiveArenaPage.tsx`.
+### ⏳ Next Steps (Parallel Agents)
+1. **Agent Anya (UI):** `Tour1Drum` - Avatars & Responsive Grid.
+2. **Agent Valera (Logic):** `SqueezeCard` - Drag gestures & Haptics.
+3. **Agent Borya (Polish):** `SemifinalTraffic` - Neon lights & Smooth Roulette.
+4. **Manager:** Verify all changes.
