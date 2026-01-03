@@ -3,160 +3,297 @@ import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 
 interface Winner {
-    ticket: number
-    user: string
-    avatar?: string
+  ticket: number
+  user: string
+  avatar?: string
 }
 
 interface Tour1DrumProps {
-    candidates: { ticket: number; user: string; avatar?: string }[]
-    winners: Winner[]
-    onComplete: () => void
+  candidates: { ticket: number; user: string; avatar?: string }[]
+  winners: Winner[]
+  onComplete: () => void
 }
 
+// Градиентные цвета для аватаров-плейсхолдеров
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+  'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+  'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+  'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+  'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+  'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+  'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+  'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+]
+
 export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
-    const [currentTicket, setCurrentTicket] = useState<number>(0)
-    const [foundWinners, setFoundWinners] = useState<Winner[]>([])
-    const [isSpinning, setIsSpinning] = useState(true)
+  const [currentTicket, setCurrentTicket] = useState<number>(0)
+  const [foundWinners, setFoundWinners] = useState<Winner[]>([])
+  const [isSpinning, setIsSpinning] = useState(true)
+  const [lastFoundIndex, setLastFoundIndex] = useState<number>(-1)
 
-    // Simulation of finding winners one by one
-    useEffect(() => {
-        if (!isSpinning) return
+  // Simulation of finding winners one by one
+  useEffect(() => {
+    if (!isSpinning) return
 
-        let currentIndex = 0
-        const totalWinners = winners.length
+    let currentIndex = 0
+    const totalWinners = winners.length
 
-        const spinInterval = setInterval(() => {
-            // Random ticket noise
-            setCurrentTicket(Math.floor(Math.random() * 999999))
-        }, 50)
+    const spinInterval = setInterval(() => {
+      // Random ticket noise
+      setCurrentTicket(Math.floor(Math.random() * 999999))
+    }, 50)
 
-        const findWinnerInterval = setInterval(() => {
-            if (currentIndex >= totalWinners) {
-                clearInterval(spinInterval)
-                clearInterval(findWinnerInterval)
-                setIsSpinning(false)
-                onComplete()
-                return
-            }
+    const findWinnerInterval = setInterval(() => {
+      if (currentIndex >= totalWinners) {
+        clearInterval(spinInterval)
+        clearInterval(findWinnerInterval)
+        setIsSpinning(false)
+        onComplete()
+        return
+      }
 
-            const winner = winners[currentIndex]
-            setFoundWinners(prev => [...prev, winner])
+      const winner = winners[currentIndex]
+      setFoundWinners(prev => [...prev, winner])
+      setLastFoundIndex(currentIndex)
 
-            // Haptic & visual feedback
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
-            }
+      // Haptic & visual feedback
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
+      }
 
-            // Small confetti burst for each winner
-            confetti({
-                particleCount: 20,
-                spread: 30,
-                origin: { y: 0.8 },
-                colors: ['#FFD700', '#FFA500']
-            })
+      // Small confetti burst for each winner
+      confetti({
+        particleCount: 25,
+        spread: 40,
+        origin: { y: 0.7 },
+        colors: ['#FFD700', '#FFA500', '#22c55e']
+      })
 
-            currentIndex++
-        }, 1000) // Find one winner every second
+      currentIndex++
+    }, 800) // Find one winner every 800ms
 
-        return () => {
-            clearInterval(spinInterval)
-            clearInterval(findWinnerInterval)
-        }
-    }, [isSpinning, winners, onComplete])
-
-    // Generate fallback avatar color from user name
-    const getAvatarColor = (name: string) => {
-        const colors = ['#FFD700', '#FFA500', '#22c55e', '#3b82f6', '#a855f7', '#ec4899']
-        let hash = 0
-        for (let i = 0; i < name.length; i++) {
-            hash = name.charCodeAt(i) + ((hash << 5) - hash)
-        }
-        return colors[Math.abs(hash) % colors.length]
+    return () => {
+      clearInterval(spinInterval)
+      clearInterval(findWinnerInterval)
     }
+  }, [isSpinning, winners, onComplete])
 
-    return (
-        <div className="flex flex-col items-center w-full max-w-lg mx-auto px-4">
-            {/* Main Drum Display */}
-            <div className="relative mb-6 p-1 rounded-2xl bg-gradient-to-b from-[#FFD700] to-[#FFA500] shadow-[0_0_50px_rgba(255,215,0,0.3)]">
-                <div className="bg-[#0a0a0a] rounded-xl overflow-hidden px-8 py-5 text-center relative">
-                    <div className="text-xs text-[#FFD700]/60 uppercase tracking-[0.2em] mb-2">
-                        Searching Ticket
-                    </div>
-                    <div className="text-4xl font-black text-white font-mono tracking-widest relative z-10">
-                        {currentTicket.toString().padStart(6, '0')}
-                    </div>
-                    {/* Scanline effect */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#FFD700]/5 to-transparent animate-scan" />
-                </div>
+  // Generate gradient from user name
+  const getAvatarGradient = (name: string) => {
+    let hash = 0
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length]
+  }
+
+  // Get rank badge for top 3
+  const getRankBadge = (index: number) => {
+    if (index === 0) return { emoji: '🥇', color: '#FFD700' }
+    if (index === 1) return { emoji: '🥈', color: '#C0C0C0' }
+    if (index === 2) return { emoji: '🥉', color: '#CD7F32' }
+    return null
+  }
+
+  return (
+    <div className="flex flex-col items-center w-full max-w-2xl mx-auto px-4">
+      {/* Main Drum Display */}
+      <div className="relative mb-6">
+        {/* Outer glow */}
+        <div className="absolute -inset-2 bg-gradient-to-r from-[#FFD700]/20 via-[#FFA500]/30 to-[#FFD700]/20 rounded-3xl blur-xl" />
+
+        {/* Border gradient */}
+        <div className="relative p-[2px] rounded-2xl bg-gradient-to-b from-[#FFD700] via-[#FFA500] to-[#FFD700]/50">
+          <div className="bg-[#0a0a0a] rounded-2xl overflow-hidden px-10 py-6 text-center relative">
+            {/* Label */}
+            <div className="text-xs text-[#FFD700]/70 uppercase tracking-[0.3em] mb-3 font-medium">
+              Searching Ticket
             </div>
 
-            {/* Winners Header */}
-            <div className="w-full flex items-center gap-4 mb-4">
-                <div className="h-px flex-1 bg-white/10" />
-                <span className="text-sm font-bold text-[#FFD700] uppercase tracking-wider">
-                    Qualified ({foundWinners.length}/{winners.length})
-                </span>
-                <div className="h-px flex-1 bg-white/10" />
+            {/* Ticket number */}
+            <div className="text-5xl font-black text-white font-mono tracking-[0.15em] relative z-10">
+              <span className="bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
+                {currentTicket.toString().padStart(6, '0')}
+              </span>
             </div>
 
-            {/* Winners Grid - Adaptive without fixed height */}
-            <div className="w-full grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-2">
-                <AnimatePresence>
-                    {foundWinners.map((w, i) => (
-                        <motion.div
-                            key={w.ticket}
-                            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                            className="bg-zinc-900/80 border border-white/10 rounded-xl p-2.5 flex items-center gap-2"
-                        >
-                            {/* Avatar */}
-                            {w.avatar ? (
-                                <img
-                                    src={w.avatar}
-                                    alt={w.user}
-                                    className="w-9 h-9 rounded-full border-2 border-[#FFD700]/30 object-cover flex-shrink-0"
-                                />
-                            ) : (
-                                <div
-                                    className="w-9 h-9 rounded-full flex items-center justify-center text-black font-bold text-sm flex-shrink-0"
-                                    style={{ backgroundColor: getAvatarColor(w.user) }}
-                                >
-                                    {w.user.charAt(0).toUpperCase()}
-                                </div>
-                            )}
+            {/* Scanline effect */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#FFD700]/10 to-transparent animate-scan pointer-events-none" />
 
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                                <div className="text-[10px] text-white/50 font-medium truncate">
-                                    #{i + 1} {w.user}
-                                </div>
-                                <div className="font-mono text-[#FFD700] font-bold text-sm">
-                                    {w.ticket}
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
-            </div>
-
-            {/* Empty state placeholder */}
-            {foundWinners.length === 0 && (
-                <div className="w-full py-8 text-center text-white/30 text-sm">
-                    Поиск победителей...
-                </div>
-            )}
-
-            <style>{`
-                @keyframes scan {
-                    0% { transform: translateY(-100%); }
-                    100% { transform: translateY(100%); }
-                }
-                .animate-scan {
-                    animation: scan 2s linear infinite;
-                }
-            `}</style>
+            {/* Corner decorations */}
+            <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-[#FFD700]/40" />
+            <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-[#FFD700]/40" />
+            <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-[#FFD700]/40" />
+            <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-[#FFD700]/40" />
+          </div>
         </div>
-    )
+      </div>
+
+      {/* Winners Header */}
+      <div className="w-full flex items-center gap-4 mb-4">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="flex items-center gap-2">
+          <span className="text-lg">✨</span>
+          <span className="text-sm font-bold text-[#FFD700] uppercase tracking-wider">
+            Qualified
+          </span>
+          <span className="text-white/60 font-mono text-sm">
+            {foundWinners.length}/{winners.length}
+          </span>
+        </div>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      </div>
+
+      {/* Winners Grid - Responsive without fixed height */}
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <AnimatePresence mode="popLayout">
+          {foundWinners.map((w, i) => {
+            const rankBadge = getRankBadge(i)
+            const isNew = i === lastFoundIndex
+
+            return (
+              <motion.div
+                key={w.ticket}
+                layout
+                initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  y: 0,
+                }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 400,
+                  damping: 25,
+                  delay: isNew ? 0 : 0.02 * i
+                }}
+                className={`
+                  relative overflow-hidden rounded-xl
+                  ${isNew ? 'ring-2 ring-[#FFD700] ring-offset-2 ring-offset-[#0a0a0a]' : ''}
+                `}
+              >
+                {/* Card background with subtle gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/90 to-zinc-900/90 backdrop-blur-sm" />
+
+                {/* Shine effect for new card */}
+                {isNew && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-[#FFD700]/20 to-transparent"
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '100%' }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                  />
+                )}
+
+                {/* Content */}
+                <div className="relative p-3 flex items-center gap-3">
+                  {/* Avatar with gradient border */}
+                  <div className="relative flex-shrink-0">
+                    {/* Glow for top 3 */}
+                    {rankBadge && (
+                      <div
+                        className="absolute -inset-1 rounded-full blur-md opacity-50"
+                        style={{ background: rankBadge.color }}
+                      />
+                    )}
+
+                    {/* Avatar container */}
+                    <div className="relative w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-[#FFD700]/60 to-[#FFA500]/40">
+                      {w.avatar ? (
+                        <img
+                          src={w.avatar}
+                          alt={w.user}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-sm shadow-inner"
+                          style={{ background: getAvatarGradient(w.user) }}
+                        >
+                          {w.user.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Rank badge */}
+                    {rankBadge && (
+                      <div className="absolute -top-1 -right-1 text-sm">
+                        {rankBadge.emoji}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-white/40 text-xs font-medium">#{i + 1}</span>
+                      <span className="text-white font-medium text-sm truncate">
+                        {w.user}
+                      </span>
+                    </div>
+                    <div className="font-mono text-[#FFD700] font-bold text-sm tracking-wide">
+                      {w.ticket.toString().padStart(6, '0')}
+                    </div>
+                  </div>
+
+                  {/* Check mark */}
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
+      </div>
+
+      {/* Empty state placeholder */}
+      {foundWinners.length === 0 && (
+        <motion.div
+          className="w-full py-12 text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-zinc-900/50 border border-white/10">
+            <motion.div
+              className="w-2 h-2 rounded-full bg-[#FFD700]"
+              animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            />
+            <span className="text-white/50 text-sm font-medium">Поиск победителей...</span>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Completion message */}
+      {!isSpinning && foundWinners.length > 0 && (
+        <motion.div
+          className="mt-6 text-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 border border-green-500/30">
+            <span className="text-green-400 font-medium text-sm">
+              Все участники найдены!
+            </span>
+            <span className="text-lg">🎉</span>
+          </div>
+        </motion.div>
+      )}
+
+      <style>{`
+        @keyframes scan {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100%); }
+        }
+        .animate-scan {
+          animation: scan 1.5s linear infinite;
+        }
+      `}</style>
+    </div>
+  )
 }
