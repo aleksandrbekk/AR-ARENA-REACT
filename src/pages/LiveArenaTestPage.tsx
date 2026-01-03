@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Tour1Drum } from '../components/live/Tour1Drum'
 import { SqueezeCard } from '../components/live/SqueezeCard'
+import { SemifinalTraffic } from '../components/live/SemifinalTraffic'
 import { useArenaSounds } from '../hooks/useArenaSounds'
 import { useArenaHaptics } from '../hooks/useArenaHaptics'
+import type { Ticket } from '../types'
 
 type TestMode = 'menu' | 'tour1' | 'tour2' | 'semifinal' | 'final'
 
@@ -16,8 +18,19 @@ const generateMockWinners = (count: number) =>
     }))
 
 const mockWinners20 = generateMockWinners(20)
-const mockFinalists5 = mockWinners20.slice(0, 5)
-const mockFinalists3 = mockFinalists5.slice(0, 3)
+const mockFinalists5Raw = mockWinners20.slice(0, 5)
+const mockFinalists3Raw = mockFinalists5Raw.slice(0, 3)
+
+// Convert to Ticket[] format for SemifinalTraffic
+const mockFinalists5: Ticket[] = mockFinalists5Raw.map((p, i) => ({
+    user_id: `user_${i}`,
+    ticket_number: p.ticket,
+    player: {
+        id: `player_${i}`,
+        name: p.user,
+        avatar: p.avatar
+    }
+}))
 
 export function LiveArenaTestPage() {
     const [mode, setMode] = useState<TestMode>('menu')
@@ -27,18 +40,24 @@ export function LiveArenaTestPage() {
     const { triggerTick, triggerImpact, triggerSuccess, triggerError, triggerTension } = useArenaHaptics()
 
     // ===================== TOUR 2 STATE =====================
-    const [squeezeResults] = useState(() =>
-        mockWinners20.map((w, i) => ({
+    const [squeezeResults] = useState(() => {
+        // Shuffle: 5 random greens among 20
+        const indices = [...Array(20)].map((_, i) => i)
+        const shuffled = indices.sort(() => Math.random() - 0.5)
+        const greenIndices = new Set(shuffled.slice(0, 5))
+
+        return mockWinners20.map((w, i) => ({
             ...w,
-            result: i < 5 ? 'green' as const : 'red' as const
+            result: greenIndices.has(i) ? 'green' as const : 'red' as const
         }))
-    )
+    })
 
     // ===================== SEMIFINAL STATE =====================
     const [semifinalHits, setSemifinalHits] = useState<Map<number, number>>(new Map())
     const [semifinalEliminated, setSemifinalEliminated] = useState<Map<number, number>>(new Map())
     const [rouletteOffset, setRouletteOffset] = useState(0)
     const [currentSpinTicket, setCurrentSpinTicket] = useState<number | null>(null)
+    const [showSemifinalPrizes, setShowSemifinalPrizes] = useState(false)
 
     // ===================== FINAL STATE =====================
     const [finalScores, setFinalScores] = useState([
@@ -57,29 +76,35 @@ export function LiveArenaTestPage() {
         setSemifinalHits(new Map())
         setSemifinalEliminated(new Map())
         setRouletteOffset(0)
+        setShowSemifinalPrizes(false)
 
         const hits = new Map<number, number>()
-        mockFinalists5.forEach(p => hits.set(p.ticket, 0))
+        const eliminated = new Map<number, number>()
+        mockFinalists5.forEach(p => hits.set(p.ticket_number, 0))
 
-        // Simulate spins
-        let cumulativeOffset = 0
+        // Simulate spins - each spin lands on a ticket
         const spinsData = [
-            mockFinalists5[0].ticket,
-            mockFinalists5[2].ticket,
-            mockFinalists5[1].ticket,
-            mockFinalists5[0].ticket,
-            mockFinalists5[3].ticket,
-            mockFinalists5[0].ticket, // 3 hits = eliminated
-            mockFinalists5[1].ticket,
-            mockFinalists5[1].ticket, // 3 hits = eliminated
+            mockFinalists5[0].ticket_number,
+            mockFinalists5[2].ticket_number,
+            mockFinalists5[1].ticket_number,
+            mockFinalists5[0].ticket_number,
+            mockFinalists5[3].ticket_number,
+            mockFinalists5[0].ticket_number, // 3 hits = eliminated (5th place)
+            mockFinalists5[1].ticket_number,
+            mockFinalists5[1].ticket_number, // 3 hits = eliminated (4th place)
         ]
 
+        let cumulativeOffset = 0
+
         for (const ticketNum of spinsData) {
+            // Check if already eliminated
+            if (eliminated.has(ticketNum)) continue
+
             setCurrentSpinTicket(null)
 
-            // Calculate offset
-            const ticketIndex = mockFinalists5.findIndex(t => t.ticket === ticketNum)
-            const itemWidth = 112
+            // Calculate offset for roulette animation
+            const ticketIndex = mockFinalists5.findIndex(t => t.ticket_number === ticketNum)
+            const itemWidth = 90 // w-[80px] + gap
             const itemsPerRep = 5
             const extraReps = 2 + Math.floor(Math.random() * 2)
             const targetOffset = cumulativeOffset - (extraReps * itemsPerRep * itemWidth) - (ticketIndex * itemWidth)
@@ -102,10 +127,17 @@ export function LiveArenaTestPage() {
             if (currentHits === 3) {
                 playFailure()
                 triggerError()
-                const eliminatedCount = [...semifinalEliminated.values()].length
-                setSemifinalEliminated(prev => new Map(prev).set(ticketNum, eliminatedCount === 0 ? 5 : 4))
+                const eliminatedCount = eliminated.size
+                const place = eliminatedCount === 0 ? 5 : 4
+                eliminated.set(ticketNum, place)
+                setSemifinalEliminated(new Map(eliminated))
 
-                if (eliminatedCount >= 1) break // Stop after 2 eliminated
+                if (eliminatedCount >= 1) {
+                    // Show prizes after both eliminated
+                    await new Promise(r => setTimeout(r, 1000))
+                    setShowSemifinalPrizes(true)
+                    break
+                }
             } else {
                 playClick()
             }
@@ -205,6 +237,7 @@ export function LiveArenaTestPage() {
         setSemifinalEliminated(new Map())
         setRouletteOffset(0)
         setCurrentSpinTicket(null)
+        setShowSemifinalPrizes(false)
         setFinalScores([
             { bulls: 0, bears: 0, place: null },
             { bulls: 0, bears: 0, place: null },
@@ -236,6 +269,7 @@ export function LiveArenaTestPage() {
                             transition={{ delay: i * 0.1 }}
                             onClick={() => { initAudio(); setMode(item.id) }}
                             className="w-full py-5 px-6 bg-zinc-900 rounded-2xl border-2 border-zinc-700 hover:border-[#FFD700] transition-all flex items-center gap-4 group"
+                            data-testid={`menu-${item.id}`}
                         >
                             <span className="text-3xl">{item.icon}</span>
                             <div className="text-left flex-1">
@@ -340,15 +374,8 @@ export function LiveArenaTestPage() {
         )
     }
 
-    // ===================== SEMIFINAL =====================
+    // ===================== SEMIFINAL - Using SemifinalTraffic Component =====================
     if (mode === 'semifinal') {
-        const getIndicatorClass = (hits: number) => {
-            if (hits === 0) return 'bg-zinc-700'
-            if (hits === 1) return 'bg-gradient-to-r from-green-500 to-emerald-400 shadow-[0_0_12px_#22c55e] animate-pulse'
-            if (hits === 2) return 'bg-gradient-to-r from-yellow-500 to-amber-400 shadow-[0_0_12px_#eab308] animate-pulse'
-            return 'bg-gradient-to-r from-red-500 to-red-600 shadow-[0_0_12px_#ef4444] animate-pulse'
-        }
-
         return (
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
                 <BackButton />
@@ -357,99 +384,23 @@ export function LiveArenaTestPage() {
                     <p className="text-white/50 text-sm mb-4">Traffic Light Roulette</p>
                     <button
                         onClick={runSemifinalDemo}
-                        className="px-6 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-full"
+                        data-testid="run-demo-btn"
+                        className="px-6 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-full hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,215,0,0.3)]"
                     >
                         RUN DEMO
                     </button>
                 </div>
 
-                {/* Legend */}
-                <div className="flex justify-center gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-green-500" />
-                        <span className="text-xs text-white/70">1 hit</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                        <span className="text-xs text-white/70">2 hits</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500" />
-                        <span className="text-xs text-white/70">OUT</span>
-                    </div>
-                </div>
-
-                {/* Player Cards */}
-                <div className="flex gap-2 mb-6 px-2">
-                    {mockFinalists5.map((player) => {
-                        const hits = semifinalHits.get(player.ticket) || 0
-                        const eliminated = semifinalEliminated.get(player.ticket)
-                        const isCurrentSpin = currentSpinTicket === player.ticket
-
-                        return (
-                            <div
-                                key={player.ticket}
-                                style={{ flex: 1, minWidth: 0 }}
-                                className={`rounded-xl p-1.5 border-2 transition-all duration-500 flex flex-col items-center ${eliminated ? 'border-red-500 bg-red-500/10' :
-                                    isCurrentSpin ? 'border-[#FFD700] bg-[#FFD700]/10 scale-105' :
-                                        'border-zinc-700 bg-zinc-900/80'
-                                    }`}
-                            >
-                                <div className={`w-full h-1.5 rounded-full mb-1.5 transition-all duration-500 ${getIndicatorClass(hits)}`} />
-                                <img
-                                    src={player.avatar}
-                                    alt=""
-                                    className={`w-10 h-10 rounded-full border-2 mb-1 object-cover ${eliminated ? 'border-red-500 grayscale' :
-                                        isCurrentSpin ? 'border-[#FFD700]' : 'border-white/30'
-                                        }`}
-                                />
-                                <div className="text-[8px] text-white/70 text-center truncate w-full">{player.user}</div>
-                                <div className="text-[10px] font-bold text-[#FFD700]">#{player.ticket}</div>
-                                {eliminated && (
-                                    <div className="text-[8px] font-bold text-red-400 bg-red-500/20 rounded py-0.5 w-full text-center">
-                                        {eliminated} МЕСТО
-                                    </div>
-                                )}
-                            </div>
-                        )
-                    })}
-                </div>
-
-                {/* Roulette */}
-                <div className="relative mb-6">
-                    <div className="flex justify-center mb-2">
-                        <img src="/icons/Cursor.png" alt="cursor" className="w-8 h-8 drop-shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
-                    </div>
-                    <div className="bg-zinc-900/90 border-2 border-[#FFD700]/30 rounded-2xl py-3 overflow-hidden">
-                        <div
-                            className="flex"
-                            style={{
-                                gap: '12px',
-                                transform: `translateX(calc(50% + ${rouletteOffset}px - 50px))`,
-                                transition: 'transform 4s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-                            }}
-                        >
-                            {Array(10).fill(null).flatMap((_, repIdx) =>
-                                mockFinalists5.map((t, tIdx) => {
-                                    const hits = semifinalHits.get(t.ticket) || 0
-                                    const hitClass = hits === 1 ? 'border-green-500 bg-green-500/20 text-green-400' :
-                                        hits === 2 ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' :
-                                            hits === 3 ? 'border-red-500 bg-red-500/20 text-red-400' :
-                                                'border-[#FFD700]/30 bg-zinc-800/50 text-white'
-
-                                    return (
-                                        <div
-                                            key={`${repIdx}-${tIdx}`}
-                                            className={`flex-shrink-0 w-[100px] h-14 rounded-xl border-2 flex items-center justify-center font-bold text-lg ${hitClass}`}
-                                        >
-                                            #{t.ticket}
-                                        </div>
-                                    )
-                                })
-                            )}
-                        </div>
-                    </div>
-                </div>
+                {/* SemifinalTraffic Component - embedded mode */}
+                <SemifinalTraffic
+                    players={mockFinalists5}
+                    hits={semifinalHits}
+                    eliminated={semifinalEliminated}
+                    rouletteOffset={rouletteOffset}
+                    currentSpinTicket={currentSpinTicket}
+                    showPrizes={showSemifinalPrizes}
+                    embedded={true}
+                />
             </div>
         )
     }
@@ -472,7 +423,7 @@ export function LiveArenaTestPage() {
 
                 {/* Players */}
                 <div className="flex justify-center items-end gap-4 mb-8">
-                    {mockFinalists3.map((player, idx) => {
+                    {mockFinalists3Raw.map((player, idx) => {
                         const score = finalScores[idx]
                         const isCurrent = currentFinalPlayer === idx
 
