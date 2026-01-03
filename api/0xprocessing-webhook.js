@@ -67,9 +67,9 @@ function normalizeCurrency(currency) {
   const upper = currency.toUpperCase();
   // Все криптовалюты и стейблкоины → USD
   if (upper.includes('USDT') || upper.includes('USDC') || upper.includes('USD') ||
-      upper.includes('BTC') || upper.includes('ETH') || upper.includes('TON') ||
-      upper.includes('TRX') || upper.includes('BNB') || upper.includes('SOL') ||
-      upper.includes('CRYPTO')) {
+    upper.includes('BTC') || upper.includes('ETH') || upper.includes('TON') ||
+    upper.includes('TRX') || upper.includes('BNB') || upper.includes('SOL') ||
+    upper.includes('CRYPTO')) {
     return 'USD';
   }
   return 'USD'; // Для 0xprocessing всегда USD
@@ -446,13 +446,13 @@ export default async function handler(req, res) {
         .update({
           plan: period.tariff,
           expires_at: newExpires.toISOString(),
-          total_paid_usd: (existingClient.total_paid_usd || 0) + parseFloat(amountUSD),
+          total_paid_usd: (existingClient.total_paid_usd || 0) + Math.round(parseFloat(amountUSD)),
           payments_count: (existingClient.payments_count || 0) + 1,
           last_payment_at: now.toISOString(),
           last_payment_method: '0xprocessing',
           source: '0xprocessing',
           currency: normalizeCurrency(Currency),
-          original_amount: parseFloat(amountUSD),
+          original_amount: Math.round(parseFloat(amountUSD)),
           updated_at: now.toISOString()
         })
         .eq('id', existingClient.id);
@@ -480,12 +480,12 @@ export default async function handler(req, res) {
           in_chat: false,
           tags: [],
           source: '0xprocessing',
-          total_paid_usd: parseFloat(amountUSD),
+          total_paid_usd: Math.round(parseFloat(amountUSD)),
           payments_count: 1,
           last_payment_at: now.toISOString(),
           last_payment_method: '0xprocessing',
           currency: normalizeCurrency(Currency),
-          original_amount: parseFloat(amountUSD),
+          original_amount: Math.round(parseFloat(amountUSD)),
           created_at: now.toISOString(),
           updated_at: now.toISOString()
         })
@@ -520,13 +520,13 @@ export default async function handler(req, res) {
       // Формируем ОДНО сообщение с приветствием и кнопками
       const welcomeText = isNewClient
         ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
-          `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
-          `👇 Нажмите кнопки ниже для доступа:\n\n` +
-          `📞 Служба заботы: @Andrey_cryptoinvestor`
+        `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
+        `👇 Нажмите кнопки ниже для доступа:\n\n` +
+        `📞 Служба заботы: @Andrey_cryptoinvestor`
         : `✅ <b>Подписка продлена!</b>\n\n` +
-          `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
-          `👇 Нажмите кнопки ниже для доступа:\n\n` +
-          `📞 Служба заботы: @Andrey_cryptoinvestor`;
+        `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
+        `👇 Нажмите кнопки ниже для доступа:\n\n` +
+        `📞 Служба заботы: @Andrey_cryptoinvestor`;
 
       // Формируем кнопки
       const buttons = [];
