@@ -2156,9 +2156,9 @@ export function FullCrmPage() {
                   }
                 }
 
-                // Фильтруем платежи за период (только Lava.top)
+                // Фильтруем платежи за период (Lava.top + 0xProcessing)
                 const periodPayments = premiumClients.filter(c => {
-                  if (c.source !== 'lava.top') return false
+                  if (c.source !== 'lava.top' && c.source !== '0xprocessing') return false
                   if (!c.last_payment_at) return false
                   const payDate = new Date(c.last_payment_at)
                   return payDate >= startDate && payDate <= endDate
