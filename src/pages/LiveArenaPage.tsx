@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { useArenaSounds } from '../hooks/useArenaSounds'
+import { useArenaHaptics } from '../hooks/useArenaHaptics'
 
 interface Player {
   id: string
@@ -46,6 +48,10 @@ export function LiveArenaPage() {
   const allPlayersRef = useRef<Player[]>([])
   const giveawayDataRef = useRef<any>(null)
   const drawResultsRef = useRef<DrawResults | null>(null)
+
+  // SFX & Haptics
+  const { initAudio, playClick, playImpact, playSuccess, playFailure, playWin, playRouletteTicks } = useArenaSounds()
+  const { triggerTick, triggerImpact, triggerSuccess, triggerError } = useArenaHaptics()
 
   // Modal
   const [showModal, setShowModal] = useState(false)
@@ -104,7 +110,7 @@ export function LiveArenaPage() {
     const shuffled = [...array]
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(seededRandom(seed + i) * (i + 1))
-      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+        ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
     return shuffled
   }
@@ -302,6 +308,10 @@ export function LiveArenaPage() {
 
     if (!results) return
 
+    // Init Audio context (best effort - might need interaction)
+    // We try here, but browsers might block. Ideally user clicked something to get here.
+    try { initAudio() } catch (e) { console.error('Audio init failed', e) }
+
     // ===== TOUR 1 =====
     await displayModal({
       title: 'ОТБОРОЧНЫЙ ТУР',
@@ -324,6 +334,8 @@ export function LiveArenaPage() {
 
     for (let i = 0; i < 20; i++) {
       setTour1FlippedDrums(prev => new Set([...prev, i]))
+      playClick()
+      triggerTick()
       await sleep(80)
     }
     await sleep(800)
@@ -331,6 +343,7 @@ export function LiveArenaPage() {
     for (let i = 0; i < 20; i++) {
       setTimeout(() => {
         setTour1SpunDrums(prev => new Set([...prev, i]))
+        if (i % 2 === 0) playClick() // Don't spam too much
       }, 1500 + i * 100)
     }
     await sleep(1500 + 20 * 100 + 2000)
@@ -355,6 +368,13 @@ export function LiveArenaPage() {
         next.set(i, selectedSet.has(i) ? 'green' : 'red')
         return next
       })
+      if (selectedSet.has(i)) {
+        playSuccess()
+        triggerSuccess()
+      } else {
+        playClick()
+        triggerTick()
+      }
       await sleep(300)
     }
 
@@ -407,9 +427,15 @@ export function LiveArenaPage() {
       // Smooth scroll to target over 4 seconds (like vanilla)
       setRouletteOffset(targetOffset)
       cumulativeOffset = targetOffset
+
+      // Play visuals sound
+      playRouletteTicks(25) // Approx 4 seconds of ticks
+      triggerTick()
+
       await sleep(4000)
 
       setCurrentSpinTicket(spinTicketNum)
+      triggerImpact()
 
       setSemifinalHits(prev => {
         const next = new Map(prev)
@@ -418,10 +444,14 @@ export function LiveArenaPage() {
       })
 
       if (spin.hits === 3) {
+        playFailure()
+        triggerError()
         eliminatedCount++
         const place = eliminatedCount === 1 ? 5 : 4
         eliminatedMap.set(spinTicketNum, place)
         setSemifinalEliminated(new Map(eliminatedMap))
+      } else {
+        playClick()
       }
 
       await sleep(1500)
@@ -474,11 +504,18 @@ export function LiveArenaPage() {
         ? 210 + Math.random() * 120  // 210-330° for bull (safe margin)
         : 30 + Math.random() * 120   // 30-150° for bear (safe margin)
       setWheelAngle(prev => prev + 1800 + baseAngle) // 5 rotations + landing angle (like vanilla)
+
+      playRouletteTicks(20) // Spin sound
+
       await sleep(3000)
       setWheelSpinning(false)
       setLastResult(turn.result)
+      playImpact()
+      triggerImpact()
 
       if (turn.result === 'bull') {
+        playSuccess()
+        triggerSuccess()
         scores[turn.player].bulls++
         if (scores[turn.player].bulls === 3) {
           const takenPlaces = scores.filter(s => s.place !== null).map(s => s.place!)
@@ -486,6 +523,8 @@ export function LiveArenaPage() {
           scores[turn.player].place = nextPlace
         }
       } else {
+        playFailure()
+        triggerError()
         scores[turn.player].bears++
         if (scores[turn.player].bears === 3) {
           const takenPlaces = scores.filter(s => s.place !== null).map(s => s.place!)
@@ -515,6 +554,8 @@ export function LiveArenaPage() {
     // ===== RESULTS =====
     setCurrentStage('results')
     setShowConfetti(true)
+    playWin()
+    triggerSuccess()
 
     const prizes = giveaway?.prizes || []
     const getPrize = (place: number) => {
@@ -608,9 +649,8 @@ export function LiveArenaPage() {
                 <img src="/icons/karta.png" alt="card" className="w-full h-full object-cover" />
               </div>
               <div
-                className={`absolute inset-0 rounded-xl bg-gradient-to-b from-zinc-800 to-zinc-900 border-2 ${
-                  tour1SpunDrums.has(idx) ? 'border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.5)]' : 'border-zinc-700'
-                } flex flex-col items-center justify-center p-2`}
+                className={`absolute inset-0 rounded-xl bg-gradient-to-b from-zinc-800 to-zinc-900 border-2 ${tour1SpunDrums.has(idx) ? 'border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.5)]' : 'border-zinc-700'
+                  } flex flex-col items-center justify-center p-2`}
                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               >
                 <img src={ticket.player.avatar} alt="" className="w-10 h-10 rounded-full border-2 border-[#FFD700] mb-1" />
@@ -648,15 +688,13 @@ export function LiveArenaPage() {
           return (
             <div
               key={idx}
-              className={`rounded-xl bg-zinc-900 border-2 p-2 flex flex-col items-center transition-all duration-500 ${
-                result === 'green' ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
+              className={`rounded-xl bg-zinc-900 border-2 p-2 flex flex-col items-center transition-all duration-500 ${result === 'green' ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
                 result === 'red' ? 'border-red-500 opacity-40' : 'border-zinc-700'
-              }`}
+                }`}
             >
-              <div className={`w-full h-1.5 rounded-full mb-2 transition-all ${
-                result === 'green' ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' :
+              <div className={`w-full h-1.5 rounded-full mb-2 transition-all ${result === 'green' ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' :
                 result === 'red' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : 'bg-zinc-700'
-              }`} />
+                }`} />
               <img src={ticket.player.avatar} alt="" className="w-10 h-10 rounded-full border border-zinc-600 mb-1" />
               <div className="text-[9px] text-white/70 truncate w-full text-center">{ticket.player.name}</div>
               <div className="text-xs font-bold text-[#FFD700]">#{ticket.ticket_number}</div>
@@ -710,11 +748,10 @@ export function LiveArenaPage() {
               <div
                 key={ticket.ticket_number}
                 style={{ flex: 1, minWidth: 0 }}
-                className={`rounded-xl p-1.5 border-2 transition-all duration-500 flex flex-col items-center ${
-                  eliminated ? 'border-red-500 bg-red-500/10' :
+                className={`rounded-xl p-1.5 border-2 transition-all duration-500 flex flex-col items-center ${eliminated ? 'border-red-500 bg-red-500/10' :
                   isCurrentSpin ? 'border-[#FFD700] bg-[#FFD700]/10 scale-105' :
-                  'border-zinc-700 bg-zinc-900/80'
-                }`}
+                    'border-zinc-700 bg-zinc-900/80'
+                  }`}
               >
                 {/* Traffic Light Indicator */}
                 <div className={`w-full h-1.5 rounded-full mb-1.5 transition-all duration-500 ${getIndicatorClass(hits)}`} />
@@ -722,10 +759,9 @@ export function LiveArenaPage() {
                 <img
                   src={ticket.player.avatar}
                   alt=""
-                  className={`w-10 h-10 rounded-full border-2 mb-1 object-cover ${
-                    eliminated ? 'border-red-500 grayscale' :
+                  className={`w-10 h-10 rounded-full border-2 mb-1 object-cover ${eliminated ? 'border-red-500 grayscale' :
                     isCurrentSpin ? 'border-[#FFD700]' : 'border-white/30'
-                  }`}
+                    }`}
                 />
                 <div className="text-[8px] text-white/70 text-center truncate w-full leading-tight">{ticket.player.name}</div>
                 <div className="text-[10px] font-bold text-[#FFD700] text-center">#{ticket.ticket_number}</div>
@@ -766,9 +802,9 @@ export function LiveArenaPage() {
                 semifinalPlayers.map((t, tIdx) => {
                   const hits = semifinalHits.get(t.ticket_number) || 0
                   const hitClass = hits === 1 ? 'border-green-500 bg-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
-                                   hits === 2 ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.5)]' :
-                                   hits === 3 ? 'border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
-                                   'border-[#FFD700]/30 bg-zinc-800/50 text-white'
+                    hits === 2 ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.5)]' :
+                      hits === 3 ? 'border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
+                        'border-[#FFD700]/30 bg-zinc-800/50 text-white'
 
                   return (
                     <div
@@ -833,10 +869,9 @@ export function LiveArenaPage() {
                 <img
                   src={ticket.player.avatar}
                   alt=""
-                  className={`w-20 h-20 rounded-full border-3 transition-all duration-300 ${
-                    isCurrent ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.7)] scale-110' :
+                  className={`w-20 h-20 rounded-full border-3 transition-all duration-300 ${isCurrent ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.7)] scale-110' :
                     score?.place ? 'border-[#FFD700]' : 'border-[#FFD700]/50'
-                  }`}
+                    }`}
                 />
                 {orderNum > 0 && (
                   <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black text-xs font-bold flex items-center justify-center border-2 border-black">
@@ -846,12 +881,11 @@ export function LiveArenaPage() {
               </div>
 
               {/* Name / Place */}
-              <div className={`px-4 py-2 rounded-xl text-center mb-2 min-w-[90px] ${
-                score?.place === 1 ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold shadow-[0_0_20px_rgba(255,215,0,0.6)]' :
+              <div className={`px-4 py-2 rounded-xl text-center mb-2 min-w-[90px] ${score?.place === 1 ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold shadow-[0_0_20px_rgba(255,215,0,0.6)]' :
                 score?.place === 2 ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-black font-bold' :
-                score?.place === 3 ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold' :
-                'bg-zinc-800 text-white'
-              }`}>
+                  score?.place === 3 ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold' :
+                    'bg-zinc-800 text-white'
+                }`}>
                 {score?.place ? `${score.place} МЕСТО` : ticket.player.name}
               </div>
 
@@ -861,11 +895,10 @@ export function LiveArenaPage() {
                   {[0, 1, 2].map(i => (
                     <div
                       key={`bull-${i}`}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${
-                        (score?.bulls || 0) > i
-                          ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]'
-                          : 'bg-zinc-900 border-zinc-700'
-                      }`}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${(score?.bulls || 0) > i
+                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]'
+                        : 'bg-zinc-900 border-zinc-700'
+                        }`}
                     >
                       <img src="/icons/bull.png" alt="bull" className="w-6 h-6" />
                     </div>
@@ -875,11 +908,10 @@ export function LiveArenaPage() {
                   {[0, 1, 2].map(i => (
                     <div
                       key={`bear-${i}`}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${
-                        (score?.bears || 0) > i
-                          ? 'bg-gradient-to-br from-red-500 to-red-700 border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
-                          : 'bg-zinc-900 border-zinc-700'
-                      }`}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${(score?.bears || 0) > i
+                        ? 'bg-gradient-to-br from-red-500 to-red-700 border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
+                        : 'bg-zinc-900 border-zinc-700'
+                        }`}
                     >
                       <img src="/icons/bear.png" alt="bear" className="w-6 h-6" />
                     </div>
@@ -943,19 +975,17 @@ export function LiveArenaPage() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.15 }}
-            className={`rounded-2xl p-4 flex items-center gap-4 border-2 ${
-              winner.place === 1 ? 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA500]/10 border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.3)]' :
+            className={`rounded-2xl p-4 flex items-center gap-4 border-2 ${winner.place === 1 ? 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA500]/10 border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.3)]' :
               winner.place === 2 ? 'bg-zinc-900/80 border-gray-400' :
-              winner.place === 3 ? 'bg-zinc-900/80 border-amber-600' :
-              'bg-zinc-900/80 border-zinc-700'
-            }`}
+                winner.place === 3 ? 'bg-zinc-900/80 border-amber-600' :
+                  'bg-zinc-900/80 border-zinc-700'
+              }`}
           >
-            <div className={`text-2xl font-black w-12 h-12 rounded-xl flex items-center justify-center ${
-              winner.place === 1 ? 'bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black' :
+            <div className={`text-2xl font-black w-12 h-12 rounded-xl flex items-center justify-center ${winner.place === 1 ? 'bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black' :
               winner.place === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-black' :
-              winner.place === 3 ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white' :
-              'bg-zinc-800 text-white'
-            }`}>
+                winner.place === 3 ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white' :
+                  'bg-zinc-800 text-white'
+              }`}>
               {winner.place}
             </div>
             <img src={winner.avatar} alt="" className="w-12 h-12 rounded-full border-2 border-[#FFD700]/50" />
