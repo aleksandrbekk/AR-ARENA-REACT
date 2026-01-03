@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/ToastProvider'
 import { supabase } from '../lib/supabase'
+import { MetallicBorder } from '../components/MetallicBorder'
 
 // ============ ТИПЫ ============
 interface User {
@@ -1626,22 +1626,30 @@ export function FullCrmPage() {
 
                     {/* Выручка по валютам */}
                     <div className="grid grid-cols-4 gap-2">
-                      <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">RUB</div>
-                        <div className="text-base font-bold text-white whitespace-nowrap">{Math.round(totalRub).toLocaleString('ru-RU')}</div>
-                      </div>
-                      <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">USD</div>
-                        <div className="text-base font-bold text-[#FFD700] whitespace-nowrap">{Math.round(totalUsd).toLocaleString('en-US')}</div>
-                      </div>
-                      <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">USDT</div>
-                        <div className="text-base font-bold text-emerald-400 whitespace-nowrap">{Math.round(totalUsdt).toLocaleString('en-US')}</div>
-                      </div>
-                      <div className="bg-zinc-900 rounded-xl p-3">
-                        <div className="text-white/40 text-[10px] mb-1">EUR</div>
-                        <div className="text-base font-bold text-blue-400 whitespace-nowrap">{Math.round(totalEur).toLocaleString('de-DE')}</div>
-                      </div>
+                      <MetallicBorder>
+                        <div className="p-3 bg-zinc-900 h-full flex flex-col justify-center">
+                          <div className="text-white/40 text-[10px] mb-1">RUB</div>
+                          <div className="text-base font-bold text-white whitespace-nowrap">{Math.round(totalRub).toLocaleString('ru-RU')}</div>
+                        </div>
+                      </MetallicBorder>
+                      <MetallicBorder>
+                        <div className="p-3 bg-zinc-900 h-full flex flex-col justify-center">
+                          <div className="text-white/40 text-[10px] mb-1">USD</div>
+                          <div className="text-base font-bold text-[#FFD700] whitespace-nowrap">{Math.round(totalUsd).toLocaleString('en-US')}</div>
+                        </div>
+                      </MetallicBorder>
+                      <MetallicBorder>
+                        <div className="p-3 bg-zinc-900 h-full flex flex-col justify-center">
+                          <div className="text-white/40 text-[10px] mb-1">USDT</div>
+                          <div className="text-base font-bold text-emerald-400 whitespace-nowrap">{Math.round(totalUsdt).toLocaleString('en-US')}</div>
+                        </div>
+                      </MetallicBorder>
+                      <MetallicBorder>
+                        <div className="p-3 bg-zinc-900 h-full flex flex-col justify-center">
+                          <div className="text-white/40 text-[10px] mb-1">EUR</div>
+                          <div className="text-base font-bold text-blue-400 whitespace-nowrap">{Math.round(totalEur).toLocaleString('de-DE')}</div>
+                        </div>
+                      </MetallicBorder>
                     </div>
 
                     {/* Статистика подписчиков */}
