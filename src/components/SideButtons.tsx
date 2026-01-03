@@ -12,7 +12,6 @@ interface SideButtonsProps {
   onSkinsClick?: () => void
   onFarmClick?: () => void
   onGiveawaysClick?: () => void
-  onDevTestClick?: () => void
 }
 
 export function SideButtons({
@@ -21,7 +20,6 @@ export function SideButtons({
   onSkinsClick,
   onFarmClick,
   onGiveawaysClick,
-  onDevTestClick,
 }: SideButtonsProps) {
   // Левая колонка
   const leftButtons: ButtonConfig[] = [
@@ -35,12 +33,6 @@ export function SideButtons({
       label: 'Задания',
       onClick: onTasksClick || (() => console.log('Tasks clicked')),
     },
-    // DEV TEST button (only shown if handler provided)
-    ...(onDevTestClick ? [{
-      icon: '🧪' as unknown as string,
-      label: 'DEV',
-      onClick: onDevTestClick,
-    }] : []),
   ]
 
   // Правая колонка
@@ -74,14 +66,12 @@ export function SideButtons({
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
-              {typeof button.icon === 'string' && button.icon.startsWith('/') ? (
+              {typeof button.icon === 'string' ? (
                 <img
                   src={button.icon}
                   alt={button.label}
                   className="w-8 h-8 object-contain drop-shadow-md"
                 />
-              ) : typeof button.icon === 'string' ? (
-                <span className="text-2xl">{button.icon}</span>
               ) : (
                 <button.icon className="w-8 h-8 text-[#FFD700] drop-shadow-md" />
               )}
