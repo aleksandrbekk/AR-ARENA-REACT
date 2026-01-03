@@ -1245,12 +1245,14 @@ export function FullCrmPage() {
                 {activeTab === 'broadcast' && 'Рассылка сообщений'}
               </p>
             </div>
-            <button
-              onClick={() => setShowPaymentsModal(true)}
-              className="px-4 py-2 bg-gradient-to-b from-[#FFD700] to-[#FFA500] hover:from-[#FFE55E] hover:to-[#FFB52E] text-black font-semibold rounded-xl transition-all text-sm"
-            >
-              Выплаты
-            </button>
+            {activeTab === 'premium' && (
+              <button
+                onClick={() => setShowPaymentsModal(true)}
+                className="px-4 py-2 bg-gradient-to-b from-[#FFD700] to-[#FFA500] hover:from-[#FFE55E] hover:to-[#FFB52E] text-black font-semibold rounded-xl transition-all text-sm"
+              >
+                Выплаты
+              </button>
+            )}
           </div>
 
           {/* Табы */}
@@ -2163,21 +2165,23 @@ export function FullCrmPage() {
                 })
 
                 // Считаем по валютам
-                let rubTotal = 0, usdTotal = 0, eurTotal = 0
+                let rubTotal = 0, usdTotal = 0, eurTotal = 0, usdtTotal = 0
                 periodPayments.forEach(c => {
                   const amount = c.total_paid_usd || 0
                   if (c.currency === 'RUB') rubTotal += amount
                   else if (c.currency === 'USD') usdTotal += amount
                   else if (c.currency === 'EUR') eurTotal += amount
+                  else if (c.currency === 'USDT') usdtTotal += amount
                 })
 
-                // Конвертация в USDT: RUB/82, EUR*1.13, USD=1
+                // Конвертация в USDT: RUB/82, EUR*1.13, USD=1, USDT=1
                 const USD_RATE = 82
                 const EUR_RATE = 1.13
                 const rubInUsdt = Math.round(rubTotal / USD_RATE)
                 const usdInUsdt = Math.round(usdTotal)
                 const eurInUsdt = Math.round(eurTotal * EUR_RATE)
-                const totalUsdt = rubInUsdt + usdInUsdt + eurInUsdt
+                const usdtDirect = Math.round(usdtTotal)
+                const totalUsdt = rubInUsdt + usdInUsdt + eurInUsdt + usdtDirect
 
                 const formatDate = (d: Date) => d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
 
@@ -2199,8 +2203,8 @@ export function FullCrmPage() {
                         <button
                           onClick={() => setSelectedPaymentPeriod('5-23')}
                           className={`flex-1 py-3 rounded-xl font-medium transition-all ${selectedPaymentPeriod === '5-23'
-                              ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-                              : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
+                            ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
+                            : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
                             }`}
                         >
                           5–23
@@ -2208,8 +2212,8 @@ export function FullCrmPage() {
                         <button
                           onClick={() => setSelectedPaymentPeriod('23-5')}
                           className={`flex-1 py-3 rounded-xl font-medium transition-all ${selectedPaymentPeriod === '23-5'
-                              ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-                              : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
+                            ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
+                            : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
                             }`}
                         >
                           23–5
@@ -2242,6 +2246,13 @@ export function FullCrmPage() {
                           <div className="text-right">
                             <div className="text-blue-400 font-bold">{eurTotal.toLocaleString('de-DE')}</div>
                             <div className="text-white/40 text-sm">≈ {eurInUsdt} USDT</div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center p-4 bg-zinc-800 rounded-xl">
+                          <span className="text-white/60">USDT</span>
+                          <div className="text-right">
+                            <div className="text-emerald-400 font-bold">{usdtTotal.toLocaleString('en-US')}</div>
+                            <div className="text-white/40 text-sm">= {usdtDirect} USDT</div>
                           </div>
                         </div>
                       </div>
