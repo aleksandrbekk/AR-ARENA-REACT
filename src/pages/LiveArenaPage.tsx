@@ -623,8 +623,8 @@ export function LiveArenaPage() {
       </div>
 
       <Tour1Drum
-        candidates={allTicketsRef.current.map(t => ({ ticket: t.ticket_number, user: t.player.name }))}
-        winners={tour1Winners.map(t => ({ ticket: t.ticket_number, user: t.player.name }))}
+        candidates={allTicketsRef.current.map(t => ({ ticket: t.ticket_number, user: t.player.name, avatar: t.player.avatar }))}
+        winners={tour1Winners.map(t => ({ ticket: t.ticket_number, user: t.player.name, avatar: t.player.avatar }))}
         onComplete={() => stageResolver.current?.()}
       />
     </div>
