@@ -331,14 +331,23 @@ export function LiveArenaTestPage() {
     }
 
     // ===================== BACK BUTTON =====================
-    const BackButton = () => (
-        <button
-            onClick={resetToMenu}
-            className="fixed top-[60px] left-4 z-50 px-4 py-2 bg-zinc-800 rounded-full text-white/70 hover:text-white border border-zinc-700 hover:border-[#FFD700] transition-all flex items-center gap-2"
-        >
-            ← Menu
-        </button>
-    )
+    // Показываем кнопку только для десктопа (без Telegram)
+    // Проверяем наличие BackButton API - если есть, значит мы в Telegram
+    const isTelegram = !!window.Telegram?.WebApp?.BackButton
+
+    const BackButton = () => {
+        // В Telegram используем системную кнопку, не рисуем свою
+        if (isTelegram) return null
+
+        return (
+            <button
+                onClick={resetToMenu}
+                className="fixed top-[60px] left-4 z-50 px-4 py-2 bg-zinc-800 rounded-full text-white/70 hover:text-white border border-zinc-700 hover:border-[#FFD700] transition-all flex items-center gap-2"
+            >
+                ← Menu
+            </button>
+        )
+    }
 
     // ===================== TOUR 1 =====================
     if (mode === 'tour1') {
