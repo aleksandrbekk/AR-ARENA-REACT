@@ -29,17 +29,19 @@ const FullCrmPageLazy = lazy(() => import('./pages/FullCrmPage').then(m => ({ de
 const InboxPageLazy = lazy(() => import('./pages/InboxPage').then(m => ({ default: m.InboxPage })))
 
 // Root Component that handles Telegram initialization
+// Root Component
 function Root() {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <AuthProvider>
-          <Outlet />
-        </AuthProvider>
+        <Outlet />
       </ToastProvider>
     </ErrorBoundary>
   )
 }
+
+
+
 
 const router = createBrowserRouter([
   {
@@ -107,7 +109,11 @@ const router = createBrowserRouter([
 ])
 
 function App() {
-  return <RouterProvider router={router} />
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  )
 }
 
 export default App
