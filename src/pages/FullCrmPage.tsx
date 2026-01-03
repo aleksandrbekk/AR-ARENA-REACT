@@ -2164,11 +2164,14 @@ export function FullCrmPage() {
                   return payDate >= startDate && payDate <= endDate
                 })
 
-                // Считаем по валютам
+                // Считаем по валютам (0xprocessing = USDT)
                 let rubTotal = 0, usdTotal = 0, eurTotal = 0, usdtTotal = 0
                 periodPayments.forEach(c => {
                   const amount = c.total_paid_usd || 0
-                  if (c.currency === 'RUB') rubTotal += amount
+                  // 0xProcessing всегда считаем как USDT (крипто)
+                  if (c.source === '0xprocessing') {
+                    usdtTotal += amount
+                  } else if (c.currency === 'RUB') rubTotal += amount
                   else if (c.currency === 'USD') usdTotal += amount
                   else if (c.currency === 'EUR') eurTotal += amount
                   else if (c.currency === 'USDT') usdtTotal += amount
