@@ -308,12 +308,11 @@ export function GiveawayManager() {
                     className={`rounded-2xl border border-white/10 bg-zinc-900/80 overflow-hidden ${statusConfig.glow}`}
                   >
                     {/* Status indicator line */}
-                    <div className={`h-1 w-full ${
-                      isActive ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
-                      isCompleted ? 'bg-gradient-to-r from-blue-500 to-blue-400' :
-                      g.status === 'cancelled' ? 'bg-gradient-to-r from-red-500 to-red-400' :
-                      'bg-zinc-700'
-                    }`} />
+                    <div className={`h-1 w-full ${isActive ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
+                        isCompleted ? 'bg-gradient-to-r from-blue-500 to-blue-400' :
+                          g.status === 'cancelled' ? 'bg-gradient-to-r from-red-500 to-red-400' :
+                            'bg-zinc-700'
+                      }`} />
 
                     <div className="p-4">
                       {/* Row 1: Status badges */}
@@ -479,6 +478,17 @@ export function GiveawayManager() {
             </div>
 
             <div>
+              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">URL Картинки (Баннер)</label>
+              <input
+                type="text"
+                value={formData.image_url || ''}
+                onChange={e => setFormData({ ...formData, image_url: e.target.value })}
+                placeholder="https://... (оставьте пустым для градиента)"
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none transition-colors"
+              />
+            </div>
+
+            <div>
               <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Название</label>
               <input
                 type="text"
@@ -589,12 +599,11 @@ export function GiveawayManager() {
             )}
             {formData.prizes?.map((prize, idx) => (
               <div key={idx} className="flex items-center gap-3 bg-black/30 rounded-xl p-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                  idx === 0 ? 'bg-[#FFD700]/20 text-[#FFD700]' :
-                  idx === 1 ? 'bg-gray-400/20 text-gray-400' :
-                  idx === 2 ? 'bg-amber-600/20 text-amber-500' :
-                  'bg-white/5 text-white/50'
-                }`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                    idx === 1 ? 'bg-gray-400/20 text-gray-400' :
+                      idx === 2 ? 'bg-amber-600/20 text-amber-500' :
+                        'bg-white/5 text-white/50'
+                  }`}>
                   {prize.place}
                 </div>
                 <input
