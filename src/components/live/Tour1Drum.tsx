@@ -139,7 +139,7 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
       </div>
 
       {/* Winners Grid - Responsive without fixed height */}
-      <div className="w-full grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+      <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
         <AnimatePresence mode="popLayout">
           {foundWinners.map((w, i) => {
             const isNew = i === lastFoundIndex
@@ -178,14 +178,12 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
                   />
                 )}
 
-                {/* Content */}
-                <div className="relative p-3 flex items-center gap-3">
-                  {/* Avatar with gradient border */}
-                  <div className="relative flex-shrink-0">
-
-
-                    {/* Avatar container */}
-                    <div className="relative w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-[#FFD700]/60 to-[#FFA500]/40">
+                {/* Content - Compact 2-row layout */}
+                <div className="relative p-2.5">
+                  {/* Row 1: Avatar + Ticket + Check */}
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {/* Small Avatar */}
+                    <div className="relative w-7 h-7 rounded-full p-[1.5px] bg-gradient-to-br from-[#FFD700]/60 to-[#FFA500]/40 flex-shrink-0">
                       {w.avatar ? (
                         <img
                           src={w.avatar}
@@ -194,7 +192,7 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
                         />
                       ) : (
                         <div
-                          className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-sm shadow-inner"
+                          className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-[10px] shadow-inner"
                           style={{ background: getAvatarGradient(w.user) }}
                         >
                           {w.user.charAt(0).toUpperCase()}
@@ -202,25 +200,23 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
                       )}
                     </div>
 
+                    {/* Ticket number */}
+                    <div className="flex-1 font-mono text-[#FFD700] font-bold text-xs tracking-wide">
+                      #{w.ticket.toString().padStart(6, '0')}
+                    </div>
 
+                    {/* Check mark */}
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <svg className="w-3 h-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
                   </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white font-medium text-sm truncate" title={w.user}>
-                      <span className="text-white/40 text-xs mr-1">#{i + 1}</span>
-                      {w.user}
-                    </div>
-                    <div className="font-mono text-[#FFD700] font-bold text-xs">
-                      {w.ticket.toString().padStart(6, '0')}
-                    </div>
-                  </div>
-
-                  {/* Check mark */}
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
+                  {/* Row 2: Player name (larger) */}
+                  <div className="text-white font-semibold text-sm truncate pl-0.5" title={w.user}>
+                    <span className="text-white/40 text-[10px] mr-1">#{i + 1}</span>
+                    {w.user}
                   </div>
                 </div>
               </motion.div>
