@@ -4,7 +4,6 @@ import { ToastProvider } from './components/ToastProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AuthProvider } from './providers/AuthProvider'
 import { useTelegramBackButton } from './hooks/useTelegramBackButton'
-import { OnboardingModal } from './components/OnboardingModal'
 
 // Public Pages
 import { Home } from './pages/Home'
@@ -40,7 +39,6 @@ function Root() {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <OnboardingModal />
         <Outlet />
       </ToastProvider>
     </ErrorBoundary>
