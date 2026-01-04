@@ -480,13 +480,6 @@ export function UsersTab() {
     return formatDate(date)
   }
 
-  const getLevelBadgeColor = (level: number) => {
-    if (level >= 20) return 'bg-purple-500'
-    if (level >= 10) return 'bg-yellow-500'
-    if (level >= 5) return 'bg-blue-500'
-    return 'bg-zinc-600'
-  }
-
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortAsc(!sortAsc)
@@ -507,7 +500,6 @@ export function UsersTab() {
     total: users.length,
     totalAR: users.reduce((sum, u) => sum + (u.balance_ar || 0), 0),
     totalBUL: users.reduce((sum, u) => sum + (u.balance_bul || 0), 0),
-    avgLevel: users.length > 0 ? Math.round(users.reduce((sum, u) => sum + (u.level || 1), 0) / users.length * 10) / 10 : 0,
     active24h: users.filter(u => {
       if (!u.last_seen_at) return false
       const diff = Date.now() - new Date(u.last_seen_at).getTime()
@@ -566,9 +558,6 @@ export function UsersTab() {
                   </div>
                   <div className="text-white/40 text-sm font-mono">{selectedUser.telegram_id}</div>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold text-white ${getLevelBadgeColor(selectedUser.level)}`}>
-                      Lv.{selectedUser.level}
-                    </span>
                     <span className="text-white/40 text-xs">
                       Зарег: {formatDate(selectedUser.created_at)}
                     </span>
@@ -838,12 +827,12 @@ export function UsersTab() {
           <div className="text-white/40 text-xs">Игроков</div>
         </div>
         <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-3 text-center">
-          <div className="text-white text-xl font-bold">{stats.avgLevel}</div>
-          <div className="text-white/40 text-xs">Средний уровень</div>
-        </div>
-        <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-3 text-center">
           <div className="text-[#FFD700] text-xl font-bold">{stats.totalAR.toLocaleString()}</div>
           <div className="text-white/40 text-xs">Всего AR</div>
+        </div>
+        <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-3 text-center">
+          <div className="text-blue-400 text-xl font-bold">{stats.totalBUL.toLocaleString()}</div>
+          <div className="text-white/40 text-xs">Всего BUL</div>
         </div>
         <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-3 text-center">
           <div className="text-green-400 text-xl font-bold">{stats.active24h}</div>
@@ -886,14 +875,16 @@ export function UsersTab() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/10">
+                <th className="px-3 py-3 text-center w-10">
+                  <input
+                    type="checkbox"
+                    checked={paginatedUsers.length > 0 && paginatedUsers.every(u => selectedForDelete.has(u.telegram_id))}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-white/20 bg-zinc-800 text-red-500 focus:ring-red-500 cursor-pointer"
+                  />
+                </th>
                 <th className="px-3 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wide">
                   Игрок
-                </th>
-                <th
-                  className="px-3 py-3 text-center text-xs font-semibold text-white/50 uppercase tracking-wide cursor-pointer hover:text-white/70"
-                  onClick={() => handleSort('level')}
-                >
-                  Lv <SortIcon field="level" />
                 </th>
                 <th
                   className="px-3 py-3 text-right text-xs font-semibold text-white/50 uppercase tracking-wide cursor-pointer hover:text-white/70"
@@ -929,10 +920,17 @@ export function UsersTab() {
                 paginatedUsers.map((user) => (
                   <tr
                     key={user.id}
-                    onClick={() => loadUserProfile(user)}
-                    className="border-b border-white/5 hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                    className={`border-b border-white/5 hover:bg-zinc-800/50 transition-colors ${selectedForDelete.has(user.telegram_id) ? 'bg-red-500/10' : ''}`}
                   >
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedForDelete.has(user.telegram_id)}
+                        onChange={() => toggleSelectUser(user.telegram_id)}
+                        className="w-4 h-4 rounded border-white/20 bg-zinc-800 text-red-500 focus:ring-red-500 cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-3 py-3 cursor-pointer" onClick={() => loadUserProfile(user)}>
                       <div className="flex items-center gap-3">
                         {user.photo_url ? (
                           <img src={user.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
@@ -951,21 +949,16 @@ export function UsersTab() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold text-white ${getLevelBadgeColor(user.level)}`}>
-                        {user.level}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-right text-sm font-semibold text-[#FFD700]">
+                    <td className="px-3 py-3 text-right text-sm font-semibold text-[#FFD700] cursor-pointer" onClick={() => loadUserProfile(user)}>
                       {user.balance_ar.toLocaleString()}
                     </td>
-                    <td className="px-3 py-3 text-right text-sm font-semibold text-blue-400">
+                    <td className="px-3 py-3 text-right text-sm font-semibold text-blue-400 cursor-pointer" onClick={() => loadUserProfile(user)}>
                       {user.balance_bul.toLocaleString()}
                     </td>
-                    <td className="px-3 py-3 text-center text-sm text-white/60">
+                    <td className="px-3 py-3 text-center text-sm text-white/60 cursor-pointer" onClick={() => loadUserProfile(user)}>
                       {user.tickets_count || 0}
                     </td>
-                    <td className="px-3 py-3 text-right text-xs text-white/40">
+                    <td className="px-3 py-3 text-right text-xs text-white/40 cursor-pointer" onClick={() => loadUserProfile(user)}>
                       {formatTimeAgo(user.last_seen_at)}
                     </td>
                   </tr>
@@ -975,6 +968,35 @@ export function UsersTab() {
           </table>
         </div>
       </div>
+
+      {/* Модалка подтверждения удаления */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-sm border border-white/10">
+            <h3 className="text-white text-lg font-bold mb-4">Подтверждение удаления</h3>
+            <p className="text-white/70 mb-6">
+              Вы уверены, что хотите удалить <span className="text-red-400 font-bold">{selectedForDelete.size}</span> юзер(ов)?
+              <br /><br />
+              Это действие нельзя отменить.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-3 bg-zinc-800 text-white rounded-xl active:scale-95 transition-transform"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleMassDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-3 bg-red-500 text-white font-semibold rounded-xl active:scale-95 transition-transform disabled:opacity-50"
+              >
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Пагинация */}
       {totalPages > 1 && (
