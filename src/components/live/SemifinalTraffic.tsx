@@ -144,7 +144,7 @@ export function SemifinalTraffic({
                                 #{ticket.ticket_number}
                             </div>
 
-                            {/* Eliminated badge with animation - ❌ ВЫБЫЛ */}
+                            {/* Eliminated badge with stylish X icon */}
                             <AnimatePresence>
                                 {eliminatedPlace && (
                                     <motion.div
@@ -154,8 +154,12 @@ export function SemifinalTraffic({
                                         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
                                         data-testid="out-badge"
                                     >
-                                        <div className="bg-red-600/95 backdrop-blur-sm text-white text-[11px] font-black px-2.5 py-1 rounded-lg border-2 border-red-400 shadow-[0_0_25px_rgba(239,68,68,0.9)]">
-                                            ❌ ВЫБЫЛ
+                                        <div className="bg-gradient-to-b from-red-500 to-red-700 backdrop-blur-sm text-white text-[10px] font-black px-3 py-1.5 rounded-lg border border-red-400/50 shadow-[0_0_20px_rgba(239,68,68,0.7)] flex items-center gap-1.5">
+                                            {/* Stylish X icon */}
+                                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                                                <path d="M6 6l12 12M6 18L18 6" />
+                                            </svg>
+                                            OUT
                                         </div>
                                     </motion.div>
                                 )}

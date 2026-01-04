@@ -50,7 +50,7 @@ export function LiveArenaTestPage() {
     const navigate = useNavigate()
 
     // ===================== HOOKS (must be before callbacks that use them) =====================
-    const { initAudio, playClick, playSuccess, playFailure, playRouletteTicks, playImpact, stopAllSounds } = useArenaSounds()
+    const { initAudio, playHit1, playHit2, playSuccess, playFailure, playRouletteTicks, playImpact, stopAllSounds } = useArenaSounds()
     const { triggerTick, triggerImpact, triggerSuccess, triggerError, triggerTension } = useArenaHaptics()
 
     // AbortController for stopping demos
@@ -193,6 +193,7 @@ export function LiveArenaTestPage() {
             setSemifinalHits(new Map(hits))
 
             if (currentHits === 3) {
+                // Третий удар — выбывание
                 playFailure()
                 triggerError()
                 const eliminatedCount = eliminated.size
@@ -205,8 +206,12 @@ export function LiveArenaTestPage() {
                     await new Promise(r => setTimeout(r, 1000))
                     break
                 }
-            } else {
-                playClick()
+            } else if (currentHits === 1) {
+                // Первый удар — мягкий звук
+                playHit1()
+            } else if (currentHits === 2) {
+                // Второй удар — напряжённый звук
+                playHit2()
             }
 
             await new Promise(r => setTimeout(r, 1500))

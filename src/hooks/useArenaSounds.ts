@@ -60,6 +60,91 @@ export function useArenaSounds() {
   }, [getContext])
 
   /**
+   * playHit1 - Мягкий звук первого попадания (зелёный)
+   * Приятный "дзинь" — низкая частота, короткий
+   */
+  const playHit1 = useCallback(() => {
+    const ctx = getContext()
+    if (!ctx) return
+
+    // Основной тон
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(520, ctx.currentTime) // C5-ish
+    osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.15)
+
+    gain.gain.setValueAtTime(0.2, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.25)
+
+    // Обертон для "блеска"
+    const osc2 = ctx.createOscillator()
+    const gain2 = ctx.createGain()
+
+    osc2.type = 'sine'
+    osc2.frequency.setValueAtTime(1040, ctx.currentTime)
+
+    gain2.gain.setValueAtTime(0.08, ctx.currentTime)
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1)
+
+    osc2.connect(gain2)
+    gain2.connect(ctx.destination)
+
+    osc2.start(ctx.currentTime)
+    osc2.stop(ctx.currentTime + 0.12)
+  }, [getContext])
+
+  /**
+   * playHit2 - Напряжённый звук второго попадания (жёлтый)
+   * Более низкий "донг" с лёгким предупреждением
+   */
+  const playHit2 = useCallback(() => {
+    const ctx = getContext()
+    if (!ctx) return
+
+    // Основной низкий тон
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = 'triangle'
+    osc.frequency.setValueAtTime(280, ctx.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2)
+
+    gain.gain.setValueAtTime(0.25, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.35)
+
+    // Второй тон для "напряжения"
+    const osc2 = ctx.createOscillator()
+    const gain2 = ctx.createGain()
+
+    osc2.type = 'sine'
+    osc2.frequency.setValueAtTime(350, ctx.currentTime)
+    osc2.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.15)
+
+    gain2.gain.setValueAtTime(0.12, ctx.currentTime)
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2)
+
+    osc2.connect(gain2)
+    gain2.connect(ctx.destination)
+
+    osc2.start(ctx.currentTime)
+    osc2.stop(ctx.currentTime + 0.25)
+  }, [getContext])
+
+  /**
    * playImpact - Глухой удар (Thud) для остановки барабана
    * Low frequency sine/triangle with decay
    */
@@ -355,6 +440,8 @@ export function useArenaSounds() {
   return {
     initAudio,
     playClick,
+    playHit1,
+    playHit2,
     playImpact,
     playSuccess,
     playFailure,

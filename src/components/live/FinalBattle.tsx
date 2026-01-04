@@ -26,61 +26,75 @@ export function FinalBattle({
     onRunDemo,
     embedded = false
 }: FinalBattleProps) {
-    const confettiFired = useRef(false)
+    const confettiFiredFor = useRef<Set<number>>(new Set())
 
-    // Check if game is finished (all 3 places assigned)
-    const gameFinished = scores.filter(s => s.place !== null).length === 3
-
-    // Fire confetti ONCE when game finishes and there's a winner
+    // Fire confetti when someone wins 1st place
     useEffect(() => {
-        if (gameFinished && !confettiFired.current) {
-            const winner = scores.find(s => s.place === 1)
-            if (winner) {
-                confettiFired.current = true
+        scores.forEach((score, idx) => {
+            if (score.place === 1 && !confettiFiredFor.current.has(idx)) {
+                confettiFiredFor.current.add(idx)
                 confetti({
                     particleCount: 80,
                     spread: 60,
-                    origin: { y: 0.7 },
+                    origin: { y: 0.6 },
                     colors: ['#FFD700', '#FFA500', '#22c55e']
                 })
             }
-        }
-    }, [gameFinished, scores])
+        })
+    }, [scores])
 
     // Reset confetti flag when scores reset
     useEffect(() => {
         const allZero = scores.every(s => s.bulls === 0 && s.bears === 0)
         if (allZero) {
-            confettiFired.current = false
+            confettiFiredFor.current.clear()
         }
     }, [scores])
 
     const getPlayerCardClass = (idx: number, score: { bulls: number; bears: number; place: number | null }) => {
         const isCurrent = currentFinalPlayer === idx
-        const isWinner = score.bulls === 3
-        const isEliminated = score.bears === 3
+        const hasPlace = score.place !== null
 
-        if (gameFinished && isWinner) {
-            return 'border-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.8)] scale-105'
+        // Already has place - show final state
+        if (hasPlace) {
+            if (score.place === 1) {
+                return 'border-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.8)] scale-105'
+            }
+            if (score.place === 3) {
+                return 'border-red-500 grayscale opacity-60'
+            }
+            if (score.place === 2) {
+                return 'border-gray-400 shadow-[0_0_20px_rgba(156,163,175,0.5)]'
+            }
         }
-        if (gameFinished && isEliminated) {
-            return 'border-red-500 grayscale opacity-60'
-        }
+
+        // Current player's turn
         if (isCurrent) {
             return 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.7)] scale-110'
         }
-        if (score.place && gameFinished) {
-            return 'border-[#FFD700]'
-        }
+
         return 'border-[#FFD700]/50'
     }
 
     return (
         <div className={embedded ? '' : 'min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4'}>
+            {/* Stylish Bulls & Bears Title */}
             {!embedded && (
                 <div className="text-center mb-6">
-                    <h1 className="text-2xl font-black text-[#FFD700]">ФИНАЛ</h1>
-                    <p className="text-white/60 text-sm">Битва быка и медведя</p>
+                    <div className="relative inline-block mb-2">
+                        <div className="absolute inset-0 blur-xl opacity-40 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500" />
+                        <h1
+                            className="relative text-3xl font-black tracking-wider uppercase"
+                            style={{
+                                background: 'linear-gradient(90deg, #22c55e 0%, #FFD700 50%, #ef4444 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                textShadow: '0 0 30px rgba(255,215,0,0.3)',
+                            }}
+                        >
+                            Bulls & Bears
+                        </h1>
+                    </div>
                 </div>
             )}
 
@@ -101,18 +115,14 @@ export function FinalBattle({
                 {players.map((ticket, idx) => {
                     const score = scores[idx]
                     const orderNum = turnOrder.indexOf(idx) + 1
-                    const isWinner = score?.bulls === 3
-                    const isEliminated = score?.bears === 3
-
-                    // Show place only when game is finished
-                    const showPlace = gameFinished && score?.place
+                    const hasPlace = score?.place !== null
 
                     return (
                         <motion.div
                             key={idx}
                             className="flex flex-col items-center"
                             animate={
-                                gameFinished && isEliminated
+                                score?.place === 3
                                     ? { x: [0, -3, 3, -3, 3, 0] }
                                     : {}
                             }
@@ -124,31 +134,31 @@ export function FinalBattle({
                                     src={ticket.player.avatar}
                                     alt=""
                                     className={`w-20 h-20 rounded-full border-3 transition-all duration-300 ${getPlayerCardClass(idx, score || { bulls: 0, bears: 0, place: null })}`}
-                                    animate={gameFinished && isWinner ? { scale: [1, 1.1, 1] } : {}}
-                                    transition={gameFinished && isWinner ? { duration: 0.6, repeat: 2 } : {}}
+                                    animate={score?.place === 1 ? { scale: [1, 1.1, 1] } : {}}
+                                    transition={score?.place === 1 ? { duration: 0.6, repeat: 2 } : {}}
                                 />
-                                {orderNum > 0 && (
+                                {orderNum > 0 && !hasPlace && (
                                     <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black text-xs font-bold flex items-center justify-center border-2 border-black">
                                         {orderNum}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Name / Place - show place ONLY when game finished */}
+                            {/* Name / Place - show place IMMEDIATELY when assigned */}
                             <motion.div
                                 className={`px-4 py-2 rounded-xl text-center mb-2 min-w-[90px] transition-all duration-300 ${
-                                    showPlace && score?.place === 1
+                                    score?.place === 1
                                         ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold shadow-[0_0_30px_rgba(255,215,0,0.8)]'
-                                        : showPlace && score?.place === 2
+                                        : score?.place === 2
                                             ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-black font-bold shadow-[0_0_15px_rgba(192,192,192,0.5)]'
-                                            : showPlace && score?.place === 3
-                                                ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold shadow-[0_0_15px_rgba(217,119,6,0.5)]'
+                                            : score?.place === 3
+                                                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white font-bold shadow-[0_0_15px_rgba(239,68,68,0.5)]'
                                                 : 'bg-zinc-800 text-white'
                                 }`}
-                                animate={showPlace && score?.place === 1 ? { scale: [1, 1.05, 1] } : {}}
-                                transition={showPlace && score?.place === 1 ? { duration: 0.5, repeat: 3 } : {}}
+                                animate={score?.place === 1 ? { scale: [1, 1.05, 1] } : {}}
+                                transition={score?.place === 1 ? { duration: 0.5, repeat: 3 } : {}}
                             >
-                                {showPlace
+                                {hasPlace
                                     ? `${score.place} МЕСТО`
                                     : ticket.player.name}
                             </motion.div>
@@ -216,7 +226,7 @@ export function FinalBattle({
                     }}
                 />
 
-                {/* Result indicator with spring animation - only show briefly */}
+                {/* Result indicator with spring animation */}
                 <AnimatePresence>
                     {lastResult && !wheelSpinning && (
                         <motion.div
@@ -247,8 +257,23 @@ export function FinalBattle({
                 </AnimatePresence>
             </div>
 
-            <div className="text-center mt-4 text-white/30 text-xs">
-                3 Bulls = ПОБЕДА | 3 Bears = ВЫБЫВАНИЕ
+            {/* Stylish FINAL footer */}
+            <div className="text-center mt-6">
+                <div className="relative inline-block">
+                    <div className="absolute inset-0 blur-2xl opacity-30 bg-gradient-to-r from-green-500 via-[#FFD700] to-red-500" />
+                    <h2
+                        className="relative text-5xl font-black tracking-[0.3em] uppercase"
+                        style={{
+                            background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 50%, #CC8400 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            textShadow: '0 0 60px rgba(255,215,0,0.4)',
+                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))'
+                        }}
+                    >
+                        FINAL
+                    </h2>
+                </div>
             </div>
         </div>
     )
