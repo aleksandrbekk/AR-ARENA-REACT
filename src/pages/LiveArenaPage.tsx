@@ -46,7 +46,7 @@ export function LiveArenaPage() {
   const stageResolver = useRef<(() => void) | null>(null)
 
   // SFX & Haptics
-  const { initAudio, playClick, playHit1, playHit2, playImpact, playSuccess, playFailure, playWin, playRouletteTicks } = useArenaSounds()
+  const { initAudio, playHit1, playHit2, playImpact, playSuccess, playFailure, playWin, playRouletteTicks } = useArenaSounds()
   const { triggerTick, triggerImpact, triggerSuccess, triggerError } = useArenaHaptics()
 
   // Modal
@@ -61,8 +61,8 @@ export function LiveArenaPage() {
   // Tour 2
   const [tour2Cards, setTour2Cards] = useState<Ticket[]>([])
   const [tour2Results, setTour2Results] = useState<Map<number, 'green' | 'red'>>(new Map())
-  const tour2SelectedRef = useRef<Set<number>>(new Set())
-  const tour2RevealedCountRef = useRef(0)
+  const [, setTour2RevealedCount] = useState(0) // Only setter used (tracks count for stage progression)
+  const tour2SelectedTicketsRef = useRef<Set<number>>(new Set()) // Set of TICKET NUMBERS that are green
 
   // Semifinal
   const [semifinalPlayers, setSemifinalPlayers] = useState<Ticket[]>([])
@@ -117,7 +117,12 @@ export function LiveArenaPage() {
     // Check if already revealed
     if (tour2Results.has(idx)) return
 
-    const isGreen = tour2SelectedRef.current.has(idx)
+    // Get the ticket at this display position
+    const ticket = tour2Cards[idx]
+    if (!ticket) return
+
+    // Check if this TICKET NUMBER is in the winners set
+    const isGreen = tour2SelectedTicketsRef.current.has(ticket.ticket_number)
 
     // Update results map
     setTour2Results(prev => {
@@ -126,24 +131,27 @@ export function LiveArenaPage() {
       return next
     })
 
-    // Play sounds and haptics
+    // Play sounds and haptics (matching test version exactly)
     if (isGreen) {
       playSuccess()
       triggerSuccess()
     } else {
-      playClick()
-      triggerTick()
+      playFailure()
+      triggerError()
     }
+    playImpact() // Both green and red play impact
 
-    // Track revealed count
-    tour2RevealedCountRef.current++
-
-    // When all 20 cards revealed, proceed to next stage
-    if (tour2RevealedCountRef.current >= 20) {
-      setTimeout(() => {
-        stageResolver.current?.()
-      }, 1500)
-    }
+    // Track revealed count using state (not ref)
+    setTour2RevealedCount(prev => {
+      const newCount = prev + 1
+      // When all 20 cards revealed, proceed to next stage
+      if (newCount >= 20) {
+        setTimeout(() => {
+          stageResolver.current?.()
+        }, 1500)
+      }
+      return newCount
+    })
   }
 
   const handleTour2DragProgress = (progress: number) => {
@@ -387,13 +395,18 @@ export function LiveArenaPage() {
       goal: '20 счастливчиков выбраны!\nНажми на карты чтобы узнать кто прошёл!'
     })
 
-    // Set up selected indices BEFORE showing cards
-    tour2SelectedRef.current = new Set(results.tour2.selected_indices)
-    tour2RevealedCountRef.current = 0
+    // Store TICKET NUMBERS of winners (not indices)
+    tour2SelectedTicketsRef.current = new Set(results.tour2.finalists)
+
+    // Reset state
+    setTour2RevealedCount(0)
     setTour2Results(new Map())
 
+    // Shuffle cards for VISUAL display (green cards scattered randomly)
+    const shuffledCards = [...tour1WinnerTickets].sort(() => Math.random() - 0.5)
+
     setCurrentStage('tour2')
-    setTour2Cards(tour1WinnerTickets)
+    setTour2Cards(shuffledCards)
 
     // Wait for all 20 cards to be revealed manually by user
     await new Promise<void>(resolve => {
