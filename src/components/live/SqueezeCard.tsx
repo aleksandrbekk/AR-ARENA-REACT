@@ -273,12 +273,12 @@ export function SqueezeCard({
             />
           ))}
 
-          {/* Drag hint */}
-          <div className="absolute bottom-3 left-0 right-0 text-center">
-            <span className="text-[10px] text-white/30 uppercase tracking-wider">
-              {isDragging ? 'Отпусти для открытия' : 'Потяни чтобы подсмотреть'}
-            </span>
-          </div>
+          {/* Minimal tap hint - only shown when not dragging */}
+          {!isDragging && (
+            <div className="absolute bottom-2 left-0 right-0 text-center">
+              <span className="text-[8px] text-white/20">tap</span>
+            </div>
+          )}
         </div>
 
         {/* Dynamic shine on drag */}

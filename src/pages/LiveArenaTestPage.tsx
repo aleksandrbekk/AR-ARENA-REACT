@@ -274,27 +274,30 @@ export function LiveArenaTestPage() {
                 triggerSuccess()
                 scores[playerIdx].bulls++
                 if (scores[playerIdx].bulls === 3) {
+                    // 3 БЫКА = 1 МЕСТО (ПОБЕДА)
+                    scores[playerIdx].place = 1
                     placesAssigned++
-                    scores[playerIdx].place = placesAssigned
                 }
             } else {
                 playFailure()
                 triggerError()
                 scores[playerIdx].bears++
                 if (scores[playerIdx].bears === 3) {
+                    // 3 МЕДВЕДЯ = 3 МЕСТО (ПРОИГРЫШ)
+                    scores[playerIdx].place = 3
                     placesAssigned++
-                    scores[playerIdx].place = 4 - placesAssigned // 3, 2, 1 for losers
                 }
             }
 
             setFinalScores([...scores])
 
-            // Check if only one player left
+            // Check if only one player left without place
             const activePlayers = scores.filter(s => s.place === null).length
             if (activePlayers === 1) {
-                const lastPlayer = scores.findIndex(s => s.place === null)
-                const takenPlaces = scores.filter(s => s.place !== null).map(s => s.place!)
-                scores[lastPlayer].place = [1, 2, 3].find(p => !takenPlaces.includes(p))!
+                // Последний оставшийся = 2 МЕСТО
+                const lastPlayerIdx = scores.findIndex(s => s.place === null)
+                scores[lastPlayerIdx].place = 2
+                placesAssigned++
                 setFinalScores([...scores])
                 break
             }
