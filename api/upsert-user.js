@@ -1,9 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
+// User Upsert API - bypasses RLS using service role key
+const { createClient } = require('@supabase/supabase-js')
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -17,15 +18,23 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  if (!supabaseUrl) {
+    console.error('SUPABASE_URL not configured')
+    return res.status(500).json({ error: 'Supabase URL not configured' })
+  }
+
   if (!serviceKey) {
+    console.error('SUPABASE_SERVICE_ROLE_KEY not configured')
     return res.status(500).json({ error: 'Service key not configured' })
   }
 
-  const { telegram_id, username, first_name, last_name, photo_url, language_code } = req.body
+  const { telegram_id, username, first_name, last_name, photo_url, language_code } = req.body || {}
 
   if (!telegram_id) {
     return res.status(400).json({ error: 'telegram_id is required' })
   }
+
+  console.log('Upserting user:', telegram_id, username)
 
   const supabase = createClient(supabaseUrl, serviceKey)
 
@@ -33,7 +42,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('users')
       .upsert({
-        telegram_id,
+        telegram_id: parseInt(telegram_id),
         username: username || null,
         first_name: first_name || null,
         last_name: last_name || null,
@@ -48,6 +57,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message })
     }
 
+    console.log('User upserted successfully:', data)
     return res.status(200).json({ ok: true, data })
   } catch (err) {
     console.error('Server error:', err)
