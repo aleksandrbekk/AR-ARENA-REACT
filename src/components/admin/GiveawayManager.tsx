@@ -11,16 +11,14 @@ export function GiveawayManager() {
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  // Form State
+  // Form State - только необходимые поля
   const [formData, setFormData] = useState<Partial<Giveaway>>({
-    type: 'money',
     title: '',
     subtitle: '',
-    price: 10,
-    currency: 'ar',
     status: 'draft',
-    prizes: [],
-    requirements: {}
+    prices: { ar: 10 },
+    end_date: '',
+    prizes: []
   })
 
   useEffect(() => {
@@ -41,14 +39,12 @@ export function GiveawayManager() {
   const handleCreate = () => {
     setEditingId(null)
     setFormData({
-      type: 'money',
       title: '',
       subtitle: '',
-      price: 10,
-      currency: 'ar',
       status: 'draft',
-      prizes: [],
-      requirements: {}
+      prices: { ar: 10 },
+      end_date: '',
+      prizes: []
     })
     setMode('edit')
   }
@@ -60,12 +56,24 @@ export function GiveawayManager() {
   }
 
   const handleSave = async () => {
+    if (!formData.title?.trim()) {
+      alert('Введите название розыгрыша')
+      return
+    }
+    if (!formData.end_date) {
+      alert('Укажите дату окончания')
+      return
+    }
+
     setLoading(true)
     try {
       const dataToSave = {
-        ...formData,
-        prizes: formData.prizes || [],
-        requirements: formData.requirements || {}
+        title: formData.title,
+        subtitle: formData.subtitle || null,
+        status: formData.status || 'draft',
+        prices: formData.prices || { ar: 10 },
+        end_date: formData.end_date,
+        prizes: formData.prizes || []
       }
 
       if (editingId) {
@@ -349,7 +357,10 @@ export function GiveawayManager() {
                       {/* Row 3: Info Grid */}
                       <div className="grid grid-cols-3 gap-2 mb-3">
                         {[
-                          { label: 'Билет', value: `${g.price} ${g.currency?.toUpperCase()}` },
+                          {
+                            label: 'Билет',
+                            value: g.prices?.ar ? `${g.prices.ar} AR` : g.prices?.bul ? `${g.prices.bul} BUL` : `${g.price || 10} ${(g.currency || 'ar').toUpperCase()}`
+                          },
                           { label: 'Призов', value: g.prizes?.length || 0 },
                           { label: 'Конец', value: g.end_date ? new Date(g.end_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—' }
                         ].map((item) => (
@@ -417,307 +428,206 @@ export function GiveawayManager() {
   }
 
   // ==================== EDIT VIEW ====================
+  // Получаем текущую валюту из prices
+  const currentCurrency = formData.prices?.bul !== undefined ? 'bul' : 'ar'
+  const currentPrice = currentCurrency === 'bul' ? (formData.prices?.bul || 0) : (formData.prices?.ar || 0)
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-24 px-4">
-      {/* Header */}
-      <div className="max-w-2xl mx-auto mb-8">
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
+      <div className="max-w-lg mx-auto">
+        {/* Компактный хедер */}
+        <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => setMode('list')}
-            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+            className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-white/60 hover:text-white hover:bg-zinc-700 transition-all"
           >
-            <span className="text-xl">←</span>
-            <span>Назад</span>
+            ←
           </button>
-          <h1 className="text-xl font-bold text-[#FFD700]">
+          <h1 className="text-xl font-bold text-white flex-1">
             {editingId ? 'Редактирование' : 'Новый розыгрыш'}
           </h1>
-          <div className="w-16" /> {/* Spacer for centering */}
         </div>
-      </div>
 
-      <div className="max-w-2xl mx-auto space-y-6">
-        {/* Section: Basic Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-white/5 overflow-hidden"
-        >
-          <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#FFD700]/20 flex items-center justify-center">
-              <span className="text-[#FFD700]">1</span>
-            </div>
-            <h3 className="font-bold text-white">Основная информация</h3>
+        {/* Форма - компактная и чистая */}
+        <div className="space-y-4">
+          {/* Название */}
+          <div>
+            <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Название *</label>
+            <input
+              type="text"
+              value={formData.title || ''}
+              onChange={e => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Например: Новогодний розыгрыш"
+              className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:border-[#FFD700]/50 focus:outline-none"
+            />
           </div>
-          <div className="p-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Тип</label>
-                <select
-                  value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value as any })}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
-                >
-                  <option value="money">Деньги</option>
-                  <option value="course">Курс</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Статус</label>
-                <select
-                  value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
-                >
-                  <option value="draft">Черновик</option>
-                  <option value="active">Активный</option>
-                  <option value="completed">Завершён</option>
-                  <option value="cancelled">Отменён</option>
-                </select>
-              </div>
-            </div>
 
+          {/* Подзаголовок */}
+          <div>
+            <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Описание</label>
+            <input
+              type="text"
+              value={formData.subtitle || ''}
+              onChange={e => setFormData({ ...formData, subtitle: e.target.value })}
+              placeholder="Краткое описание розыгрыша"
+              className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:border-[#FFD700]/50 focus:outline-none"
+            />
+          </div>
+
+          {/* Цена и Валюта - в одну строку */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">URL Картинки (Баннер)</label>
+              <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Цена билета</label>
               <input
-                type="text"
-                value={formData.image_url || ''}
-                onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-                placeholder="https://... (оставьте пустым для градиента)"
-                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none transition-colors"
+                type="number"
+                value={currentPrice || ''}
+                onChange={e => {
+                  const val = Number(e.target.value)
+                  if (currentCurrency === 'bul') {
+                    setFormData({ ...formData, prices: { bul: val } })
+                  } else {
+                    setFormData({ ...formData, prices: { ar: val } })
+                  }
+                }}
+                placeholder="10"
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:border-[#FFD700]/50 focus:outline-none"
               />
             </div>
-
             <div>
-              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Название</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Введите название..."
-                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Подзаголовок</label>
-              <input
-                type="text"
-                value={formData.subtitle || ''}
-                onChange={e => setFormData({ ...formData, subtitle: e.target.value })}
-                placeholder="Краткое описание..."
-                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none transition-colors"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Цена билета</label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Валюта</label>
-                <select
-                  value={formData.currency}
-                  onChange={e => setFormData({ ...formData, currency: e.target.value as any })}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
+              <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Валюта</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, prices: { ar: currentPrice } })}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                    currentCurrency === 'ar'
+                      ? 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/50'
+                      : 'bg-zinc-900 text-white/40 border border-zinc-700 hover:border-zinc-600'
+                  }`}
                 >
-                  <option value="ar">AR</option>
-                  <option value="bul">BUL</option>
-                </select>
+                  <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
+                  AR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, prices: { bul: currentPrice } })}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                    currentCurrency === 'bul'
+                      ? 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/50'
+                      : 'bg-zinc-900 text-white/40 border border-zinc-700 hover:border-zinc-600'
+                  }`}
+                >
+                  <img src="/icons/BUL.png" alt="" className="w-5 h-5" />
+                  BUL
+                </button>
               </div>
             </div>
           </div>
-        </motion.div>
 
-        {/* Section: Dates */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-white/5 overflow-hidden"
-        >
-          <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#FFD700]/20 flex items-center justify-center">
-              <span className="text-[#FFD700]">2</span>
-            </div>
-            <h3 className="font-bold text-white">Даты</h3>
-          </div>
-          <div className="p-5 space-y-4">
+          {/* Статус и Дата окончания */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Дата окончания</label>
+              <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Статус</label>
+              <select
+                value={formData.status || 'draft'}
+                onChange={e => setFormData({ ...formData, status: e.target.value as any })}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 focus:outline-none appearance-none"
+              >
+                <option value="draft">Черновик</option>
+                <option value="active">Активный</option>
+                <option value="completed">Завершён</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Окончание *</label>
               <input
                 type="datetime-local"
                 value={formData.end_date ? new Date(formData.end_date).toISOString().slice(0, 16) : ''}
-                onChange={e => setFormData({ ...formData, end_date: new Date(e.target.value).toISOString() })}
-                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-white/50 mb-2 uppercase tracking-wider">Дата розыгрыша</label>
-              <input
-                type="datetime-local"
-                value={formData.draw_date ? new Date(formData.draw_date).toISOString().slice(0, 16) : ''}
-                onChange={e => setFormData({ ...formData, draw_date: new Date(e.target.value).toISOString() })}
-                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-[#FFD700]/50 focus:outline-none transition-colors"
+                onChange={e => setFormData({ ...formData, end_date: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 focus:outline-none"
               />
             </div>
           </div>
-        </motion.div>
 
-        {/* Section: Prizes */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-white/5 overflow-hidden"
-        >
-          <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#FFD700]/20 flex items-center justify-center">
-                <span className="text-[#FFD700]">3</span>
-              </div>
-              <h3 className="font-bold text-white">Призы</h3>
+          {/* Призы */}
+          <div className="bg-zinc-900/50 rounded-2xl border border-zinc-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+              <span className="font-semibold text-white text-sm">Призовые места</span>
+              <button
+                type="button"
+                onClick={addPrize}
+                className="px-3 py-1 bg-[#FFD700]/20 hover:bg-[#FFD700]/30 text-[#FFD700] rounded-lg text-xs font-bold transition-colors"
+              >
+                + Добавить
+              </button>
             </div>
-            <button
-              onClick={addPrize}
-              className="px-3 py-1.5 bg-[#FFD700]/20 hover:bg-[#FFD700]/30 text-[#FFD700] rounded-lg text-sm font-medium transition-colors"
-            >
-              + Добавить
-            </button>
-          </div>
-          <div className="p-5 space-y-3">
-            {formData.prizes?.length === 0 && (
-              <div className="text-center py-8 text-white/30">
-                Нет призов. Нажмите "Добавить" выше.
-              </div>
-            )}
-            {formData.prizes?.map((prize, idx) => (
-              <div key={idx} className="flex items-center gap-3 bg-black/30 rounded-xl p-3">
-                <div className={`w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-[#FFD700]/20 text-[#FFD700]' :
-                  idx === 1 ? 'bg-gray-400/20 text-gray-400' :
-                    idx === 2 ? 'bg-amber-600/20 text-amber-500' :
-                      'bg-white/5 text-white/50'
-                  }`}>
-                  {prize.place}
+            <div className="p-3 space-y-2">
+              {formData.prizes?.length === 0 && (
+                <div className="text-center py-6 text-white/30 text-sm">
+                  Нажмите "Добавить" для создания призов
                 </div>
-                <input
-                  type="number"
-                  placeholder="Сумма"
-                  value={prize.amount || ''}
-                  onChange={e => updatePrize(idx, 'amount', Number(e.target.value))}
-                  className="flex-1 bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
-                />
-                <div className="flex items-center gap-1">
+              )}
+              {formData.prizes?.map((prize, idx) => (
+                <div key={idx} className="flex items-center gap-2 bg-black/30 rounded-xl p-2.5">
+                  <div className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center font-bold text-xs ${
+                    idx === 0 ? 'bg-[#FFD700]/20 text-[#FFD700]' :
+                    idx === 1 ? 'bg-gray-400/20 text-gray-400' :
+                    idx === 2 ? 'bg-amber-600/20 text-amber-500' :
+                    'bg-white/5 text-white/50'
+                  }`}>
+                    {prize.place}
+                  </div>
                   <input
                     type="number"
-                    placeholder="%"
+                    placeholder="0"
+                    value={prize.amount || ''}
+                    onChange={e => updatePrize(idx, 'amount', Number(e.target.value))}
+                    className="w-20 bg-black/40 border border-zinc-700 rounded-lg px-2 py-1.5 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
+                  />
+                  <span className="text-white/30 text-xs">фикс.</span>
+                  <input
+                    type="number"
+                    placeholder="0"
                     value={prize.percentage || ''}
                     onChange={e => updatePrize(idx, 'percentage', Number(e.target.value))}
-                    className="w-16 bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
+                    className="w-14 bg-black/40 border border-zinc-700 rounded-lg px-2 py-1.5 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
                   />
-                  <span className="text-white/30 text-sm">%</span>
+                  <span className="text-white/30 text-xs">%</span>
+                  <button
+                    type="button"
+                    onClick={() => removePrize(idx)}
+                    className="ml-auto w-7 h-7 flex items-center justify-center hover:bg-red-500/20 rounded-lg transition-colors text-red-400 text-lg"
+                  >
+                    ×
+                  </button>
                 </div>
-                <button
-                  onClick={() => removePrize(idx)}
-                  className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Section: Requirements */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl border border-white/5 overflow-hidden"
-        >
-          <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#FFD700]/20 flex items-center justify-center">
-              <span className="text-[#FFD700]">4</span>
+              ))}
             </div>
-            <h3 className="font-bold text-white">Требования</h3>
           </div>
-          <div className="p-5 space-y-4">
-            <label className="flex items-center gap-3 p-3 bg-black/30 rounded-xl cursor-pointer hover:bg-black/40 transition-colors">
-              <input
-                type="checkbox"
-                checked={!!formData.requirements?.telegram_channel_id}
-                onChange={e => {
-                  const reqs = { ...formData.requirements }
-                  if (e.target.checked) reqs.telegram_channel_id = ''
-                  else delete reqs.telegram_channel_id
-                  setFormData({ ...formData, requirements: reqs })
-                }}
-                className="w-5 h-5 rounded accent-[#FFD700]"
-              />
-              <span className="text-white">Подписка на Telegram канал</span>
-            </label>
-            {formData.requirements?.telegram_channel_id !== undefined && (
-              <input
-                type="text"
-                placeholder="ID канала (напр. @ar_arena)"
-                value={formData.requirements.telegram_channel_id}
-                onChange={e => setFormData({
-                  ...formData,
-                  requirements: { ...formData.requirements, telegram_channel_id: e.target.value }
-                })}
-                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none"
-              />
-            )}
 
-            <label className="flex items-center gap-3 p-3 bg-black/30 rounded-xl cursor-pointer hover:bg-black/40 transition-colors">
-              <input
-                type="checkbox"
-                checked={!!formData.requirements?.min_friends}
-                onChange={e => {
-                  const reqs = { ...formData.requirements }
-                  if (e.target.checked) reqs.min_friends = 1
-                  else delete reqs.min_friends
-                  setFormData({ ...formData, requirements: reqs })
-                }}
-                className="w-5 h-5 rounded accent-[#FFD700]"
-              />
-              <span className="text-white">Минимум друзей</span>
-            </label>
-            {formData.requirements?.min_friends !== undefined && (
-              <input
-                type="number"
-                placeholder="Количество"
-                value={formData.requirements.min_friends}
-                onChange={e => setFormData({
-                  ...formData,
-                  requirements: { ...formData.requirements, min_friends: Number(e.target.value) }
-                })}
-                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:border-[#FFD700]/50 focus:outline-none"
-              />
-            )}
+          {/* Кнопки действий */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setMode('list')}
+              className="flex-1 py-3.5 rounded-xl font-bold text-white/60 bg-zinc-800 hover:bg-zinc-700 transition-colors"
+            >
+              Отмена
+            </button>
+            <motion.button
+              type="button"
+              onClick={handleSave}
+              disabled={loading}
+              whileTap={{ scale: 0.98 }}
+              className="flex-[2] py-3.5 rounded-xl font-bold text-black disabled:opacity-50"
+              style={{
+                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+              }}
+            >
+              {loading ? 'Сохранение...' : 'Сохранить'}
+            </motion.button>
           </div>
-        </motion.div>
-
-        {/* Save Button */}
-        <motion.button
-          onClick={handleSave}
-          disabled={loading}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full py-4 rounded-2xl font-bold text-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-          style={{
-            background: 'linear-gradient(135deg, #FFD700 0%, #FFC700 25%, #FFB800 50%, #FFA500 75%, #FF9500 100%)',
-            boxShadow: '0 4px 30px rgba(255, 215, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
-          }}
-        >
-          {loading ? 'Сохранение...' : 'Сохранить'}
-        </motion.button>
+        </div>
       </div>
     </div>
   )
