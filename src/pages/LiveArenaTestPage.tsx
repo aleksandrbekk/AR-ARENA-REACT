@@ -287,8 +287,10 @@ export function LiveArenaTestPage() {
                 triggerError()
                 scores[playerIdx].bears++
                 if (scores[playerIdx].bears === 3) {
-                    // 3 МЕДВЕДЯ = 3 МЕСТО (ПРОИГРЫШ)
-                    scores[playerIdx].place = 3
+                    // Выбывание с медведями — место зависит от порядка выбывания
+                    // Первый выбывший = 3 МЕСТО, второй = 2 МЕСТО
+                    const eliminatedCount = scores.filter(s => s.bears === 3 && s.place !== null).length
+                    scores[playerIdx].place = eliminatedCount === 0 ? 3 : 2
                     placesAssigned++
                 }
             }
@@ -298,9 +300,11 @@ export function LiveArenaTestPage() {
             // Check if only one player left without place
             const activePlayers = scores.filter(s => s.place === null).length
             if (activePlayers === 1) {
-                // Последний оставшийся = 2 МЕСТО
                 const lastPlayerIdx = scores.findIndex(s => s.place === null)
-                scores[lastPlayerIdx].place = 2
+                // Если есть победитель (1 место) → последний = 2 место
+                // Если нет победителя → последний = 1 место (победа по умолчанию!)
+                const hasWinner = scores.some(s => s.place === 1)
+                scores[lastPlayerIdx].place = hasWinner ? 2 : 1
                 placesAssigned++
                 setFinalScores([...scores])
                 break

@@ -78,23 +78,12 @@ export function FinalBattle({
 
     return (
         <div className={embedded ? '' : 'min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4'}>
-            {/* Stylish Bulls & Bears Title */}
+            {/* Bulls & Bears Title */}
             {!embedded && (
                 <div className="text-center mb-6">
-                    <div className="relative inline-block mb-2">
-                        <div className="absolute inset-0 blur-xl opacity-40 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500" />
-                        <h1
-                            className="relative text-3xl font-black tracking-wider uppercase"
-                            style={{
-                                background: 'linear-gradient(90deg, #22c55e 0%, #FFD700 50%, #ef4444 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                textShadow: '0 0 30px rgba(255,215,0,0.3)',
-                            }}
-                        >
-                            Bulls & Bears
-                        </h1>
-                    </div>
+                    <h1 className="text-3xl font-black tracking-wider text-[#FFD700] uppercase drop-shadow-[0_0_20px_rgba(255,215,0,0.4)]">
+                        Bulls & Bears
+                    </h1>
                 </div>
             )}
 
