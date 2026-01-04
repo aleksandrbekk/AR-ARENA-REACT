@@ -524,13 +524,8 @@ export function LiveArenaTestPage() {
     // ===================== FINAL - Using FinalBattle Component =====================
     if (mode === 'final') {
         return (
-            <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
+            <div className="min-h-screen bg-[#0a0a0a]">
                 <BackButton />
-                <div className="text-center mb-4 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">ФИНАЛ</h1>
-                    <p className="text-white/50 text-sm mb-4">3 быка = победа | 3 медведя = выбывание</p>
-                </div>
-
                 <FinalBattle
                     players={mockFinalists3}
                     scores={finalScores}
@@ -540,7 +535,7 @@ export function LiveArenaTestPage() {
                     wheelSpinning={wheelSpinning}
                     lastResult={lastResult}
                     onRunDemo={runFinalDemo}
-                    embedded={true}
+                    embedded={false}
                 />
             </div>
         )

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -89,26 +89,32 @@ export function AdminPage() {
     }
   }
 
-  // Настройка Telegram Back Button
-  useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp
-      const handleBack = () => {
-        if (activeSection !== 'dashboard') {
-          setActiveSection('dashboard')
-        } else {
-          navigate('/')
-        }
-      }
-      tg.BackButton.show()
-      tg.BackButton.onClick(handleBack)
+  // ============ TELEGRAM BACK ============
+  // Ref для актуальной версии handleBack (избегаем stale closure)
+  const handleBackRef = useRef<() => void>(() => { })
 
-      return () => {
-        tg.BackButton.offClick(handleBack)
-        tg.BackButton.hide()
-      }
+  handleBackRef.current = useCallback(() => {
+    if (activeSection !== 'dashboard') {
+      setActiveSection('dashboard')
+    } else {
+      navigate('/')
     }
-  }, [navigate, activeSection])
+  }, [activeSection, navigate])
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp
+    if (!tg?.BackButton) return
+
+    const onBackClick = () => handleBackRef.current()
+
+    tg.BackButton.show()
+    tg.BackButton.onClick(onBackClick)
+
+    return () => {
+      tg.BackButton.offClick(onBackClick)
+      tg.BackButton.hide()
+    }
+  }, [])
 
   // Access denied / Password form
   if (!isLoading && !isAuthenticated) {

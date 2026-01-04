@@ -361,63 +361,75 @@ export function useArenaSounds() {
   }, [getContext])
 
   /**
-   * playRouletteTick - Серия мягких тиков для рулетки
+   * playRouletteTick - Casino wheel spin sound
+   * Мягкий "свист" с замедлением
    * @param count - количество тиков
    * @param onComplete - callback после завершения
    */
-  const playRouletteTicks = useCallback((count: number = 20, onComplete?: () => void) => {
+  const playRouletteTicks = useCallback((_count: number = 20, onComplete?: () => void) => {
     const ctx = getContext()
     if (!ctx) return
 
     let currentTime = ctx.currentTime
-    const baseInterval = 0.12 // Начальный интервал
-    const minInterval = 0.04 // Минимальный интервал
+    const totalDuration = 2.8 // секунды
 
-    for (let i = 0; i < count; i++) {
-      // Интервал уменьшается экспоненциально, затем увеличивается к концу
-      const progress = i / count
-      let interval: number
+    // Создаём мягкий "свист" вращения
+    const swishOsc = ctx.createOscillator()
+    const swishGain = ctx.createGain()
+    const swishFilter = ctx.createBiquadFilter()
 
-      if (progress < 0.7) {
-        // Ускорение
-        interval = baseInterval - (baseInterval - minInterval) * (progress / 0.7)
-      } else {
-        // Замедление к концу
-        const slowProgress = (progress - 0.7) / 0.3
-        interval = minInterval + (baseInterval - minInterval) * slowProgress * slowProgress
-      }
+    swishOsc.type = 'sine'
+    // Частота падает от высокой к низкой (как замедляющееся колесо)
+    swishOsc.frequency.setValueAtTime(400, currentTime)
+    swishOsc.frequency.exponentialRampToValueAtTime(80, currentTime + totalDuration)
 
-      const oscillator = ctx.createOscillator()
-      const gainNode = ctx.createGain()
+    swishFilter.type = 'lowpass'
+    swishFilter.frequency.setValueAtTime(2000, currentTime)
+    swishFilter.frequency.exponentialRampToValueAtTime(200, currentTime + totalDuration)
 
-      // Мягкий синус вместо резкого square
-      oscillator.type = 'sine'
-      // Высокий тон для приятного "тик"
-      const pitch = 1800 + Math.sin(i * 0.3) * 100
-      oscillator.frequency.setValueAtTime(pitch, currentTime)
-      oscillator.frequency.exponentialRampToValueAtTime(pitch * 0.7, currentTime + 0.02)
+    swishGain.gain.setValueAtTime(0.08, currentTime)
+    swishGain.gain.setValueAtTime(0.08, currentTime + totalDuration * 0.6)
+    swishGain.gain.exponentialRampToValueAtTime(0.01, currentTime + totalDuration)
 
-      // Тихая громкость с мягким затуханием
-      const volume = 0.06 + progress * 0.04
-      gainNode.gain.setValueAtTime(volume, currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.025)
+    swishOsc.connect(swishFilter)
+    swishFilter.connect(swishGain)
+    swishGain.connect(ctx.destination)
 
-      oscillator.connect(gainNode)
-      gainNode.connect(ctx.destination)
+    swishOsc.start(currentTime)
+    swishOsc.stop(currentTime + totalDuration)
 
-      oscillator.start(currentTime)
-      oscillator.stop(currentTime + 0.03)
+    // Добавляем мягкие "клики" для эффекта секторов
+    const clickCount = 15
+    for (let i = 0; i < clickCount; i++) {
+      const progress = i / clickCount
+      // Интервалы увеличиваются к концу (замедление)
+      const interval = 0.08 + progress * progress * 0.25
+
+      const clickOsc = ctx.createOscillator()
+      const clickGain = ctx.createGain()
+
+      clickOsc.type = 'triangle'
+      clickOsc.frequency.setValueAtTime(600 - progress * 200, currentTime)
+
+      const vol = 0.04 * (1 - progress * 0.5)
+      clickGain.gain.setValueAtTime(vol, currentTime)
+      clickGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.02)
+
+      clickOsc.connect(clickGain)
+      clickGain.connect(ctx.destination)
+
+      clickOsc.start(currentTime)
+      clickOsc.stop(currentTime + 0.025)
 
       currentTime += interval
     }
 
-    // Финальный удар
-    const finalTime = currentTime + 0.1
+    // Финальный удар через таймаут
     const timeoutId = window.setTimeout(() => {
       scheduledTimeoutsRef.current.delete(timeoutId)
       playImpact()
       onComplete?.()
-    }, (finalTime - ctx.currentTime) * 1000)
+    }, totalDuration * 1000 + 100)
     scheduledTimeoutsRef.current.add(timeoutId)
   }, [getContext, playImpact])
 
@@ -431,7 +443,7 @@ export function useArenaSounds() {
 
     // Закрываем и пересоздаём AudioContext для немедленной остановки
     if (audioContextRef.current) {
-      audioContextRef.current.close().catch(() => {})
+      audioContextRef.current.close().catch(() => { })
       audioContextRef.current = null
       isInitializedRef.current = false
     }
