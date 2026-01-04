@@ -513,29 +513,31 @@ export function LiveArenaPage() {
         triggerSuccess()
         scores[turn.player].bulls++
         if (scores[turn.player].bulls === 3) {
-          const takenPlaces = scores.filter(s => s.place !== null).map(s => s.place!)
-          const nextPlace = [1, 2, 3].find(p => !takenPlaces.includes(p))!
-          scores[turn.player].place = nextPlace
+          // 3 БЫКА = 1 МЕСТО (ПОБЕДА) — как в тестовой
+          scores[turn.player].place = 1
         }
       } else {
         playFailure()
         triggerError()
         scores[turn.player].bears++
         if (scores[turn.player].bears === 3) {
-          const takenPlaces = scores.filter(s => s.place !== null).map(s => s.place!)
-          const worstPlace = [3, 2, 1].find(p => !takenPlaces.includes(p))!
-          scores[turn.player].place = worstPlace
+          // Выбывание с медведями — место зависит от порядка выбывания
+          // Первый выбывший = 3 МЕСТО, второй = 2 МЕСТО — как в тестовой
+          const eliminatedCount = scores.filter(s => s.bears === 3 && s.place !== null).length
+          scores[turn.player].place = eliminatedCount === 0 ? 3 : 2
         }
       }
 
       setFinalScores([...scores])
 
-      const playersWithoutPlace = scores.filter(s => s.place === null).length
-      if (playersWithoutPlace === 1) {
+      // Проверяем остался ли только 1 игрок без места
+      const activePlayers = scores.filter(s => s.place === null).length
+      if (activePlayers === 1) {
         const lastPlayerIdx = scores.findIndex(s => s.place === null)
-        const takenPlaces = scores.filter(s => s.place !== null).map(s => s.place!)
-        const lastPlace = [1, 2, 3].find(p => !takenPlaces.includes(p))!
-        scores[lastPlayerIdx].place = lastPlace
+        // Если есть победитель (1 место) → последний = 2 место
+        // Если нет победителя → последний = 1 место (победа по умолчанию!)
+        const hasWinner = scores.some(s => s.place === 1)
+        scores[lastPlayerIdx].place = hasWinner ? 2 : 1
         setFinalScores([...scores])
         break
       }
