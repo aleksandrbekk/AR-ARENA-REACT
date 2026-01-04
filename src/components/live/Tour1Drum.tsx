@@ -242,9 +242,8 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
                     </div>
                   </div>
 
-                  {/* Row 2: Player name (larger) */}
+                  {/* Row 2: Player name */}
                   <div className="text-white font-semibold text-sm truncate pl-0.5" title={w.user}>
-                    <span className="text-white/40 text-[10px] mr-1">#{i + 1}</span>
                     {w.user}
                   </div>
                 </div>
