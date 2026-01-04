@@ -46,7 +46,7 @@ export function LiveArenaPage() {
   const stageResolver = useRef<(() => void) | null>(null)
 
   // SFX & Haptics
-  const { initAudio, playHit1, playHit2, playImpact, playSuccess, playFailure, playWin, playRouletteTicks } = useArenaSounds()
+  const { initAudio, playClick, playHit1, playHit2, playImpact, playSuccess, playFailure, playWin, playRouletteTicks } = useArenaSounds()
   const { triggerTick, triggerImpact, triggerSuccess, triggerError } = useArenaHaptics()
 
   // Modal
@@ -709,6 +709,9 @@ export function LiveArenaPage() {
         candidates={allTicketsRef.current.map(t => ({ ticket: t.ticket_number, user: t.player.name, avatar: t.player.avatar }))}
         winners={tour1Winners.map(t => ({ ticket: t.ticket_number, user: t.player.name, avatar: t.player.avatar }))}
         onComplete={() => stageResolver.current?.()}
+        onTick={playClick}
+        onWinnerFound={playImpact}
+        onAllFound={playWin}
       />
     </div>
   )

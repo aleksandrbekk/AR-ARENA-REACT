@@ -12,6 +12,10 @@ interface Tour1DrumProps {
   candidates: { ticket: number; user: string; avatar?: string }[]
   winners: Winner[]
   onComplete: () => void
+  // Sound callbacks
+  onTick?: () => void        // Tick during spin
+  onWinnerFound?: () => void // Impact when winner found
+  onAllFound?: () => void    // Victory sound at end
 }
 
 // Градиентные цвета для аватаров-плейсхолдеров
@@ -26,7 +30,7 @@ const AVATAR_GRADIENTS = [
   'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
 ]
 
-export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
+export function Tour1Drum({ winners, onComplete, onTick, onWinnerFound, onAllFound }: Tour1DrumProps) {
   const [currentTicket, setCurrentTicket] = useState<number>(0)
   const [foundWinners, setFoundWinners] = useState<Winner[]>([])
   const [isSpinning, setIsSpinning] = useState(true)
@@ -40,11 +44,17 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
     let currentIndex = 0
     const totalWinners = winners.length
     let isPaused = false
+    let tickCount = 0
 
     const spinInterval = setInterval(() => {
       // Random ticket noise — только когда не показываем победителя
       if (!isPaused) {
         setCurrentTicket(Math.floor(Math.random() * 999999))
+        // Play tick sound every 3rd tick (150ms)
+        tickCount++
+        if (tickCount % 3 === 0 && onTick) {
+          onTick()
+        }
       }
     }, 50)
 
@@ -56,6 +66,8 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
         if (winners.length > 0) {
           setCurrentTicket(winners[winners.length - 1].ticket)
         }
+        // Victory sound!
+        onAllFound?.()
         onComplete()
         return
       }
@@ -70,10 +82,11 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
       setFoundWinners(prev => [...prev, winner])
       setLastFoundIndex(currentIndex)
 
-      // Haptic & visual feedback
+      // Haptic & sound feedback
       if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
       }
+      onWinnerFound?.()
 
       // Small confetti burst for each winner
       confetti({
@@ -101,7 +114,7 @@ export function Tour1Drum({ winners, onComplete }: Tour1DrumProps) {
       clearInterval(spinInterval)
       clearTimeout(startTimeout)
     }
-  }, [isSpinning, winners, onComplete])
+  }, [isSpinning, winners, onComplete, onTick, onWinnerFound, onAllFound])
 
   // Generate gradient from user name
   const getAvatarGradient = (name: string) => {

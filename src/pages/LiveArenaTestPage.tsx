@@ -50,7 +50,7 @@ export function LiveArenaTestPage() {
     const navigate = useNavigate()
 
     // ===================== HOOKS (must be before callbacks that use them) =====================
-    const { initAudio, playHit1, playHit2, playSuccess, playFailure, playRouletteTicks, playImpact, stopAllSounds } = useArenaSounds()
+    const { initAudio, playClick, playHit1, playHit2, playSuccess, playFailure, playRouletteTicks, playImpact, playWin, stopAllSounds } = useArenaSounds()
     const { triggerTick, triggerImpact, triggerSuccess, triggerError, triggerTension } = useArenaHaptics()
 
     // AbortController for stopping demos
@@ -414,6 +414,9 @@ export function LiveArenaTestPage() {
                     candidates={mockWinners20}
                     winners={mockWinners20}
                     onComplete={() => alert('Drum complete!')}
+                    onTick={playClick}
+                    onWinnerFound={playImpact}
+                    onAllFound={playWin}
                 />
             </div>
         )
