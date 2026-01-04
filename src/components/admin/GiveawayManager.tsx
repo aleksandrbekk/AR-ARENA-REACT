@@ -78,10 +78,13 @@ export function GiveawayManager() {
     try {
       const dataToSave = {
         type: 'money',
+        name: formData.title,
+        main_title: formData.title,
         title: formData.title,
         subtitle: formData.subtitle || null,
         status: formData.status || 'draft',
         prices: formData.prices || { ar: 10 },
+        start_date: new Date().toISOString(),
         end_date: formData.end_date,
         prizes: formData.prizes || []
       }

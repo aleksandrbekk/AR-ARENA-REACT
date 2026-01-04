@@ -93,6 +93,11 @@ export function UsersTab() {
   const [addingTickets, setAddingTickets] = useState(false)
   const [activeGiveaways, setActiveGiveaways] = useState<{id: string, name: string}[]>([])
 
+  // Удаление
+  const [deleting, setDeleting] = useState(false)
+  const [selectedForDelete, setSelectedForDelete] = useState<Set<string>>(new Set())
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
   // ============ ЗАГРУЗКА ДАННЫХ ============
   useEffect(() => {
     fetchUsers()
@@ -366,6 +371,89 @@ export function UsersTab() {
     }
   }
 
+  // Удаление одного юзера
+  const handleDeleteUser = async (telegramId: string) => {
+    if (!confirm(`Удалить юзера ${telegramId}? Это действие нельзя отменить.`)) return
+
+    setDeleting(true)
+    try {
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('telegram_id', telegramId)
+
+      if (error) throw error
+
+      showToast({ variant: 'success', title: 'Юзер удалён' })
+      setSelectedUser(null)
+      fetchUsers()
+    } catch (err: any) {
+      console.error('Error deleting user:', err)
+      showToast({ variant: 'error', title: 'Ошибка удаления', description: err.message })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // Массовое удаление
+  const handleMassDelete = async () => {
+    if (selectedForDelete.size === 0) return
+
+    setDeleting(true)
+    try {
+      const ids = Array.from(selectedForDelete)
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .in('telegram_id', ids)
+
+      if (error) throw error
+
+      showToast({ variant: 'success', title: `Удалено ${ids.length} юзер(ов)` })
+      setSelectedForDelete(new Set())
+      setShowDeleteConfirm(false)
+      fetchUsers()
+    } catch (err: any) {
+      console.error('Error mass deleting:', err)
+      showToast({ variant: 'error', title: 'Ошибка удаления', description: err.message })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // Toggle выбора юзера для удаления
+  const toggleSelectUser = (telegramId: string) => {
+    setSelectedForDelete(prev => {
+      const next = new Set(prev)
+      if (next.has(telegramId)) {
+        next.delete(telegramId)
+      } else {
+        next.add(telegramId)
+      }
+      return next
+    })
+  }
+
+  // Выбрать/снять все на текущей странице
+  const toggleSelectAll = () => {
+    const pageIds = paginatedUsers.map(u => u.telegram_id)
+    const allSelected = pageIds.every(id => selectedForDelete.has(id))
+
+    if (allSelected) {
+      setSelectedForDelete(prev => {
+        const next = new Set(prev)
+        pageIds.forEach(id => next.delete(id))
+        return next
+      })
+    } else {
+      setSelectedForDelete(prev => {
+        const next = new Set(prev)
+        pageIds.forEach(id => next.add(id))
+        return next
+      })
+    }
+  }
+
   // ============ HELPERS ============
   const formatDate = (date: string | null) => {
     if (!date) return '—'
@@ -620,15 +708,24 @@ export function UsersTab() {
             {/* Действия */}
             <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-4">
               <div className="text-white/50 text-xs uppercase tracking-wide mb-3">Действия</div>
-              <button
-                onClick={() => {
-                  const msg = prompt('Введите сообщение:')
-                  if (msg) handleSendMessage(msg)
-                }}
-                className="w-full px-4 py-3 bg-blue-500/20 text-blue-400 rounded-xl text-sm font-semibold hover:bg-blue-500/30 transition-colors"
-              >
-                Написать в Telegram
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    const msg = prompt('Введите сообщение:')
+                    if (msg) handleSendMessage(msg)
+                  }}
+                  className="w-full px-4 py-3 bg-blue-500/20 text-blue-400 rounded-xl text-sm font-semibold hover:bg-blue-500/30 transition-colors"
+                >
+                  Написать в Telegram
+                </button>
+                <button
+                  onClick={() => handleDeleteUser(selectedUser.telegram_id)}
+                  disabled={deleting}
+                  className="w-full px-4 py-3 bg-red-500/20 text-red-400 rounded-xl text-sm font-semibold hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? 'Удаление...' : 'Удалить юзера'}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -754,21 +851,31 @@ export function UsersTab() {
         </div>
       </div>
 
-      {/* Поиск */}
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="Поиск по ID, username, имени..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-          className="w-full px-4 py-3 bg-zinc-900/50 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
-        />
-        {search && (
+      {/* Поиск и кнопка удаления */}
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Поиск по ID, username, имени..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            className="w-full px-4 py-3 bg-zinc-900/50 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/30"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {selectedForDelete.size > 0 && (
           <button
-            onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="px-4 py-3 bg-red-500/20 text-red-400 rounded-xl text-sm font-semibold hover:bg-red-500/30 transition-colors whitespace-nowrap"
           >
-            ✕
+            Удалить ({selectedForDelete.size})
           </button>
         )}
       </div>
