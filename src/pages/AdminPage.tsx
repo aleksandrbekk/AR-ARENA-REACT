@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -90,26 +90,36 @@ export function AdminPage() {
   }
 
   // ============ TELEGRAM BACK ============
+  // Используем ref для хранения актуальной функции handleBack
+  const handleBackRef = useRef<() => void>(() => { })
+
+  // Обновляем ref при изменении зависимостей
+  handleBackRef.current = useCallback(() => {
+    if (activeSection !== 'dashboard') {
+      setActiveSection('dashboard')
+    } else {
+      navigate('/')
+    }
+  }, [activeSection, navigate])
+
+  // Регистрируем обработчик один раз при монтировании
   useEffect(() => {
     const tg = window.Telegram?.WebApp
     if (!tg?.BackButton) return
 
-    const handleBack = () => {
-      if (activeSection !== 'dashboard') {
-        setActiveSection('dashboard')
-      } else {
-        navigate('/')
-      }
+    // Wrapper функция - всегда вызывает актуальную версию из ref
+    const onBackClick = () => {
+      handleBackRef.current()
     }
 
     tg.BackButton.show()
-    tg.BackButton.onClick(handleBack)
+    tg.BackButton.onClick(onBackClick)
 
     return () => {
-      tg.BackButton.offClick(handleBack)
+      tg.BackButton.offClick(onBackClick)
       tg.BackButton.hide()
     }
-  }, [navigate, activeSection])
+  }, []) // Пустой массив - регистрируем только один раз
 
   // Access denied / Password form
   if (!isLoading && !isAuthenticated) {
