@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 
-const SQL = fs.readFileSync('./FIX_GIVEAWAY_FUNCTIONS.sql', 'utf8');
+const SQL = fs.readFileSync('./FIX_BUY_TICKET.sql', 'utf8');
 
 async function main() {
   console.log('Launching browser...');

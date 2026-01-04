@@ -120,8 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
                 tg.setHeaderColor('#0a0a0a')
 
+                const initData = tg.initData
                 const user = tg.initDataUnsafe?.user
-                if (!user) {
+
+                if (!user || !initData) {
                     console.error('Telegram user data missing')
                     setError('Invalid Telegram session')
                     setIsLoading(false)
@@ -140,27 +142,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setTelegramUser(telegramUserData)
                 console.log('AuthProvider: Telegram user set:', telegramUserData)
 
-                // Upsert пользователя через API (обходит RLS на сервере)
+                // Upsert пользователя через API с VALIDATION (initData)
                 fetch('/api/upsert-user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        telegram_id: user.id,
-                        username: user.username || null,
-                        first_name: user.first_name || null,
-                        last_name: user.last_name || null,
-                        photo_url: user.photo_url || null,
-                        language_code: user.language_code || null
+                        initData: initData
                     })
                 }).then(async (res) => {
+                    const text = await res.text()
                     if (!res.ok) {
-                        const text = await res.text()
-                        console.warn('AuthProvider: User upsert API error:', text)
+                        console.error('AuthProvider: User upsert API ERROR:', text)
+                        // Don't block app flow for now, but log critical error
                     } else {
-                        console.log('AuthProvider: User upserted via API')
+                        console.log('AuthProvider: User upserted via SECURE API')
                     }
                 }).catch(e => {
-                    console.warn('AuthProvider: User upsert fetch error:', e)
+                    console.error('AuthProvider: User upsert fetch error:', e)
                 })
 
                 // Загружаем стейт

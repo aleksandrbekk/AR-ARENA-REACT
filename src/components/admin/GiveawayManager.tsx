@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
-import type { Giveaway } from '../../types'
+import type { Giveaway, Ticket } from '../../types'
+import { generateDrawResults } from '../../lib/giveaway-engine'
 
 export function GiveawayManager() {
   const navigate = useNavigate()
@@ -139,36 +140,79 @@ export function GiveawayManager() {
   }
 
   const handleRunDraw = async (giveawayId: string) => {
-    if (!confirm('ВНИМАНИЕ!\n\nЭто действие НЕОБРАТИМО.\nБудут определены победители, выплачены призы и розыгрыш будет завершён.\n\nПродолжить?')) {
+    // 1. Confirmation
+    if (!confirm('ВНИМАНИЕ!\n\nЭто действие НЕОБРАТИМО.\nБудет запущен скрипт генерации результатов (Тур 1, Тур 2, Полуфинал, Финал).\nРезультаты запишутся в БД, призы будут выплачены.\n\nПродолжить?')) {
       return
     }
 
     setLoading(true)
     try {
-      const { data, error } = await supabase.rpc('run_giveaway_draw', {
-        p_giveaway_id: giveawayId
+      // 2. Fetch tickets and players info
+      const { data: ticketsData, error: tError } = await supabase
+        .from('giveaway_tickets')
+        .select(`
+          *,
+          user:users (
+            telegram_id,
+            username,
+            first_name,
+            photo_url
+          )
+        `)
+        .eq('giveaway_id', giveawayId)
+
+      if (tError) throw tError
+      if (!ticketsData || ticketsData.length < 5) {
+        throw new Error('Недостаточно участников (минимум 5)')
+      }
+
+      // 3. Format tickets for engine
+      const tickets: Ticket[] = ticketsData.map(t => ({
+        user_id: t.user.telegram_id,
+        // Ensure ticket_number is number. If it's stored as "T-XXXX", we might need logic.
+        // Assuming DB stores proper numbers or we extract them.
+        // For visual consistency, we need a numeric representation.
+        ticket_number: typeof t.ticket_number === 'number' ? t.ticket_number : parseInt(t.ticket_number.replace(/\D/g, '').substring(0, 9) || '0'),
+        player: {
+          id: t.user.telegram_id,
+          name: t.user.username || t.user.first_name || `User ${t.user.telegram_id.toString().slice(-4)}`,
+          avatar: t.user.photo_url || ''
+        }
+      }))
+
+      // 4. Generate Results Client-Side (Deterministic Script)
+      // This is the "Magic" - running the complex simulation logic here
+      const results = await generateDrawResults(tickets, giveawayId)
+      console.log('Generated Results:', results)
+
+      // 5. Send to Backend
+      // winners array for DB column (text[]) - these are telegram_ids of winners in order
+      const winnersArray = results.winners.map(w => w.telegram_id!)
+
+      const { data, error } = await supabase.rpc('admin_complete_giveaway', {
+        p_giveaway_id: giveawayId,
+        p_results: results,
+        p_winners: winnersArray
       })
 
       if (error) throw new Error(error.message)
-      if (!data?.success) throw new Error(data?.draw?.error || data?.error || 'Ошибка генерации')
+      if (!data?.success) throw new Error(data?.error || 'Ошибка сохранения результатов')
 
-      const drawData = data.draw
-      const prizesData = data.prizes
+      const distData = data.distribution
 
-      let message = `Розыгрыш завершён!\n\n`
-      message += `Участников: ${drawData?.total_participants || 'N/A'}\n`
-      message += `Билетов: ${drawData?.total_tickets || 'N/A'}\n\n`
+      let message = `Розыгрыш успешно проведён!\n\n`
+      message += `Победителей: ${results.winners.length}\n`
 
-      if (prizesData?.success) {
-        message += `Призы выплачены!\n`
-        message += `Всего выплачено: ${prizesData.total_paid} ${prizesData.currency?.toUpperCase()}`
+      if (distData?.success) {
+        message += `Выплачено: ${distData.total_paid} ${distData.currency?.toUpperCase()}\n`
       } else {
-        message += `Внимание: призы не выплачены.\n${prizesData?.error || ''}`
+        message += `Внимание: Ошибка выплаты (${distData?.error})\n`
       }
 
       alert(message)
       await fetchGiveaways()
     } catch (error: any) {
+      console.error(error)
       alert('Ошибка: ' + error.message)
     } finally {
       setLoading(false)
@@ -498,11 +542,10 @@ export function GiveawayManager() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, prices: { ar: currentPrice } })}
-                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                    currentCurrency === 'ar'
-                      ? 'bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 text-[#FFD700] border-2 border-[#FFD700]'
-                      : 'bg-black/30 text-white/40 border border-white/10'
-                  }`}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${currentCurrency === 'ar'
+                    ? 'bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 text-[#FFD700] border-2 border-[#FFD700]'
+                    : 'bg-black/30 text-white/40 border border-white/10'
+                    }`}
                 >
                   <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
                   AR
@@ -510,11 +553,10 @@ export function GiveawayManager() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, prices: { bul: currentPrice } })}
-                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                    currentCurrency === 'bul'
-                      ? 'bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 text-[#FFD700] border-2 border-[#FFD700]'
-                      : 'bg-black/30 text-white/40 border border-white/10'
-                  }`}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${currentCurrency === 'bul'
+                    ? 'bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 text-[#FFD700] border-2 border-[#FFD700]'
+                    : 'bg-black/30 text-white/40 border border-white/10'
+                    }`}
                 >
                   <img src="/icons/BUL.png" alt="" className="w-5 h-5" />
                   BUL
@@ -568,12 +610,11 @@ export function GiveawayManager() {
               )}
               {formData.prizes?.map((prize, idx) => (
                 <div key={idx} className="flex items-center gap-2 bg-black/40 rounded-xl p-2">
-                  <div className={`w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center font-bold text-xs ${
-                    idx === 0 ? 'bg-[#FFD700] text-black' :
+                  <div className={`w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center font-bold text-xs ${idx === 0 ? 'bg-[#FFD700] text-black' :
                     idx === 1 ? 'bg-gray-400 text-black' :
-                    idx === 2 ? 'bg-amber-600 text-black' :
-                    'bg-white/10 text-white/50'
-                  }`}>
+                      idx === 2 ? 'bg-amber-600 text-black' :
+                        'bg-white/10 text-white/50'
+                    }`}>
                     {prize.place}
                   </div>
                   <input

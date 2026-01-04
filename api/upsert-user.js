@@ -1,8 +1,11 @@
-// User Upsert API - bypasses RLS using service role key
+// User Upsert API - Secure version with Telegram initData validation
 import { createClient } from '@supabase/supabase-js'
+import crypto from 'crypto'
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+// Use standard TELEGRAM_BOT_TOKEN as per .env.local
+const botToken = process.env.TELEGRAM_BOT_TOKEN
 
 export default async function handler(req, res) {
   // CORS
@@ -11,71 +14,127 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end()
+    res.status(200).end()
+    return
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    res.status(405).json({ error: 'Method not allowed' })
+    return
   }
 
-  if (!supabaseUrl) {
-    console.error('SUPABASE_URL not configured')
-    return res.status(500).json({ error: 'Supabase URL not configured' })
+  if (!supabaseUrl || !serviceKey) {
+    console.error('SUPABASE config missing')
+    res.status(500).json({ error: 'Server configuration error' })
+    return
   }
 
-  if (!serviceKey) {
-    console.error('SUPABASE_SERVICE_ROLE_KEY not configured')
-    return res.status(500).json({ error: 'Service key not configured' })
+  if (!botToken) {
+    console.error('TELEGRAM_BOT_TOKEN missing')
+    res.status(500).json({ error: 'Server auth configuration missing' })
+    return
   }
 
-  const { telegram_id, username, first_name, last_name, photo_url, language_code } = req.body || {}
+  const { initData } = req.body || {}
 
-  if (!telegram_id) {
-    return res.status(400).json({ error: 'telegram_id is required' })
+  if (!initData) {
+    res.status(401).json({ error: 'No authorization data provided' })
+    return
   }
-
-  console.log('Upserting user:', telegram_id, username)
-
-  const supabase = createClient(supabaseUrl, serviceKey)
-  const tgId = parseInt(telegram_id)
 
   try {
-    // 1. Попробуем UPDATE существующего юзера
+    // --- 1. Validate Telegram Signature ---
+    const urlParams = new URLSearchParams(initData)
+    const hash = urlParams.get('hash')
+
+    if (!hash) {
+      throw new Error('No hash provided')
+    }
+
+    urlParams.delete('hash')
+
+    // Sort keys logically
+    const params = []
+    for (const [key, value] of urlParams.entries()) {
+      params.push(`${key}=${value}`)
+    }
+    params.sort()
+
+    const dataCheckString = params.join('\n')
+
+    // Compute Secret Key: HMAC-SHA256 of "WebAppData" using Bot Token
+    const secretKey = crypto
+      .createHmac('sha256', 'WebAppData')
+      .update(botToken)
+      .digest()
+
+    // Compute Hash: HMAC-SHA256 of dataCheckString using Secret Key
+    const generatedHash = crypto
+      .createHmac('sha256', secretKey)
+      .update(dataCheckString)
+      .digest('hex')
+
+    if (generatedHash !== hash) {
+      console.warn('Signature mismatch. Generated:', generatedHash, 'Provided:', hash)
+      throw new Error('Invalid signature')
+    }
+
+    // Check auth_date for expiration (e.g. 24 hours)
+    const authDate = parseInt(urlParams.get('auth_date') || '0')
+    const now = Math.floor(Date.now() / 1000)
+    if (now - authDate > 86400) {
+      throw new Error('Session expired')
+    }
+
+    // --- 2. Extract User Data ---
+    const userStr = urlParams.get('user')
+    if (!userStr) {
+      throw new Error('No user data found')
+    }
+
+    const telUser = JSON.parse(userStr)
+    const telegram_id = telUser.id
+
+    console.log('Authorized User:', telegram_id, telUser.username)
+
+    // --- 3. Perform Upsert with Service Role ---
+    const supabase = createClient(supabaseUrl, serviceKey)
+
+    // A) Try UPDATE
     const { data: updateData, error: updateError } = await supabase
       .from('users')
       .update({
-        username: username || null,
-        first_name: first_name || null,
-        last_name: last_name || null,
-        photo_url: photo_url || null,
-        language_code: language_code || null,
+        username: telUser.username || null,
+        first_name: telUser.first_name || null,
+        last_name: telUser.last_name || null,
+        photo_url: telUser.photo_url || null,
+        language_code: telUser.language_code || null,
         last_seen_at: new Date().toISOString()
       })
-      .eq('telegram_id', tgId)
+      .eq('telegram_id', telegram_id)
       .select()
 
     if (updateError) {
       console.error('Update error:', updateError)
-      return res.status(500).json({ error: updateError.message })
+      throw new Error(updateError.message)
     }
 
-    // 2. Если юзер уже был — готово
     if (updateData && updateData.length > 0) {
-      console.log('User updated:', updateData)
-      return res.status(200).json({ ok: true, data: updateData, action: 'updated' })
+      res.status(200).json({ ok: true, data: updateData[0], action: 'updated' })
+      return
     }
 
-    // 3. Юзера нет — создаём напрямую с дефолтными значениями
-    console.log('User not found, creating directly...')
+    // B) Insert if not exists
+    console.log('User not found, creating...')
     const { error: insertError } = await supabase
       .from('users')
       .insert({
-        telegram_id: tgId,
-        username: username || null,
-        first_name: first_name || null,
-        last_name: last_name || null,
-        photo_url: photo_url || null,
-        language_code: language_code || null,
+        telegram_id: telegram_id,
+        username: telUser.username || null,
+        first_name: telUser.first_name || null,
+        last_name: telUser.last_name || null,
+        photo_url: telUser.photo_url || null,
+        language_code: telUser.language_code || null,
         balance_bul: 0,
         balance_ar: 0,
         energy: 100,
@@ -90,20 +149,20 @@ export default async function handler(req, res) {
 
     if (insertError) {
       console.error('Insert error:', insertError)
-      return res.status(500).json({ error: insertError.message })
+      throw new Error(insertError.message)
     }
 
-    // 4. Получим созданного юзера
+    // Return created user
     const { data: newUser } = await supabase
       .from('users')
       .select()
-      .eq('telegram_id', tgId)
+      .eq('telegram_id', telegram_id)
       .single()
 
-    console.log('User created:', newUser)
-    return res.status(200).json({ ok: true, data: newUser, action: 'created' })
+    res.status(200).json({ ok: true, data: newUser, action: 'created' })
+
   } catch (err) {
-    console.error('Server error:', err)
-    return res.status(500).json({ error: err.message })
+    console.error('Auth Error:', err.message)
+    res.status(401).json({ error: 'Unauthorized: ' + err.message })
   }
 }
