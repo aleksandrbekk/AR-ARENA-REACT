@@ -36,6 +36,15 @@ export function GiveawayManager() {
     setLoading(false)
   }
 
+  // Дефолтные призы для нового розыгрыша
+  const defaultPrizes = [
+    { place: 1, amount: 0, percentage: 50 },
+    { place: 2, amount: 0, percentage: 30 },
+    { place: 3, amount: 0, percentage: 20 },
+    { place: 4, amount: 0, percentage: 0 },
+    { place: 5, amount: 0, percentage: 0 }
+  ]
+
   const handleCreate = () => {
     setEditingId(null)
     setFormData({
@@ -44,7 +53,7 @@ export function GiveawayManager() {
       status: 'draft',
       prices: { ar: 10 },
       end_date: '',
-      prizes: []
+      prizes: defaultPrizes
     })
     setMode('edit')
   }
@@ -68,6 +77,7 @@ export function GiveawayManager() {
     setLoading(true)
     try {
       const dataToSave = {
+        type: 'money',
         title: formData.title,
         subtitle: formData.subtitle || null,
         status: formData.status || 'draft',
@@ -428,81 +438,67 @@ export function GiveawayManager() {
   }
 
   // ==================== EDIT VIEW ====================
-  // Получаем текущую валюту из prices
   const currentCurrency = formData.prices?.bul !== undefined ? 'bul' : 'ar'
   const currentPrice = currentCurrency === 'bul' ? (formData.prices?.bul || 0) : (formData.prices?.ar || 0)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
-      <div className="max-w-lg mx-auto">
-        {/* Компактный хедер */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => setMode('list')}
-            className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-white/60 hover:text-white hover:bg-zinc-700 transition-all"
-          >
-            ←
-          </button>
-          <h1 className="text-xl font-bold text-white flex-1">
-            {editingId ? 'Редактирование' : 'Новый розыгрыш'}
-          </h1>
-        </div>
+    <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-32 px-4">
+      <div className="max-w-md mx-auto">
+        {/* Заголовок */}
+        <h1 className="text-2xl font-black text-center mb-6">
+          <span className="bg-gradient-to-r from-[#FFD700] to-[#FFA500] bg-clip-text text-transparent">
+            {editingId ? 'РЕДАКТИРОВАНИЕ' : 'НОВЫЙ РОЗЫГРЫШ'}
+          </span>
+        </h1>
 
-        {/* Форма - компактная и чистая */}
-        <div className="space-y-4">
+        {/* Форма */}
+        <div className="space-y-5">
           {/* Название */}
-          <div>
-            <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Название *</label>
+          <div className="bg-zinc-900/80 rounded-2xl p-4 border border-white/5">
+            <label className="block text-[11px] text-[#FFD700]/70 mb-2 font-medium">НАЗВАНИЕ</label>
             <input
               type="text"
               value={formData.title || ''}
               onChange={e => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Например: Новогодний розыгрыш"
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:border-[#FFD700]/50 focus:outline-none"
+              placeholder="Новогодний розыгрыш"
+              className="w-full bg-transparent text-white text-lg font-medium placeholder-white/20 focus:outline-none"
             />
           </div>
 
-          {/* Подзаголовок */}
-          <div>
-            <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Описание</label>
+          {/* Описание */}
+          <div className="bg-zinc-900/80 rounded-2xl p-4 border border-white/5">
+            <label className="block text-[11px] text-[#FFD700]/70 mb-2 font-medium">ОПИСАНИЕ</label>
             <input
               type="text"
               value={formData.subtitle || ''}
               onChange={e => setFormData({ ...formData, subtitle: e.target.value })}
-              placeholder="Краткое описание розыгрыша"
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:border-[#FFD700]/50 focus:outline-none"
+              placeholder="Краткое описание"
+              className="w-full bg-transparent text-white placeholder-white/20 focus:outline-none"
             />
           </div>
 
-          {/* Цена и Валюта - в одну строку */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Цена билета</label>
+          {/* Цена и Валюта */}
+          <div className="bg-zinc-900/80 rounded-2xl p-4 border border-white/5">
+            <label className="block text-[11px] text-[#FFD700]/70 mb-3 font-medium">СТОИМОСТЬ БИЛЕТА</label>
+            <div className="flex items-center gap-3">
               <input
                 type="number"
                 value={currentPrice || ''}
                 onChange={e => {
                   const val = Number(e.target.value)
-                  if (currentCurrency === 'bul') {
-                    setFormData({ ...formData, prices: { bul: val } })
-                  } else {
-                    setFormData({ ...formData, prices: { ar: val } })
-                  }
+                  setFormData({ ...formData, prices: currentCurrency === 'bul' ? { bul: val } : { ar: val } })
                 }}
                 placeholder="10"
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:border-[#FFD700]/50 focus:outline-none"
+                className="w-24 bg-black/40 rounded-xl px-4 py-3 text-white text-lg font-bold text-center focus:outline-none border border-white/10"
               />
-            </div>
-            <div>
-              <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Валюта</label>
-              <div className="flex gap-2">
+              <div className="flex-1 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, prices: { ar: currentPrice } })}
                   className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
                     currentCurrency === 'ar'
-                      ? 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/50'
-                      : 'bg-zinc-900 text-white/40 border border-zinc-700 hover:border-zinc-600'
+                      ? 'bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 text-[#FFD700] border-2 border-[#FFD700]'
+                      : 'bg-black/30 text-white/40 border border-white/10'
                   }`}
                 >
                   <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
@@ -513,8 +509,8 @@ export function GiveawayManager() {
                   onClick={() => setFormData({ ...formData, prices: { bul: currentPrice } })}
                   className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
                     currentCurrency === 'bul'
-                      ? 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/50'
-                      : 'bg-zinc-900 text-white/40 border border-zinc-700 hover:border-zinc-600'
+                      ? 'bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 text-[#FFD700] border-2 border-[#FFD700]'
+                      : 'bg-black/30 text-white/40 border border-white/10'
                   }`}
                 >
                   <img src="/icons/BUL.png" alt="" className="w-5 h-5" />
@@ -524,56 +520,56 @@ export function GiveawayManager() {
             </div>
           </div>
 
-          {/* Статус и Дата окончания */}
+          {/* Статус и Дата */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Статус</label>
+            <div className="bg-zinc-900/80 rounded-2xl p-4 border border-white/5">
+              <label className="block text-[11px] text-[#FFD700]/70 mb-2 font-medium">СТАТУС</label>
               <select
                 value={formData.status || 'draft'}
                 onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 focus:outline-none appearance-none"
+                className="w-full bg-transparent text-white font-medium focus:outline-none"
               >
-                <option value="draft">Черновик</option>
-                <option value="active">Активный</option>
-                <option value="completed">Завершён</option>
+                <option value="draft" className="bg-zinc-900">Черновик</option>
+                <option value="active" className="bg-zinc-900">Активный</option>
+                <option value="completed" className="bg-zinc-900">Завершён</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs text-white/40 mb-1.5 uppercase tracking-wider">Окончание *</label>
+            <div className="bg-zinc-900/80 rounded-2xl p-4 border border-white/5">
+              <label className="block text-[11px] text-[#FFD700]/70 mb-2 font-medium">ОКОНЧАНИЕ</label>
               <input
                 type="datetime-local"
                 value={formData.end_date ? new Date(formData.end_date).toISOString().slice(0, 16) : ''}
                 onChange={e => setFormData({ ...formData, end_date: e.target.value ? new Date(e.target.value).toISOString() : '' })}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 focus:outline-none"
+                className="w-full bg-transparent text-white font-medium focus:outline-none"
               />
             </div>
           </div>
 
           {/* Призы */}
-          <div className="bg-zinc-900/50 rounded-2xl border border-zinc-800 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-              <span className="font-semibold text-white text-sm">Призовые места</span>
+          <div className="bg-zinc-900/80 rounded-2xl border border-white/5 overflow-hidden">
+            <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+              <span className="text-[11px] text-[#FFD700]/70 font-medium">ПРИЗОВЫЕ МЕСТА</span>
               <button
                 type="button"
                 onClick={addPrize}
-                className="px-3 py-1 bg-[#FFD700]/20 hover:bg-[#FFD700]/30 text-[#FFD700] rounded-lg text-xs font-bold transition-colors"
+                className="px-3 py-1.5 bg-[#FFD700] text-black rounded-lg text-xs font-bold"
               >
                 + Добавить
               </button>
             </div>
-            <div className="p-3 space-y-2">
+            <div className="p-3 space-y-2 max-h-[200px] overflow-y-auto">
               {formData.prizes?.length === 0 && (
-                <div className="text-center py-6 text-white/30 text-sm">
-                  Нажмите "Добавить" для создания призов
+                <div className="text-center py-4 text-white/30 text-sm">
+                  Нажмите "Добавить"
                 </div>
               )}
               {formData.prizes?.map((prize, idx) => (
-                <div key={idx} className="flex items-center gap-2 bg-black/30 rounded-xl p-2.5">
-                  <div className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center font-bold text-xs ${
-                    idx === 0 ? 'bg-[#FFD700]/20 text-[#FFD700]' :
-                    idx === 1 ? 'bg-gray-400/20 text-gray-400' :
-                    idx === 2 ? 'bg-amber-600/20 text-amber-500' :
-                    'bg-white/5 text-white/50'
+                <div key={idx} className="flex items-center gap-2 bg-black/40 rounded-xl p-2">
+                  <div className={`w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center font-bold text-xs ${
+                    idx === 0 ? 'bg-[#FFD700] text-black' :
+                    idx === 1 ? 'bg-gray-400 text-black' :
+                    idx === 2 ? 'bg-amber-600 text-black' :
+                    'bg-white/10 text-white/50'
                   }`}>
                     {prize.place}
                   </div>
@@ -582,21 +578,21 @@ export function GiveawayManager() {
                     placeholder="0"
                     value={prize.amount || ''}
                     onChange={e => updatePrize(idx, 'amount', Number(e.target.value))}
-                    className="w-20 bg-black/40 border border-zinc-700 rounded-lg px-2 py-1.5 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
+                    className="w-16 bg-black/40 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none"
                   />
-                  <span className="text-white/30 text-xs">фикс.</span>
+                  <span className="text-white/30 text-[10px]">фикс</span>
                   <input
                     type="number"
                     placeholder="0"
                     value={prize.percentage || ''}
                     onChange={e => updatePrize(idx, 'percentage', Number(e.target.value))}
-                    className="w-14 bg-black/40 border border-zinc-700 rounded-lg px-2 py-1.5 text-white text-sm focus:border-[#FFD700]/50 focus:outline-none"
+                    className="w-12 bg-black/40 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none"
                   />
-                  <span className="text-white/30 text-xs">%</span>
+                  <span className="text-white/30 text-[10px]">%</span>
                   <button
                     type="button"
                     onClick={() => removePrize(idx)}
-                    className="ml-auto w-7 h-7 flex items-center justify-center hover:bg-red-500/20 rounded-lg transition-colors text-red-400 text-lg"
+                    className="ml-auto w-6 h-6 flex items-center justify-center text-red-400 text-lg"
                   >
                     ×
                   </button>
@@ -604,13 +600,15 @@ export function GiveawayManager() {
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Кнопки действий */}
-          <div className="flex gap-3 pt-4">
+        {/* Кнопки - фиксированные внизу */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a] to-transparent">
+          <div className="max-w-md mx-auto flex gap-3">
             <button
               type="button"
               onClick={() => setMode('list')}
-              className="flex-1 py-3.5 rounded-xl font-bold text-white/60 bg-zinc-800 hover:bg-zinc-700 transition-colors"
+              className="flex-1 py-4 rounded-2xl font-bold text-white/60 bg-zinc-800"
             >
               Отмена
             </button>
@@ -619,10 +617,8 @@ export function GiveawayManager() {
               onClick={handleSave}
               disabled={loading}
               whileTap={{ scale: 0.98 }}
-              className="flex-[2] py-3.5 rounded-xl font-bold text-black disabled:opacity-50"
-              style={{
-                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-              }}
+              className="flex-[2] py-4 rounded-2xl font-bold text-black disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' }}
             >
               {loading ? 'Сохранение...' : 'Сохранить'}
             </motion.button>
