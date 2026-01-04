@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -744,28 +744,38 @@ export function FullCrmPage() {
   }
 
   // ============ TELEGRAM BACK ============
+  // Используем ref для хранения актуальной функции handleBack
+  const handleBackRef = useRef<() => void>(() => { })
+
+  // Обновляем ref при изменении зависимостей
+  handleBackRef.current = useCallback(() => {
+    if (selectedPremiumClient) {
+      setSelectedPremiumClient(null)
+    } else if (selectedUser) {
+      setSelectedUser(null)
+    } else {
+      navigate('/admin')
+    }
+  }, [selectedPremiumClient, selectedUser, navigate])
+
+  // Регистрируем обработчик один раз при монтировании
   useEffect(() => {
     const tg = window.Telegram?.WebApp
     if (!tg?.BackButton) return
 
-    const handleBack = () => {
-      if (selectedPremiumClient) {
-        setSelectedPremiumClient(null)
-      } else if (selectedUser) {
-        setSelectedUser(null)
-      } else {
-        navigate('/admin')
-      }
+    // Wrapper функция - всегда вызывает актуальную версию из ref
+    const onBackClick = () => {
+      handleBackRef.current()
     }
 
     tg.BackButton.show()
-    tg.BackButton.onClick(handleBack)
+    tg.BackButton.onClick(onBackClick)
 
     return () => {
-      tg.BackButton.offClick(handleBack)
+      tg.BackButton.offClick(onBackClick)
       tg.BackButton.hide()
     }
-  }, [navigate, selectedUser, selectedPremiumClient])
+  }, []) // Пустой массив - регистрируем только один раз
 
   // ============ ДОСТУП ============
   // В Telegram - проверяем ID, в браузере - показываем форму пароля
