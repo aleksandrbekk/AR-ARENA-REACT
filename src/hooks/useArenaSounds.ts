@@ -276,7 +276,7 @@ export function useArenaSounds() {
   }, [getContext])
 
   /**
-   * playRouletteTick - Серия кликов для рулетки (ускоряющиеся)
+   * playRouletteTick - Серия мягких тиков для рулетки
    * @param count - количество тиков
    * @param onComplete - callback после завершения
    */
@@ -285,8 +285,8 @@ export function useArenaSounds() {
     if (!ctx) return
 
     let currentTime = ctx.currentTime
-    const baseInterval = 0.15 // Начальный интервал
-    const minInterval = 0.03 // Минимальный интервал
+    const baseInterval = 0.12 // Начальный интервал
+    const minInterval = 0.04 // Минимальный интервал
 
     for (let i = 0; i < count; i++) {
       // Интервал уменьшается экспоненциально, затем увеличивается к концу
@@ -305,21 +305,23 @@ export function useArenaSounds() {
       const oscillator = ctx.createOscillator()
       const gainNode = ctx.createGain()
 
-      oscillator.type = 'square'
-      // Тон немного меняется для интереса
-      const pitch = 800 + Math.sin(i * 0.5) * 200
+      // Мягкий синус вместо резкого square
+      oscillator.type = 'sine'
+      // Высокий тон для приятного "тик"
+      const pitch = 1800 + Math.sin(i * 0.3) * 100
       oscillator.frequency.setValueAtTime(pitch, currentTime)
+      oscillator.frequency.exponentialRampToValueAtTime(pitch * 0.7, currentTime + 0.02)
 
-      // Громкость увеличивается к концу
-      const volume = 0.15 + progress * 0.2
+      // Тихая громкость с мягким затуханием
+      const volume = 0.06 + progress * 0.04
       gainNode.gain.setValueAtTime(volume, currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.04)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.025)
 
       oscillator.connect(gainNode)
       gainNode.connect(ctx.destination)
 
       oscillator.start(currentTime)
-      oscillator.stop(currentTime + 0.05)
+      oscillator.stop(currentTime + 0.03)
 
       currentTime += interval
     }

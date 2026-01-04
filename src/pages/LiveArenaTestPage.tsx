@@ -118,8 +118,8 @@ export function LiveArenaTestPage() {
     const [semifinalEliminated, setSemifinalEliminated] = useState<Map<number, number>>(new Map())
     const [rouletteOffset, setRouletteOffset] = useState(0)
     const [currentSpinTicket, setCurrentSpinTicket] = useState<number | null>(null)
-    // Показываем карточки призов сразу (с "?" пока нет выбывших)
-    const [showSemifinalPrizes, setShowSemifinalPrizes] = useState(true)
+    // Карточки призов всегда видны (с "?" пока нет выбывших)
+    const showSemifinalPrizes = true
 
     // ===================== FINAL STATE =====================
     const [finalScores, setFinalScores] = useState([
@@ -134,11 +134,10 @@ export function LiveArenaTestPage() {
 
     // ===================== HANDLERS =====================
     const runSemifinalDemo = async () => {
-        // Reset
+        // Reset (но карточки призов оставляем видимыми)
         setSemifinalHits(new Map())
         setSemifinalEliminated(new Map())
         setRouletteOffset(0)
-        setShowSemifinalPrizes(false)
 
         const hits = new Map<number, number>()
         const eliminated = new Map<number, number>()
@@ -202,9 +201,8 @@ export function LiveArenaTestPage() {
                 setSemifinalEliminated(new Map(eliminated))
 
                 if (eliminatedCount >= 1) {
-                    // Show prizes after both eliminated
+                    // Оба выбыли — конец демо
                     await new Promise(r => setTimeout(r, 1000))
-                    setShowSemifinalPrizes(true)
                     break
                 }
             } else {
@@ -318,7 +316,7 @@ export function LiveArenaTestPage() {
         setSemifinalEliminated(new Map())
         setRouletteOffset(0)
         setCurrentSpinTicket(null)
-        setShowSemifinalPrizes(false)
+        // showSemifinalPrizes остаётся true — карточки всегда видны
         setFinalScores([
             { bulls: 0, bears: 0, place: null },
             { bulls: 0, bears: 0, place: null },
@@ -338,10 +336,10 @@ export function LiveArenaTestPage() {
 
                 <div className="w-full max-w-sm space-y-4">
                     {[
-                        { id: 'tour1' as const, label: 'TOUR 1', desc: 'Drum / Барабан', icon: '🎰' },
-                        { id: 'tour2' as const, label: 'TOUR 2', desc: 'Карты судьбы', icon: '🃏' },
-                        { id: 'semifinal' as const, label: 'SEMIFINAL', desc: 'Обратный светофор', icon: '🚦' },
-                        { id: 'final' as const, label: 'FINAL', desc: 'Быки и Медведи', icon: '🎯' },
+                        { id: 'tour1' as const, label: 'ТУР 1', desc: 'Барабан', icon: '🎰' },
+                        { id: 'tour2' as const, label: 'ТУР 2', desc: 'Карты судьбы', icon: '🃏' },
+                        { id: 'semifinal' as const, label: 'ПОЛУФИНАЛ', desc: 'Обратный светофор', icon: '🚦' },
+                        { id: 'final' as const, label: 'ФИНАЛ', desc: 'Быки и Медведи', icon: '🎯' },
                     ].map((item, i) => (
                         <motion.button
                             key={item.id}
@@ -389,7 +387,7 @@ export function LiveArenaTestPage() {
                 onClick={resetToMenu}
                 className="fixed top-4 left-4 z-50 px-4 py-2 bg-zinc-800 rounded-full text-white/70 hover:text-white border border-zinc-700 hover:border-[#FFD700] transition-all flex items-center gap-2"
             >
-                ← Menu
+                ← Меню
             </button>
         )
     }
@@ -400,7 +398,7 @@ export function LiveArenaTestPage() {
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
                 <BackButton />
                 <div className="text-center mb-6 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">TOUR 1 TEST</h1>
+                    <h1 className="text-2xl font-black text-[#FFD700]">ТУР 1 ТЕСТ</h1>
                     <p className="text-white/50 text-sm">Барабан</p>
                 </div>
                 <Tour1Drum
@@ -441,9 +439,8 @@ export function LiveArenaTestPage() {
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4 pb-8">
                 <BackButton />
                 <div className="text-center mb-4 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">TOUR 2 TEST</h1>
-                    <p className="text-white/50 text-sm mb-2">Drag cards down to peek, release to reveal</p>
-                    <p className="text-white/30 text-xs">Or tap to instant reveal</p>
+                    <h1 className="text-2xl font-black text-[#FFD700]">ТУР 2 ТЕСТ</h1>
+                    <p className="text-white/50 text-sm">Нажми на карту чтобы открыть</p>
                 </div>
 
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 max-w-lg mx-auto">
@@ -461,7 +458,7 @@ export function LiveArenaTestPage() {
                 </div>
 
                 <div className="text-center mt-6 text-white/30 text-xs">
-                    Green = Passes to Semifinal | Red = Eliminated
+                    Зелёный = Проходит в полуфинал | Красный = Выбыл
                 </div>
             </div>
         )
@@ -473,14 +470,14 @@ export function LiveArenaTestPage() {
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
                 <BackButton />
                 <div className="text-center mb-4 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">SEMIFINAL TEST</h1>
+                    <h1 className="text-2xl font-black text-[#FFD700]">ПОЛУФИНАЛ ТЕСТ</h1>
                     <p className="text-white/50 text-sm mb-4">Обратный светофор</p>
                     <button
                         onClick={runSemifinalDemo}
                         data-testid="run-demo-btn"
                         className="px-6 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-full hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,215,0,0.3)]"
                     >
-                        RUN DEMO
+                        ЗАПУСТИТЬ
                     </button>
                 </div>
 
@@ -504,8 +501,8 @@ export function LiveArenaTestPage() {
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
                 <BackButton />
                 <div className="text-center mb-4 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">FINAL TEST</h1>
-                    <p className="text-white/50 text-sm mb-4">Bulls & Bears Battle</p>
+                    <h1 className="text-2xl font-black text-[#FFD700]">ФИНАЛ ТЕСТ</h1>
+                    <p className="text-white/50 text-sm mb-4">Быки и Медведи</p>
                 </div>
 
                 <FinalBattle

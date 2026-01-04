@@ -745,20 +745,25 @@ export function FullCrmPage() {
 
   // ============ TELEGRAM BACK ============
   useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp
-      const handleBack = () => {
-        if (selectedPremiumClient) {
-          setSelectedPremiumClient(null)
-        } else if (selectedUser) {
-          setSelectedUser(null)
-        } else {
-          navigate('/admin')
-        }
+    const tg = window.Telegram?.WebApp
+    if (!tg?.BackButton) return
+
+    const handleBack = () => {
+      if (selectedPremiumClient) {
+        setSelectedPremiumClient(null)
+      } else if (selectedUser) {
+        setSelectedUser(null)
+      } else {
+        navigate('/admin')
       }
-      tg.BackButton.show()
-      tg.BackButton.onClick(handleBack)
-      return () => { tg.BackButton.offClick(handleBack); tg.BackButton.hide() }
+    }
+
+    tg.BackButton.show()
+    tg.BackButton.onClick(handleBack)
+
+    return () => {
+      tg.BackButton.offClick(handleBack)
+      tg.BackButton.hide()
     }
   }, [navigate, selectedUser, selectedPremiumClient])
 
