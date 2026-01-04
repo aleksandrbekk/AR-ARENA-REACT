@@ -37,28 +37,66 @@ export default async function handler(req, res) {
   console.log('Upserting user:', telegram_id, username)
 
   const supabase = createClient(supabaseUrl, serviceKey)
+  const tgId = parseInt(telegram_id)
 
   try {
-    const { data, error } = await supabase
+    // 1. Попробуем UPDATE существующего юзера
+    const { data: updateData, error: updateError } = await supabase
       .from('users')
-      .upsert({
-        telegram_id: parseInt(telegram_id),
+      .update({
         username: username || null,
         first_name: first_name || null,
         last_name: last_name || null,
         photo_url: photo_url || null,
         language_code: language_code || null,
         last_seen_at: new Date().toISOString()
-      }, { onConflict: 'telegram_id' })
+      })
+      .eq('telegram_id', tgId)
       .select()
 
-    if (error) {
-      console.error('Upsert error:', error)
-      return res.status(500).json({ error: error.message })
+    if (updateError) {
+      console.error('Update error:', updateError)
+      return res.status(500).json({ error: updateError.message })
     }
 
-    console.log('User upserted successfully:', data)
-    return res.status(200).json({ ok: true, data })
+    // 2. Если юзер уже был — готово
+    if (updateData && updateData.length > 0) {
+      console.log('User updated:', updateData)
+      return res.status(200).json({ ok: true, data: updateData, action: 'updated' })
+    }
+
+    // 3. Юзера нет — вызываем get_bull_game_state для создания (она обходит проблемный триггер)
+    console.log('User not found, creating via RPC...')
+    const { error: rpcError } = await supabase.rpc('get_bull_game_state', {
+      p_telegram_id: telegram_id.toString()
+    })
+
+    if (rpcError) {
+      console.error('RPC error:', rpcError)
+      return res.status(500).json({ error: rpcError.message })
+    }
+
+    // 4. Теперь обновим данные профиля
+    const { data: finalData, error: finalError } = await supabase
+      .from('users')
+      .update({
+        username: username || null,
+        first_name: first_name || null,
+        last_name: last_name || null,
+        photo_url: photo_url || null,
+        language_code: language_code || null,
+        last_seen_at: new Date().toISOString()
+      })
+      .eq('telegram_id', tgId)
+      .select()
+
+    if (finalError) {
+      console.error('Final update error:', finalError)
+      return res.status(500).json({ error: finalError.message })
+    }
+
+    console.log('User created and updated:', finalData)
+    return res.status(200).json({ ok: true, data: finalData, action: 'created' })
   } catch (err) {
     console.error('Server error:', err)
     return res.status(500).json({ error: err.message })
