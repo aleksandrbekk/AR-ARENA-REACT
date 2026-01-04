@@ -477,8 +477,14 @@ export function LiveArenaPage() {
       { bulls: 0, bears: 0, place: null as number | null }
     ]
 
+    let turnCount = 0
     for (const turn of results.final.turns) {
+      // Защита от бесконечного loop
+      if (turnCount++ >= 30) break
       if (scores.filter(s => s.place !== null).length >= 3) break
+
+      // Пропустить игрока если уже имеет место
+      if (scores[turn.player].place !== null) continue
 
       setCurrentFinalPlayer(turn.player)
       setLastResult(null)
