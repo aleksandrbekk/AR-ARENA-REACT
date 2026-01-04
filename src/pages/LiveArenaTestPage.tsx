@@ -118,7 +118,8 @@ export function LiveArenaTestPage() {
     const [semifinalEliminated, setSemifinalEliminated] = useState<Map<number, number>>(new Map())
     const [rouletteOffset, setRouletteOffset] = useState(0)
     const [currentSpinTicket, setCurrentSpinTicket] = useState<number | null>(null)
-    const [showSemifinalPrizes, setShowSemifinalPrizes] = useState(false)
+    // Показываем карточки призов сразу (с "?" пока нет выбывших)
+    const [showSemifinalPrizes, setShowSemifinalPrizes] = useState(true)
 
     // ===================== FINAL STATE =====================
     const [finalScores, setFinalScores] = useState([
