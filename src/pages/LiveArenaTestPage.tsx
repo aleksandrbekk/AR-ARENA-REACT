@@ -331,14 +331,14 @@ export function LiveArenaTestPage() {
     if (mode === 'menu') {
         return (
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4 flex flex-col items-center">
-                <h1 className="text-3xl font-black text-[#FFD700] mb-2">DEV TEST</h1>
-                <p className="text-white/50 text-sm mb-8">Тест компонентов арены</p>
+                <h1 className="text-3xl font-black text-[#FFD700] mb-2">AR ARENA</h1>
+                <p className="text-white/50 text-sm mb-8">Выбери этап розыгрыша</p>
 
                 <div className="w-full max-w-sm space-y-4">
                     {[
-                        { id: 'tour1' as const, label: 'ТУР 1', desc: 'Барабан', icon: '🎰' },
-                        { id: 'tour2' as const, label: 'ТУР 2', desc: 'Карты судьбы', icon: '🃏' },
-                        { id: 'semifinal' as const, label: 'ПОЛУФИНАЛ', desc: 'Обратный светофор', icon: '🚦' },
+                        { id: 'tour1' as const, label: 'ОТБОР', desc: 'Все → 20 билетов', icon: '🎰' },
+                        { id: 'tour2' as const, label: 'ЛИКВИДАЦИЯ', desc: '20 → 5 призёров', icon: '🃏' },
+                        { id: 'semifinal' as const, label: 'ПОЛУФИНАЛ', desc: '5 → 3 финалиста', icon: '🚦' },
                         { id: 'final' as const, label: 'ФИНАЛ', desc: 'Быки и Медведи', icon: '🎯' },
                     ].map((item, i) => (
                         <motion.button
@@ -439,8 +439,8 @@ export function LiveArenaTestPage() {
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4 pb-8">
                 <BackButton />
                 <div className="text-center mb-4 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">ВТОРОЙ ТУР</h1>
-                    <p className="text-white/50 text-sm">Определяем ТОП-5 финалистов</p>
+                    <h1 className="text-2xl font-black text-[#FFD700]">ЛИКВИДАЦИЯ</h1>
+                    <p className="text-white/50 text-sm">20 → 5 призёров</p>
                 </div>
 
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 max-w-lg mx-auto">
