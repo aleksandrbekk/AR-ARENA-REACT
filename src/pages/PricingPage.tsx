@@ -374,7 +374,24 @@ export function PricingPage() {
         const user = tg?.initDataUnsafe?.user
 
         if (user?.id) {
-          // Вызываем RPC которая создаёт юзера если его нет
+          // Добавляем в таблицу users через API
+          fetch('/api/upsert-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telegram_id: user.id,
+              username: user.username || null,
+              first_name: user.first_name || null,
+              last_name: user.last_name || null,
+              photo_url: user.photo_url || null,
+              language_code: user.language_code || null
+            })
+          }).then(res => {
+            if (res.ok) console.log('[PricingPage] User added to users table:', user.id)
+            else console.warn('[PricingPage] User upsert failed:', res.status)
+          }).catch(err => console.warn('[PricingPage] User upsert error:', err))
+
+          // Также вызываем RPC для game state
           await supabase.rpc('get_bull_game_state', {
             p_telegram_id: user.id.toString()
           })
