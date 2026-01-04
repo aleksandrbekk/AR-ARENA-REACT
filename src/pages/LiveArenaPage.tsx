@@ -46,7 +46,7 @@ export function LiveArenaPage() {
   const stageResolver = useRef<(() => void) | null>(null)
 
   // SFX & Haptics
-  const { initAudio, playClick, playImpact, playSuccess, playFailure, playWin, playRouletteTicks } = useArenaSounds()
+  const { initAudio, playClick, playHit1, playHit2, playImpact, playSuccess, playFailure, playWin, playRouletteTicks } = useArenaSounds()
   const { triggerTick, triggerImpact, triggerSuccess, triggerError } = useArenaHaptics()
 
   // Modal
@@ -61,6 +61,8 @@ export function LiveArenaPage() {
   // Tour 2
   const [tour2Cards, setTour2Cards] = useState<Ticket[]>([])
   const [tour2Results, setTour2Results] = useState<Map<number, 'green' | 'red'>>(new Map())
+  const tour2SelectedRef = useRef<Set<number>>(new Set())
+  const tour2RevealedCountRef = useRef(0)
 
   // Semifinal
   const [semifinalPlayers, setSemifinalPlayers] = useState<Ticket[]>([])
@@ -108,6 +110,46 @@ export function LiveArenaPage() {
         ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
     return shuffled
+  }
+
+  // ==================== TOUR 2 HANDLERS ====================
+  const handleTour2Reveal = (idx: number) => {
+    // Check if already revealed
+    if (tour2Results.has(idx)) return
+
+    const isGreen = tour2SelectedRef.current.has(idx)
+
+    // Update results map
+    setTour2Results(prev => {
+      const next = new Map(prev)
+      next.set(idx, isGreen ? 'green' : 'red')
+      return next
+    })
+
+    // Play sounds and haptics
+    if (isGreen) {
+      playSuccess()
+      triggerSuccess()
+    } else {
+      playClick()
+      triggerTick()
+    }
+
+    // Track revealed count
+    tour2RevealedCountRef.current++
+
+    // When all 20 cards revealed, proceed to next stage
+    if (tour2RevealedCountRef.current >= 20) {
+      setTimeout(() => {
+        stageResolver.current?.()
+      }, 1500)
+    }
+  }
+
+  const handleTour2DragProgress = (progress: number) => {
+    if (progress > 0.6) {
+      triggerTick()
+    }
   }
 
   // ==================== LOAD DATA ====================
@@ -342,31 +384,23 @@ export function LiveArenaPage() {
     await displayModal({
       title: 'ЛИКВИДАЦИЯ',
       duration: 3000,
-      goal: '20 счастливчиков выбраны!\n15 будут ликвидированы — только 5 пройдут дальше'
+      goal: '20 счастливчиков выбраны!\nНажми на карты чтобы узнать кто прошёл!'
     })
+
+    // Set up selected indices BEFORE showing cards
+    tour2SelectedRef.current = new Set(results.tour2.selected_indices)
+    tour2RevealedCountRef.current = 0
+    setTour2Results(new Map())
 
     setCurrentStage('tour2')
     setTour2Cards(tour1WinnerTickets)
-    await sleep(1000)
 
-    const selectedSet = new Set(results.tour2.selected_indices)
-    for (let i = 0; i < 20; i++) {
-      setTour2Results(prev => {
-        const next = new Map(prev)
-        next.set(i, selectedSet.has(i) ? 'green' : 'red')
-        return next
-      })
-      if (selectedSet.has(i)) {
-        playSuccess()
-        triggerSuccess()
-      } else {
-        playClick()
-        triggerTick()
-      }
-      await sleep(300)
-    }
+    // Wait for all 20 cards to be revealed manually by user
+    await new Promise<void>(resolve => {
+      stageResolver.current = resolve
+    })
 
-    await sleep(2000)
+    await sleep(1500)
 
     // ===== SEMIFINAL =====
     await displayModal({
@@ -433,14 +467,19 @@ export function LiveArenaPage() {
       })
 
       if (spin.hits === 3) {
+        // Third hit = elimination
         playFailure()
         triggerError()
         eliminatedCount++
         const place = eliminatedCount === 1 ? 5 : 4
         eliminatedMap.set(spinTicketNum, place)
         setSemifinalEliminated(new Map(eliminatedMap))
-      } else {
-        playClick()
+      } else if (spin.hits === 1) {
+        // First hit = soft ding (green)
+        playHit1()
+      } else if (spin.hits === 2) {
+        // Second hit = tense dong (yellow)
+        playHit2()
       }
 
       await sleep(1500)
@@ -743,7 +782,8 @@ export function LiveArenaPage() {
         <Tour2Squeeze
           candidates={tour2Cards}
           results={tour2Results}
-
+          onReveal={handleTour2Reveal}
+          onDragProgress={handleTour2DragProgress}
         />
       )}
 

@@ -5,10 +5,11 @@ import type { Ticket } from '../../types'
 interface Tour2SqueezeProps {
     candidates: Ticket[]
     results: Map<number, 'green' | 'red'>
-    onReveal: (idx: number) => void
+    onReveal?: (idx: number) => void
+    onDragProgress?: (progress: number) => void
 }
 
-export function Tour2Squeeze({ candidates, results }: Omit<Tour2SqueezeProps, 'onReveal'>) {
+export function Tour2Squeeze({ candidates, results, onReveal, onDragProgress }: Tour2SqueezeProps) {
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
@@ -27,7 +28,7 @@ export function Tour2Squeeze({ candidates, results }: Omit<Tour2SqueezeProps, 'o
                 </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 max-w-md mx-auto px-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-w-lg mx-auto">
                 {candidates.map((ticket, idx) => {
                     const result = results.get(idx)
                     const isRevealed = results.has(idx)
@@ -35,15 +36,13 @@ export function Tour2Squeeze({ candidates, results }: Omit<Tour2SqueezeProps, 'o
                     return (
                         <div key={idx} className="w-full">
                             <SqueezeCard
-                                isRevealed={isRevealed}
-                                result={result || 'red'} // Default to red if not set
+                                result={result || 'red'}
                                 playerName={ticket.player.name}
                                 playerAvatar={ticket.player.avatar}
                                 ticketNumber={ticket.ticket_number}
-                                onRevealComplete={() => {
-                                    // Optional: specific sound per card result if needed
-                                    // Currently logic handles sound during the reveal process in parent
-                                }}
+                                isRevealed={isRevealed}
+                                onReveal={() => onReveal?.(idx)}
+                                onDragProgress={onDragProgress}
                             />
                         </div>
                     )
