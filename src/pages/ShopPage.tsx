@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
@@ -58,20 +58,24 @@ export function ShopPage() {
   const { showToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
 
-  // Настройка Telegram Back Button
-  useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp
-      const handleBack = () => navigate('/')
-      tg.BackButton.show()
-      tg.BackButton.onClick(handleBack)
+  // ============ TELEGRAM BACK ============
+  const handleBackRef = useRef<() => void>(() => navigate('/'))
+  handleBackRef.current = () => navigate('/')
 
-      return () => {
-        tg.BackButton.offClick(handleBack)
-        tg.BackButton.hide()
-      }
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp
+    if (!tg?.BackButton) return
+
+    const onBackClick = () => handleBackRef.current()
+
+    tg.BackButton.show()
+    tg.BackButton.onClick(onBackClick)
+
+    return () => {
+      tg.BackButton.offClick(onBackClick)
+      tg.BackButton.hide()
     }
-  }, [navigate])
+  }, [])
 
   const [selectedCurrency, setSelectedCurrency] = useState<'RUB' | 'USD'>('RUB')
 
