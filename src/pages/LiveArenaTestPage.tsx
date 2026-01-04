@@ -338,7 +338,7 @@ export function LiveArenaTestPage() {
                     {[
                         { id: 'tour1' as const, label: 'ОТБОР', desc: 'Все → 20 билетов', icon: '🎰' },
                         { id: 'tour2' as const, label: 'ЛИКВИДАЦИЯ', desc: '20 → 5 призёров', icon: '🃏' },
-                        { id: 'semifinal' as const, label: 'ПОЛУФИНАЛ', desc: '5 → 3 финалиста', icon: '🚦' },
+                        { id: 'semifinal' as const, label: 'СВЕТОФОР', desc: 'Полуфинал • 5 → 3', icon: '🚦' },
                         { id: 'final' as const, label: 'ФИНАЛ', desc: 'Быки и Медведи', icon: '🎯' },
                     ].map((item, i) => (
                         <motion.button
@@ -469,9 +469,30 @@ export function LiveArenaTestPage() {
         return (
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
                 <BackButton />
-                <div className="text-center mb-4 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">ПОЛУФИНАЛ</h1>
-                    <p className="text-white/50 text-sm mb-4">3 попадания = выбывание. В финал выходят 3 игрока</p>
+                <div className="text-center mb-4 pt-4">
+                    {/* Stylish СВЕТОФОР title */}
+                    <div className="relative inline-block mb-1">
+                        {/* Glow effect behind */}
+                        <div className="absolute inset-0 blur-xl opacity-50 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500" />
+                        <h1
+                            className="relative text-4xl font-black tracking-[0.2em] uppercase"
+                            style={{
+                                background: 'linear-gradient(90deg, #22c55e 0%, #eab308 50%, #ef4444 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                textShadow: '0 0 40px rgba(234,179,8,0.3)',
+                                filter: 'drop-shadow(0 0 10px rgba(234,179,8,0.4))'
+                            }}
+                        >
+                            СВЕТОФОР
+                        </h1>
+                    </div>
+                    {/* Subtitle */}
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                        <div className="h-px w-8 bg-gradient-to-r from-transparent to-white/30" />
+                        <span className="text-white/50 text-xs font-medium tracking-[0.3em] uppercase">Полуфинал</span>
+                        <div className="h-px w-8 bg-gradient-to-l from-transparent to-white/30" />
+                    </div>
                     <button
                         onClick={runSemifinalDemo}
                         data-testid="run-demo-btn"
