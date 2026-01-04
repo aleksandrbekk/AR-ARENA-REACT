@@ -340,9 +340,9 @@ export function LiveArenaPage() {
 
     // ===== TOUR 2 =====
     await displayModal({
-      title: 'ВТОРОЙ ТУР',
+      title: 'ЛИКВИДАЦИЯ',
       duration: 3000,
-      goal: '20 счастливчиков выбраны!\nТеперь определим ТОП-5 финалистов'
+      goal: '20 счастливчиков выбраны!\n15 будут ликвидированы — только 5 пройдут дальше'
     })
 
     setCurrentStage('tour2')

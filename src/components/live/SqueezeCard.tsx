@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useTransform, useAnimationControls } from 'framer-motion'
 import type { PanInfo } from 'framer-motion'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 
 interface SqueezeCardProps {
   result: 'green' | 'red'
@@ -31,12 +31,28 @@ export function SqueezeCard({
   onDragProgress
 }: SqueezeCardProps) {
   const [internalRevealed, setInternalRevealed] = useState(false)
+  const [hasAnimated, setHasAnimated] = useState(false)
 
   // Use external control if provided, otherwise internal state
   const isRevealed = externalRevealed !== undefined ? externalRevealed : internalRevealed
   const [isDragging, setIsDragging] = useState(false)
   const peelControls = useAnimationControls()
   const lastProgressRef = useRef(0)
+
+  // Trigger animation when externally revealed
+  useEffect(() => {
+    if (externalRevealed && !hasAnimated) {
+      setHasAnimated(true)
+      // Run flip animation
+      peelControls.start({
+        rotateY: -180,
+        rotateX: 0,
+        x: 0,
+        opacity: 0,
+        transition: { duration: 0.4, ease: 'easeIn' }
+      })
+    }
+  }, [externalRevealed, hasAnimated, peelControls])
 
   // Motion values for drag
   const dragY = useMotionValue(0)

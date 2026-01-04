@@ -13,8 +13,8 @@ export function Tour2Squeeze({ candidates, results }: Omit<Tour2SqueezeProps, 'o
     return (
         <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
             <div className="text-center mb-6">
-                <h1 className="text-2xl font-black text-[#FFD700]">ВТОРОЙ ТУР</h1>
-                <p className="text-white/60 text-sm mt-2">Выбираем ТОП-5 финалистов</p>
+                <h1 className="text-2xl font-black text-[#FFD700]">ЛИКВИДАЦИЯ</h1>
+                <p className="text-white/60 text-sm mt-2">20 → 5 призёров</p>
                 <div className="flex justify-center gap-6 mt-3">
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]" />
