@@ -34,3 +34,4 @@ dist-ssr
 # Backup files with potential secrets
 *.backup
 *.bak
+.env.vercel

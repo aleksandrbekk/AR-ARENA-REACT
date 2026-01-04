@@ -140,32 +140,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setTelegramUser(telegramUserData)
                 console.log('AuthProvider: Telegram user set:', telegramUserData)
 
-                // Upsert пользователя через RPC (обходит RLS)
-                supabase.rpc('upsert_app_user', {
-                    p_telegram_id: user.id,
-                    p_username: user.username || null,
-                    p_first_name: user.first_name || null,
-                    p_last_name: user.last_name || null,
-                    p_photo_url: user.photo_url || null,
-                    p_language_code: user.language_code || null
-                }).then(({ error }) => {
-                    if (error) {
-                        console.warn('AuthProvider: User upsert RPC error:', error)
-                        // Fallback на прямой upsert (для совместимости, если RPC ещё нет)
-                        supabase.from('users').upsert({
-                            telegram_id: user.id,
-                            username: user.username || null,
-                            first_name: user.first_name || null,
-                            last_name: user.last_name || null,
-                            photo_url: user.photo_url || null,
-                            language_code: user.language_code || null,
-                            last_seen_at: new Date().toISOString()
-                        }, { onConflict: 'telegram_id' }).then(({ error: fallbackError }) => {
-                            if (fallbackError) console.warn('AuthProvider: Fallback upsert error:', fallbackError)
-                        })
+                // Upsert пользователя через API (обходит RLS на сервере)
+                fetch('/api/upsert-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telegram_id: user.id,
+                        username: user.username || null,
+                        first_name: user.first_name || null,
+                        last_name: user.last_name || null,
+                        photo_url: user.photo_url || null,
+                        language_code: user.language_code || null
+                    })
+                }).then(async (res) => {
+                    if (!res.ok) {
+                        const text = await res.text()
+                        console.warn('AuthProvider: User upsert API error:', text)
                     } else {
-                        console.log('AuthProvider: User upserted via RPC')
+                        console.log('AuthProvider: User upserted via API')
                     }
+                }).catch(e => {
+                    console.warn('AuthProvider: User upsert fetch error:', e)
                 })
 
                 // Загружаем стейт
