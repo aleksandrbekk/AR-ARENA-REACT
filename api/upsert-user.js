@@ -65,38 +65,43 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, data: updateData, action: 'updated' })
     }
 
-    // 3. Юзера нет — вызываем get_bull_game_state для создания (она обходит проблемный триггер)
-    console.log('User not found, creating via RPC...')
-    const { error: rpcError } = await supabase.rpc('get_bull_game_state', {
-      p_telegram_id: telegram_id.toString()
-    })
-
-    if (rpcError) {
-      console.error('RPC error:', rpcError)
-      return res.status(500).json({ error: rpcError.message })
-    }
-
-    // 4. Теперь обновим данные профиля
-    const { data: finalData, error: finalError } = await supabase
+    // 3. Юзера нет — создаём напрямую с дефолтными значениями
+    console.log('User not found, creating directly...')
+    const { error: insertError } = await supabase
       .from('users')
-      .update({
+      .insert({
+        telegram_id: tgId,
         username: username || null,
         first_name: first_name || null,
         last_name: last_name || null,
         photo_url: photo_url || null,
         language_code: language_code || null,
+        balance_bul: 0,
+        balance_ar: 0,
+        energy: 100,
+        energy_max: 100,
+        level: 1,
+        xp: 0,
+        xp_to_next: 100,
+        active_skin: 'Bull1.png',
+        last_energy_update: new Date().toISOString(),
         last_seen_at: new Date().toISOString()
       })
-      .eq('telegram_id', tgId)
-      .select()
 
-    if (finalError) {
-      console.error('Final update error:', finalError)
-      return res.status(500).json({ error: finalError.message })
+    if (insertError) {
+      console.error('Insert error:', insertError)
+      return res.status(500).json({ error: insertError.message })
     }
 
-    console.log('User created and updated:', finalData)
-    return res.status(200).json({ ok: true, data: finalData, action: 'created' })
+    // 4. Получим созданного юзера
+    const { data: newUser } = await supabase
+      .from('users')
+      .select()
+      .eq('telegram_id', tgId)
+      .single()
+
+    console.log('User created:', newUser)
+    return res.status(200).json({ ok: true, data: newUser, action: 'created' })
   } catch (err) {
     console.error('Server error:', err)
     return res.status(500).json({ error: err.message })
