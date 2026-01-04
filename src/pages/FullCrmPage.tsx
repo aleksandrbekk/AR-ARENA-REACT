@@ -139,6 +139,64 @@ export function FullCrmPage() {
   const [newClientCurrency, setNewClientCurrency] = useState<'RUB' | 'USD' | 'EUR' | 'USDT'>('USDT')
   const [addingClient, setAddingClient] = useState(false)
 
+  // Модалка выдачи билета
+  const [showTicketModal, setShowTicketModal] = useState(false)
+  const [activeGiveaways, setActiveGiveaways] = useState<any[]>([])
+  const [selectedGiveawayId, setSelectedGiveawayId] = useState('')
+  const [grantingTicket, setGrantingTicket] = useState(false)
+  const [ticketTargetUser, setTicketTargetUser] = useState<{ id: number, name: string } | null>(null)
+
+  // Загрузка активных розыгрышей
+  const loadActiveGiveaways = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('giveaways')
+        .select('id, title, price')
+        .eq('status', 'active')
+        .order('end_date', { ascending: true })
+
+      if (error) throw error
+      setActiveGiveaways(data || [])
+      if (data && data.length > 0) setSelectedGiveawayId(data[0].id)
+    } catch (err) {
+      console.error('Error loading giveaways:', err)
+      showToast({ variant: 'error', title: 'Ошибка загрузки розыгрышей' })
+    }
+  }
+
+  // Выдача билета
+  const handleGrantTicket = async () => {
+    if (!selectedGiveawayId || !ticketTargetUser) return
+
+    setGrantingTicket(true)
+    try {
+      const { data, error } = await supabase.rpc('admin_add_ticket', {
+        p_giveaway_id: selectedGiveawayId,
+        p_telegram_id: ticketTargetUser.id
+      })
+
+      if (error) throw error
+
+      if (data && data.success) {
+        showToast({ variant: 'success', title: `Билет ${data.ticket_number} выдан!` })
+        setShowTicketModal(false)
+      } else {
+        throw new Error(data?.error || 'Unknown error')
+      }
+    } catch (err: any) {
+      console.error('Ticket grant error:', err)
+      showToast({ variant: 'error', title: err.message || 'Ошибка выдачи билета' })
+    } finally {
+      setGrantingTicket(false)
+    }
+  }
+
+  const openTicketModal = (telegramId: number, name: string) => {
+    setTicketTargetUser({ id: telegramId, name })
+    loadActiveGiveaways()
+    setShowTicketModal(true)
+  }
+
   // Модалка отчётов по выплатам
   const [showPaymentsModal, setShowPaymentsModal] = useState(false)
   const [selectedPaymentPeriod, setSelectedPaymentPeriod] = useState<'5-23' | '23-5'>('5-23')
@@ -1002,6 +1060,13 @@ export function FullCrmPage() {
               >
                 Удалить клиента
               </button>
+
+              <button
+                onClick={() => openTicketModal(client.telegram_id, client.username ? `@${client.username}` : client.first_name || 'User')}
+                className="w-full py-4 bg-[#FFD700]/10 hover:bg-[#FFD700]/20 rounded-2xl text-[#FFD700] font-medium transition-all active:scale-[0.98] backdrop-blur-sm border border-[#FFD700]/20"
+              >
+                🎟 Выдать билет на розыгрыш
+              </button>
             </div>
 
             {/* Модалка invite-ссылок */}
@@ -1195,6 +1260,13 @@ export function FullCrmPage() {
               className="w-full py-4 bg-white/10 hover:bg-white/15 rounded-2xl text-white font-medium transition-colors"
             >
               Написать сообщение
+            </button>
+
+            <button
+              onClick={() => openTicketModal(selectedUser.telegram_id, selectedUser.username ? `@${selectedUser.username}` : selectedUser.first_name || 'User')}
+              className="w-full mt-3 py-4 bg-[#FFD700]/10 hover:bg-[#FFD700]/20 rounded-2xl text-[#FFD700] font-medium transition-all active:scale-[0.98] border border-[#FFD700]/20"
+            >
+              🎟 Выдать билет на розыгрыш
             </button>
 
             {/* Модалка сообщения */}
@@ -2584,6 +2656,71 @@ export function FullCrmPage() {
       </div>
     </Layout>
   )
+
+  {/* Модалка выдачи билета */ }
+  if (showTicketModal) {
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end justify-center z-[60]">
+        <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-white">Выдать билет</h3>
+            <button onClick={() => setShowTicketModal(false)} className="w-8 h-8 flex items-center justify-center text-white/60 text-2xl hover:text-white">×</button>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="text-white/50 text-sm mb-2 block">Пользователь</label>
+              <div className="text-white font-medium text-lg">{ticketTargetUser?.name}</div>
+              <div className="text-white/40 text-sm mono">{ticketTargetUser?.id}</div>
+            </div>
+
+            <div>
+              <label className="text-white/50 text-sm mb-2 block">Выберите розыгрыш</label>
+              {activeGiveaways.length === 0 ? (
+                <div className="text-white/30 italic">Нет активных розыгрышей</div>
+              ) : (
+                <div className="space-y-2">
+                  {activeGiveaways.map(g => (
+                    <label key={g.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${selectedGiveawayId === g.id
+                        ? 'bg-[#FFD700]/10 border-[#FFD700] text-white'
+                        : 'bg-zinc-800 border-transparent text-white/60 hover:bg-zinc-700'
+                      }`}>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="giveaway"
+                          checked={selectedGiveawayId === g.id}
+                          onChange={() => setSelectedGiveawayId(g.id)}
+                          className="accent-[#FFD700] w-5 h-5"
+                        />
+                        <div className="font-medium">{g.title}</div>
+                      </div>
+                      <div className="text-sm bg-zinc-900 px-2 py-1 rounded text-white/40">{g.price} AR</div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleGrantTicket}
+              disabled={grantingTicket || activeGiveaways.length === 0}
+              className="w-full py-4 bg-gradient-to-b from-[#FFD700] to-[#FFA500] hover:from-[#FFE55E] hover:to-[#FFB52E] text-black font-bold rounded-xl disabled:opacity-50 active:scale-[0.98] transition-transform shadow-[0_4px_20px_-5px_rgba(255,215,0,0.3)]"
+            >
+              {grantingTicket ? 'Выдача...' : 'Выдать билет бесплатно'}
+            </button>
+
+            <p className="text-center text-xs text-white/30">
+              Билет будет выдан без списания средств. <br />
+              В транзакциях отобразится как "Admin granted".
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return null
 }
 // Build 1767352989
 // FORCE_REFRESH 1767353752
