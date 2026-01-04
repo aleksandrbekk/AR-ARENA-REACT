@@ -27,13 +27,13 @@ export function Tour2Squeeze({ candidates, results }: Omit<Tour2SqueezeProps, 'o
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg mx-auto">
+            <div className="grid grid-cols-4 gap-2 max-w-md mx-auto px-2">
                 {candidates.map((ticket, idx) => {
                     const result = results.get(idx)
                     const isRevealed = results.has(idx)
 
                     return (
-                        <div key={idx} className="">
+                        <div key={idx} className="w-full">
                             <SqueezeCard
                                 isRevealed={isRevealed}
                                 result={result || 'red'} // Default to red if not set

@@ -78,10 +78,10 @@ export function FinalBattle({
 
     return (
         <div className={embedded ? '' : 'min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4'}>
-            {/* Bulls & Bears Title - metallic style */}
+            {/* БЫКИ И МЕДВЕДИ Title - metallic style */}
             {!embedded && (
                 <div className="text-center mb-6">
-                    <h1 className="text-3xl font-black tracking-wider uppercase flex items-center justify-center gap-3">
+                    <h1 className="text-2xl font-black tracking-wider uppercase flex items-center justify-center gap-2">
                         <span
                             style={{
                                 background: 'linear-gradient(180deg, #7FFF7F 0%, #22c55e 40%, #166534 70%, #0a3d1a 100%)',
@@ -90,9 +90,9 @@ export function FinalBattle({
                                 filter: 'drop-shadow(0 2px 4px rgba(34,197,94,0.5))',
                             }}
                         >
-                            BULLS
+                            БЫКИ
                         </span>
-                        <span className="text-white/40">&</span>
+                        <span className="text-white/40">И</span>
                         <span
                             style={{
                                 background: 'linear-gradient(180deg, #FF7F7F 0%, #ef4444 40%, #991b1b 70%, #450a0a 100%)',
@@ -101,7 +101,7 @@ export function FinalBattle({
                                 filter: 'drop-shadow(0 2px 4px rgba(239,68,68,0.5))',
                             }}
                         >
-                            BEARS
+                            МЕДВЕДИ
                         </span>
                     </h1>
                 </div>
@@ -155,7 +155,7 @@ export function FinalBattle({
 
                             {/* Name / Place - show place IMMEDIATELY when assigned */}
                             <motion.div
-                                className={`px-4 py-2 rounded-xl text-center mb-2 min-w-[90px] transition-all duration-300 ${
+                                className={`px-3 py-2 rounded-xl text-center mb-2 min-w-[80px] max-w-[100px] transition-all duration-300 ${
                                     score?.place === 1
                                         ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold shadow-[0_0_30px_rgba(255,215,0,0.8)]'
                                         : score?.place === 2
@@ -167,9 +167,11 @@ export function FinalBattle({
                                 animate={score?.place === 1 ? { scale: [1, 1.05, 1] } : {}}
                                 transition={score?.place === 1 ? { duration: 0.5, repeat: 3 } : {}}
                             >
-                                {hasPlace
-                                    ? `${score.place} МЕСТО`
-                                    : ticket.player.name}
+                                <span className="truncate block text-sm font-bold">
+                                    {hasPlace
+                                        ? `${score.place} МЕСТО`
+                                        : ticket.player.name}
+                                </span>
                             </motion.div>
 
                             {/* Bulls & Bears Grid */}

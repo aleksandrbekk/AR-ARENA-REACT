@@ -61,7 +61,6 @@ export function SqueezeCard({
   const rotateX = useTransform(dragY, [0, MAX_DRAG], [0, 35])
   const rotateY = useTransform(dragY, [0, MAX_DRAG], [0, -25])
   const cardX = useTransform(dragY, [0, MAX_DRAG], [0, -15])
-  const peekOpacity = useTransform(dragY, [0, MAX_DRAG * 0.3, MAX_DRAG], [0, 0.3, 0.8])
 
   // Result colors
   const resultColors = {
@@ -137,18 +136,19 @@ export function SqueezeCard({
       className="relative w-full touch-none"
       style={{ perspective: '1000px', aspectRatio: '5/7' }}
     >
-      {/* Result card (underneath) */}
+      {/* Result card (underneath) - only visible when revealed or peeking */}
       <motion.div
         className="absolute inset-0 rounded-2xl overflow-hidden"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{
-          opacity: isRevealed ? 1 : peekOpacity.get(),
-          scale: isRevealed ? 1 : 0.95
+          opacity: isRevealed ? 1 : 0,
+          scale: isRevealed ? 1 : 0.9
         }}
         style={{
           background: colors.bg,
           border: `3px solid ${colors.border}`,
-          boxShadow: isRevealed ? `0 0 40px ${colors.glow}, inset 0 0 30px rgba(255,255,255,0.1)` : 'none'
+          boxShadow: isRevealed ? `0 0 40px ${colors.glow}, inset 0 0 30px rgba(255,255,255,0.1)` : 'none',
+          pointerEvents: isRevealed ? 'auto' : 'none'
         }}
       >
         {/* Result content */}

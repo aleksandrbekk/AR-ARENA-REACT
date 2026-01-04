@@ -394,8 +394,8 @@ export function LiveArenaPage() {
     const eliminatedMap = new Map<number, number>()
     let eliminatedCount = 0
 
-    // Track cumulative offset for smooth continuous scrolling
-    let cumulativeOffset = 0
+    // Track spin count for absolute offset calculation (like TestPage)
+    let spinCount = 0
 
     for (const spin of results.semifinal.spins) {
       const spinTicketNum = typeof spin.ticket === 'number' ? spin.ticket : (spin.ticket as any)?.ticket_number || (spin as any).ticket_number
@@ -403,18 +403,19 @@ export function LiveArenaPage() {
       // Like vanilla: calculate target position first, then smooth animate
       setCurrentSpinTicket(null)
 
-      // Item width 100px + gap 12px = 112px per item
+      // Item width 80px + gap 10px = 90px per item (matches SemifinalTraffic.tsx)
       const ticketIndex = semifinalists.findIndex(t => t.ticket_number === spinTicketNum)
-      const itemWidth = 112
+      const itemWidth = 90
       const itemsPerRep = semifinalists.length
 
-      // Calculate how many full repetitions to scroll (2-3 reps for visual effect)
-      const extraReps = 2 + Math.floor(Math.random() * 2) // 2-3 extra repetitions
-      const targetOffset = cumulativeOffset - (extraReps * itemsPerRep * itemWidth) - (ticketIndex * itemWidth)
+      // Absolute positioning like TestPage: start from rep 5, add 3 reps per spin
+      const targetRepetition = 5 + spinCount * 3 + Math.floor(Math.random() * 2)
+      const targetSlot = targetRepetition * itemsPerRep + ticketIndex
+      const targetOffset = -(targetSlot * itemWidth)
 
       // Smooth scroll to target over 4 seconds (like vanilla)
       setRouletteOffset(targetOffset)
-      cumulativeOffset = targetOffset
+      spinCount++
 
       // Play visuals sound
       playRouletteTicks(25) // Approx 4 seconds of ticks

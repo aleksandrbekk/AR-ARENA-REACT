@@ -51,22 +51,28 @@ export function SemifinalTraffic({
                         <motion.h1
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-2xl font-black text-[#FFD700] drop-shadow-[0_0_20px_rgba(255,215,0,0.5)]"
+                            className="text-3xl font-black"
+                            style={{
+                                background: 'linear-gradient(90deg, #22c55e 0%, #eab308 50%, #ef4444 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                filter: 'drop-shadow(0 0 20px rgba(234,179,8,0.5))'
+                            }}
                         >
-                            SEMIFINAL
+                            СВЕТОФОР
                         </motion.h1>
-                        <p className="text-white/60 text-sm">Обратный светофор</p>
+                        <p className="text-white/50 text-sm">Полуфинал</p>
                     </div>
 
                     {/* Legend with neon dots */}
                     <div className="flex justify-center gap-4 mb-5">
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full shadow-[0_0_8px_#22c55e,0_0_16px_rgba(34,197,94,0.5)]" style={{ background: 'linear-gradient(to bottom, #4ade80, #22c55e)' }} />
-                            <span className="text-xs text-white/70">1 hit</span>
+                            <span className="text-xs text-white/70">1 удар</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full shadow-[0_0_8px_#eab308,0_0_16px_rgba(234,179,8,0.5)]" style={{ background: 'linear-gradient(to bottom, #fde047, #eab308)' }} />
-                            <span className="text-xs text-white/70">2 hits</span>
+                            <span className="text-xs text-white/70">2 удара</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full shadow-[0_0_8px_#ef4444,0_0_16px_rgba(239,68,68,0.5)]" style={{ background: 'linear-gradient(to bottom, #f87171, #ef4444)' }} />
