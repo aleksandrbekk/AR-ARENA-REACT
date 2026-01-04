@@ -398,8 +398,8 @@ export function LiveArenaTestPage() {
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
                 <BackButton />
                 <div className="text-center mb-6 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">ТУР 1 ТЕСТ</h1>
-                    <p className="text-white/50 text-sm">Барабан</p>
+                    <h1 className="text-2xl font-black text-[#FFD700]">ОТБОРОЧНЫЙ ТУР</h1>
+                    <p className="text-white/50 text-sm">Выбираем 20 из {mockWinners20.length} билетов</p>
                 </div>
                 <Tour1Drum
                     candidates={mockWinners20}
@@ -439,8 +439,8 @@ export function LiveArenaTestPage() {
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4 pb-8">
                 <BackButton />
                 <div className="text-center mb-4 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">ТУР 2 ТЕСТ</h1>
-                    <p className="text-white/50 text-sm">Нажми на карту чтобы открыть</p>
+                    <h1 className="text-2xl font-black text-[#FFD700]">ВТОРОЙ ТУР</h1>
+                    <p className="text-white/50 text-sm">Определяем ТОП-5 финалистов</p>
                 </div>
 
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 max-w-lg mx-auto">
@@ -470,8 +470,8 @@ export function LiveArenaTestPage() {
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
                 <BackButton />
                 <div className="text-center mb-4 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">ПОЛУФИНАЛ ТЕСТ</h1>
-                    <p className="text-white/50 text-sm mb-4">Обратный светофор</p>
+                    <h1 className="text-2xl font-black text-[#FFD700]">ПОЛУФИНАЛ</h1>
+                    <p className="text-white/50 text-sm mb-4">3 попадания = выбывание. В финал выходят 3 игрока</p>
                     <button
                         onClick={runSemifinalDemo}
                         data-testid="run-demo-btn"
@@ -501,8 +501,8 @@ export function LiveArenaTestPage() {
             <div className="min-h-screen bg-[#0a0a0a] pt-[80px] px-4">
                 <BackButton />
                 <div className="text-center mb-4 pt-8">
-                    <h1 className="text-2xl font-black text-[#FFD700]">ФИНАЛ ТЕСТ</h1>
-                    <p className="text-white/50 text-sm mb-4">Быки и Медведи</p>
+                    <h1 className="text-2xl font-black text-[#FFD700]">ФИНАЛ</h1>
+                    <p className="text-white/50 text-sm mb-4">3 быка = победа | 3 медведя = выбывание</p>
                 </div>
 
                 <FinalBattle
