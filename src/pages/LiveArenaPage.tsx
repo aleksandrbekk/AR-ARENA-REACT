@@ -61,8 +61,9 @@ export function LiveArenaPage() {
   // Tour 2
   const [tour2Cards, setTour2Cards] = useState<Ticket[]>([])
   const [tour2Results, setTour2Results] = useState<Map<number, 'green' | 'red'>>(new Map())
-  const [, setTour2RevealedCount] = useState(0) // Only setter used (tracks count for stage progression)
+  const tour2CardsRef = useRef<Ticket[]>([]) // Ref for closure access
   const tour2SelectedTicketsRef = useRef<Set<number>>(new Set()) // Set of TICKET NUMBERS that are green
+  const tour2RevealedCountRef = useRef(0)
 
   // Semifinal
   const [semifinalPlayers, setSemifinalPlayers] = useState<Ticket[]>([])
@@ -114,15 +115,19 @@ export function LiveArenaPage() {
 
   // ==================== TOUR 2 HANDLERS ====================
   const handleTour2Reveal = (idx: number) => {
-    // Check if already revealed
-    if (tour2Results.has(idx)) return
-
-    // Get the ticket at this display position
-    const ticket = tour2Cards[idx]
-    if (!ticket) return
+    // Get the ticket at this display position from REF (not state - closure issue)
+    const cards = tour2CardsRef.current
+    const ticket = cards[idx]
+    if (!ticket) {
+      console.error('Tour2: No ticket at index', idx, 'cards:', cards.length)
+      return
+    }
 
     // Check if this TICKET NUMBER is in the winners set
-    const isGreen = tour2SelectedTicketsRef.current.has(ticket.ticket_number)
+    const selectedTickets = tour2SelectedTicketsRef.current
+    const isGreen = selectedTickets.has(ticket.ticket_number)
+
+    console.log('Tour2 Reveal:', { idx, ticketNum: ticket.ticket_number, isGreen, selectedTickets: [...selectedTickets] })
 
     // Update results map
     setTour2Results(prev => {
@@ -141,17 +146,22 @@ export function LiveArenaPage() {
     }
     playImpact() // Both green and red play impact
 
-    // Track revealed count using state (not ref)
-    setTour2RevealedCount(prev => {
-      const newCount = prev + 1
-      // When all 20 cards revealed, proceed to next stage
-      if (newCount >= 20) {
-        setTimeout(() => {
-          stageResolver.current?.()
-        }, 1500)
-      }
-      return newCount
-    })
+    // Track revealed count
+    tour2RevealedCountRef.current++
+    console.log('Tour2 revealed count:', tour2RevealedCountRef.current)
+
+    // When all 20 cards revealed, proceed to next stage
+    if (tour2RevealedCountRef.current >= 20) {
+      console.log('Tour2: All cards revealed, proceeding to semifinal...')
+      setTimeout(() => {
+        if (stageResolver.current) {
+          console.log('Tour2: Calling stageResolver')
+          stageResolver.current()
+        } else {
+          console.error('Tour2: stageResolver is null!')
+        }
+      }, 1500)
+    }
   }
 
   const handleTour2DragProgress = (progress: number) => {
@@ -396,14 +406,20 @@ export function LiveArenaPage() {
     })
 
     // Store TICKET NUMBERS of winners (not indices)
-    tour2SelectedTicketsRef.current = new Set(results.tour2.finalists)
+    const finalistTickets = results.tour2.finalists
+    console.log('Tour2 Setup - finalist tickets:', finalistTickets)
+    tour2SelectedTicketsRef.current = new Set(finalistTickets)
 
-    // Reset state
-    setTour2RevealedCount(0)
+    // Reset refs and state
+    tour2RevealedCountRef.current = 0
     setTour2Results(new Map())
 
     // Shuffle cards for VISUAL display (green cards scattered randomly)
     const shuffledCards = [...tour1WinnerTickets].sort(() => Math.random() - 0.5)
+    console.log('Tour2 Setup - shuffled cards:', shuffledCards.map(c => c.ticket_number))
+
+    // Store in ref for handler access (closure issue fix)
+    tour2CardsRef.current = shuffledCards
 
     setCurrentStage('tour2')
     setTour2Cards(shuffledCards)
@@ -411,6 +427,7 @@ export function LiveArenaPage() {
     // Wait for all 20 cards to be revealed manually by user
     await new Promise<void>(resolve => {
       stageResolver.current = resolve
+      console.log('Tour2: stageResolver set, waiting for user...')
     })
 
     await sleep(1500)
