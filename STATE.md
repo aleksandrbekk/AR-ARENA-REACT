@@ -1,6 +1,40 @@
 # Current State
 
 ## 🚀 Active Task
+**Live Arena Performance + Sounds - ВЫПОЛНЕНО (05.01.2026)**
+
+### ✅ Что исправлено:
+1. **Цена билета (prices vs price):**
+   - Админка сохраняла в `prices: {ar: 10}`
+   - Страницы читали устаревшее `giveaway.price`
+   - Исправлено: теперь читаем `prices.ar || prices.bul || price`
+   - Файлы: BuyTicketModal, GiveawayCard, GiveawayDetailsPage(V2)
+
+2. **Live Arena Performance (useMemo):**
+   - Все трансформации данных обёрнуты в useMemo
+   - tour1Winners, tour2Finalists, semifinalCandidates, finalCandidates
+   - Предотвращает пересоздание объектов при ре-рендере
+
+3. **Live Arena Sounds (useArenaSounds hook):**
+   - **Tour1:** tick (каждый 2й тик), winnerFound (удар), allFound (победа)
+   - **Tour2:** green (hit1), red (failure)
+   - **Semifinal:** hit1 (1 удар), hit2 (2 удара), eliminated (3 удара)
+   - **Final:** wheelSpin (рулетка), bull (успех), bear (неудача), win (победа)
+
+### 🔧 Изменённые файлы:
+- `src/pages/LiveArenaPage.tsx` — useMemo + useArenaSounds
+- `src/components/live/Tour1Drum.tsx` — уже поддерживал колбэки
+- `src/components/live/Tour2Squeeze.tsx` — добавлены onRevealGreen/Red
+- `src/components/live/SemifinalTraffic.tsx` — добавлены onHit1/2/Eliminated
+- `src/components/live/FinalBattle.tsx` — добавлены onWheelSpin/Bull/Bear/Win
+- `src/components/giveaways/BuyTicketModal.tsx` — исправлена цена
+- `src/components/giveaways/GiveawayCard.tsx` — исправлена цена
+- `src/pages/GiveawayDetailsPage.tsx` — исправлена цена
+- `src/pages/GiveawayDetailsPageV2.tsx` — исправлена цена
+
+---
+
+## 📌 Previous Task
 **Фикс механики тапов (UX + расчёты) - ВЫПОЛНЕНО (05.01.2026)**
 
 ### ✅ Что исправлено:
