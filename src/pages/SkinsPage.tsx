@@ -7,7 +7,7 @@ import { RARITY_CONFIG, type RarityType } from '../config/rarityConfig';
 import { CurrencyIcon } from '../components/CurrencyIcon';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Pickaxe, Battery, Lock, Check } from 'lucide-react';
+import { Zap, Pickaxe, Battery, Check } from 'lucide-react';
 import { useToast } from '../components/ToastProvider';
 
 const RARITY_GRADIENTS = {
@@ -88,13 +88,8 @@ export default function SkinsPage() {
   const owned = selectedSkin ? isOwned(selectedSkin.id) : false;
   const equipped = selectedSkin ? isEquipped(selectedSkin.id) : false;
 
-  // Проверка требований
-  const levelReq = selectedSkin?.level_req || 0;
-  const userLevel = gameState?.level || 0;
-  const isLevelLocked = !owned && userLevel < levelReq;
-
   const handleBuy = async () => {
-    if (!selectedSkinId || owned || !telegramUser || isLevelLocked) return;
+    if (!selectedSkinId || owned || !telegramUser) return;
     setBuying(true);
 
     try {
@@ -374,32 +369,20 @@ export default function SkinsPage() {
               </motion.button>
             ) : (
               <motion.button
-                whileTap={!isLevelLocked ? { scale: 0.95 } : {}}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleBuy}
-                disabled={buying || isLevelLocked || (gameState ? (
+                disabled={buying || (gameState ? (
                   selectedSkin?.skin_type === 'ar'
                     ? gameState.balance_ar < (selectedSkin?.price_ar || 0)
                     : gameState.balance_bul < (selectedSkin?.price_bul || 0)
                 ) : false)}
                 className={`
                   w-full py-3.5 rounded-xl font-bold text-sm transition-all relative overflow-hidden
-                  ${isLevelLocked 
-                    ? 'bg-gray-800 text-white/40 cursor-not-allowed border border-white/5'
-                    : `${rarityStyles.buttonGradient} text-white shadow-lg`
-                  }
+                  ${rarityStyles.buttonGradient} text-white shadow-lg
                   disabled:opacity-80
                 `}
               >
-                <div className="flex items-center justify-center gap-2">
-                  {isLevelLocked ? (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      <span>LVL {levelReq}</span>
-                    </>
-                  ) : (
-                    <span>{buying ? '...' : 'Купить'}</span>
-                  )}
-                </div>
+                <span>{buying ? '...' : 'Купить'}</span>
               </motion.button>
             )}
           </div>

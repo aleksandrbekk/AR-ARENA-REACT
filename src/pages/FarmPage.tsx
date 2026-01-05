@@ -535,7 +535,7 @@ export function FarmPage() {
                     <p className="text-gray-500 text-sm">
                       {location.purchased
                         ? `${location.equipment_count}/${location.max_slots} шт оборудования`
-                        : `Уровень ${location.required_level}+`
+                        : `${location.price.toLocaleString()} BUL`
                       }
                     </p>
                   </div>
@@ -556,7 +556,7 @@ export function FarmPage() {
                         {purchasing === location.slug ? '...' : `${location.price.toLocaleString()} BUL`}
                       </button>
                     ) : (
-                      <span className="text-zinc-600 text-xs">🔒 Lvl {location.required_level}</span>
+                      <span className="text-zinc-600 text-xs">🔒 Недостаточно BUL</span>
                     )}
                   </div>
                 </div>
