@@ -74,14 +74,9 @@ export function FinalBattle({
     }, [candidates])
 
     // WHEEL MECHANICS:
-    // Cursor at top (0°) rotates clockwise around wheel
+    // Cursor starts at top (0°), rotates clockwise
     // rulet.png: LEFT = GREEN (BULL), RIGHT = RED (BEAR)
-    //
-    // When cursor at 270° → points LEFT → BULL zone
-    // When cursor at 90° → points RIGHT → BEAR zone
-    //
-    // SIMPLE APPROACH: Always add full rotations + target angle directly
-    // No delta calculation - just set absolute target
+    // 270° = LEFT = BULL, 90° = RIGHT = BEAR
 
     useEffect(() => {
         if (animationStarted.current || turns.length === 0 || scores.length === 0) return
@@ -117,17 +112,20 @@ export function FinalBattle({
             setLastResult(null)
             setWheelSpinning(true)
 
-            // Target angle based on result
-            // Bull = 270° (left side), Bear = 90° (right side)
-            // Add randomness ±30° within zone
-            const randomOffset = (Math.random() - 0.5) * 60
+            // Target angle: Bull=270°, Bear=90° (with ±25° randomness)
+            const randomOffset = (Math.random() - 0.5) * 50
             const targetAngle = turn.result === 'bull'
-                ? 270 + randomOffset  // 240° to 300°
-                : 90 + randomOffset   // 60° to 120°
+                ? 270 + randomOffset
+                : 90 + randomOffset
 
-            // Add 5 full spins (1800°) + target
+            // FIXED: Calculate delta from current position to target
+            const currentPos = baseAngle % 360
+            let delta = targetAngle - currentPos
+            if (delta < 0) delta += 360  // Always rotate forward (clockwise)
+
+            // 5 full spins + delta to reach exact target
             const fullSpins = 1800
-            const newAngle = baseAngle + fullSpins + targetAngle
+            const newAngle = baseAngle + fullSpins + delta
             baseAngle = newAngle
 
             setWheelAngle(newAngle)
@@ -193,70 +191,66 @@ export function FinalBattle({
     }, [turns, scores.length, candidates, winners, onComplete, safeTimeout, onWheelSpin, onBull, onBear, onWin])
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] pt-[90px] pb-4 px-3 flex flex-col">
+        <div className="min-h-screen bg-[#0a0a0a] flex flex-col pt-[100px] pb-6 px-4">
             {/* Title */}
-            <div className="text-center mb-4">
-                <h1 className="text-xl font-black tracking-wide uppercase flex items-center justify-center gap-2">
+            <div className="text-center mb-5">
+                <h1 className="text-2xl font-black tracking-wide uppercase flex items-center justify-center gap-3">
                     <span className="text-green-500 drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]">
                         БЫКИ
                     </span>
-                    <span className="text-white/40">И</span>
+                    <span className="text-white/40 text-lg">vs</span>
                     <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">
                         МЕДВЕДИ
                     </span>
                 </h1>
                 {isAnimating && (
-                    <div className="mt-1.5 inline-flex items-center gap-2 px-3 py-1 bg-zinc-900/80 rounded-full border border-white/10">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFD700] animate-pulse" />
-                        <span className="text-xs text-white/70">
-                            Ход {currentTurnIndex + 1} / {turns.length}
+                    <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 bg-zinc-900/80 rounded-full border border-white/10">
+                        <div className="w-2 h-2 rounded-full bg-[#FFD700] animate-pulse" />
+                        <span className="text-sm text-white/70">
+                            Ход {currentTurnIndex + 1} из {turns.length}
                         </span>
                     </div>
                 )}
             </div>
 
-            {/* Players */}
-            <div className="flex justify-center items-start gap-2 mb-4">
+            {/* Players - 3 cards centered */}
+            <div className="flex justify-center gap-3 mb-6">
                 {candidates.map((ticket, idx) => {
                     const score = scores[idx] || { bulls: 0, bears: 0, place: null }
                     const isCurrent = currentPlayer === idx
                     const hasPlace = score.place !== null
+                    const isWinner = hasPlace && score.bulls >= 3
 
                     return (
                         <motion.div
                             key={idx}
                             className={`
-                                flex flex-col items-center p-2 rounded-xl border-2 transition-all duration-300
-                                ${hasPlace && score.place === 1
-                                    ? 'border-[#FFD700] bg-[#FFD700]/10 shadow-[0_0_20px_rgba(255,215,0,0.5)]'
-                                    : hasPlace && score.place === 3
-                                        ? 'border-red-500/50 bg-red-950/30 opacity-60'
+                                flex flex-col items-center p-3 rounded-2xl border-2 w-[90px]
+                                ${isWinner
+                                    ? 'border-[#FFD700] bg-[#FFD700]/10 shadow-[0_0_25px_rgba(255,215,0,0.5)]'
+                                    : hasPlace
+                                        ? 'border-red-500/50 bg-red-950/20 opacity-60'
                                         : isCurrent
-                                            ? 'border-green-500 bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.4)]'
-                                            : 'border-zinc-700 bg-zinc-900/50'
+                                            ? 'border-green-500 bg-green-900/20 shadow-[0_0_20px_rgba(34,197,94,0.4)]'
+                                            : 'border-zinc-700/50 bg-zinc-900/40'
                                 }
                             `}
-                            animate={isCurrent && !hasPlace ? { scale: [1, 1.03, 1] } : {}}
-                            transition={{ duration: 0.5, repeat: isCurrent ? Infinity : 0 }}
+                            animate={isCurrent && !hasPlace ? { scale: [1, 1.02, 1] } : {}}
+                            transition={{ duration: 0.8, repeat: isCurrent ? Infinity : 0 }}
                         >
                             {/* Avatar */}
-                            <div className="relative mb-1.5">
+                            <div className="relative mb-2">
                                 <img
                                     src={ticket.player.avatar || '/default-avatar.png'}
                                     alt=""
-                                    className={`w-14 h-14 rounded-full border-2 object-cover ${
-                                        hasPlace && score.place === 1 ? 'border-[#FFD700]' :
-                                        hasPlace && score.place === 3 ? 'border-red-500 grayscale' :
+                                    className={`w-12 h-12 rounded-full border-2 object-cover ${
+                                        isWinner ? 'border-[#FFD700]' :
+                                        hasPlace ? 'border-red-500 grayscale' :
                                         isCurrent ? 'border-green-500' : 'border-zinc-600'
                                     }`}
                                 />
-                                {isCurrent && !hasPlace && (
-                                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                                        <span className="text-[10px]">▶</span>
-                                    </div>
-                                )}
                                 {hasPlace && (
-                                    <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-bold ${
+                                    <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                                         score.place === 1 ? 'bg-[#FFD700] text-black' :
                                         score.place === 2 ? 'bg-gray-400 text-black' :
                                         'bg-red-600 text-white'
@@ -267,62 +261,62 @@ export function FinalBattle({
                             </div>
 
                             {/* Name */}
-                            <div className="text-[10px] text-white/70 truncate max-w-[70px] mb-1.5">
-                                {ticket.player.name}
+                            <div className="text-[11px] text-white/80 font-medium truncate w-full text-center mb-2">
+                                {ticket.player.name?.slice(0, 10) || 'Player'}
                             </div>
 
-                            {/* Score Grid */}
-                            <div className="flex flex-col gap-0.5">
-                                <div className="flex gap-0.5">
-                                    {[0, 1, 2].map(i => (
-                                        <motion.div
-                                            key={`bull-${i}`}
-                                            className={`w-5 h-5 rounded flex items-center justify-center ${
-                                                score.bulls > i
-                                                    ? 'bg-green-500 shadow-[0_0_6px_#22c55e]'
-                                                    : 'bg-zinc-800 border border-zinc-700'
-                                            }`}
-                                            animate={score.bulls > i ? { scale: [0.8, 1.1, 1] } : {}}
-                                        >
-                                            <span className="text-[10px]">🐂</span>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                                <div className="flex gap-0.5">
-                                    {[0, 1, 2].map(i => (
-                                        <motion.div
-                                            key={`bear-${i}`}
-                                            className={`w-5 h-5 rounded flex items-center justify-center ${
-                                                score.bears > i
-                                                    ? 'bg-red-500 shadow-[0_0_6px_#ef4444]'
-                                                    : 'bg-zinc-800 border border-zinc-700'
-                                            }`}
-                                            animate={score.bears > i ? { scale: [0.8, 1.1, 1] } : {}}
-                                        >
-                                            <span className="text-[10px]">🐻</span>
-                                        </motion.div>
-                                    ))}
-                                </div>
+                            {/* Score - Bulls */}
+                            <div className="flex gap-1 mb-1">
+                                {[0, 1, 2].map(i => (
+                                    <motion.div
+                                        key={`bull-${i}`}
+                                        className={`w-5 h-5 rounded flex items-center justify-center ${
+                                            score.bulls > i
+                                                ? 'bg-green-500 shadow-[0_0_8px_#22c55e]'
+                                                : 'bg-zinc-800 border border-zinc-700'
+                                        }`}
+                                        animate={score.bulls > i ? { scale: [0.8, 1.1, 1] } : {}}
+                                    >
+                                        <span className="text-[10px]">🐂</span>
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            {/* Score - Bears */}
+                            <div className="flex gap-1">
+                                {[0, 1, 2].map(i => (
+                                    <motion.div
+                                        key={`bear-${i}`}
+                                        className={`w-5 h-5 rounded flex items-center justify-center ${
+                                            score.bears > i
+                                                ? 'bg-red-500 shadow-[0_0_8px_#ef4444]'
+                                                : 'bg-zinc-800 border border-zinc-700'
+                                        }`}
+                                        animate={score.bears > i ? { scale: [0.8, 1.1, 1] } : {}}
+                                    >
+                                        <span className="text-[10px]">🐻</span>
+                                    </motion.div>
+                                ))}
                             </div>
                         </motion.div>
                     )
                 })}
             </div>
 
-            {/* Wheel */}
+            {/* Wheel - Big and centered */}
             <div className="flex-1 flex items-center justify-center">
-                <div className="relative w-52 h-52">
+                <div className="relative w-60 h-60">
                     {/* Glow */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 via-transparent to-red-500/20 rounded-full blur-xl" />
+                    <div className="absolute inset-[-20px] bg-gradient-to-r from-green-500/20 via-transparent to-red-500/20 rounded-full blur-2xl" />
 
-                    {/* Wheel image */}
+                    {/* Wheel */}
                     <img
                         src="/icons/rulet.png"
                         alt="wheel"
                         className="w-full h-full relative z-10"
                     />
 
-                    {/* Cursor rotates */}
+                    {/* Cursor */}
                     <div
                         className="absolute inset-0 z-20"
                         style={{
@@ -335,11 +329,11 @@ export function FinalBattle({
                         <img
                             src="/icons/Cursor.png"
                             alt="cursor"
-                            className="absolute w-8 h-8 top-0 left-1/2 -translate-x-1/2 -translate-y-1"
+                            className="absolute w-10 h-10 top-0 left-1/2 -translate-x-1/2 -translate-y-2 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]"
                         />
                     </div>
 
-                    {/* Result */}
+                    {/* Result overlay */}
                     <AnimatePresence>
                         {lastResult && !wheelSpinning && (
                             <motion.div
@@ -349,14 +343,14 @@ export function FinalBattle({
                                 className="absolute inset-0 flex items-center justify-center z-30"
                             >
                                 <div className={`
-                                    w-20 h-20 rounded-full flex items-center justify-center
+                                    w-24 h-24 rounded-full flex items-center justify-center
                                     ${lastResult === 'bull'
-                                        ? 'bg-green-500/30 shadow-[0_0_40px_rgba(34,197,94,0.8)]'
-                                        : 'bg-red-500/30 shadow-[0_0_40px_rgba(239,68,68,0.8)]'
+                                        ? 'bg-green-500/30 shadow-[0_0_50px_rgba(34,197,94,0.9)]'
+                                        : 'bg-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.9)]'
                                     }
                                 `}>
                                     <motion.span
-                                        className="text-5xl"
+                                        className="text-6xl"
                                         animate={{ scale: [1, 1.2, 1] }}
                                         transition={{ duration: 0.3 }}
                                     >
@@ -369,14 +363,15 @@ export function FinalBattle({
                 </div>
             </div>
 
-            {/* FINAL */}
+            {/* FINAL text */}
             <div className="text-center mt-4">
                 <h2
-                    className="text-4xl font-black tracking-[0.2em]"
+                    className="text-4xl font-black tracking-[0.25em]"
                     style={{
                         background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 50%, #CC8400 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
+                        filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.3))'
                     }}
                 >
                     FINAL
