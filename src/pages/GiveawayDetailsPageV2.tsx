@@ -190,7 +190,7 @@ export function GiveawayDetailsPageV2() {
                 </div>
               </div>
             ) : (
-              // ENDED STATE -> Action Button
+              // ENDED STATE -> Action Buttons
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -201,12 +201,24 @@ export function GiveawayDetailsPageV2() {
                 </div>
                 <h2 className="text-2xl font-bold text-white drop-shadow-lg">Розыгрыш завершён</h2>
 
-                <button
-                  onClick={() => navigate(`/giveaway/${id}/results`)}
-                  className="mt-2 px-8 py-3 rounded-xl bg-white text-black font-bold uppercase tracking-wider hover:bg-gray-200 transition-colors shadow-lg"
-                >
-                  Смотреть результаты
-                </button>
+                <div className="flex gap-3 mt-2">
+                  {/* LIVE Button - only if draw_results exist */}
+                  {giveaway.draw_results && (
+                    <button
+                      onClick={() => navigate(`/live/${id}`)}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold uppercase tracking-wider hover:from-red-600 hover:to-red-700 transition-all shadow-lg flex items-center gap-2"
+                    >
+                      <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      LIVE
+                    </button>
+                  )}
+                  <button
+                    onClick={() => navigate(`/giveaway/${id}/results`)}
+                    className="px-6 py-3 rounded-xl bg-white text-black font-bold uppercase tracking-wider hover:bg-gray-200 transition-colors shadow-lg"
+                  >
+                    Результаты
+                  </button>
+                </div>
               </motion.div>
             )}
           </div>

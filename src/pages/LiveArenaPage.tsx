@@ -171,6 +171,32 @@ export function LiveArenaPage() {
     )
   }
 
+  // CHECK FOR OLD FORMAT: If tour1.participants doesn't exist or first element is a number
+  const isOldFormat = !drawResults.tour1?.participants ||
+    (drawResults.tour1.participants.length > 0 && typeof drawResults.tour1.participants[0] === 'number') ||
+    // Also check for old 'winners' field
+    (drawResults.tour1 as any)?.winners;
+
+  if (isOldFormat) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center p-4 text-center">
+        <div className="w-24 h-24 rounded-full bg-zinc-900 border border-red-500/30 flex items-center justify-center mb-6">
+          <span className="text-4xl">⚠️</span>
+        </div>
+        <h1 className="text-2xl font-black text-white mb-2">УСТАРЕВШИЙ ФОРМАТ</h1>
+        <p className="text-white/40 max-w-md mx-auto mb-4">
+          Этот розыгрыш был проведён в старом формате. Для просмотра трансляции требуется переигровка.
+        </p>
+        <button
+          onClick={() => navigate(`/giveaway/${id}/results`)}
+          className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-white transition-all"
+        >
+          Смотреть результаты
+        </button>
+      </div>
+    )
+  }
+
   // Data helpers - transform drawResults to component props format
   const tour1Winners = (drawResults.tour1.participants || []).map(p => ({
     ticket: p.ticket_number,
