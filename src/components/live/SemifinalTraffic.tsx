@@ -77,49 +77,59 @@ export function SemifinalTraffic({
         setHitCounts(initialHits)
     }, [candidates])
 
-    // Generate roulette tape - repeat tickets for smooth animation
-    const rouletteTape = [...candidates, ...candidates, ...candidates, ...candidates, ...candidates]
-    const ticketWidth = 72 // Width of each ticket in roulette
+    // Roulette tape - cycle tickets (3x for smooth looping)
+    const ITEM_WIDTH = 72 // px per ticket (including margin)
+    const rouletteTape = [...candidates, ...candidates, ...candidates]
 
     // Animate roulette spin to target ticket
     const spinRoulette = useCallback((targetTicket: number, onStop: () => void) => {
         setIsSpinning(true)
 
-        // Find target index (in the middle set for smooth animation)
+        // Find target index in the MIDDLE repetition (so we can spin from left)
         const baseIndex = candidates.findIndex(c => c.ticket_number === targetTicket)
-        const targetIndex = candidates.length * 2 + baseIndex // Use middle repetition
-        const targetOffset = targetIndex * ticketWidth
+        if (baseIndex === -1) {
+            setIsSpinning(false)
+            onStop()
+            return
+        }
 
-        // Spin duration
-        const spinDuration = 1500
+        // Target position: middle repetition + baseIndex
+        // We want this item to be centered under the arrow
+        const targetIndex = candidates.length + baseIndex
+        const finalOffset = targetIndex * ITEM_WIDTH
 
-        // Animate offset
+        // Add extra full rotations for visual effect
+        const extraRotations = candidates.length * ITEM_WIDTH * 2
+        const totalDistance = finalOffset + extraRotations
+
+        const spinDuration = 1800
         const startOffset = rouletteOffset
-        const totalSpin = targetOffset + (candidates.length * ticketWidth * 2) // Extra rotations
-        const startTime = Date.now()
+        const startTime = performance.now()
 
-        const animateRoulette = () => {
+        const animate = (now: number) => {
             if (isUnmountedRef.current) return
 
-            const elapsed = Date.now() - startTime
+            const elapsed = now - startTime
             const progress = Math.min(elapsed / spinDuration, 1)
 
-            // Easing - slow down at the end
+            // Cubic ease-out for smooth deceleration
             const eased = 1 - Math.pow(1 - progress, 3)
-            const currentOffset = startOffset + (totalSpin - startOffset) * eased
+            const currentOffset = startOffset + (totalDistance - startOffset) * eased
 
-            setRouletteOffset(currentOffset % (candidates.length * ticketWidth * 3))
+            setRouletteOffset(currentOffset)
 
             if (progress < 1) {
-                requestAnimationFrame(animateRoulette)
+                requestAnimationFrame(animate)
             } else {
+                // Snap to exact position
+                setRouletteOffset(finalOffset)
                 setIsSpinning(false)
                 onStop()
             }
         }
 
-        requestAnimationFrame(animateRoulette)
-    }, [candidates, rouletteOffset, ticketWidth])
+        requestAnimationFrame(animate)
+    }, [candidates, rouletteOffset])
 
     // Animate through spins
     useEffect(() => {
@@ -274,10 +284,10 @@ export function SemifinalTraffic({
                     {/* Scrolling tape */}
                     <div
                         ref={rouletteRef}
-                        className="flex items-center h-full absolute"
+                        className="flex items-center h-full absolute left-0"
                         style={{
-                            transform: `translateX(calc(50% - ${rouletteOffset}px - ${ticketWidth / 2}px))`,
-                            transition: isSpinning ? 'none' : 'transform 0.3s ease-out'
+                            // Center: 50% of container, minus offset, minus half item width (36px)
+                            transform: `translateX(calc(50vw - ${rouletteOffset}px - 36px))`,
                         }}
                     >
                         {rouletteTape.map((ticket, idx) => {
@@ -286,12 +296,12 @@ export function SemifinalTraffic({
                                 <div
                                     key={idx}
                                     className={`
-                                        flex-shrink-0 w-[68px] h-12 mx-0.5 rounded-lg
+                                        flex-shrink-0 w-[68px] h-12 mx-[2px] rounded-lg
                                         flex items-center justify-center
                                         font-mono font-bold text-sm
-                                        transition-all duration-200
+                                        transition-colors duration-200
                                         ${isActive
-                                            ? 'bg-[#FFD700] text-black scale-110 shadow-[0_0_20px_rgba(255,215,0,0.6)]'
+                                            ? 'bg-[#FFD700] text-black shadow-[0_0_20px_rgba(255,215,0,0.6)]'
                                             : 'bg-zinc-800 text-white/70 border border-zinc-700'
                                         }
                                     `}
