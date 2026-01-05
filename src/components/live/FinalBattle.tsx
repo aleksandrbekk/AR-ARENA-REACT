@@ -351,7 +351,7 @@ export function FinalBattle({
                         <img
                             src="/icons/Cursor.png"
                             alt="cursor"
-                            className="absolute w-9 h-9 top-[-6px] left-1/2 -translate-x-1/2 drop-shadow-[0_0_15px_rgba(255,165,0,0.9)]"
+                            className="absolute w-9 h-9 top-[-6px] left-1/2 -translate-x-1/2"
                         />
                     </div>
 

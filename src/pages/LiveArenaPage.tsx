@@ -364,7 +364,7 @@ export function LiveArenaPage() {
           >
             <div className="relative mb-8">
               <div className="absolute inset-0 bg-[#FFD700]/30 blur-[40px]" />
-              <img src="/icons/bull.png" alt="AR Arena" className="w-24 h-24 relative z-10 drop-shadow-[0_0_30px_rgba(255,215,0,0.5)]" />
+              <img src="/icons/bull.png" alt="AR Arena" className="w-24 h-24 relative z-10" />
             </div>
 
             <h1 className="text-4xl md:text-6xl font-black text-center mb-6 tracking-tight">
