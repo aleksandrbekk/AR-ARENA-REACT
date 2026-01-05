@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { GiveawayCard } from '../components/giveaways/GiveawayCard'
 import { useGiveaways } from '../hooks/useGiveaways'
-import { Gift, Loader2, AlertCircle, FlaskConical } from 'lucide-react'
+import { Gift, Loader2, AlertCircle } from 'lucide-react'
 import { HowToPlayButton } from '../components/HowToPlayButton'
 
 type TabType = 'active' | 'completed'
@@ -11,7 +10,6 @@ type TabType = 'active' | 'completed'
 export function GiveawaysPage() {
   const [tab, setTab] = useState<TabType>('active')
   const { giveaways, loading, error, getGiveaways } = useGiveaways()
-  const navigate = useNavigate()
 
   useEffect(() => {
     getGiveaways(tab)
@@ -86,14 +84,6 @@ export function GiveawaysPage() {
             </div>
           )}
 
-          {/* DEV TEST Button */}
-          <button
-            onClick={() => navigate('/live-test')}
-            className="mt-6 w-full py-4 rounded-2xl bg-zinc-800 border-2 border-dashed border-zinc-600 hover:border-[#FFD700] transition-all flex items-center justify-center gap-3"
-          >
-            <FlaskConical className="w-5 h-5 text-[#FFD700]" />
-            <span className="font-bold text-white">DEV TEST ARENA</span>
-          </button>
         </div>
       </div>
     </Layout>
