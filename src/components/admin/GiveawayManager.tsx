@@ -147,18 +147,10 @@ export function GiveawayManager() {
 
     setLoading(true)
     try {
-      // 2. Fetch tickets and players info
+      // 2. Fetch tickets
       const { data: ticketsData, error: tError } = await supabase
         .from('giveaway_tickets')
-        .select(`
-          *,
-          user:users (
-            telegram_id,
-            username,
-            first_name,
-            photo_url
-          )
-        `)
+        .select('*')
         .eq('giveaway_id', giveawayId)
 
       if (tError) throw tError
@@ -166,19 +158,31 @@ export function GiveawayManager() {
         throw new Error('Недостаточно участников (минимум 5)')
       }
 
-      // 3. Format tickets for engine
-      const tickets: Ticket[] = ticketsData.map(t => ({
-        user_id: t.user.telegram_id,
-        // Ensure ticket_number is number. If it's stored as "T-XXXX", we might need logic.
-        // Assuming DB stores proper numbers or we extract them.
-        // For visual consistency, we need a numeric representation.
-        ticket_number: typeof t.ticket_number === 'number' ? t.ticket_number : parseInt(t.ticket_number.replace(/\D/g, '').substring(0, 9) || '0'),
-        player: {
-          id: t.user.telegram_id,
-          name: t.user.username || t.user.first_name || `User ${t.user.telegram_id.toString().slice(-4)}`,
-          avatar: t.user.photo_url || ''
+      // 3. Fetch users by telegram_id
+      const uniqueTelegramIds = [...new Set(ticketsData.map(t => t.user_id))]
+      const { data: usersData, error: uError } = await supabase
+        .from('users')
+        .select('telegram_id, username, first_name, photo_url')
+        .in('telegram_id', uniqueTelegramIds)
+
+      if (uError) throw uError
+
+      // Create lookup map
+      const usersMap = new Map(usersData?.map(u => [u.telegram_id, u]) || [])
+
+      // 4. Format tickets for engine
+      const tickets: Ticket[] = ticketsData.map(t => {
+        const user = usersMap.get(t.user_id) || { telegram_id: t.user_id, username: null, first_name: null, photo_url: null }
+        return {
+          user_id: t.user_id,
+          ticket_number: typeof t.ticket_number === 'number' ? t.ticket_number : parseInt(String(t.ticket_number).replace(/\D/g, '').substring(0, 9) || '0'),
+          player: {
+            id: t.user_id,
+            name: user.username || user.first_name || `User ${String(t.user_id).slice(-4)}`,
+            avatar: user.photo_url || ''
+          }
         }
-      }))
+      })
 
       // 4. Generate Results Client-Side (Deterministic Script)
       // This is the "Magic" - running the complex simulation logic here
