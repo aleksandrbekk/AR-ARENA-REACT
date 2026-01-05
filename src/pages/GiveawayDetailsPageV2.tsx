@@ -128,7 +128,7 @@ export function GiveawayDetailsPageV2() {
 
   const isActive = giveaway?.status === 'active' && !isEnded
   const winChance = totalTickets > 0 && myTickets > 0
-    ? ((myTickets / totalTickets) * 100).toFixed(4)
+    ? parseFloat(((myTickets / totalTickets) * 100).toFixed(2)).toString()
     : '0'
 
   if (loading) {
