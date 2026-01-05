@@ -436,6 +436,8 @@ export function LiveArenaPage() {
             candidates={semifinalCandidates}
             spins={semifinalSpins}
             eliminated={semifinalEliminated}
+            prizes={giveaway?.prizes}
+            jackpotAmount={giveaway?.jackpot_current_amount || 0}
             onComplete={handleStageComplete}
             onHit1={handleSemifinalHit1}
             onHit2={handleSemifinalHit2}
