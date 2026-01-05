@@ -38,8 +38,12 @@ export function BuyTicketModal({ isOpen, onClose, giveaway, onSuccess }: BuyTick
     }
   }, [isOpen, hasRequirements])
 
-  const totalCost = count * (giveaway.price || 0)
-  const userBalance = giveaway.currency === 'ar'
+  // Определяем цену и валюту из нового формата prices, с fallback на старый
+  const ticketPrice = giveaway.prices?.ar ?? giveaway.prices?.bul ?? giveaway.price ?? 0
+  const ticketCurrency = giveaway.prices?.ar !== undefined ? 'ar' : giveaway.prices?.bul !== undefined ? 'bul' : (giveaway.currency || 'ar')
+
+  const totalCost = count * ticketPrice
+  const userBalance = ticketCurrency === 'ar'
     ? (gameState?.balance_ar || 0)
     : (gameState?.balance_bul || 0)
   const canAfford = userBalance >= totalCost
@@ -106,7 +110,7 @@ export function BuyTicketModal({ isOpen, onClose, giveaway, onSuccess }: BuyTick
               {/* Giveaway Info */}
               <div className="bg-black/30 rounded-xl p-3 mb-4">
                 <p className="text-sm text-white/70">{giveaway.title}</p>
-                <p className="text-xs text-white/40">Цена билета: {giveaway.price} {giveaway.currency?.toUpperCase()}</p>
+                <p className="text-xs text-white/40">Цена билета: {ticketPrice} {ticketCurrency.toUpperCase()}</p>
               </div>
 
               {/* Requirements Check */}

@@ -20,13 +20,22 @@ interface FinalBattleProps {
     turns: Turn[]
     winners: Winner[]
     onComplete: () => void
+    // Sound callbacks
+    onWheelSpin?: () => void
+    onBull?: () => void
+    onBear?: () => void
+    onWin?: () => void
 }
 
 export function FinalBattle({
     candidates,
     turns,
     winners,
-    onComplete
+    onComplete,
+    onWheelSpin,
+    onBull,
+    onBear,
+    onWin
 }: FinalBattleProps) {
     // Animation state
     const [currentTurnIndex, setCurrentTurnIndex] = useState(-1)
@@ -76,6 +85,9 @@ export function FinalBattle({
             currentAngle = newAngle
 
             setWheelAngle(newAngle)
+
+            // Sound for wheel spin
+            onWheelSpin?.()
 
             // Haptic feedback for spin
             if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -132,6 +144,24 @@ export function FinalBattle({
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred(
                         turn.result === 'bull' ? 'success' : 'error'
                     )
+                }
+
+                // Sound feedback for result
+                if (turn.result === 'bull') {
+                    onBull?.()
+                } else {
+                    onBear?.()
+                }
+
+                // Check if someone won or was eliminated and play win sound
+                const updatedScore = scores[turn.player]
+                if (updatedScore && (updatedScore.bulls >= 2 || updatedScore.bears >= 2)) {
+                    // About to win or be eliminated on next iteration
+                    if ((turn.result === 'bull' && updatedScore.bulls >= 2) ||
+                        (turn.result === 'bear' && updatedScore.bears >= 2)) {
+                        // This turn resulted in 3 bulls/bears
+                        setTimeout(() => onWin?.(), 500)
+                    }
                 }
 
                 turnIdx++

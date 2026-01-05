@@ -7,9 +7,12 @@ interface Tour2SqueezeProps {
     finalists: Ticket[]
     onComplete: () => void
     autoReveal?: boolean // Auto-reveal mode for Live Arena
+    // Sound callbacks
+    onRevealGreen?: () => void
+    onRevealRed?: () => void
 }
 
-export function Tour2Squeeze({ candidates, finalists, onComplete, autoReveal = true }: Tour2SqueezeProps) {
+export function Tour2Squeeze({ candidates, finalists, onComplete, autoReveal = true, onRevealGreen, onRevealRed }: Tour2SqueezeProps) {
     const [revealedCount, setRevealedCount] = useState(0)
     // Map index -> status
     const [results, setResults] = useState<Map<number, 'green' | 'red'>>(new Map())
@@ -32,6 +35,13 @@ export function Tour2Squeeze({ candidates, finalists, onComplete, autoReveal = t
         // Haptic feedback
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.impactOccurred(status === 'green' ? 'heavy' : 'light')
+        }
+
+        // Sound feedback
+        if (status === 'green') {
+            onRevealGreen?.()
+        } else {
+            onRevealRed?.()
         }
     }
 

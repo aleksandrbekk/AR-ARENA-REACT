@@ -7,13 +7,20 @@ interface SemifinalTrafficProps {
     spins: { ticket: number; hits: number }[]
     eliminated: { ticket_number: number; place: number }[]
     onComplete: () => void
+    // Sound callbacks
+    onHit1?: () => void  // First hit (green)
+    onHit2?: () => void  // Second hit (yellow)
+    onEliminated?: () => void  // Third hit (red)
 }
 
 export function SemifinalTraffic({
     candidates,
     spins,
     eliminated,
-    onComplete
+    onComplete,
+    onHit1,
+    onHit2,
+    onEliminated
 }: SemifinalTrafficProps) {
     // Animation state
     const [currentSpinIndex, setCurrentSpinIndex] = useState(-1)
@@ -77,6 +84,15 @@ export function SemifinalTraffic({
                     } else {
                         window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
                     }
+                }
+
+                // Sound feedback
+                if (spin.hits === 1) {
+                    onHit1?.()
+                } else if (spin.hits === 2) {
+                    onHit2?.()
+                } else if (spin.hits >= 3) {
+                    onEliminated?.()
                 }
 
                 spinIdx++

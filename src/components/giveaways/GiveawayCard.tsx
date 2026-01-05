@@ -95,7 +95,7 @@ export function GiveawayCard({ giveaway }: GiveawayCardProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <Ticket className="w-3.5 h-3.5 text-[#FFD700]" />
-          <span className="text-white/70">{giveaway.price} {giveaway.currency?.toUpperCase()}</span>
+          <span className="text-white/70">{giveaway.prices?.ar ?? giveaway.prices?.bul ?? giveaway.price ?? 0} {giveaway.prices?.ar !== undefined ? 'AR' : giveaway.prices?.bul !== undefined ? 'BUL' : (giveaway.currency || 'AR').toUpperCase()}</span>
         </div>
       </div>
     </motion.div>

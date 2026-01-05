@@ -293,7 +293,7 @@ export function GiveawayDetailsPageV2() {
             >
               <span>КУПИТЬ БИЛЕТ</span>
               <span className="bg-black/10 px-2 py-0.5 rounded text-sm font-bold">
-                {giveaway.price} {giveaway.currency?.toUpperCase()}
+                {giveaway.prices?.ar ?? giveaway.prices?.bul ?? giveaway.price ?? 0} {giveaway.prices?.ar !== undefined ? 'AR' : giveaway.prices?.bul !== undefined ? 'BUL' : (giveaway.currency || 'AR').toUpperCase()}
               </span>
             </button>
           </div>

@@ -297,7 +297,7 @@ export function GiveawayDetailsPage() {
                   boxShadow: '0 8px 24px rgba(255,215,0,0.4)'
                 }}
               >
-                Купить билет — {giveaway.price} {giveaway.currency?.toUpperCase()}
+                Купить билет — {giveaway.prices?.ar ?? giveaway.prices?.bul ?? giveaway.price ?? 0} {giveaway.prices?.ar !== undefined ? 'AR' : giveaway.prices?.bul !== undefined ? 'BUL' : (giveaway.currency || 'AR').toUpperCase()}
               </button>
 
               <button

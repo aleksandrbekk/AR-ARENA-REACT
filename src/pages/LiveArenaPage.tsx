@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
@@ -11,6 +11,9 @@ import { Tour2Squeeze } from '../components/live/Tour2Squeeze'
 import { SemifinalTraffic } from '../components/live/SemifinalTraffic'
 import { FinalBattle } from '../components/live/FinalBattle'
 import { HowToPlayButton } from '../components/HowToPlayButton'
+
+// Hooks
+import { useArenaSounds } from '../hooks/useArenaSounds'
 
 // Types for draw results (matches giveaway-engine.ts output)
 interface DrawParticipant {
@@ -59,8 +62,8 @@ export function LiveArenaPage() {
   const [stage, setStage] = useState<keyof typeof STAGES>('LOBBY')
   const [drawResults, setDrawResults] = useState<DrawResults | null>(null)
 
-  // Audio Refs
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  // Sounds
+  const sounds = useArenaSounds()
 
   // Fetch logic
   useEffect(() => {
@@ -197,53 +200,119 @@ export function LiveArenaPage() {
     )
   }
 
-  // Data helpers - transform drawResults to component props format
-  const tour1Winners = (drawResults.tour1.participants || []).map(p => ({
-    ticket: p.ticket_number,
-    user: p.username,
-    avatar: p.avatar || ''
-  }));
+  // Data helpers - memoized transforms to prevent re-renders
+  const tour1Winners = useMemo(() =>
+    (drawResults.tour1.participants || []).map(p => ({
+      ticket: p.ticket_number,
+      user: p.username,
+      avatar: p.avatar || ''
+    })), [drawResults.tour1.participants]
+  );
 
-  const tour2Finalists = (drawResults.tour2.finalists || []).map(p => ({
-    ticket: p.ticket_number,
-    user: p.username,
-    avatar: p.avatar || ''
-  }));
+  const tour2Finalists = useMemo(() =>
+    (drawResults.tour2.finalists || []).map(p => ({
+      ticket: p.ticket_number,
+      user: p.username,
+      avatar: p.avatar || ''
+    })), [drawResults.tour2.finalists]
+  );
 
-  const semifinalCandidates = (drawResults.tour2.finalists || []).map(p => ({
-    ticket: p.ticket_number,
-    ticket_number: p.ticket_number,
-    user: p.username,
-    user_id: p.telegram_id,
-    player: { id: p.telegram_id, name: p.username, avatar: p.avatar || '' },
-    avatar: p.avatar || ''
-  }));
+  // Tour2 data - memoized with full Ticket structure
+  const tour2Candidates = useMemo(() =>
+    tour1Winners.map(w => ({
+      ticket: w.ticket,
+      user: w.user,
+      player: { id: '0', name: w.user, avatar: w.avatar || '' },
+      ticket_number: w.ticket,
+      user_id: '0'
+    })), [tour1Winners]
+  );
 
-  // Semifinal data - spins array and eliminated players
-  const semifinalSpins = drawResults.semifinal.spins || [];
-  const semifinalEliminated = (drawResults.semifinal.eliminated || []).map(p => ({
-    ticket_number: p.ticket_number,
-    place: p.place
-  }));
+  const tour2FinalistsData = useMemo(() =>
+    tour2Finalists.map(w => ({
+      ticket: w.ticket,
+      user: w.user,
+      player: { id: '0', name: w.user, avatar: w.avatar || '' },
+      ticket_number: w.ticket,
+      user_id: '0'
+    })), [tour2Finalists]
+  );
 
-  const finalCandidates = (drawResults.semifinal.finalists3 || []).map(p => ({
-    ticket: p.ticket_number,
-    ticket_number: p.ticket_number,
-    user: p.username,
-    user_id: p.telegram_id,
-    player: { id: p.telegram_id, name: p.username, avatar: p.avatar || '' }
-  }));
+  const semifinalCandidates = useMemo(() =>
+    (drawResults.tour2.finalists || []).map(p => ({
+      ticket: p.ticket_number,
+      ticket_number: p.ticket_number,
+      user: p.username,
+      user_id: p.telegram_id,
+      player: { id: p.telegram_id, name: p.username, avatar: p.avatar || '' },
+      avatar: p.avatar || ''
+    })), [drawResults.tour2.finalists]
+  );
 
-  const finalWinners = (drawResults.winners || []).map(w => ({
-    place: w.place,
-    ticket: w.ticket_number,
-    username: w.username,
-    telegram_id: w.telegram_id
-  }));
+  // Semifinal data - memoized
+  const semifinalSpins = useMemo(() =>
+    drawResults.semifinal.spins || [], [drawResults.semifinal.spins]
+  );
+
+  const semifinalEliminated = useMemo(() =>
+    (drawResults.semifinal.eliminated || []).map(p => ({
+      ticket_number: p.ticket_number,
+      place: p.place
+    })), [drawResults.semifinal.eliminated]
+  );
+
+  const finalCandidates = useMemo(() =>
+    (drawResults.semifinal.finalists3 || []).map(p => ({
+      ticket: p.ticket_number,
+      ticket_number: p.ticket_number,
+      user: p.username,
+      user_id: p.telegram_id,
+      player: { id: p.telegram_id, name: p.username, avatar: p.avatar || '' }
+    })), [drawResults.semifinal.finalists3]
+  );
+
+  const finalWinners = useMemo(() =>
+    (drawResults.winners || []).map(w => ({
+      place: w.place,
+      ticket: w.ticket_number,
+      username: w.username,
+      telegram_id: w.telegram_id
+    })), [drawResults.winners]
+  );
+
+  // Memoized final turns
+  const finalTurns = useMemo(() =>
+    drawResults.final.turns || [], [drawResults.final.turns]
+  );
+
+  // Sound callbacks for Tour1
+  const handleTour1Tick = useCallback(() => sounds.playClick(), [sounds]);
+  const handleTour1Winner = useCallback(() => sounds.playImpact(), [sounds]);
+  const handleTour1AllFound = useCallback(() => sounds.playSuccess(), [sounds]);
+
+  // Sound callbacks for Tour2
+  const handleTour2Green = useCallback(() => sounds.playHit1(), [sounds]);
+  const handleTour2Red = useCallback(() => sounds.playFailure(), [sounds]);
+
+  // Sound callbacks for Semifinal
+  const handleSemifinalHit1 = useCallback(() => sounds.playHit1(), [sounds]);
+  const handleSemifinalHit2 = useCallback(() => sounds.playHit2(), [sounds]);
+  const handleSemifinalEliminated = useCallback(() => sounds.playFailure(), [sounds]);
+
+  // Sound callbacks for Final
+  const handleFinalWheelSpin = useCallback(() => sounds.playRouletteTicks(20), [sounds]);
+  const handleFinalBull = useCallback(() => sounds.playSuccess(), [sounds]);
+  const handleFinalBear = useCallback(() => sounds.playFailure(), [sounds]);
+  const handleFinalWin = useCallback(() => sounds.playWin(), [sounds]);
+
+  // Start arena with sound init
+  const handleStartArena = useCallback(() => {
+    sounds.initAudio()
+    handleStageComplete()
+  }, [sounds, handleStageComplete])
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] overflow-hidden relative">
-      <audio ref={audioRef} />
 
       {/* BACKGROUND ELEMENTS */}
       <div className="absolute inset-0 pointer-events-none">
@@ -303,7 +372,7 @@ export function LiveArenaPage() {
             </div>
 
             <motion.button
-              onClick={handleStageComplete}
+              onClick={handleStartArena}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-12 py-4 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-2xl font-black text-black text-xl tracking-wider shadow-[0_0_40px_rgba(255,215,0,0.4)] hover:shadow-[0_0_60px_rgba(255,215,0,0.6)] transition-all"
@@ -329,6 +398,9 @@ export function LiveArenaPage() {
               candidates={tour1Winners}
               winners={tour1Winners}
               onComplete={handleStageComplete}
+              onTick={handleTour1Tick}
+              onWinnerFound={handleTour1Winner}
+              onAllFound={handleTour1AllFound}
             />
           </motion.div>
         )}
@@ -336,21 +408,11 @@ export function LiveArenaPage() {
         {stage === 'TOUR2' && (
           <Tour2Squeeze
             key="tour2"
-            candidates={tour1Winners.map(w => ({
-              ticket: w.ticket,
-              user: w.user,
-              player: { id: '0', name: w.user, avatar: w.avatar || '' },
-              ticket_number: w.ticket,
-              user_id: '0'
-            }))}
-            finalists={tour2Finalists.map(w => ({
-              ticket: w.ticket,
-              user: w.user,
-              player: { id: '0', name: w.user, avatar: w.avatar || '' },
-              ticket_number: w.ticket,
-              user_id: '0'
-            }))}
+            candidates={tour2Candidates}
+            finalists={tour2FinalistsData}
             onComplete={handleStageComplete}
+            onRevealGreen={handleTour2Green}
+            onRevealRed={handleTour2Red}
           />
         )}
 
@@ -361,6 +423,9 @@ export function LiveArenaPage() {
             spins={semifinalSpins}
             eliminated={semifinalEliminated}
             onComplete={handleStageComplete}
+            onHit1={handleSemifinalHit1}
+            onHit2={handleSemifinalHit2}
+            onEliminated={handleSemifinalEliminated}
           />
         )}
 
@@ -368,9 +433,13 @@ export function LiveArenaPage() {
           <FinalBattle
             key="final"
             candidates={finalCandidates}
-            turns={drawResults.final.turns}
+            turns={finalTurns}
             winners={finalWinners}
             onComplete={handleStageComplete}
+            onWheelSpin={handleFinalWheelSpin}
+            onBull={handleFinalBull}
+            onBear={handleFinalBear}
+            onWin={handleFinalWin}
           />
         )}
 
