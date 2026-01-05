@@ -66,9 +66,9 @@ export function Home() {
     }
 
     // 🚀 ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ (сразу показываем результат)
-    const tapPower = 1 // Base tap power
+    const tapPower = gameState.tap_power || 1
     const skinBonus = activeSkin?.tap_bonus || 0
-    const bulEarned = tapPower + skinBonus // 1 + bonus
+    const bulEarned = tapPower + skinBonus // Формула как в SQL
 
     // Мгновенно обновляем UI
     const optimisticBalance = gameState.balance_bul + bulEarned
@@ -213,6 +213,7 @@ export function Home() {
         <StatusBar
           energy={gameState.energy}
           energyMax={gameState.energy_max}
+          tapPower={gameState.tap_power}
           activeSkin={activeSkin}
         />
       </div>
