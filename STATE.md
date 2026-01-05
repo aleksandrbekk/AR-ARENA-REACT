@@ -1,25 +1,22 @@
 # Current State
 
 ## 🚀 Active Task
-**CRITICAL BUG FIX: Покупка билетов не работает**
+**Phase 1: Session Management & Security Hardening**
 
 ### 📋 To Do
-- [ ] Investigate `buy_ticket` RPC logic
-- [ ] Verify frontend integration in `GiveawayDetailsPageV2`
-- [ ] Fix error returning from DB
-- [ ] Verify successful purchase
+- [ ] Implement User Session Management
+- [ ] Security Hardening (RLS policies)
 
 ---
 
 ## 📌 Previous Task
-**Giveaway система 2.0 - ПОЛНОСТЬЮ ГОТОВО**
+**CRITICAL BUG FIX: Покупка билетов - ИСПРАВЛЕНА**
 
 ### ✅ Реализовано & Применено (05.01.2026)
-- **Engine:** `giveaway-engine.ts` (детерминированная логика)
-- **SQL Migration:** `admin_complete_giveaway` (безопасное сохранение)
-- **Frontend:** `LiveArenaPage.tsx` (строгое воспроизведение серверных результатов)
-- **Admin:** `GiveawayManager` (генерация и коммит результатов)
-- **Status:** Уязвимость клиентской генерации устранена
+- **SQL Migration:** `buy_giveaway_ticket_v2` fixed (RPC updated via browser automation)
+- **Frontend:** Build fixed and deployed (LiveArenaPage, SemifinalTraffic)
+- **Status:** Покупка работает, ошибки типов устранены
+- **Validation:** Browser Agent executed SQL successfully
 
 ### ⏳ Можно тестировать
 1. Создай розыгрыш в Admin Panel
