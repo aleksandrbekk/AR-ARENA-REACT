@@ -1,7 +1,9 @@
--- FIX: buy_giveaway_ticket_v2 robust version with DOUBLE CASTING
+-- FINAL ROBUST FIX: buy_giveaway_ticket_v2
+-- giveaway_tickets.giveaway_id is TEXT
+-- giveaway_tickets.user_id is BIGINT (Telegram ID)
 CREATE OR REPLACE FUNCTION buy_giveaway_ticket_v2(
   p_telegram_id text,
-  p_giveaway_id uuid,
+  p_giveaway_id text,
   p_count integer
 ) RETURNS json
 LANGUAGE plpgsql
@@ -18,7 +20,7 @@ DECLARE
   v_i integer;
   v_is_new_participant boolean;
 BEGIN
-  -- 1. Identify User (UUID)
+  -- 1. Identify User (UUID for transactions, but we check balance here)
   SELECT id, balance_ar INTO v_user_id, v_balance_ar
   FROM users WHERE telegram_id = p_telegram_id::bigint;
 
@@ -29,7 +31,7 @@ BEGIN
   -- 2. Identify Giveaway
   SELECT price, jackpot_percentage
   INTO v_ticket_price, v_percent
-  FROM giveaways WHERE id = p_giveaway_id AND status = 'active';
+  FROM giveaways WHERE id::text = p_giveaway_id::text AND status = 'active';
 
   IF v_ticket_price IS NULL THEN
     RETURN json_build_object('success', false, 'message', 'Giveaway not found or not active');
@@ -43,16 +45,11 @@ BEGIN
     RETURN json_build_object('success', false, 'message', 'Insufficient funds');
   END IF;
 
-  -- 5. Check New Participant (Double Casting Fix)
+  -- 5. Check New Participant (Casting giveaway_id to text and checking user_id as bigint)
   SELECT NOT EXISTS (
     SELECT 1 FROM giveaway_tickets
-    WHERE giveaway_id = p_giveaway_id 
-    AND (
-      -- SAFE CAST: Cast both sides to text to handle whether user_id is UUID or TEXT
-      user_id::text = v_user_id::text 
-      OR 
-      telegram_id = p_telegram_id::bigint
-    )
+    WHERE giveaway_id = p_giveaway_id::text 
+    AND user_id = p_telegram_id::bigint
   ) INTO v_is_new_participant;
 
   -- 6. Deduct Balance
@@ -68,21 +65,20 @@ BEGIN
     jackpot_current_amount = COALESCE(jackpot_current_amount, 0) + v_jackpot_part,
     total_tickets_sold = COALESCE(total_tickets_sold, 0) + p_count,
     total_participants = COALESCE(total_participants, 0) + (CASE WHEN v_is_new_participant THEN 1 ELSE 0 END)
-  WHERE id = p_giveaway_id;
+  WHERE id::text = p_giveaway_id::text;
 
   -- 8. Generate Tickets
   SELECT COALESCE(MAX(ticket_number), 0)
   INTO v_max_ticket_num
   FROM giveaway_tickets
-  WHERE giveaway_id = p_giveaway_id;
+  WHERE giveaway_id = p_giveaway_id::text;
 
   FOR v_i IN 1..p_count LOOP
-    -- INSERT
     INSERT INTO giveaway_tickets (giveaway_id, user_id, telegram_id, ticket_number)
     VALUES (
-      p_giveaway_id, 
-      v_user_id, -- Keep original type here, Postgres handles assignment cast usually
-      p_telegram_id::bigint, 
+      p_giveaway_id::text, 
+      p_telegram_id::bigint, -- Match BIGINT in table
+      p_telegram_id::bigint, -- Duplicate for safety if col exists
       v_max_ticket_num + v_i
     );
   END LOOP;
