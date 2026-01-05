@@ -74,11 +74,11 @@ BEGIN
   WHERE giveaway_id = p_giveaway_id::text;
 
   FOR v_i IN 1..p_count LOOP
-    INSERT INTO giveaway_tickets (giveaway_id, user_id, telegram_id, ticket_number)
+    -- Removed telegram_id column as it does not exist in the table.
+    INSERT INTO giveaway_tickets (giveaway_id, user_id, ticket_number)
     VALUES (
       p_giveaway_id::text, 
-      p_telegram_id::bigint, -- Match BIGINT in table
-      p_telegram_id::bigint, -- Duplicate for safety if col exists
+      p_telegram_id::bigint, 
       v_max_ticket_num + v_i
     );
   END LOOP;
