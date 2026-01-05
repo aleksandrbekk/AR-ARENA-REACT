@@ -61,11 +61,10 @@ export function TapBull({ skinFile, onTap, children }: TapBullProps) {
       {/* Контейнер для быка с эффектами */}
       <div
         className="relative flex flex-col items-center cursor-pointer select-none"
-        onTouchStart={(e) => {
+        onPointerDown={(e) => {
           e.preventDefault() // Предотвращаем задержку 300ms
           handleTapAnimation()
         }}
-        onClick={handleTapAnimation} // Fallback для десктопа
         style={{
           WebkitTapHighlightColor: 'transparent',
           touchAction: 'manipulation' // Улучшает отклик на тач-устройствах

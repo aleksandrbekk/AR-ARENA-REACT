@@ -1,10 +1,54 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/ToastProvider'
 
-// TypeScript interfaces
+// TypeScript interfaces based on new RPC structure
+interface Equipment {
+  slug: string
+  name: string
+  icon: string
+  owned_quantity: number
+  max_quantity: number
+  income_per_unit: number
+  total_income: number
+  price: number
+  location_slug: string
+  can_buy: boolean
+}
+
+interface Location {
+  slug: string
+  name: string
+  image: string
+  price: number
+  required_level: number
+  max_slots: number
+  purchased: boolean
+  is_current: boolean
+  can_purchase: boolean
+  equipment_count: number
+}
+
+interface CurrentLocation {
+  slug: string
+  name: string
+  image: string
+}
+
+interface FarmState {
+  user_level: number
+  balance_bul: number
+  balance_ar: number
+  last_passive_claim: string
+  farm_bonus: number
+  current_location: CurrentLocation
+  income_per_hour: number
+  equipment: Equipment[]
+  locations: Location[]
+}
+
 interface FarmStatus {
   location_name: string
   location_image: string
@@ -12,143 +56,64 @@ interface FarmStatus {
   accumulated_ar: number
   hours_since_claim: number
   max_hours: number
-  error?: string
+  farm_bonus: number
 }
-
-// 🎯 MOCK DATA — Заглушки для UI preview
-const MOCK_LOCATIONS = [
-  { id: 1, slug: 'dorm', name: 'Общага', price: 0, level: 1, slots: 3, image: '/icons/locations/dormitory.png', owned: true, active: true },
-  { id: 2, slug: 'apartment', name: 'Апартаменты', price: 5000, level: 3, slots: 4, image: '/icons/locations/apartment.png', owned: true, active: false },
-  { id: 3, slug: 'office', name: 'Офис', price: 15000, level: 5, slots: 5, image: '/icons/locations/office.png', owned: false, active: false },
-  { id: 4, slug: 'datacenter', name: 'Дата-центр', price: 50000, level: 10, slots: 8, image: '/icons/locations/datacenter.png', owned: false, active: false }
-]
-
-type Location = (typeof MOCK_LOCATIONS)[number]
-
-// Equipment mock data
-const MOCK_EQUIPMENT = [
-  {
-    id: 1,
-    slug: 'miner-v1',
-    name: 'Майнер v1',
-    icon: '/icons/FERMA2.png',
-    income: 50,
-    level: 3,
-    maxLevel: 10,
-    upgradePrice: 2000,
-    owned: true,
-    locationOwned: true
-  },
-  {
-    id: 2,
-    slug: 'cooler',
-    name: 'Кулер RGB',
-    icon: '/icons/FERMA2.png',
-    income: 25,
-    level: 1,
-    maxLevel: 5,
-    upgradePrice: 1000,
-    owned: true,
-    locationOwned: true
-  },
-  {
-    id: 3,
-    slug: 'power-supply',
-    name: 'Блок питания',
-    icon: '/icons/FERMA2.png',
-    income: 100,
-    level: 0,
-    maxLevel: 10,
-    basePrice: 5000,
-    owned: false,
-    locationOwned: true
-  },
-  {
-    id: 4,
-    slug: 'server-rack',
-    name: 'Серверная стойка',
-    icon: '/icons/FERMA2.png',
-    income: 200,
-    level: 0,
-    maxLevel: 15,
-    basePrice: 15000,
-    owned: false,
-    locationOwned: false,
-    locationName: 'Апартаменты'
-  }
-]
 
 export function FarmPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
-  const locations = MOCK_LOCATIONS
 
-  const [currentLocation, setCurrentLocation] = useState<Location>(() => {
-    try {
-      const savedId = localStorage.getItem('selectedLocationId')
-      if (savedId && locations.length > 0) {
-        const saved = locations.find((l) => l.id === Number(savedId))
-        if (saved) return saved
-      }
-    } catch (e) {
-      console.warn('Failed to read selectedLocationId on init:', e)
-    }
-
-    return locations.find((l) => l.active) ?? locations[0]
-  })
-  const [showLocationModal, setShowLocationModal] = useState(false)
-
-  // Real farm data from Supabase
+  // Farm state from get_farm_state RPC
+  const [farmState, setFarmState] = useState<FarmState | null>(null)
   const [farmStatus, setFarmStatus] = useState<FarmStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
+  const [purchasing, setPurchasing] = useState<string | null>(null)
+  const [showLocationModal, setShowLocationModal] = useState(false)
   const [toast, setToast] = useState<{ show: boolean; amount: number }>({ show: false, amount: 0 })
 
-  // Load farm status from Supabase
-  const loadFarmStatus = async () => {
+  // Get telegram ID
+  const getTelegramId = useCallback(() => {
     const tg = window.Telegram?.WebApp
-    const telegramId = tg?.initDataUnsafe?.user?.id
+    return tg?.initDataUnsafe?.user?.id || null
+  }, [])
 
+  // Load farm state from Supabase
+  const loadFarmData = useCallback(async () => {
+    const telegramId = getTelegramId()
     if (!telegramId) {
       setLoading(false)
       return
     }
 
-    const { data, error } = await supabase.rpc('get_farm_status', {
-      p_telegram_id: telegramId
-    })
-
-    if (!error && data) {
-      setFarmStatus(data)
-    }
-    setLoading(false)
-  }
-
-  // Restore выбранную локацию (временно через localStorage)
-  useEffect(() => {
     try {
-      const savedLocationId = localStorage.getItem('selectedLocationId')
-      if (!savedLocationId || locations.length === 0) return
-      const saved = locations.find((l) => l.id === Number(savedLocationId))
-      if (saved) setCurrentLocation(saved)
-    } catch (e) {
-      console.warn('Failed to restore selectedLocationId:', e)
-    }
-  }, [locations])
+      // Load both farm state and status in parallel
+      const [stateRes, statusRes] = await Promise.all([
+        supabase.rpc('get_farm_state', { p_telegram_id: telegramId }),
+        supabase.rpc('get_farm_status', { p_telegram_id: telegramId })
+      ])
 
-  // Telegram BackButton: показываем "← Назад" вместо "X Закрыть"
-  useEffect(() => {
-    const tg = window.Telegram?.WebApp
-
-    if (tg) {
-      tg.BackButton.show()
-
-      const handleBack = () => {
-        navigate(-1)
+      if (!stateRes.error && stateRes.data) {
+        setFarmState(stateRes.data)
       }
 
-      tg.BackButton.onClick(handleBack)
+      if (!statusRes.error && statusRes.data) {
+        setFarmStatus(statusRes.data)
+      }
+    } catch (err) {
+      console.error('Failed to load farm data:', err)
+    }
 
+    setLoading(false)
+  }, [getTelegramId])
+
+  // Telegram BackButton
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp
+    if (tg) {
+      tg.BackButton.show()
+      const handleBack = () => navigate(-1)
+      tg.BackButton.onClick(handleBack)
       return () => {
         tg.BackButton.offClick(handleBack)
         tg.BackButton.hide()
@@ -158,16 +123,14 @@ export function FarmPage() {
 
   // Load farm data on mount + auto-refresh every 30 seconds
   useEffect(() => {
-    loadFarmStatus()
-
-    const interval = setInterval(loadFarmStatus, 30000)
+    loadFarmData()
+    const interval = setInterval(loadFarmData, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [loadFarmData])
 
+  // Collect income
   const handleCollect = async () => {
-    const tg = window.Telegram?.WebApp
-    const telegramId = tg?.initDataUnsafe?.user?.id
-
+    const telegramId = getTelegramId()
     if (!telegramId || claiming || !farmStatus?.accumulated_ar) return
 
     setClaiming(true)
@@ -177,43 +140,87 @@ export function FarmPage() {
     })
 
     if (!error && data?.success) {
-      // Show toast with claimed amount
       setToast({ show: true, amount: data.claimed_ar })
       setTimeout(() => setToast({ show: false, amount: 0 }), 2500)
-
-      // Reload farm status
-      await loadFarmStatus()
+      await loadFarmData()
+    } else {
+      showToast({ variant: 'error', title: 'Ошибка', description: error?.message || 'Не удалось собрать' })
     }
 
     setClaiming(false)
   }
 
-  const selectLocation = (location: Location) => {
-    console.log('🎯 Mock: Сменить локацию на', location.name)
-    setCurrentLocation(location)
+  // Purchase equipment
+  const handlePurchaseEquipment = async (slug: string) => {
+    const telegramId = getTelegramId()
+    if (!telegramId || purchasing) return
 
-    try {
-      localStorage.setItem('selectedLocationId', String(location.id))
-    } catch (e) {
-      console.warn('Failed to save selectedLocationId:', e)
+    setPurchasing(slug)
+
+    const { data, error } = await supabase.rpc('purchase_equipment', {
+      p_telegram_id: telegramId,
+      p_equipment_slug: slug
+    })
+
+    if (!error && data?.success) {
+      showToast({
+        variant: 'success',
+        title: 'Куплено!',
+        description: `Теперь у вас ${data.new_quantity} шт. (+${data.income_per_unit} AR/ч)`
+      })
+      await loadFarmData()
+    } else {
+      const errorMsg = data?.error || error?.message || 'Не удалось купить'
+      showToast({ variant: 'error', title: 'Ошибка', description: errorMsg })
     }
 
-    setShowLocationModal(false)
+    setPurchasing(null)
   }
 
-  const handlePurchaseEquipment = (slug: string) => {
-    console.log('🎯 Mock: Купить оборудование', slug)
-    showToast({ variant: 'info', title: 'Покупка (MOCK)', description: slug })
+  // Purchase location
+  const handlePurchaseLocation = async (slug: string) => {
+    const telegramId = getTelegramId()
+    if (!telegramId || purchasing) return
+
+    setPurchasing(slug)
+
+    const { data, error } = await supabase.rpc('purchase_location', {
+      p_telegram_id: telegramId,
+      p_location_slug: slug
+    })
+
+    if (!error && data?.success) {
+      showToast({
+        variant: 'success',
+        title: 'Локация куплена!',
+        description: data.location_name
+      })
+      await loadFarmData()
+      setShowLocationModal(false)
+    } else {
+      const errorMsg = data?.error || error?.message || 'Не удалось купить'
+      showToast({ variant: 'error', title: 'Ошибка', description: errorMsg })
+    }
+
+    setPurchasing(null)
   }
 
-  const handleUpgradeEquipment = (slug: string) => {
-    console.log('🎯 Mock: Улучшить оборудование', slug)
-    showToast({ variant: 'info', title: 'Улучшение (MOCK)', description: slug })
-  }
+  // Switch location
+  const handleSwitchLocation = async (slug: string) => {
+    const telegramId = getTelegramId()
+    if (!telegramId) return
 
-  const handlePurchaseLocation = (slug: string) => {
-    console.log('🎯 Mock: Купить локацию', slug)
-    showToast({ variant: 'info', title: 'Покупка локации (MOCK)', description: slug })
+    const { data, error } = await supabase.rpc('switch_location', {
+      p_telegram_id: telegramId,
+      p_location_slug: slug
+    })
+
+    if (!error && data?.success) {
+      await loadFarmData()
+      setShowLocationModal(false)
+    } else {
+      showToast({ variant: 'error', title: 'Ошибка', description: 'Не удалось сменить локацию' })
+    }
   }
 
   // Calculate progress based on real farm data
@@ -224,6 +231,12 @@ export function FarmPage() {
   const timeDisplay = farmStatus
     ? `${Math.floor(farmStatus.hours_since_claim)}ч ${Math.floor((farmStatus.hours_since_claim % 1) * 60)}м / ${farmStatus.max_hours}ч`
     : '0ч 0м / 0ч'
+
+  // Get current location from state
+  const currentLocation = farmState?.current_location || { slug: 'dorm', name: 'Общага', image: '/icons/locations/dormitory.png' }
+
+  // Get all equipment
+  const allEquipment = farmState?.equipment || []
 
   // Loading state
   if (loading) {
@@ -238,16 +251,14 @@ export function FarmPage() {
 
   return (
     <Layout hideNavbar>
-      {/* Контейнер страницы БЕЗ верхнего padding (hero-картинка от самого верха) */}
       <div
         className="min-h-screen bg-[#0a0a0a]"
         style={{
-          // Компенсируем padding-top из Layout, чтобы картинка начиналась от верхней кромки
           marginTop: 'calc(var(--safe-area-top) * -1)',
           paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 80px)',
         }}
       >
-        {/* Картинка локации — от самого верха */}
+        {/* Location Hero Image */}
         <div className="relative w-full h-[280px]">
           <img
             src={currentLocation.image}
@@ -255,14 +266,13 @@ export function FarmPage() {
             className="w-full h-full object-cover"
             onError={(e) => { (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png' }}
           />
-
-          {/* Gradient overlay внизу картинки */}
           <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0a0a0a] to-transparent" />
-
-          {/* Название + кнопка Сменить — поверх gradient */}
           <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
             <div>
               <h1 className="text-white text-xl font-bold">{currentLocation.name}</h1>
+              {farmState?.farm_bonus && farmState.farm_bonus > 0 && (
+                <p className="text-green-400 text-sm">+{farmState.farm_bonus}% бонус от скина</p>
+              )}
             </div>
             <button
               onClick={() => setShowLocationModal(true)}
@@ -273,27 +283,19 @@ export function FarmPage() {
           </div>
         </div>
 
-        {/* Остальной контент — с отступами */}
+        {/* Stats Panel */}
         <div className="px-4 pt-4">
-
-          {/* STATS PANEL — Панель статистики */}
           <div
             className="rounded-3xl p-6 mb-6 border border-white/5"
             style={{
               background: `
                 linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)),
-                repeating-linear-gradient(
-                  0deg,
-                  #1c1c1c 0px,
-                  #1c1c1c 1px,
-                  #252525 2px,
-                  #252525 3px
-                )
+                repeating-linear-gradient(0deg, #1c1c1c 0px, #1c1c1c 1px, #252525 2px, #252525 3px)
               `,
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 30px rgba(0,0,0,0.5)'
             }}
           >
-            {/* Доход в час */}
+            {/* Income per hour */}
             <div className="mb-5">
               <div className="text-xs uppercase tracking-wide text-zinc-500 font-semibold mb-1.5">
                 ДОХОД В ЧАС
@@ -307,23 +309,18 @@ export function FarmPage() {
                   textShadow: '0 0 20px rgba(191, 149, 63, 0.3)'
                 }}
               >
-                {farmStatus?.income_per_hour || 0} AR
+                {(farmStatus?.income_per_hour || 0).toFixed(2)} AR
               </div>
             </div>
 
-            {/* Progress Container */}
+            {/* Progress */}
             <div className="mb-5">
               <div className="flex justify-between text-sm text-zinc-500 font-semibold mb-2">
                 <span>{timeDisplay}</span>
-                <span
-                  className="text-[#FCF6BA]"
-                  style={{ textShadow: '0 0 10px rgba(191, 149, 63, 0.5)' }}
-                >
-                  +{Math.floor(farmStatus?.accumulated_ar || 0).toLocaleString()} AR
+                <span className="text-[#FCF6BA]" style={{ textShadow: '0 0 10px rgba(191, 149, 63, 0.5)' }}>
+                  +{(farmStatus?.accumulated_ar || 0).toFixed(2)} AR
                 </span>
               </div>
-
-              {/* Progress Bar */}
               <div className="h-1.5 bg-black rounded-full overflow-hidden border-b border-white/10">
                 <div
                   className="h-full transition-all duration-300 ease-out"
@@ -336,7 +333,7 @@ export function FarmPage() {
               </div>
             </div>
 
-            {/* CLAIM BUTTON — Золотой градиент */}
+            {/* Claim Button */}
             <button
               onClick={handleCollect}
               disabled={claiming || !farmStatus?.accumulated_ar || farmStatus.accumulated_ar <= 0}
@@ -350,7 +347,6 @@ export function FarmPage() {
                   : 'inset 0 1px 0 rgba(255,255,255,0.05)'
               }}
             >
-              {/* Glass highlight */}
               {farmStatus?.accumulated_ar && farmStatus.accumulated_ar > 0 && (
                 <div
                   className="absolute top-0 left-0 right-0 h-[30px] pointer-events-none"
@@ -360,95 +356,106 @@ export function FarmPage() {
                   }}
                 />
               )}
-
               <div className="relative z-10 flex items-center justify-center gap-2 text-lg font-black uppercase tracking-wide">
                 <span
                   className={farmStatus?.accumulated_ar && farmStatus.accumulated_ar > 0 ? 'text-[#3E2723]' : 'text-zinc-600'}
                   style={farmStatus?.accumulated_ar && farmStatus.accumulated_ar > 0 ? { textShadow: '0 1px 0 rgba(255,255,255,0.4)' } : {}}
                 >
-                  {claiming ? 'Собираем...' : `СОБРАТЬ ${Math.floor(farmStatus?.accumulated_ar || 0).toLocaleString()} AR`}
+                  {claiming ? 'Собираем...' : `СОБРАТЬ ${(farmStatus?.accumulated_ar || 0).toFixed(2)} AR`}
                 </span>
               </div>
             </button>
           </div>
 
-          {/* EQUIPMENT SECTION — Оборудование */}
+          {/* Equipment Section */}
           <div className="flex items-center gap-2.5 mb-4">
             <img src="/icons/FERMA2.png" className="w-6 h-6" alt="Equipment" />
             <span className="text-white text-lg font-bold">Оборудование</span>
           </div>
 
-          {/* Equipment List */}
+          {/* Equipment List - All equipment */}
           <div className="flex flex-col gap-3 mb-6">
-            {MOCK_EQUIPMENT.map((eq) => (
-              <div
-                key={eq.id}
-                className="bg-zinc-900/50 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 border border-yellow-500/20 transition-all active:scale-[0.98] active:border-yellow-500/60"
-                style={{
-                  background: 'linear-gradient(180deg, #1a1a1a 0%, #111 100%)',
-                  boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-                  opacity: eq.locationOwned ? 1 : 0.5
-                }}
-              >
-                {/* Icon */}
-                <div className="w-[50px] h-[50px] bg-black rounded-xl border border-white/10 flex items-center justify-center flex-shrink-0">
-                  <img
-                    src={eq.icon}
-                    alt={eq.name}
-                    className="w-8 h-8 object-contain"
-                    onError={(e) => { (e.target as HTMLImageElement).src = '/icons/FERMA2.png' }}
-                  />
-                </div>
+            {allEquipment.map((eq) => {
+              const location = farmState?.locations?.find(l => l.slug === eq.location_slug)
+              const locationPurchased = location?.purchased || eq.location_slug === 'dorm'
 
-                {/* Info */}
-                <div className="flex-1">
-                  <div className="text-white text-base font-bold mb-1">
-                    {eq.name}
-                    {eq.owned && (
+              return (
+                <div
+                  key={eq.slug}
+                  className="bg-zinc-900/50 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 border border-yellow-500/20 transition-all"
+                  style={{
+                    background: 'linear-gradient(180deg, #1a1a1a 0%, #111 100%)',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+                    opacity: locationPurchased ? 1 : 0.5
+                  }}
+                >
+                  {/* Icon */}
+                  <div className="w-[50px] h-[50px] bg-black rounded-xl border border-white/10 flex items-center justify-center flex-shrink-0">
+                    <img
+                      src={eq.icon}
+                      alt={eq.name}
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/icons/FERMA2.png' }}
+                    />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1">
+                    <div className="text-white text-base font-bold mb-1">
+                      {eq.name}
                       <span className="text-xs text-zinc-500 ml-1.5">
-                        Lvl {eq.level}
+                        {eq.owned_quantity}/{eq.max_quantity} шт
                       </span>
+                    </div>
+                    <div
+                      className="text-sm text-[#FCF6BA] flex items-center gap-1"
+                      style={{ textShadow: '0 0 5px rgba(191, 149, 63, 0.5)' }}
+                    >
+                      {eq.income_per_unit} AR/ч за шт
+                      {eq.owned_quantity > 0 && (
+                        <span className="text-zinc-400 ml-1">
+                          (всего: {eq.total_income.toFixed(1)} AR/ч)
+                        </span>
+                      )}
+                    </div>
+                    {!locationPurchased && location && (
+                      <div className="text-xs text-zinc-600 mt-1">
+                        Требуется: {location.name}
+                      </div>
                     )}
                   </div>
-                  <div
-                    className="text-sm text-[#FCF6BA] flex items-center gap-1"
-                    style={{ textShadow: '0 0 5px rgba(191, 149, 63, 0.5)' }}
-                  >
-                    {eq.income.toLocaleString()} AR/ч
+
+                  {/* Action Button */}
+                  <div>
+                    {!locationPurchased ? (
+                      <span className="text-xs text-zinc-600">🔒</span>
+                    ) : eq.owned_quantity >= eq.max_quantity ? (
+                      <span className="text-xs text-green-500 font-bold">MAX</span>
+                    ) : (
+                      <button
+                        onClick={() => handlePurchaseEquipment(eq.slug)}
+                        disabled={purchasing === eq.slug || !eq.can_buy}
+                        className="bg-transparent border border-[#FFD700] text-[#FFD700] px-3 py-2 rounded-xl font-bold text-sm transition-all active:scale-95 active:bg-[#FFD700]/10 disabled:opacity-50"
+                        style={{ boxShadow: '0 0 10px rgba(255, 215, 0, 0.15)' }}
+                      >
+                        {purchasing === eq.slug ? '...' : `${eq.price.toLocaleString()} BUL`}
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                {/* Action Button */}
-                <div>
-                  {!eq.locationOwned ? (
-                    <span className="text-xs text-zinc-600">
-                      Снимите {eq.locationName?.toLowerCase()}
-                    </span>
-                  ) : !eq.owned ? (
-                    <button
-                      onClick={() => handlePurchaseEquipment(eq.slug)}
-                      className="bg-transparent border border-[#FFD700] text-[#FFD700] px-4 py-2 rounded-xl font-bold text-sm transition-all active:scale-95 active:bg-[#FFD700]/10"
-                      style={{ boxShadow: '0 0 10px rgba(255, 215, 0, 0.15)' }}
-                    >
-                      {eq.basePrice?.toLocaleString()} AR
-                    </button>
-                  ) : eq.level < eq.maxLevel ? (
-                    <button
-                      onClick={() => handleUpgradeEquipment(eq.slug)}
-                      className="bg-transparent border border-[#4facfe] text-[#4facfe] px-4 py-2 rounded-xl font-bold text-sm transition-all active:scale-95"
-                    >
-                      {eq.upgradePrice?.toLocaleString()} AR
-                    </button>
-                  ) : (
-                    <span className="text-xs text-zinc-600 font-bold">MAX</span>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
+
+          {/* Balance info */}
+          {farmState && (
+            <div className="text-center text-zinc-500 text-sm mb-4">
+              Баланс: {farmState.balance_bul?.toLocaleString() || 0} BUL | {(farmState.balance_ar || 0).toFixed(2)} AR
+            </div>
+          )}
         </div>
 
-        {/* Toast уведомление */}
+        {/* Toast */}
         {toast.show && (
           <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50">
             <div className="flex items-center gap-3 px-6 py-4 bg-zinc-900/95 backdrop-blur-md border border-yellow-500/30 rounded-2xl shadow-lg">
@@ -456,7 +463,7 @@ export function FarmPage() {
                 <span className="text-black text-lg">✓</span>
               </div>
               <div>
-                <p className="text-white font-bold text-lg">+{toast.amount} AR</p>
+                <p className="text-white font-bold text-lg">+{toast.amount.toFixed(2)} AR</p>
                 <p className="text-gray-400 text-sm">Успешно собрано</p>
               </div>
             </div>
@@ -464,10 +471,10 @@ export function FarmPage() {
         )}
       </div>
 
-      {/* LOCATION MODAL — Модалка выбора локации */}
+      {/* Location Modal */}
       {showLocationModal && (
         <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0a0a]">
-          {/* Кнопка закрыть */}
+          {/* Close button */}
           <div className="absolute top-4 right-4 z-10">
             <button
               onClick={() => setShowLocationModal(false)}
@@ -477,67 +484,79 @@ export function FarmPage() {
             </button>
           </div>
 
-          {/* Картинка текущей локации — верхняя треть */}
+          {/* Current location hero */}
           <div className="h-[35vh] relative">
             <img
-              src={currentLocation?.image || '/icons/locations/dormitory.png'}
+              src={currentLocation.image}
               alt="Current location"
               className="w-full h-full object-cover"
-              onError={(e) => {
-                ;(e.target as HTMLImageElement).src = '/icons/locations/dormitory.png'
-              }}
+              onError={(e) => { (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png' }}
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-[#0a0a0a]" />
-
-            {/* Название текущей */}
             <div className="absolute bottom-4 left-4">
               <p className="text-gray-400 text-sm">Текущая локация</p>
-              <h2 className="text-white text-2xl font-bold">{currentLocation?.name}</h2>
+              <h2 className="text-white text-2xl font-bold">{currentLocation.name}</h2>
             </div>
           </div>
 
-          {/* Список локаций */}
+          {/* Locations list */}
           <div className="flex-1 px-4 pt-4 overflow-y-auto">
             <h3 className="text-white text-lg font-bold mb-4">Выбрать локацию</h3>
             <div className="space-y-3 pb-8">
-              {locations.map((location) => (
+              {farmState?.locations?.map((location) => (
                 <div
-                  key={location.id}
+                  key={location.slug}
                   onClick={() => {
-                    if (currentLocation?.id === location.id) return
-                    if (location.owned) {
-                      selectLocation(location)
-                    } else {
+                    if (location.is_current) return
+                    if (location.purchased) {
+                      handleSwitchLocation(location.slug)
+                    } else if (location.can_purchase) {
                       handlePurchaseLocation(location.slug)
                     }
                   }}
-                  className={`flex items-center gap-3 p-3 rounded-xl ${
-                    currentLocation?.id === location.id
+                  className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+                    location.is_current
                       ? 'bg-yellow-500/20 border border-yellow-500/50'
-                      : 'bg-zinc-900'
+                      : location.purchased
+                      ? 'bg-zinc-900 active:scale-[0.98]'
+                      : location.can_purchase
+                      ? 'bg-zinc-900 active:scale-[0.98]'
+                      : 'bg-zinc-900/50 opacity-50'
                   }`}
                 >
                   <img
                     src={location.image}
                     alt={location.name}
                     className="w-14 h-14 rounded-lg object-cover bg-zinc-800"
-                    onError={(e) => {
-                      ;(e.target as HTMLImageElement).src = '/icons/skins/Bull1.png'
-                    }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/icons/locations/dormitory.png' }}
                   />
                   <div className="flex-1">
                     <p className="text-white font-medium">{location.name}</p>
                     <p className="text-gray-500 text-sm">
-                      {location.owned ? 'Куплено' : `${location.price} AR`}
+                      {location.purchased
+                        ? `${location.equipment_count}/${location.max_slots} шт оборудования`
+                        : `Уровень ${location.required_level}+`
+                      }
                     </p>
                   </div>
                   <div>
-                    {currentLocation?.id === location.id ? (
-                      <span className="text-yellow-500 text-sm">Текущая</span>
-                    ) : location.owned ? (
-                      <span className="text-gray-400 text-sm">Выбрать</span>
+                    {location.is_current ? (
+                      <span className="text-yellow-500 text-sm font-bold">Текущая</span>
+                    ) : location.purchased ? (
+                      <span className="text-gray-400 text-sm">Выбрать →</span>
+                    ) : location.can_purchase ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePurchaseLocation(location.slug)
+                        }}
+                        disabled={purchasing === location.slug}
+                        className="text-yellow-500 text-sm font-bold"
+                      >
+                        {purchasing === location.slug ? '...' : `${location.price.toLocaleString()} BUL`}
+                      </button>
                     ) : (
-                      <span className="text-yellow-500 text-sm">{location.price} AR</span>
+                      <span className="text-zinc-600 text-xs">🔒 Lvl {location.required_level}</span>
                     )}
                   </div>
                 </div>
