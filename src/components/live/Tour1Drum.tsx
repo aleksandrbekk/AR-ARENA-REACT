@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 
@@ -12,8 +12,8 @@ interface Tour1DrumProps {
   candidates: { ticket: number; user: string; avatar?: string }[]
   winners: Winner[]
   onComplete: () => void
-  // Sound callbacks
-  onTick?: () => void        // Tick during spin
+  // Sound callbacks - OPTIMIZED: removed tick (too laggy)
+  onTick?: () => void        // DEPRECATED - not used
   onWinnerFound?: () => void // Impact when winner found
   onAllFound?: () => void    // Victory sound at end
 }
@@ -30,51 +30,77 @@ const AVATAR_GRADIENTS = [
   'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
 ]
 
-export function Tour1Drum({ winners, onComplete, onTick, onWinnerFound, onAllFound }: Tour1DrumProps) {
+export function Tour1Drum({ winners, onComplete, onWinnerFound, onAllFound }: Tour1DrumProps) {
   const [currentTicket, setCurrentTicket] = useState<number>(0)
   const [foundWinners, setFoundWinners] = useState<Winner[]>([])
   const [isSpinning, setIsSpinning] = useState(true)
   const [lastFoundIndex, setLastFoundIndex] = useState<number>(-1)
   const [showingWinner, setShowingWinner] = useState(false)
 
-  // Simulation of finding winners one by one
+  // Refs for cleanup
+  const spinIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const isUnmountedRef = useRef(false)
+
+  // Cleanup helper
+  const clearAllTimeouts = () => {
+    if (spinIntervalRef.current) {
+      clearInterval(spinIntervalRef.current)
+      spinIntervalRef.current = null
+    }
+    timeoutsRef.current.forEach(t => clearTimeout(t))
+    timeoutsRef.current = []
+  }
+
+  // Safe timeout that tracks for cleanup
+  const safeTimeout = (fn: () => void, delay: number) => {
+    const t = setTimeout(() => {
+      if (!isUnmountedRef.current) fn()
+    }, delay)
+    timeoutsRef.current.push(t)
+    return t
+  }
+
+  // Simulation of finding winners one by one - OPTIMIZED
   useEffect(() => {
     if (!isSpinning) return
 
+    isUnmountedRef.current = false
     let currentIndex = 0
     const totalWinners = winners.length
     let isPaused = false
-    let tickCount = 0
 
-    const spinInterval = setInterval(() => {
-      // Random ticket noise — только когда не показываем победителя
-      if (!isPaused) {
+    // Spin interval - 150ms instead of 100ms (less state updates)
+    spinIntervalRef.current = setInterval(() => {
+      if (!isPaused && !isUnmountedRef.current) {
         setCurrentTicket(Math.floor(Math.random() * 999999))
-        // Play tick sound every 2nd tick
-        tickCount++
-        if (tickCount % 2 === 0 && onTick) {
-          onTick()
-        }
       }
-    }, 100) // Increased from 50ms to reduce state updates
+    }, 150)
 
     const findNextWinner = () => {
+      if (isUnmountedRef.current) return
+
       if (currentIndex >= totalWinners) {
-        clearInterval(spinInterval)
+        clearAllTimeouts()
         setIsSpinning(false)
-        // Показываем последний найденный билет
         if (winners.length > 0) {
           setCurrentTicket(winners[winners.length - 1].ticket)
         }
-        // Victory sound!
+        // Victory sound + FINAL confetti only
         onAllFound?.()
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#FFD700', '#FFA500', '#22c55e']
+        })
         onComplete()
         return
       }
 
       const winner = winners[currentIndex]
 
-      // Пауза на барабане — показываем найденный билет
+      // Пауза на барабане
       isPaused = true
       setShowingWinner(true)
       setCurrentTicket(winner.ticket)
@@ -82,39 +108,30 @@ export function Tour1Drum({ winners, onComplete, onTick, onWinnerFound, onAllFou
       setFoundWinners(prev => [...prev, winner])
       setLastFoundIndex(currentIndex)
 
-      // Haptic & sound feedback
+      // Haptic & sound (NO confetti here - only at end)
       if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('light')
       }
       onWinnerFound?.()
 
-      // Small confetti burst for each winner
-      confetti({
-        particleCount: 25,
-        spread: 40,
-        origin: { y: 0.7 },
-        colors: ['#FFD700', '#FFA500', '#22c55e']
-      })
-
       currentIndex++
 
-      // Через 400ms возобновляем вращение
-      setTimeout(() => {
+      // 800ms pause to show winner, then 600ms before next
+      safeTimeout(() => {
         isPaused = false
         setShowingWinner(false)
-        // Следующий победитель через 400ms после возобновления
-        setTimeout(findNextWinner, 400)
-      }, 400)
+        safeTimeout(findNextWinner, 600)
+      }, 800)
     }
 
-    // Стартуем поиск первого победителя через 500ms
-    const startTimeout = setTimeout(findNextWinner, 500)
+    // Start first winner search after 800ms
+    safeTimeout(findNextWinner, 800)
 
     return () => {
-      clearInterval(spinInterval)
-      clearTimeout(startTimeout)
+      isUnmountedRef.current = true
+      clearAllTimeouts()
     }
-  }, [isSpinning, winners, onComplete, onTick, onWinnerFound, onAllFound])
+  }, [isSpinning, winners, onComplete, onWinnerFound, onAllFound])
 
   // Generate gradient from user name
   const getAvatarGradient = (name: string) => {

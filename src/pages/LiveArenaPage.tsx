@@ -10,7 +10,7 @@ import { Tour1Drum } from '../components/live/Tour1Drum'
 import { Tour2Squeeze } from '../components/live/Tour2Squeeze'
 import { SemifinalTraffic } from '../components/live/SemifinalTraffic'
 import { FinalBattle } from '../components/live/FinalBattle'
-import { HowToPlayButton } from '../components/HowToPlayButton'
+// HowToPlayButton removed from Live Arena header
 
 // Hooks
 import { useArenaSounds } from '../hooks/useArenaSounds'
@@ -226,8 +226,7 @@ export function LiveArenaPage() {
     drawResults?.final?.turns || [], [drawResults?.final?.turns]
   );
 
-  // Sound callbacks for Tour1
-  const handleTour1Tick = useCallback(() => sounds.playClick(), [sounds]);
+  // Sound callbacks for Tour1 (tick removed - too laggy)
   const handleTour1Winner = useCallback(() => sounds.playImpact(), [sounds]);
   const handleTour1AllFound = useCallback(() => sounds.playSuccess(), [sounds]);
 
@@ -317,30 +316,21 @@ export function LiveArenaPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] overflow-hidden relative">
 
-      {/* BACKGROUND ELEMENTS */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#FFD700]/5 blur-[120px] rounded-full mix-blend-screen" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#FFD700]/5 blur-[100px] rounded-full mix-blend-screen" />
-      </div>
-
       {/* HEADER */}
-      <div className="absolute top-0 left-0 right-0 p-6 z-50 flex justify-between items-start">
+      <div className="absolute top-0 left-0 right-0 p-4 pt-[60px] z-50 flex justify-between items-center">
         <button
           onClick={() => navigate(`/giveaways/${id}`)}
           className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 text-white/60 hover:text-white hover:bg-black/60 transition-all font-medium text-sm"
         >
           <span>←</span>
-          <span>Выход</span>
+          <span>Назад</span>
         </button>
 
-        <div className="flex flex-col items-end gap-2">
-          {/* Fixed HowToPlayButton prop: removed 'title' */}
-          <HowToPlayButton />
-          <div className="px-3 py-1 bg-[#FFD700]/10 border border-[#FFD700]/20 rounded-lg">
-            <span className="text-xs font-bold text-[#FFD700] uppercase tracking-wider animate-pulse">
-              LIVE • {stage}
-            </span>
-          </div>
+        <div className="px-3 py-1.5 bg-red-500/20 border border-red-500/40 rounded-lg">
+          <span className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            LIVE
+          </span>
         </div>
       </div>
 
@@ -355,9 +345,9 @@ export function LiveArenaPage() {
             exit={{ opacity: 0, scale: 1.1 }}
             className="h-screen flex flex-col items-center justify-center p-4 relative z-10"
           >
-            <div className="relative mb-12">
-              <div className="absolute inset-0 bg-[#FFD700]/20 blur-[50px] animate-pulse" />
-              <img src="/logo.png" alt="AR Arena" className="w-32 h-32 relative z-10 drop-shadow-[0_0_50px_rgba(255,215,0,0.5)]" />
+            <div className="relative mb-8">
+              <div className="absolute inset-0 bg-[#FFD700]/30 blur-[40px]" />
+              <img src="/icons/bull.png" alt="AR Arena" className="w-24 h-24 relative z-10 drop-shadow-[0_0_30px_rgba(255,215,0,0.5)]" />
             </div>
 
             <h1 className="text-4xl md:text-6xl font-black text-center mb-6 tracking-tight">
@@ -401,7 +391,6 @@ export function LiveArenaPage() {
               candidates={tour1Winners}
               winners={tour1Winners}
               onComplete={handleStageComplete}
-              onTick={handleTour1Tick}
               onWinnerFound={handleTour1Winner}
               onAllFound={handleTour1AllFound}
             />
