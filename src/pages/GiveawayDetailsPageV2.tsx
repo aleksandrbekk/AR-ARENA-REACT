@@ -172,16 +172,6 @@ export function GiveawayDetailsPageV2() {
           {/* Gradient Overlay (Vignette + Fade Bottom) */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-black/20 to-black/60" />
 
-          {/* Back Button */}
-          <button
-            onClick={() => navigate('/giveaways')}
-            className="absolute top-[60px] left-4 z-20 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 active:scale-95 transition-transform"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </button>
-
           {/* === CENTRAL TIMER Or ACTION === */}
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pt-10">
             {isActive && timeLeft ? (
