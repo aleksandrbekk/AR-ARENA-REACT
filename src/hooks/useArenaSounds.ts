@@ -60,45 +60,34 @@ export function useArenaSounds() {
   }, [getContext])
 
   /**
-   * playHit1 - Мягкий звук первого попадания (зелёный)
-   * Приятный "дзинь" — низкая частота, короткий
+   * playHit1 - Приятный звук для зелёного (прошёл)
+   * Мягкий "пинг" - как уведомление об успехе
    */
   const playHit1 = useCallback(() => {
     const ctx = getContext()
     if (!ctx) return
 
-    // Основной тон
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
+    // Приятный высокий тон (мажорный аккорд)
+    const frequencies = [880, 1108.73] // A5 + C#6 (мажорная терция)
 
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(520, ctx.currentTime) // C5-ish
-    osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.15)
+    frequencies.forEach((freq, i) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
 
-    gain.gain.setValueAtTime(0.2, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, ctx.currentTime)
 
-    osc.connect(gain)
-    gain.connect(ctx.destination)
+      // Мягкая атака, плавное затухание
+      gain.gain.setValueAtTime(0, ctx.currentTime)
+      gain.gain.linearRampToValueAtTime(0.12 - i * 0.03, ctx.currentTime + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25)
 
-    osc.start(ctx.currentTime)
-    osc.stop(ctx.currentTime + 0.25)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
 
-    // Обертон для "блеска"
-    const osc2 = ctx.createOscillator()
-    const gain2 = ctx.createGain()
-
-    osc2.type = 'sine'
-    osc2.frequency.setValueAtTime(1040, ctx.currentTime)
-
-    gain2.gain.setValueAtTime(0.08, ctx.currentTime)
-    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1)
-
-    osc2.connect(gain2)
-    gain2.connect(ctx.destination)
-
-    osc2.start(ctx.currentTime)
-    osc2.stop(ctx.currentTime + 0.12)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.3)
+    })
   }, [getContext])
 
   /**

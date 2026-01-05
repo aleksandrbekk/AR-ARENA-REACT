@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
@@ -64,13 +64,42 @@ export function LiveArenaPage() {
 
   // Sounds
   const sounds = useArenaSounds()
+  const soundsRef = useRef(sounds)
+  soundsRef.current = sounds
 
-  // Cleanup sounds on unmount
+  // Cleanup sounds on unmount (use ref to avoid stale closure)
   useEffect(() => {
     return () => {
-      sounds.stopAllSounds()
+      soundsRef.current.stopAllSounds()
     }
-  }, [sounds])
+  }, [])
+
+  // Telegram MainButton for LOBBY
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp
+    if (!tg?.MainButton) return
+
+    if (stage === 'LOBBY') {
+      tg.MainButton.setText('НАЧАТЬ')
+      tg.MainButton.color = '#FFD700'
+      tg.MainButton.textColor = '#000000'
+      tg.MainButton.show()
+
+      const handleClick = () => {
+        soundsRef.current.initAudio()
+        setStage('TOUR1')
+      }
+
+      tg.MainButton.onClick(handleClick)
+
+      return () => {
+        tg.MainButton.offClick(handleClick)
+        tg.MainButton.hide()
+      }
+    } else {
+      tg.MainButton.hide()
+    }
+  }, [stage])
 
   // Fetch logic
   useEffect(() => {
@@ -252,12 +281,6 @@ export function LiveArenaPage() {
   const handleFinalBear = useCallback(() => sounds.playFailure(), [sounds]);
   const handleFinalWin = useCallback(() => sounds.playWin(), [sounds]);
 
-  // Start arena with sound init
-  const handleStartArena = useCallback(() => {
-    sounds.initAudio()
-    handleStageComplete()
-  }, [sounds, handleStageComplete])
-
   // ========== CONDITIONAL RETURNS (AFTER ALL HOOKS) ==========
 
   if (loading) {
@@ -366,19 +389,11 @@ export function LiveArenaPage() {
               </span>
             </h1>
 
-            <div className="max-w-md text-center space-y-2 mb-12">
+            <div className="max-w-md text-center space-y-2">
               <p className="text-white/60 text-lg">Приготовьтесь к шоу!</p>
               <p className="text-white/40 text-sm">3 этапа • 20 участников • 3 победителя</p>
             </div>
-
-            <motion.button
-              onClick={handleStartArena}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-12 py-4 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-2xl font-black text-black text-xl tracking-wider shadow-[0_0_40px_rgba(255,215,0,0.4)] hover:shadow-[0_0_60px_rgba(255,215,0,0.6)] transition-all"
-            >
-              НАЧАТЬ
-            </motion.button>
+            {/* Button handled by Telegram MainButton */}
           </motion.div>
         )}
 
