@@ -353,24 +353,6 @@ export function LiveArenaPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] overflow-hidden relative">
 
-      {/* HEADER */}
-      <div className="absolute top-0 left-0 right-0 p-4 pt-[60px] z-50 flex justify-between items-center">
-        <button
-          onClick={() => navigate(`/giveaways/${id}`)}
-          className="flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 text-white/60 hover:text-white hover:bg-black/60 transition-all font-medium text-sm"
-        >
-          <span>←</span>
-          <span>Назад</span>
-        </button>
-
-        <div className="px-3 py-1.5 bg-red-500/20 border border-red-500/40 rounded-lg">
-          <span className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            LIVE
-          </span>
-        </div>
-      </div>
-
       {/* STAGE CONTENT */}
       <AnimatePresence mode="wait">
 
