@@ -10,7 +10,7 @@
 ---
 
 ## 📌 Previous Task
-**CRITICAL BUG FIX: Покупка билетов - ИСПРАВЛЕНА**
+**CRITICAL BUG FIX: Розыгрыш + Покупка билетов - ИСПРАВЛЕНЫ**
 
 ### ✅ Реализовано & Применено (05.01.2026)
 - **SQL Migration:** `buy_giveaway_ticket_v2` полностью переписана.
@@ -22,6 +22,16 @@
 - **Frontend:** Build fixed and deployed (LiveArenaPage, SemifinalTraffic).
 - **Status:** Покупка билетов работает на 100%.
 - **Validation:** Подтверждено через SQL пробы исходного кода.
+
+### ✅ Фикс проведения розыгрыша (05.01.2026)
+- **Проблема 1:** `Could not find relationship between giveaway_tickets and users`
+  - Фикс: GiveawayManager.tsx теперь делает раздельные запросы вместо JOIN
+- **Проблема 2:** `column winners is of type jsonb but expression is of type text[]`
+  - Фикс: `admin_complete_giveaway` использует `to_jsonb(p_winners)`
+- **Проблема 3:** `function array_length(jsonb, integer) does not exist`
+  - Фикс: `distribute_giveaway_prizes` использует `jsonb_array_length()` и `->>` вместо массивного синтаксиса
+  - Фикс: `generate_giveaway_result` конвертирует winners в jsonb через `to_jsonb()`
+- **Status:** Кнопка "Провести" должна работать
 
 ### ⏳ Можно тестировать
 1. Создай розыгрыш в Admin Panel
