@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     level: Number(row.level ?? 1),
                     xp: Number(row.xp ?? 0),
                     xp_to_next: Number(row.xp_to_next ?? 1000),
+                    tap_power: Number(row.tap_power ?? 1),
                     active_skin: row.active_skin ?? 'Bull1.png',
                     last_energy_update: row.last_energy_update ?? new Date().toISOString()
                 }
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 level: 1,
                 xp: 0,
                 xp_to_next: 1000,
+                tap_power: 1,
                 active_skin: 'Bull1.png',
                 last_energy_update: new Date().toISOString()
             }

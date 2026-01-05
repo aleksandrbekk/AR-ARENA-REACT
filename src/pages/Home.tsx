@@ -65,6 +65,23 @@ export function Home() {
       return
     }
 
+    // 🚀 ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ (сразу показываем результат)
+    const tapPower = gameState.tap_power || 1
+    const skinBonus = activeSkin?.tap_bonus || 0
+    const bulEarned = tapPower + skinBonus // Формула как в SQL
+
+    // Мгновенно обновляем UI
+    const optimisticBalance = gameState.balance_bul + bulEarned
+    const optimisticEnergy = Math.max(gameState.energy - 1, 0)
+
+    updateGameState({
+      balance_bul: optimisticBalance,
+      energy: optimisticEnergy
+    })
+
+    // Добавить плавающее число сразу
+    setFloatingNumbers(prev => [...prev, { id: Date.now(), value: bulEarned }])
+
     console.log('Processing tap...')
     const result = await tap(1)
 
@@ -75,10 +92,7 @@ export function Home() {
         console.log('🎉 LEVEL UP!')
       }
 
-      // Добавить плавающее число
-      setFloatingNumbers(prev => [...prev, { id: Date.now(), value: result.bul_earned }])
-
-      // Обновляем данные локально (оптимистичное обновление)
+      // Синхронизируем с сервером (если сервер вернул другие значения)
       updateGameState({
         balance_bul: result.balance_bul,
         energy: result.energy,
@@ -87,7 +101,12 @@ export function Home() {
         xp_to_next: result.xp_to_next
       })
     } else {
-      console.log('❌ Tap failed')
+      console.log('❌ Tap failed - откатываем оптимистичное обновление')
+      // Откатываем если запрос упал
+      updateGameState({
+        balance_bul: gameState.balance_bul,
+        energy: gameState.energy
+      })
     }
   }
 
@@ -194,6 +213,7 @@ export function Home() {
         <StatusBar
           energy={gameState.energy}
           energyMax={gameState.energy_max}
+          tapPower={gameState.tap_power}
           activeSkin={activeSkin}
         />
       </div>

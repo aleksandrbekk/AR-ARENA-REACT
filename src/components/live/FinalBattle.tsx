@@ -1,12 +1,24 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import type { Ticket } from '../../types'
 
+interface Turn {
+    turn: number
+    player: number // index in candidates array
+    result: 'bull' | 'bear'
+}
+
+interface Winner {
+    place: number
+    ticket: number
+    username: string
+}
+
 interface FinalBattleProps {
     candidates: Ticket[]
-    turns: any[]
-    winners: any[]
+    turns: Turn[]
+    winners: Winner[]
     onComplete: () => void
 }
 
@@ -16,51 +28,129 @@ export function FinalBattle({
     winners,
     onComplete
 }: FinalBattleProps) {
-    // Mapping candidates to players internally
-    const players = candidates
-    // Mocking required internal state for now to satisfy render
-    const scores = candidates.map(() => ({ bulls: 0, bears: 0, place: null as number | null }))
-    const turnOrder = [0, 1, 2]
-    const currentFinalPlayer = null
-    const wheelAngle = 0
-    const wheelSpinning = false
-    const lastResult = null
-    const onRunDemo = undefined
-    const embedded = false
+    // Animation state
+    const [currentTurnIndex, setCurrentTurnIndex] = useState(-1)
+    const [scores, setScores] = useState<{ bulls: number; bears: number; place: number | null }[]>([])
+    const [currentPlayer, setCurrentPlayer] = useState<number | null>(null)
+    const [wheelAngle, setWheelAngle] = useState(0)
+    const [wheelSpinning, setWheelSpinning] = useState(false)
+    const [lastResult, setLastResult] = useState<'bull' | 'bear' | null>(null)
+    const [isAnimating, setIsAnimating] = useState(false)
+    const animationStarted = useRef(false)
 
-    // Suppress unused variables warnings
-    console.log('FinalBattle props:', { turns, winners, onComplete })
-
-    const confettiFiredFor = useRef<Set<number>>(new Set())
-
-    // Fire confetti when someone wins 1st place
+    // Initialize scores
     useEffect(() => {
-        scores.forEach((score, idx) => {
-            if (score.place === 1 && !confettiFiredFor.current.has(idx)) {
-                confettiFiredFor.current.add(idx)
-                confetti({
-                    particleCount: 80,
-                    spread: 60,
-                    origin: { y: 0.6 },
-                    colors: ['#FFD700', '#FFA500', '#22c55e']
-                })
+        setScores(candidates.map(() => ({ bulls: 0, bears: 0, place: null })))
+    }, [candidates])
+
+    // Animate through turns
+    useEffect(() => {
+        if (animationStarted.current || turns.length === 0 || scores.length === 0) return
+        animationStarted.current = true
+        setIsAnimating(true)
+
+        let turnIdx = 0
+        let currentAngle = 0
+
+        const animateNextTurn = () => {
+            if (turnIdx >= turns.length) {
+                setIsAnimating(false)
+                setCurrentPlayer(null)
+                setLastResult(null)
+                // All turns done, wait then complete
+                setTimeout(onComplete, 3000)
+                return
             }
-        })
-    }, [scores])
 
-    // Reset confetti flag when scores reset
-    useEffect(() => {
-        const allZero = scores.every(s => s.bulls === 0 && s.bears === 0)
-        if (allZero) {
-            confettiFiredFor.current.clear()
+            const turn = turns[turnIdx]
+            setCurrentTurnIndex(turnIdx)
+            setCurrentPlayer(turn.player)
+            setLastResult(null)
+            setWheelSpinning(true)
+
+            // Calculate wheel angle based on result
+            // Bull = green (left side, 180-360), Bear = red (right side, 0-180)
+            const spinAmount = 1800 + Math.random() * 720 // 5-7 full rotations
+            const resultOffset = turn.result === 'bull' ? 270 : 90 // Target angle
+            const newAngle = currentAngle + spinAmount + resultOffset
+            currentAngle = newAngle
+
+            setWheelAngle(newAngle)
+
+            // Haptic feedback for spin
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light')
+            }
+
+            // After wheel stops spinning
+            setTimeout(() => {
+                setWheelSpinning(false)
+                setLastResult(turn.result)
+
+                // Update scores
+                setScores(prev => {
+                    const newScores = [...prev]
+                    if (turn.result === 'bull') {
+                        newScores[turn.player].bulls++
+                    } else {
+                        newScores[turn.player].bears++
+                    }
+
+                    // Check for place assignment
+                    if (newScores[turn.player].bulls >= 3) {
+                        // Winner! Find place from winners array
+                        const winnerEntry = winners.find(w =>
+                            w.ticket === candidates[turn.player].ticket_number
+                        )
+                        if (winnerEntry) {
+                            newScores[turn.player].place = winnerEntry.place
+                        }
+                        // Confetti for winner
+                        if (winnerEntry?.place === 1) {
+                            confetti({
+                                particleCount: 100,
+                                spread: 70,
+                                origin: { y: 0.6 },
+                                colors: ['#FFD700', '#FFA500', '#22c55e']
+                            })
+                        }
+                    } else if (newScores[turn.player].bears >= 3) {
+                        // Eliminated
+                        const winnerEntry = winners.find(w =>
+                            w.ticket === candidates[turn.player].ticket_number
+                        )
+                        if (winnerEntry) {
+                            newScores[turn.player].place = winnerEntry.place
+                        }
+                    }
+
+                    return newScores
+                })
+
+                // Haptic feedback for result
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred(
+                        turn.result === 'bull' ? 'success' : 'error'
+                    )
+                }
+
+                turnIdx++
+                // Next turn after delay
+                setTimeout(animateNextTurn, 2000)
+            }, 3000) // Wheel spin duration
         }
-    }, [scores])
 
-    const getPlayerCardClass = (idx: number, score: { bulls: number; bears: number; place: number | null }) => {
-        const isCurrent = currentFinalPlayer === idx
+        // Start animation after short delay
+        setTimeout(animateNextTurn, 1000)
+    }, [turns, scores.length, candidates, winners, onComplete])
+
+    const getPlayerCardClass = (idx: number) => {
+        const score = scores[idx]
+        if (!score) return 'border-[#FFD700]/50'
+
+        const isCurrent = currentPlayer === idx
         const hasPlace = score.place !== null
 
-        // Already has place - show final state
         if (hasPlace) {
             if (score.place === 1) {
                 return 'border-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.8)] scale-105'
@@ -73,7 +163,6 @@ export function FinalBattle({
             }
         }
 
-        // Current player's turn
         if (isCurrent) {
             return 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.7)] scale-110'
         }
@@ -82,94 +171,87 @@ export function FinalBattle({
     }
 
     return (
-        <div className={embedded ? '' : 'min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4'}>
-            {/* БЫКИ И МЕДВЕДИ Title - metallic style */}
-            {!embedded && (
-                <div className="text-center mb-6">
-                    <h1 className="text-2xl font-black tracking-wider uppercase flex items-center justify-center gap-2">
-                        <span
-                            style={{
-                                background: 'linear-gradient(180deg, #7FFF7F 0%, #22c55e 40%, #166534 70%, #0a3d1a 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                filter: 'drop-shadow(0 2px 4px rgba(34,197,94,0.5))',
-                            }}
-                        >
-                            БЫКИ
-                        </span>
-                        <span className="text-white/40">И</span>
-                        <span
-                            style={{
-                                background: 'linear-gradient(180deg, #FF7F7F 0%, #ef4444 40%, #991b1b 70%, #450a0a 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                filter: 'drop-shadow(0 2px 4px rgba(239,68,68,0.5))',
-                            }}
-                        >
-                            МЕДВЕДИ
-                        </span>
-                    </h1>
-                </div>
-            )}
-
-            {onRunDemo && (
-                <div className="text-center mb-6">
-                    <button
-                        onClick={onRunDemo}
-                        data-testid="run-demo-btn"
-                        className="px-6 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold rounded-full hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,215,0,0.3)]"
+        <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
+            {/* Title */}
+            <div className="text-center mb-6">
+                <h1 className="text-2xl font-black tracking-wider uppercase flex items-center justify-center gap-2">
+                    <span
+                        style={{
+                            background: 'linear-gradient(180deg, #7FFF7F 0%, #22c55e 40%, #166534 70%, #0a3d1a 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            filter: 'drop-shadow(0 2px 4px rgba(34,197,94,0.5))',
+                        }}
                     >
-                        ЗАПУСТИТЬ
-                    </button>
-                </div>
-            )}
+                        БЫКИ
+                    </span>
+                    <span className="text-white/40">И</span>
+                    <span
+                        style={{
+                            background: 'linear-gradient(180deg, #FF7F7F 0%, #ef4444 40%, #991b1b 70%, #450a0a 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            filter: 'drop-shadow(0 2px 4px rgba(239,68,68,0.5))',
+                        }}
+                    >
+                        МЕДВЕДИ
+                    </span>
+                </h1>
+                {isAnimating && (
+                    <div className="mt-2 inline-flex items-center gap-2 px-4 py-1 bg-zinc-900/80 rounded-full border border-white/10">
+                        <div className="w-2 h-2 rounded-full bg-[#FFD700] animate-pulse" />
+                        <span className="text-sm text-white/70">
+                            Ход {currentTurnIndex + 1} / {turns.length}
+                        </span>
+                    </div>
+                )}
+            </div>
 
             {/* Players */}
             <div className="flex justify-center items-end gap-6 mb-8">
-                {players.map((ticket, idx) => {
-                    const score = scores[idx]
-                    const orderNum = turnOrder.indexOf(idx) + 1
-                    const hasPlace = score?.place !== null
+                {candidates.map((ticket, idx) => {
+                    const score = scores[idx] || { bulls: 0, bears: 0, place: null }
+                    const hasPlace = score.place !== null
 
                     return (
                         <motion.div
                             key={idx}
                             className="flex flex-col items-center"
                             animate={
-                                score?.place === 3
+                                score.place === 3
                                     ? { x: [0, -3, 3, -3, 3, 0] }
                                     : {}
                             }
                             transition={{ duration: 0.4 }}
                         >
-                            {/* Avatar with order badge */}
+                            {/* Avatar */}
                             <div className="relative mb-2">
                                 <motion.img
-                                    src={ticket.player.avatar}
+                                    src={ticket.player.avatar || '/default-avatar.png'}
                                     alt=""
-                                    className={`w-20 h-20 rounded-full border-3 transition-all duration-300 ${getPlayerCardClass(idx, score || { bulls: 0, bears: 0, place: null })}`}
-                                    animate={score?.place === 1 ? { scale: [1, 1.1, 1] } : {}}
-                                    transition={score?.place === 1 ? { duration: 0.6, repeat: 2 } : {}}
+                                    className={`w-20 h-20 rounded-full border-3 transition-all duration-300 object-cover ${getPlayerCardClass(idx)}`}
+                                    animate={score.place === 1 ? { scale: [1, 1.1, 1] } : {}}
+                                    transition={score.place === 1 ? { duration: 0.6, repeat: 2 } : {}}
                                 />
-                                {orderNum > 0 && !hasPlace && (
-                                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black text-xs font-bold flex items-center justify-center border-2 border-black">
-                                        {orderNum}
+                                {currentPlayer === idx && !hasPlace && (
+                                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white text-xs font-bold flex items-center justify-center border-2 border-black animate-pulse">
+                                        ▶
                                     </div>
                                 )}
                             </div>
 
-                            {/* Name / Place - show place IMMEDIATELY when assigned */}
+                            {/* Name / Place */}
                             <motion.div
-                                className={`px-3 py-2 rounded-xl text-center mb-2 min-w-[80px] max-w-[100px] transition-all duration-300 ${score?.place === 1
+                                className={`px-3 py-2 rounded-xl text-center mb-2 min-w-[80px] max-w-[100px] transition-all duration-300 ${score.place === 1
                                     ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black font-bold shadow-[0_0_30px_rgba(255,215,0,0.8)]'
-                                    : score?.place === 2
-                                        ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-black font-bold shadow-[0_0_15px_rgba(192,192,192,0.5)]'
-                                        : score?.place === 3
-                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white font-bold shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+                                    : score.place === 2
+                                        ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-black font-bold'
+                                        : score.place === 3
+                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white font-bold'
                                             : 'bg-zinc-800 text-white'
                                     }`}
-                                animate={score?.place === 1 ? { scale: [1, 1.05, 1] } : {}}
-                                transition={score?.place === 1 ? { duration: 0.5, repeat: 3 } : {}}
+                                animate={score.place === 1 ? { scale: [1, 1.05, 1] } : {}}
+                                transition={score.place === 1 ? { duration: 0.5, repeat: 3 } : {}}
                             >
                                 <span className="truncate block text-sm font-bold">
                                     {hasPlace
@@ -184,12 +266,12 @@ export function FinalBattle({
                                     {[0, 1, 2].map(i => (
                                         <motion.div
                                             key={`bull-${i}`}
-                                            className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${(score?.bulls || 0) > i
+                                            className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${score.bulls > i
                                                 ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]'
                                                 : 'bg-zinc-900 border-zinc-700'
                                                 }`}
                                             initial={false}
-                                            animate={(score?.bulls || 0) > i ? { scale: [0.8, 1.2, 1] } : {}}
+                                            animate={score.bulls > i ? { scale: [0.8, 1.2, 1] } : {}}
                                             transition={{ type: 'spring', stiffness: 500, damping: 15 }}
                                         >
                                             <img src="/icons/bull.png" alt="bull" className="w-6 h-6" />
@@ -200,12 +282,12 @@ export function FinalBattle({
                                     {[0, 1, 2].map(i => (
                                         <motion.div
                                             key={`bear-${i}`}
-                                            className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${(score?.bears || 0) > i
+                                            className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${score.bears > i
                                                 ? 'bg-gradient-to-br from-red-500 to-red-700 border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
                                                 : 'bg-zinc-900 border-zinc-700'
                                                 }`}
                                             initial={false}
-                                            animate={(score?.bears || 0) > i ? { scale: [0.8, 1.2, 1] } : {}}
+                                            animate={score.bears > i ? { scale: [0.8, 1.2, 1] } : {}}
                                             transition={{ type: 'spring', stiffness: 500, damping: 15 }}
                                         >
                                             <img src="/icons/bear.png" alt="bear" className="w-6 h-6" />
@@ -218,16 +300,15 @@ export function FinalBattle({
                 })}
             </div>
 
-            {/* Wheel - cursor rotates around wheel center */}
+            {/* Wheel */}
             <div className="relative w-64 h-64 mx-auto flex items-center justify-center">
-                {/* Static wheel image */}
                 <img
                     src="/icons/rulet.png"
                     alt="wheel"
                     className="w-full h-full"
                 />
 
-                {/* Rotating cursor - positioned at top, rotates around wheel center */}
+                {/* Rotating cursor */}
                 <img
                     src="/icons/Cursor.png"
                     alt="cursor"
@@ -241,7 +322,7 @@ export function FinalBattle({
                     }}
                 />
 
-                {/* Result indicator with spring animation */}
+                {/* Result indicator */}
                 <AnimatePresence>
                     {lastResult && !wheelSpinning && (
                         <motion.div
@@ -252,7 +333,6 @@ export function FinalBattle({
                                 type: 'spring',
                                 stiffness: 300,
                                 damping: 20,
-                                mass: 1.2
                             }}
                             className="absolute inset-0 flex items-center justify-center"
                         >
@@ -271,7 +351,7 @@ export function FinalBattle({
                 </AnimatePresence>
             </div>
 
-            {/* Stylish FINAL footer */}
+            {/* FINAL footer */}
             <div className="text-center mt-6">
                 <div className="relative inline-block">
                     <div className="absolute inset-0 blur-2xl opacity-30 bg-gradient-to-r from-green-500 via-[#FFD700] to-red-500" />
@@ -282,7 +362,6 @@ export function FinalBattle({
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             textShadow: '0 0 60px rgba(255,215,0,0.4)',
-                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))'
                         }}
                     >
                         FINAL

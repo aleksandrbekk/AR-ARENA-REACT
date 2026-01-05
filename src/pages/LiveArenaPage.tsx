@@ -219,14 +219,12 @@ export function LiveArenaPage() {
     avatar: p.avatar || ''
   }));
 
-  // Map for eliminated players in semifinal: ticket -> hits (using data from spins)
-  const semifinalEliminated = new Map<number, number>();
-  (drawResults.semifinal.eliminated || []).forEach(p => {
-    // Find actual hit count from spins, or default to 3 (eliminated)
-    const spinsForPlayer = (drawResults.semifinal.spins || []).filter(s => s.ticket === p.ticket_number);
-    const maxHits = spinsForPlayer.length > 0 ? Math.max(...spinsForPlayer.map(s => s.hits)) : 3;
-    semifinalEliminated.set(p.ticket_number, maxHits);
-  });
+  // Semifinal data - spins array and eliminated players
+  const semifinalSpins = drawResults.semifinal.spins || [];
+  const semifinalEliminated = (drawResults.semifinal.eliminated || []).map(p => ({
+    ticket_number: p.ticket_number,
+    place: p.place
+  }));
 
   const finalCandidates = (drawResults.semifinal.finalists3 || []).map(p => ({
     ticket: p.ticket_number,
@@ -316,12 +314,23 @@ export function LiveArenaPage() {
         )}
 
         {stage === 'TOUR1' && (
-          <Tour1Drum
+          <motion.div
             key="tour1"
-            candidates={tour1Winners} // This is just for animation, assume standard pool
-            winners={tour1Winners}
-            onComplete={handleStageComplete}
-          />
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 relative z-10"
+          >
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-black text-[#FFD700]">ОТБОРОЧНЫЙ ТУР</h1>
+              <p className="text-white/50 text-sm mt-1">Выбираем 20 участников</p>
+            </div>
+            <Tour1Drum
+              candidates={tour1Winners}
+              winners={tour1Winners}
+              onComplete={handleStageComplete}
+            />
+          </motion.div>
         )}
 
         {stage === 'TOUR2' && (
@@ -349,6 +358,7 @@ export function LiveArenaPage() {
           <SemifinalTraffic
             key="semifinal"
             candidates={semifinalCandidates}
+            spins={semifinalSpins}
             eliminated={semifinalEliminated}
             onComplete={handleStageComplete}
           />

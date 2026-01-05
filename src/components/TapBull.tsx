@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 
 interface TapBullProps {
@@ -16,13 +16,42 @@ export function TapBull({ skinFile, onTap, children }: TapBullProps) {
   const [isTapped, setIsTapped] = useState(false)
   const [isGlowing, setIsGlowing] = useState(false)
 
-  const handleTapAnimation = () => {
+  // Debounce для защиты от двойных тапов
+  const lastTapTime = useRef<number>(0)
+  const DEBOUNCE_MS = 50
+
+  // Haptic feedback через Telegram WebApp API
+  const triggerHaptic = useCallback(() => {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.HapticFeedback) {
+      try {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('light')
+      } catch (e) {
+        // Игнорируем ошибки haptic (может не работать в некоторых версиях)
+      }
+    }
+  }, [])
+
+  const handleTapAnimation = useCallback(() => {
+    const now = Date.now()
+
+    // Debounce: игнорируем тапы чаще чем 50ms
+    if (now - lastTapTime.current < DEBOUNCE_MS) {
+      return
+    }
+    lastTapTime.current = now
+
+    // Визуальный фидбек
     setIsTapped(true)
     setIsGlowing(true)
     setTimeout(() => setIsTapped(false), 100)
     setTimeout(() => setIsGlowing(false), 300)
+
+    // Haptic вибрация
+    triggerHaptic()
+
+    // Вызываем callback тапа
     onTap?.()
-  }
+  }, [onTap, triggerHaptic])
 
   return (
     <div
@@ -32,8 +61,15 @@ export function TapBull({ skinFile, onTap, children }: TapBullProps) {
       {/* Контейнер для быка с эффектами */}
       <div
         className="relative flex flex-col items-center cursor-pointer select-none"
-        onClick={handleTapAnimation}
-        style={{ WebkitTapHighlightColor: 'transparent' }}
+        onTouchStart={(e) => {
+          e.preventDefault() // Предотвращаем задержку 300ms
+          handleTapAnimation()
+        }}
+        onClick={handleTapAnimation} // Fallback для десктопа
+        style={{
+          WebkitTapHighlightColor: 'transparent',
+          touchAction: 'manipulation' // Улучшает отклик на тач-устройствах
+        }}
       >
         {/* Тень/объём СЗАДИ быка */}
         <div

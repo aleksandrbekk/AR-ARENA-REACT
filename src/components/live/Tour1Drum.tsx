@@ -50,13 +50,13 @@ export function Tour1Drum({ winners, onComplete, onTick, onWinnerFound, onAllFou
       // Random ticket noise — только когда не показываем победителя
       if (!isPaused) {
         setCurrentTicket(Math.floor(Math.random() * 999999))
-        // Play tick sound every 3rd tick (150ms)
+        // Play tick sound every 2nd tick
         tickCount++
-        if (tickCount % 3 === 0 && onTick) {
+        if (tickCount % 2 === 0 && onTick) {
           onTick()
         }
       }
-    }, 50)
+    }, 100) // Increased from 50ms to reduce state updates
 
     const findNextWinner = () => {
       if (currentIndex >= totalWinners) {
@@ -182,25 +182,18 @@ export function Tour1Drum({ winners, onComplete, onTick, onWinnerFound, onAllFou
 
       {/* Winners Grid - Responsive without fixed height */}
       <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence>
           {foundWinners.map((w, i) => {
             const isNew = i === lastFoundIndex
 
             return (
               <motion.div
                 key={w.ticket}
-                layout
-                initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  y: 0,
-                }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{
-                  type: 'spring',
-                  stiffness: 400,
-                  damping: 25,
-                  delay: isNew ? 0 : 0.02 * i
+                  duration: 0.2,
+                  delay: isNew ? 0 : 0
                 }}
                 className={`
                   relative overflow-hidden rounded-xl
@@ -210,14 +203,9 @@ export function Tour1Drum({ winners, onComplete, onTick, onWinnerFound, onAllFou
                 {/* Card background with subtle gradient */}
                 <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/90 to-zinc-900/90 backdrop-blur-sm" />
 
-                {/* Shine effect for new card */}
+                {/* Shine effect for new card - simplified */}
                 {isNew && (
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-[#FFD700]/20 to-transparent"
-                    initial={{ x: '-100%' }}
-                    animate={{ x: '100%' }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#FFD700]/20 to-transparent animate-pulse" />
                 )}
 
                 {/* Content - Compact 2-row layout */}

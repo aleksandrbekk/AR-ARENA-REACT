@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { SqueezeCard } from './SqueezeCard'
 import type { Ticket } from '../../types'
 
@@ -6,12 +6,14 @@ interface Tour2SqueezeProps {
     candidates: Ticket[]
     finalists: Ticket[]
     onComplete: () => void
+    autoReveal?: boolean // Auto-reveal mode for Live Arena
 }
 
-export function Tour2Squeeze({ candidates, finalists, onComplete }: Tour2SqueezeProps) {
+export function Tour2Squeeze({ candidates, finalists, onComplete, autoReveal = true }: Tour2SqueezeProps) {
     const [revealedCount, setRevealedCount] = useState(0)
     // Map index -> status
     const [results, setResults] = useState<Map<number, 'green' | 'red'>>(new Map())
+    const autoRevealStarted = useRef(false)
 
     // Determine status: is ticket in finalists?
     const getStatus = (ticket: Ticket): 'green' | 'red' => {
@@ -33,9 +35,27 @@ export function Tour2Squeeze({ candidates, finalists, onComplete }: Tour2Squeeze
         }
     }
 
-    // Auto-reveal effect if user doesn't interact (optional fallback)
+    // Auto-reveal in Live Arena mode
     useEffect(() => {
-        if (revealedCount === candidates.length) {
+        if (!autoReveal || autoRevealStarted.current) return
+        autoRevealStarted.current = true
+
+        let currentIdx = 0
+        const revealNext = () => {
+            if (currentIdx >= candidates.length) return
+            handleReveal(currentIdx)
+            currentIdx++
+            if (currentIdx < candidates.length) {
+                setTimeout(revealNext, 300) // Reveal one every 300ms
+            }
+        }
+        // Start after a short delay
+        setTimeout(revealNext, 500)
+    }, [autoReveal, candidates.length])
+
+    // Complete when all revealed
+    useEffect(() => {
+        if (revealedCount === candidates.length && revealedCount > 0) {
             setTimeout(onComplete, 2000)
         }
     }, [revealedCount, candidates.length, onComplete])
@@ -78,19 +98,11 @@ export function Tour2Squeeze({ candidates, finalists, onComplete }: Tour2Squeeze
                 })}
             </div>
 
-            {/* Auto-reveal all button for debug/speed */}
+            {/* Progress indicator */}
             <div className="fixed bottom-8 left-0 right-0 flex justify-center z-50">
-                <button
-                    onClick={() => {
-                        const newMap = new Map()
-                        candidates.forEach((t, i) => newMap.set(i, getStatus(t)))
-                        setResults(newMap)
-                        setRevealedCount(candidates.length)
-                    }}
-                    className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-widest text-white/50 hover:bg-white/20 transition-all border border-white/5"
-                >
-                    Открыть все
-                </button>
+                <div className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-widest text-white/50 border border-white/5">
+                    Открыто: {revealedCount} / {candidates.length}
+                </div>
             </div>
         </div>
     )

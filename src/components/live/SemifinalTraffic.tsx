@@ -1,26 +1,95 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Ticket } from '../../types'
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 interface SemifinalTrafficProps {
     candidates: Ticket[]
-    eliminated: Map<number, number>
+    spins: { ticket: number; hits: number }[]
+    eliminated: { ticket_number: number; place: number }[]
     onComplete: () => void
 }
 
 export function SemifinalTraffic({
     candidates,
+    spins,
     eliminated,
     onComplete
 }: SemifinalTrafficProps) {
-    // Internal state mock props for now effectively
-    // In real Live implementation, these would drive the animation.
-    // For now we just show the state.
+    // Animation state
+    const [currentSpinIndex, setCurrentSpinIndex] = useState(-1)
+    const [hitCounts, setHitCounts] = useState<Map<number, number>>(new Map())
+    const [eliminatedPlayers, setEliminatedPlayers] = useState<Map<number, number>>(new Map())
+    const [currentSpinTicket, setCurrentSpinTicket] = useState<number | null>(null)
+    const [isAnimating, setIsAnimating] = useState(false)
+    const animationStarted = useRef(false)
 
-    // Derived state for display
-    const currentSpinTicket = null
+    // Initialize hit counts
+    useEffect(() => {
+        const initialHits = new Map<number, number>()
+        candidates.forEach(c => initialHits.set(c.ticket_number, 0))
+        setHitCounts(initialHits)
+    }, [candidates])
 
-    // Neon indicator styles with activator-style glow
+    // Animate through spins
+    useEffect(() => {
+        if (animationStarted.current || spins.length === 0) return
+        animationStarted.current = true
+        setIsAnimating(true)
+
+        let spinIdx = 0
+        const animateNextSpin = () => {
+            if (spinIdx >= spins.length) {
+                setIsAnimating(false)
+                setCurrentSpinTicket(null)
+                // All spins done, wait then complete
+                setTimeout(onComplete, 2000)
+                return
+            }
+
+            const spin = spins[spinIdx]
+            setCurrentSpinTicket(spin.ticket)
+            setCurrentSpinIndex(spinIdx)
+
+            // After showing which player was hit, update their count
+            setTimeout(() => {
+                setHitCounts(prev => {
+                    const newMap = new Map(prev)
+                    newMap.set(spin.ticket, spin.hits)
+                    return newMap
+                })
+
+                // Check if this player is now eliminated
+                if (spin.hits >= 3) {
+                    const elimEntry = eliminated.find(e => e.ticket_number === spin.ticket)
+                    if (elimEntry) {
+                        setEliminatedPlayers(prev => {
+                            const newMap = new Map(prev)
+                            newMap.set(spin.ticket, elimEntry.place)
+                            return newMap
+                        })
+                    }
+                }
+
+                // Haptic feedback
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    if (spin.hits >= 3) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('error')
+                    } else {
+                        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
+                    }
+                }
+
+                spinIdx++
+                // Next spin after delay
+                setTimeout(animateNextSpin, 1200)
+            }, 800)
+        }
+
+        // Start animation after short delay
+        setTimeout(animateNextSpin, 1000)
+    }, [spins, eliminated, onComplete])
+
+    // Neon indicator styles
     const getIndicatorStyle = (hitCount: number) => {
         if (hitCount === 0) return {
             background: 'linear-gradient(to right, #3f3f46, #52525b)',
@@ -28,30 +97,21 @@ export function SemifinalTraffic({
         }
         if (hitCount === 1) return {
             background: 'linear-gradient(to bottom, #4ade80, #22c55e, #16a34a)',
-            boxShadow: '0 0 15px #22c55e, 0 0 30px rgba(34,197,94,0.6), inset 0 1px 2px rgba(255,255,255,0.4)'
+            boxShadow: '0 0 15px #22c55e, 0 0 30px rgba(34,197,94,0.6)'
         }
         if (hitCount === 2) return {
             background: 'linear-gradient(to bottom, #fde047, #eab308, #ca8a04)',
-            boxShadow: '0 0 15px #eab308, 0 0 30px rgba(234,179,8,0.6), inset 0 1px 2px rgba(255,255,255,0.4)'
+            boxShadow: '0 0 15px #eab308, 0 0 30px rgba(234,179,8,0.6)'
         }
         return {
             background: 'linear-gradient(to bottom, #f87171, #ef4444, #dc2626)',
-            boxShadow: '0 0 20px #ef4444, 0 0 40px rgba(239,68,68,0.7), inset 0 1px 2px rgba(255,255,255,0.4)'
+            boxShadow: '0 0 20px #ef4444, 0 0 40px rgba(239,68,68,0.7)'
         }
     }
 
-    // Auto-complete if static
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            // onComplete() // Disable auto-advance for now to let user see results
-        }, 5000)
-        return () => clearTimeout(timer)
-    }, [onComplete])
-
-
     return (
         <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-8 px-4">
-            {/* Title with glow */}
+            {/* Title */}
             <div className="text-center mb-4">
                 <motion.h1
                     initial={{ opacity: 0, y: -20 }}
@@ -66,30 +126,42 @@ export function SemifinalTraffic({
                 >
                     СВЕТОФОР
                 </motion.h1>
-                <p className="text-white/50 text-sm">Полуфинал</p>
+                <p className="text-white/50 text-sm">Полуфинал • 5 → 3</p>
             </div>
 
-            {/* Legend with neon dots */}
+            {/* Legend */}
             <div className="flex justify-center gap-4 mb-5">
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full shadow-[0_0_8px_#22c55e,0_0_16px_rgba(34,197,94,0.5)]" style={{ background: 'linear-gradient(to bottom, #4ade80, #22c55e)' }} />
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(to bottom, #4ade80, #22c55e)', boxShadow: '0 0 8px #22c55e' }} />
                     <span className="text-xs text-white/70">1 удар</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full shadow-[0_0_8px_#eab308,0_0_16px_rgba(234,179,8,0.5)]" style={{ background: 'linear-gradient(to bottom, #fde047, #eab308)' }} />
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(to bottom, #fde047, #eab308)', boxShadow: '0 0 8px #eab308' }} />
                     <span className="text-xs text-white/70">2 удара</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full shadow-[0_0_8px_#ef4444,0_0_16px_rgba(239,68,68,0.5)]" style={{ background: 'linear-gradient(to bottom, #f87171, #ef4444)' }} />
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'linear-gradient(to bottom, #f87171, #ef4444)', boxShadow: '0 0 8px #ef4444' }} />
                     <span className="text-xs text-white/70">ВЫБЫЛ</span>
                 </div>
             </div>
 
-            {/* Player Cards - BIGGER with min-width */}
+            {/* Spin counter */}
+            {isAnimating && (
+                <div className="text-center mb-4">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900/80 rounded-full border border-white/10">
+                        <div className="w-2 h-2 rounded-full bg-[#FFD700] animate-pulse" />
+                        <span className="text-sm text-white/70">
+                            Спин {currentSpinIndex + 1} / {spins.length}
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            {/* Player Cards */}
             <div className="flex gap-3 mb-5 px-1 justify-center flex-wrap">
                 {candidates.map((ticket) => {
-                    const hitCount = eliminated.has(ticket.ticket_number) ? 3 : 0
-                    const eliminatedPlace = eliminated.get(ticket.ticket_number)
+                    const hitCount = hitCounts.get(ticket.ticket_number) || 0
+                    const eliminatedPlace = eliminatedPlayers.get(ticket.ticket_number)
                     const isCurrentSpin = currentSpinTicket === ticket.ticket_number
                     const indicatorStyle = getIndicatorStyle(hitCount)
 
@@ -120,22 +192,19 @@ export function SemifinalTraffic({
                                 )}
                             </AnimatePresence>
 
-                            {/* Traffic Light Indicator - thicker with spring animation */}
+                            {/* Traffic Light Indicator */}
                             <motion.div
                                 className="w-full h-2.5 rounded-full mb-2"
                                 style={indicatorStyle}
-                                initial={{ scaleX: 0.5, opacity: 0.5 }}
-                                animate={{
-                                    scaleX: 1,
-                                    opacity: 1,
-                                    transition: { type: 'spring', stiffness: 400, damping: 15 }
-                                }}
                                 key={hitCount}
+                                initial={{ scale: 0.8 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                             />
 
-                            {/* Avatar - bigger */}
+                            {/* Avatar */}
                             <img
-                                src={ticket.player.avatar}
+                                src={ticket.player.avatar || '/default-avatar.png'}
                                 alt=""
                                 className={`w-12 h-12 rounded-full border-2 mb-1.5 object-cover transition-all duration-500 ${eliminatedPlace
                                         ? 'border-red-500 grayscale opacity-50'
@@ -151,7 +220,7 @@ export function SemifinalTraffic({
                                 #{ticket.ticket_number}
                             </div>
 
-                            {/* Eliminated badge with stylish X icon */}
+                            {/* Eliminated badge */}
                             <AnimatePresence>
                                 {eliminatedPlace && (
                                     <motion.div
@@ -159,10 +228,8 @@ export function SemifinalTraffic({
                                         animate={{ scale: 1, rotate: 0 }}
                                         transition={{ type: 'spring', stiffness: 500, damping: 12 }}
                                         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
-                                        data-testid="out-badge"
                                     >
-                                        <div className="bg-gradient-to-b from-red-500 to-red-700 backdrop-blur-sm text-white text-[10px] font-black px-3 py-1.5 rounded-lg border border-red-400/50 shadow-[0_0_20px_rgba(239,68,68,0.7)] flex items-center gap-1.5">
-                                            {/* Stylish X icon */}
+                                        <div className="bg-gradient-to-b from-red-500 to-red-700 text-white text-[10px] font-black px-3 py-1.5 rounded-lg border border-red-400/50 shadow-[0_0_20px_rgba(239,68,68,0.7)] flex items-center gap-1.5">
                                             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                                                 <path d="M6 6l12 12M6 18L18 6" />
                                             </svg>
@@ -172,7 +239,7 @@ export function SemifinalTraffic({
                                 )}
                             </AnimatePresence>
 
-                            {/* Place badge at bottom */}
+                            {/* Place badge */}
                             {eliminatedPlace && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
@@ -187,6 +254,21 @@ export function SemifinalTraffic({
                 })}
             </div>
 
+            {/* Finalists indicator */}
+            {!isAnimating && eliminatedPlayers.size >= 2 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center mt-6"
+                >
+                    <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-500/20 rounded-full border border-green-500/30">
+                        <span className="text-green-400 font-bold">В ФИНАЛ ПРОХОДЯТ:</span>
+                        <span className="text-white font-mono">
+                            {candidates.filter(c => !eliminatedPlayers.has(c.ticket_number)).length} игрока
+                        </span>
+                    </div>
+                </motion.div>
+            )}
         </div>
     )
 }

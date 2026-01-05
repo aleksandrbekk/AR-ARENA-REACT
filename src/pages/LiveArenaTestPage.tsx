@@ -115,7 +115,7 @@ export function LiveArenaTestPage() {
 
     // ===================== SEMIFINAL STATE =====================
     const [_semifinalHits, setSemifinalHits] = useState<Map<number, number>>(new Map())
-    const [semifinalEliminated, setSemifinalEliminated] = useState<Map<number, number>>(new Map())
+    const [_semifinalEliminated, setSemifinalEliminated] = useState<Map<number, number>>(new Map())
     const [_rouletteOffset, setRouletteOffset] = useState(0)
     const [_currentSpinTicket, setCurrentSpinTicket] = useState<number | null>(null)
     // Показываем карточки призов сразу (с "?" пока нет выбывших)
@@ -419,7 +419,20 @@ export function LiveArenaTestPage() {
                 {/* SemifinalTraffic Component - using new props format */}
                 <SemifinalTraffic
                     candidates={mockFinalists5}
-                    eliminated={semifinalEliminated}
+                    spins={[
+                        { ticket: mockFinalists5[0].ticket_number, hits: 1 },
+                        { ticket: mockFinalists5[2].ticket_number, hits: 1 },
+                        { ticket: mockFinalists5[1].ticket_number, hits: 1 },
+                        { ticket: mockFinalists5[0].ticket_number, hits: 2 },
+                        { ticket: mockFinalists5[3].ticket_number, hits: 1 },
+                        { ticket: mockFinalists5[0].ticket_number, hits: 3 },
+                        { ticket: mockFinalists5[1].ticket_number, hits: 2 },
+                        { ticket: mockFinalists5[1].ticket_number, hits: 3 },
+                    ]}
+                    eliminated={[
+                        { ticket_number: mockFinalists5[0].ticket_number, place: 5 },
+                        { ticket_number: mockFinalists5[1].ticket_number, place: 4 }
+                    ]}
                     onComplete={() => setMode('menu')}
                 />
             </div>

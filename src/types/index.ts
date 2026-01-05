@@ -99,6 +99,7 @@ export interface GameState {
   level: number;
   xp: number;
   xp_to_next: number;
+  tap_power: number; // Сила тапа (базовая, без бонусов скина)
   active_skin: string;
   last_energy_update: string;
 }
