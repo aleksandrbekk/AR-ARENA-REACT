@@ -36,7 +36,6 @@ export function FinalBattle({
     onBear,
     onWin
 }: FinalBattleProps) {
-    const [currentTurnIndex, setCurrentTurnIndex] = useState(-1)
     const [scores, setScores] = useState<{ bulls: number; bears: number; place: number | null }[]>([])
     const [currentPlayer, setCurrentPlayer] = useState<number | null>(null)
     const [cursorAngle, setCursorAngle] = useState(0)
@@ -73,10 +72,10 @@ export function FinalBattle({
         setScores(candidates.map(() => ({ bulls: 0, bears: 0, place: null })))
     }, [candidates])
 
-    // WHEEL ZONES (колесо статично):
-    // Левая половина (270° сверху по часовой до 90°) = ЗЕЛЁНАЯ = БЫКИ
-    // Правая половина (90° до 270°) = КРАСНАЯ = МЕДВЕДИ
-    // Стрелка начинает сверху (0°) и вращается по часовой
+    // WHEEL ZONES:
+    // Left half = GREEN = BULLS (180° to 360° = top-left quadrant at 270°±90°)
+    // Right half = RED = BEARS (0° to 180° = top-right quadrant at 90°±90°)
+    // Cursor starts at top (0°) pointing into wheel
 
     useEffect(() => {
         if (animationStarted.current || turns.length === 0 || scores.length === 0) return
@@ -112,31 +111,35 @@ export function FinalBattle({
             }
 
             const turn = turns[turnIdx]
-            setCurrentTurnIndex(turnIdx)
             setCurrentPlayer(turn.player)
             setLastResult(null)
             setIsSpinning(true)
 
-            // Target zones:
-            // BULL = left side = angles around 315° (top-left) or 225° (bottom-left)
-            // BEAR = right side = angles around 45° (top-right) or 135° (bottom-right)
-            const randomOffset = (Math.random() - 0.5) * 60 // ±30° randomness
+            // IMPROVED RANDOMIZATION:
+            // Bull zone: 180° to 360° (left half) - pick random spot
+            // Bear zone: 0° to 180° (right half) - pick random spot
+            // Add more variance to make it look natural
+
+            const bullZoneStart = 180
+            const bullZoneEnd = 360
+            const bearZoneStart = 0
+            const bearZoneEnd = 180
 
             let targetZone: number
             if (turn.result === 'bull') {
-                // Left side: 225° to 315° (center at 270°)
-                targetZone = 270 + randomOffset
+                // Random position within bull zone (left half)
+                targetZone = bullZoneStart + Math.random() * (bullZoneEnd - bullZoneStart)
             } else {
-                // Right side: 45° to 135° (center at 90°)
-                targetZone = 90 + randomOffset
+                // Random position within bear zone (right half)
+                targetZone = bearZoneStart + Math.random() * (bearZoneEnd - bearZoneStart)
             }
 
-            // Calculate spin: multiple full rotations + target
+            // Calculate spin with randomized full rotations (3-5 spins)
+            const fullSpins = (3 + Math.floor(Math.random() * 3)) * 360 // 3-5 full rotations
             const currentPos = baseAngleRef.current % 360
             let delta = targetZone - currentPos
             if (delta < 0) delta += 360
 
-            const fullSpins = 1440 // 4 full rotations
             const newAngle = baseAngleRef.current + fullSpins + delta
             baseAngleRef.current = newAngle
 
@@ -175,7 +178,7 @@ export function FinalBattle({
                     // Check for 3 bears = elimination (3rd place first, then 2nd)
                     if (newScores[turn.player].bears >= 3 && newScores[turn.player].place === null) {
                         const eliminatedCount = newScores.filter(s => s.place !== null && s.place > 1).length
-                        newScores[turn.player].place = 3 - eliminatedCount // First eliminated = 3, second = 2
+                        newScores[turn.player].place = 3 - eliminatedCount
                     }
 
                     return newScores
@@ -201,72 +204,70 @@ export function FinalBattle({
         safeTimeout(animateNextTurn, 800)
     }, [turns, scores.length, candidates, winners, onComplete, safeTimeout, onWheelSpin, onBull, onBear, onWin])
 
-    // Get place label
-    const getPlaceLabel = (place: number | null) => {
-        if (place === 1) return '🥇'
-        if (place === 2) return '🥈'
-        if (place === 3) return '🥉'
+    // Get place style
+    const getPlaceStyle = (place: number | null) => {
+        if (place === 1) return { bg: 'bg-gradient-to-b from-[#FFD700] to-[#B8860B]', text: 'text-black', glow: 'shadow-[0_0_20px_rgba(255,215,0,0.8)]' }
+        if (place === 2) return { bg: 'bg-gradient-to-b from-[#C0C0C0] to-[#808080]', text: 'text-black', glow: 'shadow-[0_0_15px_rgba(192,192,192,0.6)]' }
+        if (place === 3) return { bg: 'bg-gradient-to-b from-[#CD7F32] to-[#8B4513]', text: 'text-white', glow: 'shadow-[0_0_15px_rgba(205,127,50,0.6)]' }
         return null
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] flex flex-col pt-[80px] pb-4 px-3">
+        <div className="min-h-screen bg-[#0a0a0a] flex flex-col pt-[70px] pb-4 px-3">
             {/* Header */}
-            <div className="text-center mb-4">
-                <h1 className="text-xl font-black tracking-wide uppercase flex items-center justify-center gap-2">
-                    <span className="text-green-500 drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]">🐂 БЫКИ</span>
-                    <span className="text-white/30 text-base">vs</span>
-                    <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">МЕДВЕДИ 🐻</span>
+            <div className="text-center mb-3">
+                <h1 className="text-xl font-black tracking-wide uppercase flex items-center justify-center gap-3">
+                    <img src="/icons/bull.png" alt="Bull" className="w-8 h-8" />
+                    <span className="text-white/30">vs</span>
+                    <img src="/icons/bear.png" alt="Bear" className="w-8 h-8" />
                 </h1>
-                <div className="mt-2 text-xs text-white/50">
-                    3 быка = 🥇 • 3 медведя = выбывание
-                </div>
             </div>
 
             {/* Players - 3 cards */}
-            <div className="flex justify-center gap-2 mb-4">
+            <div className="flex justify-center gap-2 mb-3">
                 {candidates.map((ticket, idx) => {
                     const score = scores[idx] || { bulls: 0, bears: 0, place: null }
                     const isCurrent = currentPlayer === idx && score.place === null
                     const hasPlace = score.place !== null
                     const isWinner = score.place === 1
+                    const placeStyle = getPlaceStyle(score.place)
 
                     return (
                         <motion.div
                             key={idx}
                             className={`
-                                flex flex-col items-center p-2 rounded-xl border-2 w-[100px]
+                                flex flex-col items-center p-2 rounded-xl border-2 w-[105px]
                                 transition-all duration-300
                                 ${isWinner
                                     ? 'border-[#FFD700] bg-gradient-to-b from-[#FFD700]/20 to-transparent shadow-[0_0_30px_rgba(255,215,0,0.5)]'
                                     : hasPlace
-                                        ? 'border-red-500/40 bg-red-950/20 opacity-50'
+                                        ? 'border-red-500/40 bg-red-950/20 opacity-60'
                                         : isCurrent
-                                            ? 'border-green-400 bg-green-900/30 shadow-[0_0_20px_rgba(34,197,94,0.4)]'
+                                            ? 'border-white/60 bg-white/10 shadow-[0_0_25px_rgba(255,255,255,0.3)]'
                                             : 'border-zinc-700/50 bg-zinc-900/50'
                                 }
                             `}
-                            animate={isCurrent ? { scale: [1, 1.03, 1] } : {}}
-                            transition={{ duration: 1, repeat: isCurrent ? Infinity : 0 }}
+                            animate={isCurrent ? { scale: [1, 1.02, 1] } : {}}
+                            transition={{ duration: 0.8, repeat: isCurrent ? Infinity : 0 }}
                         >
                             {/* Avatar with place badge */}
                             <div className="relative mb-1">
                                 <img
                                     src={ticket.player.avatar || '/default-avatar.png'}
                                     alt=""
-                                    className={`w-11 h-11 rounded-full border-2 object-cover ${
+                                    className={`w-12 h-12 rounded-full border-2 object-cover ${
                                         isWinner ? 'border-[#FFD700]' :
                                         hasPlace ? 'border-red-500 grayscale' :
-                                        isCurrent ? 'border-green-400' : 'border-zinc-600'
+                                        isCurrent ? 'border-white' : 'border-zinc-600'
                                     }`}
                                 />
-                                {hasPlace && (
+                                {hasPlace && placeStyle && (
                                     <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        className="absolute -top-1 -right-1 text-lg"
+                                        initial={{ scale: 0, rotate: -180 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${placeStyle.bg} ${placeStyle.text} ${placeStyle.glow}`}
                                     >
-                                        {getPlaceLabel(score.place)}
+                                        {score.place}
                                     </motion.div>
                                 )}
                             </div>
@@ -281,14 +282,19 @@ export function FinalBattle({
                                 {[0, 1, 2].map(i => (
                                     <motion.div
                                         key={`bull-${i}`}
-                                        className={`w-6 h-6 rounded-md flex items-center justify-center text-xs ${
+                                        className={`w-7 h-7 rounded-md flex items-center justify-center overflow-hidden ${
                                             score.bulls > i
-                                                ? 'bg-green-500 shadow-[0_0_10px_#22c55e]'
-                                                : 'bg-zinc-800/80 border border-zinc-700/50'
+                                                ? 'bg-green-500/30 border border-green-400 shadow-[0_0_12px_rgba(34,197,94,0.6)]'
+                                                : 'bg-zinc-800/60 border border-zinc-700/50'
                                         }`}
-                                        animate={score.bulls > i ? { scale: [0.8, 1.15, 1] } : {}}
+                                        animate={score.bulls > i ? { scale: [0.7, 1.2, 1] } : {}}
+                                        transition={{ duration: 0.3 }}
                                     >
-                                        🐂
+                                        <img
+                                            src="/icons/bull.png"
+                                            alt=""
+                                            className={`w-5 h-5 ${score.bulls > i ? '' : 'opacity-20 grayscale'}`}
+                                        />
                                     </motion.div>
                                 ))}
                             </div>
@@ -298,14 +304,19 @@ export function FinalBattle({
                                 {[0, 1, 2].map(i => (
                                     <motion.div
                                         key={`bear-${i}`}
-                                        className={`w-6 h-6 rounded-md flex items-center justify-center text-xs ${
+                                        className={`w-7 h-7 rounded-md flex items-center justify-center overflow-hidden ${
                                             score.bears > i
-                                                ? 'bg-red-500 shadow-[0_0_10px_#ef4444]'
-                                                : 'bg-zinc-800/80 border border-zinc-700/50'
+                                                ? 'bg-red-500/30 border border-red-400 shadow-[0_0_12px_rgba(239,68,68,0.6)]'
+                                                : 'bg-zinc-800/60 border border-zinc-700/50'
                                         }`}
-                                        animate={score.bears > i ? { scale: [0.8, 1.15, 1] } : {}}
+                                        animate={score.bears > i ? { scale: [0.7, 1.2, 1] } : {}}
+                                        transition={{ duration: 0.3 }}
                                     >
-                                        🐻
+                                        <img
+                                            src="/icons/bear.png"
+                                            alt=""
+                                            className={`w-5 h-5 ${score.bears > i ? '' : 'opacity-20 grayscale'}`}
+                                        />
                                     </motion.div>
                                 ))}
                             </div>
@@ -316,15 +327,15 @@ export function FinalBattle({
 
             {/* Wheel Section */}
             <div className="flex-1 flex items-center justify-center relative">
-                <div className="relative w-56 h-56">
+                <div className="relative w-60 h-60">
                     {/* Ambient glow */}
-                    <div className="absolute inset-[-30px] bg-gradient-to-r from-green-500/15 via-transparent to-red-500/15 rounded-full blur-3xl" />
+                    <div className="absolute inset-[-40px] bg-gradient-to-r from-green-500/10 via-transparent to-red-500/10 rounded-full blur-3xl animate-pulse" />
 
                     {/* Wheel (static) */}
                     <img
                         src="/icons/rulet.png"
                         alt="wheel"
-                        className="w-full h-full relative z-10 drop-shadow-[0_0_20px_rgba(255,215,0,0.2)]"
+                        className="w-full h-full relative z-10 drop-shadow-[0_0_30px_rgba(255,215,0,0.3)]"
                     />
 
                     {/* Cursor (rotates around wheel) */}
@@ -333,15 +344,14 @@ export function FinalBattle({
                         style={{
                             transform: `rotate(${cursorAngle}deg)`,
                             transition: isSpinning
-                                ? 'transform 2.2s cubic-bezier(0.15, 0.6, 0.2, 1)'
+                                ? 'transform 2.2s cubic-bezier(0.12, 0.8, 0.2, 1)'
                                 : 'none'
                         }}
                     >
-                        {/* Cursor positioned at top, pointing down into wheel */}
                         <img
                             src="/icons/Cursor.png"
                             alt="cursor"
-                            className="absolute w-8 h-8 top-[-4px] left-1/2 -translate-x-1/2 drop-shadow-[0_0_10px_rgba(255,165,0,0.8)]"
+                            className="absolute w-9 h-9 top-[-6px] left-1/2 -translate-x-1/2 drop-shadow-[0_0_15px_rgba(255,165,0,0.9)]"
                         />
                     </div>
 
@@ -352,22 +362,25 @@ export function FinalBattle({
                                 initial={{ scale: 0, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0, opacity: 0 }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                                 className="absolute inset-0 flex items-center justify-center z-30"
                             >
                                 <motion.div
                                     className={`
-                                        w-20 h-20 rounded-full flex items-center justify-center backdrop-blur-sm
+                                        w-24 h-24 rounded-full flex items-center justify-center backdrop-blur-md
                                         ${lastResult === 'bull'
-                                            ? 'bg-green-500/40 shadow-[0_0_40px_rgba(34,197,94,0.8)]'
-                                            : 'bg-red-500/40 shadow-[0_0_40px_rgba(239,68,68,0.8)]'
+                                            ? 'bg-green-500/30 shadow-[0_0_50px_rgba(34,197,94,0.9)] border-2 border-green-400/50'
+                                            : 'bg-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.9)] border-2 border-red-400/50'
                                         }
                                     `}
-                                    animate={{ scale: [1, 1.1, 1] }}
-                                    transition={{ duration: 0.4 }}
+                                    animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                                    transition={{ duration: 0.5 }}
                                 >
-                                    <span className="text-5xl">
-                                        {lastResult === 'bull' ? '🐂' : '🐻'}
-                                    </span>
+                                    <img
+                                        src={lastResult === 'bull' ? '/icons/bull.png' : '/icons/bear.png'}
+                                        alt={lastResult}
+                                        className="w-16 h-16 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                                    />
                                 </motion.div>
                             </motion.div>
                         )}
@@ -375,25 +388,15 @@ export function FinalBattle({
                 </div>
             </div>
 
-            {/* Turn indicator */}
-            <div className="text-center mt-2">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900/80 rounded-full border border-white/10">
-                    <div className={`w-2 h-2 rounded-full ${isSpinning ? 'bg-[#FFD700] animate-pulse' : 'bg-zinc-600'}`} />
-                    <span className="text-sm text-white/70 font-medium">
-                        Ход {Math.min(currentTurnIndex + 1, turns.length)} из {turns.length}
-                    </span>
-                </div>
-            </div>
-
             {/* FINAL badge */}
-            <div className="text-center mt-3">
+            <div className="text-center mt-2">
                 <span
-                    className="text-3xl font-black tracking-[0.2em]"
+                    className="text-3xl font-black tracking-[0.15em]"
                     style={{
                         background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 50%, #CC8400 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
-                        filter: 'drop-shadow(0 0 15px rgba(255,215,0,0.4))'
+                        filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.5))'
                     }}
                 >
                     ФИНАЛ

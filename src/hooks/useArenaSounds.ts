@@ -350,77 +350,97 @@ export function useArenaSounds() {
   }, [getContext])
 
   /**
-   * playRouletteTick - Casino wheel spin sound
-   * Мягкий "свист" с замедлением
-   * @param count - количество тиков
-   * @param onComplete - callback после завершения
+   * playRouletteTicks - Premium casino wheel spin sound
+   * Более приятный, современный звук рулетки
    */
   const playRouletteTicks = useCallback((_count: number = 20, onComplete?: () => void) => {
     const ctx = getContext()
     if (!ctx) return
 
-    let currentTime = ctx.currentTime
-    const totalDuration = 2.8 // секунды
+    const startTime = ctx.currentTime
+    const totalDuration = 2.2
 
-    // Создаём мягкий "свист" вращения
-    const swishOsc = ctx.createOscillator()
-    const swishGain = ctx.createGain()
-    const swishFilter = ctx.createBiquadFilter()
+    // Мягкий "вуш" звук вращения (более приятный)
+    const whooshOsc = ctx.createOscillator()
+    const whooshGain = ctx.createGain()
+    const whooshFilter = ctx.createBiquadFilter()
 
-    swishOsc.type = 'sine'
-    // Частота падает от высокой к низкой (как замедляющееся колесо)
-    swishOsc.frequency.setValueAtTime(400, currentTime)
-    swishOsc.frequency.exponentialRampToValueAtTime(80, currentTime + totalDuration)
+    whooshOsc.type = 'sine'
+    whooshOsc.frequency.setValueAtTime(300, startTime)
+    whooshOsc.frequency.exponentialRampToValueAtTime(60, startTime + totalDuration)
 
-    swishFilter.type = 'lowpass'
-    swishFilter.frequency.setValueAtTime(2000, currentTime)
-    swishFilter.frequency.exponentialRampToValueAtTime(200, currentTime + totalDuration)
+    whooshFilter.type = 'lowpass'
+    whooshFilter.frequency.setValueAtTime(1500, startTime)
+    whooshFilter.frequency.exponentialRampToValueAtTime(150, startTime + totalDuration)
 
-    swishGain.gain.setValueAtTime(0.08, currentTime)
-    swishGain.gain.setValueAtTime(0.08, currentTime + totalDuration * 0.6)
-    swishGain.gain.exponentialRampToValueAtTime(0.01, currentTime + totalDuration)
+    whooshGain.gain.setValueAtTime(0.06, startTime)
+    whooshGain.gain.linearRampToValueAtTime(0.04, startTime + totalDuration * 0.7)
+    whooshGain.gain.exponentialRampToValueAtTime(0.001, startTime + totalDuration)
 
-    swishOsc.connect(swishFilter)
-    swishFilter.connect(swishGain)
-    swishGain.connect(ctx.destination)
+    whooshOsc.connect(whooshFilter)
+    whooshFilter.connect(whooshGain)
+    whooshGain.connect(ctx.destination)
 
-    swishOsc.start(currentTime)
-    swishOsc.stop(currentTime + totalDuration)
+    whooshOsc.start(startTime)
+    whooshOsc.stop(startTime + totalDuration)
 
-    // Добавляем мягкие "клики" для эффекта секторов
-    const clickCount = 15
-    for (let i = 0; i < clickCount; i++) {
-      const progress = i / clickCount
-      // Интервалы увеличиваются к концу (замедление)
-      const interval = 0.08 + progress * progress * 0.25
+    // Добавляем мягкие "пинги" - как в премиум казино
+    let currentTime = startTime
+    const pingCount = 12
+    for (let i = 0; i < pingCount; i++) {
+      const progress = i / pingCount
+      // Замедление к концу
+      const interval = 0.06 + progress * progress * 0.2
 
-      const clickOsc = ctx.createOscillator()
-      const clickGain = ctx.createGain()
+      // Мягкий "пинг" вместо резкого клика
+      const pingOsc = ctx.createOscillator()
+      const pingGain = ctx.createGain()
 
-      clickOsc.type = 'triangle'
-      clickOsc.frequency.setValueAtTime(600 - progress * 200, currentTime)
+      pingOsc.type = 'sine'
+      // Частота уменьшается к концу
+      const freq = 800 - progress * 400
+      pingOsc.frequency.setValueAtTime(freq, currentTime)
+      pingOsc.frequency.exponentialRampToValueAtTime(freq * 0.8, currentTime + 0.03)
 
-      const vol = 0.04 * (1 - progress * 0.5)
-      clickGain.gain.setValueAtTime(vol, currentTime)
-      clickGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.02)
+      const vol = 0.03 * (1 - progress * 0.6)
+      pingGain.gain.setValueAtTime(0, currentTime)
+      pingGain.gain.linearRampToValueAtTime(vol, currentTime + 0.005)
+      pingGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.04)
 
-      clickOsc.connect(clickGain)
-      clickGain.connect(ctx.destination)
+      pingOsc.connect(pingGain)
+      pingGain.connect(ctx.destination)
 
-      clickOsc.start(currentTime)
-      clickOsc.stop(currentTime + 0.025)
+      pingOsc.start(currentTime)
+      pingOsc.stop(currentTime + 0.05)
 
       currentTime += interval
     }
 
-    // Финальный удар через таймаут
+    // Финальный приятный "донг"
     const timeoutId = window.setTimeout(() => {
       scheduledTimeoutsRef.current.delete(timeoutId)
-      playImpact()
+
+      // Мягкий финальный звук вместо глухого удара
+      const finalOsc = ctx.createOscillator()
+      const finalGain = ctx.createGain()
+
+      finalOsc.type = 'sine'
+      finalOsc.frequency.setValueAtTime(200, ctx.currentTime)
+      finalOsc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15)
+
+      finalGain.gain.setValueAtTime(0.15, ctx.currentTime)
+      finalGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+
+      finalOsc.connect(finalGain)
+      finalGain.connect(ctx.destination)
+
+      finalOsc.start(ctx.currentTime)
+      finalOsc.stop(ctx.currentTime + 0.25)
+
       onComplete?.()
-    }, totalDuration * 1000 + 100)
+    }, totalDuration * 1000)
     scheduledTimeoutsRef.current.add(timeoutId)
-  }, [getContext, playImpact])
+  }, [getContext])
 
   /**
    * stopAllSounds - Останавливает все звуки и отменяет таймеры
