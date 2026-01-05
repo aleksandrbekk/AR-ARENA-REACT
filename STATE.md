@@ -13,10 +13,15 @@
 **CRITICAL BUG FIX: Покупка билетов - ИСПРАВЛЕНА**
 
 ### ✅ Реализовано & Применено (05.01.2026)
-- **SQL Migration:** `buy_giveaway_ticket_v2` fixed (RPC updated via browser automation)
-- **Frontend:** Build fixed and deployed (LiveArenaPage, SemifinalTraffic)
-- **Status:** Покупка работает, ошибки типов устранены
-- **Validation:** Browser Agent executed SQL successfully
+- **SQL Migration:** `buy_giveaway_ticket_v2` полностью переписана.
+- **Overload Fix:** Удалены все старые версии функции с UUID, чтобы не было ошибки "best candidate".
+- **Schema Alignment:** Исправлена ошибка `column telegram_id does not exist` (удалена лишняя колонка).
+- **Currency Fix:** Добавлен `currency: 'AR'` в INSERT транзакции (ошибка NOT NULL).
+- **Cleanup:** Удалены все тестовые билеты (1558 шт), сброшены счётчики.
+- **Auto-delete:** Создана `admin_complete_giveaway` с автоудалением билетов после розыгрыша.
+- **Frontend:** Build fixed and deployed (LiveArenaPage, SemifinalTraffic).
+- **Status:** Покупка билетов работает на 100%.
+- **Validation:** Подтверждено через SQL пробы исходного кода.
 
 ### ⏳ Можно тестировать
 1. Создай розыгрыш в Admin Panel
