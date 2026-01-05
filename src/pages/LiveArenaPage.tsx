@@ -143,9 +143,7 @@ export function LiveArenaPage() {
     })
     setTimeout(() => {
       setStage('RESULTS')
-      // Optional: navigate to results page or show overlay
-      // navigate(/giveaways/${id}/results)
-    }, 5000)
+    }, 2000)
   }
 
   // ========== ALL HOOKS MUST BE BEFORE CONDITIONAL RETURNS ==========

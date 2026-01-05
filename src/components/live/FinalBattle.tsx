@@ -39,14 +39,14 @@ export function FinalBattle({
     const [currentTurnIndex, setCurrentTurnIndex] = useState(-1)
     const [scores, setScores] = useState<{ bulls: number; bears: number; place: number | null }[]>([])
     const [currentPlayer, setCurrentPlayer] = useState<number | null>(null)
-    const [wheelAngle, setWheelAngle] = useState(0)
-    const [wheelSpinning, setWheelSpinning] = useState(false)
+    const [cursorAngle, setCursorAngle] = useState(0)
+    const [isSpinning, setIsSpinning] = useState(false)
     const [lastResult, setLastResult] = useState<'bull' | 'bear' | null>(null)
-    const [isAnimating, setIsAnimating] = useState(false)
 
     const animationStarted = useRef(false)
     const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
     const isUnmountedRef = useRef(false)
+    const baseAngleRef = useRef(0)
 
     const clearAllTimeouts = useCallback(() => {
         timeoutsRef.current.forEach(t => clearTimeout(t))
@@ -73,35 +73,40 @@ export function FinalBattle({
         setScores(candidates.map(() => ({ bulls: 0, bears: 0, place: null })))
     }, [candidates])
 
-    // WHEEL MECHANICS:
-    // Cursor starts at top (0°), rotates clockwise
-    // rulet.png: LEFT = GREEN (BULL), RIGHT = RED (BEAR)
-    // 270° = LEFT = BULL, 90° = RIGHT = BEAR
+    // WHEEL ZONES (колесо статично):
+    // Левая половина (270° сверху по часовой до 90°) = ЗЕЛЁНАЯ = БЫКИ
+    // Правая половина (90° до 270°) = КРАСНАЯ = МЕДВЕДИ
+    // Стрелка начинает сверху (0°) и вращается по часовой
 
     useEffect(() => {
         if (animationStarted.current || turns.length === 0 || scores.length === 0) return
         animationStarted.current = true
-        setIsAnimating(true)
 
         let turnIdx = 0
-        let baseAngle = 0
 
         const animateNextTurn = () => {
             if (isUnmountedRef.current) return
 
             if (turnIdx >= turns.length) {
-                setIsAnimating(false)
-                setCurrentPlayer(null)
-                setLastResult(null)
+                // All turns done - assign remaining player 1st place
+                setScores(prev => {
+                    const newScores = [...prev]
+                    const remainingPlayer = newScores.findIndex(s => s.place === null)
+                    if (remainingPlayer !== -1) {
+                        newScores[remainingPlayer].place = 1
+                    }
+                    return newScores
+                })
+
                 safeTimeout(() => {
                     onWin?.()
                     confetti({
-                        particleCount: 150,
-                        spread: 100,
+                        particleCount: 200,
+                        spread: 120,
                         origin: { y: 0.5 },
-                        colors: ['#FFD700', '#FFA500', '#22c55e']
+                        colors: ['#FFD700', '#FFA500', '#22c55e', '#FFFFFF']
                     })
-                    safeTimeout(onComplete, 2000)
+                    safeTimeout(onComplete, 2500)
                 }, 1000)
                 return
             }
@@ -110,25 +115,32 @@ export function FinalBattle({
             setCurrentTurnIndex(turnIdx)
             setCurrentPlayer(turn.player)
             setLastResult(null)
-            setWheelSpinning(true)
+            setIsSpinning(true)
 
-            // Target angle: Bull=270°, Bear=90° (with ±25° randomness)
-            const randomOffset = (Math.random() - 0.5) * 50
-            const targetAngle = turn.result === 'bull'
-                ? 270 + randomOffset
-                : 90 + randomOffset
+            // Target zones:
+            // BULL = left side = angles around 315° (top-left) or 225° (bottom-left)
+            // BEAR = right side = angles around 45° (top-right) or 135° (bottom-right)
+            const randomOffset = (Math.random() - 0.5) * 60 // ±30° randomness
 
-            // FIXED: Calculate delta from current position to target
-            const currentPos = baseAngle % 360
-            let delta = targetAngle - currentPos
-            if (delta < 0) delta += 360  // Always rotate forward (clockwise)
+            let targetZone: number
+            if (turn.result === 'bull') {
+                // Left side: 225° to 315° (center at 270°)
+                targetZone = 270 + randomOffset
+            } else {
+                // Right side: 45° to 135° (center at 90°)
+                targetZone = 90 + randomOffset
+            }
 
-            // 5 full spins + delta to reach exact target
-            const fullSpins = 1800
-            const newAngle = baseAngle + fullSpins + delta
-            baseAngle = newAngle
+            // Calculate spin: multiple full rotations + target
+            const currentPos = baseAngleRef.current % 360
+            let delta = targetZone - currentPos
+            if (delta < 0) delta += 360
 
-            setWheelAngle(newAngle)
+            const fullSpins = 1440 // 4 full rotations
+            const newAngle = baseAngleRef.current + fullSpins + delta
+            baseAngleRef.current = newAngle
+
+            setCursorAngle(newAngle)
             onWheelSpin?.()
 
             if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -138,7 +150,7 @@ export function FinalBattle({
             safeTimeout(() => {
                 if (isUnmountedRef.current) return
 
-                setWheelSpinning(false)
+                setIsSpinning(false)
                 setLastResult(turn.result)
 
                 setScores(prev => {
@@ -149,22 +161,21 @@ export function FinalBattle({
                         newScores[turn.player].bears++
                     }
 
-                    if (newScores[turn.player].bulls >= 3 || newScores[turn.player].bears >= 3) {
-                        const winnerEntry = winners.find(w =>
-                            w.ticket === candidates[turn.player].ticket_number
-                        )
-                        if (winnerEntry) {
-                            newScores[turn.player].place = winnerEntry.place
-                        }
+                    // Check for 3 bulls = 1st place
+                    if (newScores[turn.player].bulls >= 3 && newScores[turn.player].place === null) {
+                        newScores[turn.player].place = 1
+                        confetti({
+                            particleCount: 150,
+                            spread: 80,
+                            origin: { y: 0.4 },
+                            colors: ['#FFD700', '#FFA500', '#22c55e']
+                        })
+                    }
 
-                        if (newScores[turn.player].bulls >= 3 && winnerEntry?.place === 1) {
-                            confetti({
-                                particleCount: 80,
-                                spread: 60,
-                                origin: { y: 0.4 },
-                                colors: ['#FFD700', '#FFA500', '#22c55e']
-                            })
-                        }
+                    // Check for 3 bears = elimination (3rd place first, then 2nd)
+                    if (newScores[turn.player].bears >= 3 && newScores[turn.player].place === null) {
+                        const eliminatedCount = newScores.filter(s => s.place !== null && s.place > 1).length
+                        newScores[turn.player].place = 3 - eliminatedCount // First eliminated = 3, second = 2
                     }
 
                     return newScores
@@ -183,118 +194,118 @@ export function FinalBattle({
                 }
 
                 turnIdx++
-                safeTimeout(animateNextTurn, 2000)
-            }, 2500)
+                safeTimeout(animateNextTurn, 1800)
+            }, 2200)
         }
 
-        safeTimeout(animateNextTurn, 1000)
+        safeTimeout(animateNextTurn, 800)
     }, [turns, scores.length, candidates, winners, onComplete, safeTimeout, onWheelSpin, onBull, onBear, onWin])
 
+    // Get place label
+    const getPlaceLabel = (place: number | null) => {
+        if (place === 1) return '🥇'
+        if (place === 2) return '🥈'
+        if (place === 3) return '🥉'
+        return null
+    }
+
     return (
-        <div className="min-h-screen bg-[#0a0a0a] flex flex-col pt-[100px] pb-6 px-4">
-            {/* Title */}
-            <div className="text-center mb-5">
-                <h1 className="text-2xl font-black tracking-wide uppercase flex items-center justify-center gap-3">
-                    <span className="text-green-500 drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]">
-                        БЫКИ
-                    </span>
-                    <span className="text-white/40 text-lg">vs</span>
-                    <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">
-                        МЕДВЕДИ
-                    </span>
+        <div className="min-h-screen bg-[#0a0a0a] flex flex-col pt-[80px] pb-4 px-3">
+            {/* Header */}
+            <div className="text-center mb-4">
+                <h1 className="text-xl font-black tracking-wide uppercase flex items-center justify-center gap-2">
+                    <span className="text-green-500 drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]">🐂 БЫКИ</span>
+                    <span className="text-white/30 text-base">vs</span>
+                    <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">МЕДВЕДИ 🐻</span>
                 </h1>
-                {isAnimating && (
-                    <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 bg-zinc-900/80 rounded-full border border-white/10">
-                        <div className="w-2 h-2 rounded-full bg-[#FFD700] animate-pulse" />
-                        <span className="text-sm text-white/70">
-                            Ход {currentTurnIndex + 1} из {turns.length}
-                        </span>
-                    </div>
-                )}
+                <div className="mt-2 text-xs text-white/50">
+                    3 быка = 🥇 • 3 медведя = выбывание
+                </div>
             </div>
 
-            {/* Players - 3 cards centered */}
-            <div className="flex justify-center gap-3 mb-6">
+            {/* Players - 3 cards */}
+            <div className="flex justify-center gap-2 mb-4">
                 {candidates.map((ticket, idx) => {
                     const score = scores[idx] || { bulls: 0, bears: 0, place: null }
-                    const isCurrent = currentPlayer === idx
+                    const isCurrent = currentPlayer === idx && score.place === null
                     const hasPlace = score.place !== null
-                    const isWinner = hasPlace && score.bulls >= 3
+                    const isWinner = score.place === 1
 
                     return (
                         <motion.div
                             key={idx}
                             className={`
-                                flex flex-col items-center p-3 rounded-2xl border-2 w-[90px]
+                                flex flex-col items-center p-2 rounded-xl border-2 w-[100px]
+                                transition-all duration-300
                                 ${isWinner
-                                    ? 'border-[#FFD700] bg-[#FFD700]/10 shadow-[0_0_25px_rgba(255,215,0,0.5)]'
+                                    ? 'border-[#FFD700] bg-gradient-to-b from-[#FFD700]/20 to-transparent shadow-[0_0_30px_rgba(255,215,0,0.5)]'
                                     : hasPlace
-                                        ? 'border-red-500/50 bg-red-950/20 opacity-60'
+                                        ? 'border-red-500/40 bg-red-950/20 opacity-50'
                                         : isCurrent
-                                            ? 'border-green-500 bg-green-900/20 shadow-[0_0_20px_rgba(34,197,94,0.4)]'
-                                            : 'border-zinc-700/50 bg-zinc-900/40'
+                                            ? 'border-green-400 bg-green-900/30 shadow-[0_0_20px_rgba(34,197,94,0.4)]'
+                                            : 'border-zinc-700/50 bg-zinc-900/50'
                                 }
                             `}
-                            animate={isCurrent && !hasPlace ? { scale: [1, 1.02, 1] } : {}}
-                            transition={{ duration: 0.8, repeat: isCurrent ? Infinity : 0 }}
+                            animate={isCurrent ? { scale: [1, 1.03, 1] } : {}}
+                            transition={{ duration: 1, repeat: isCurrent ? Infinity : 0 }}
                         >
-                            {/* Avatar */}
-                            <div className="relative mb-2">
+                            {/* Avatar with place badge */}
+                            <div className="relative mb-1">
                                 <img
                                     src={ticket.player.avatar || '/default-avatar.png'}
                                     alt=""
-                                    className={`w-12 h-12 rounded-full border-2 object-cover ${
+                                    className={`w-11 h-11 rounded-full border-2 object-cover ${
                                         isWinner ? 'border-[#FFD700]' :
                                         hasPlace ? 'border-red-500 grayscale' :
-                                        isCurrent ? 'border-green-500' : 'border-zinc-600'
+                                        isCurrent ? 'border-green-400' : 'border-zinc-600'
                                     }`}
                                 />
                                 {hasPlace && (
-                                    <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                                        score.place === 1 ? 'bg-[#FFD700] text-black' :
-                                        score.place === 2 ? 'bg-gray-400 text-black' :
-                                        'bg-red-600 text-white'
-                                    }`}>
-                                        {score.place}
-                                    </div>
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute -top-1 -right-1 text-lg"
+                                    >
+                                        {getPlaceLabel(score.place)}
+                                    </motion.div>
                                 )}
                             </div>
 
                             {/* Name */}
-                            <div className="text-[11px] text-white/80 font-medium truncate w-full text-center mb-2">
-                                {ticket.player.name?.slice(0, 10) || 'Player'}
+                            <div className="text-[10px] text-white/80 font-medium truncate w-full text-center mb-1.5">
+                                {ticket.player.name?.slice(0, 12) || 'Player'}
                             </div>
 
-                            {/* Score - Bulls */}
-                            <div className="flex gap-1 mb-1">
+                            {/* Score - Bulls row */}
+                            <div className="flex gap-0.5 mb-0.5">
                                 {[0, 1, 2].map(i => (
                                     <motion.div
                                         key={`bull-${i}`}
-                                        className={`w-5 h-5 rounded flex items-center justify-center ${
+                                        className={`w-6 h-6 rounded-md flex items-center justify-center text-xs ${
                                             score.bulls > i
-                                                ? 'bg-green-500 shadow-[0_0_8px_#22c55e]'
-                                                : 'bg-zinc-800 border border-zinc-700'
+                                                ? 'bg-green-500 shadow-[0_0_10px_#22c55e]'
+                                                : 'bg-zinc-800/80 border border-zinc-700/50'
                                         }`}
-                                        animate={score.bulls > i ? { scale: [0.8, 1.1, 1] } : {}}
+                                        animate={score.bulls > i ? { scale: [0.8, 1.15, 1] } : {}}
                                     >
-                                        <span className="text-[10px]">🐂</span>
+                                        🐂
                                     </motion.div>
                                 ))}
                             </div>
 
-                            {/* Score - Bears */}
-                            <div className="flex gap-1">
+                            {/* Score - Bears row */}
+                            <div className="flex gap-0.5">
                                 {[0, 1, 2].map(i => (
                                     <motion.div
                                         key={`bear-${i}`}
-                                        className={`w-5 h-5 rounded flex items-center justify-center ${
+                                        className={`w-6 h-6 rounded-md flex items-center justify-center text-xs ${
                                             score.bears > i
-                                                ? 'bg-red-500 shadow-[0_0_8px_#ef4444]'
-                                                : 'bg-zinc-800 border border-zinc-700'
+                                                ? 'bg-red-500 shadow-[0_0_10px_#ef4444]'
+                                                : 'bg-zinc-800/80 border border-zinc-700/50'
                                         }`}
-                                        animate={score.bears > i ? { scale: [0.8, 1.1, 1] } : {}}
+                                        animate={score.bears > i ? { scale: [0.8, 1.15, 1] } : {}}
                                     >
-                                        <span className="text-[10px]">🐻</span>
+                                        🐻
                                     </motion.div>
                                 ))}
                             </div>
@@ -303,79 +314,90 @@ export function FinalBattle({
                 })}
             </div>
 
-            {/* Wheel - Big and centered */}
-            <div className="flex-1 flex items-center justify-center">
-                <div className="relative w-60 h-60">
-                    {/* Glow */}
-                    <div className="absolute inset-[-20px] bg-gradient-to-r from-green-500/20 via-transparent to-red-500/20 rounded-full blur-2xl" />
+            {/* Wheel Section */}
+            <div className="flex-1 flex items-center justify-center relative">
+                <div className="relative w-56 h-56">
+                    {/* Ambient glow */}
+                    <div className="absolute inset-[-30px] bg-gradient-to-r from-green-500/15 via-transparent to-red-500/15 rounded-full blur-3xl" />
 
-                    {/* Wheel */}
+                    {/* Wheel (static) */}
                     <img
                         src="/icons/rulet.png"
                         alt="wheel"
-                        className="w-full h-full relative z-10"
+                        className="w-full h-full relative z-10 drop-shadow-[0_0_20px_rgba(255,215,0,0.2)]"
                     />
 
-                    {/* Cursor */}
+                    {/* Cursor (rotates around wheel) */}
                     <div
-                        className="absolute inset-0 z-20"
+                        className="absolute inset-0 z-20 pointer-events-none"
                         style={{
-                            transform: `rotate(${wheelAngle}deg)`,
-                            transition: wheelSpinning
-                                ? 'transform 2.5s cubic-bezier(0.17, 0.67, 0.12, 0.99)'
+                            transform: `rotate(${cursorAngle}deg)`,
+                            transition: isSpinning
+                                ? 'transform 2.2s cubic-bezier(0.15, 0.6, 0.2, 1)'
                                 : 'none'
                         }}
                     >
+                        {/* Cursor positioned at top, pointing down into wheel */}
                         <img
                             src="/icons/Cursor.png"
                             alt="cursor"
-                            className="absolute w-10 h-10 top-0 left-1/2 -translate-x-1/2 -translate-y-2 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]"
+                            className="absolute w-8 h-8 top-[-4px] left-1/2 -translate-x-1/2 drop-shadow-[0_0_10px_rgba(255,165,0,0.8)]"
                         />
                     </div>
 
                     {/* Result overlay */}
                     <AnimatePresence>
-                        {lastResult && !wheelSpinning && (
+                        {lastResult && !isSpinning && (
                             <motion.div
                                 initial={{ scale: 0, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0, opacity: 0 }}
                                 className="absolute inset-0 flex items-center justify-center z-30"
                             >
-                                <div className={`
-                                    w-24 h-24 rounded-full flex items-center justify-center
-                                    ${lastResult === 'bull'
-                                        ? 'bg-green-500/30 shadow-[0_0_50px_rgba(34,197,94,0.9)]'
-                                        : 'bg-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.9)]'
-                                    }
-                                `}>
-                                    <motion.span
-                                        className="text-6xl"
-                                        animate={{ scale: [1, 1.2, 1] }}
-                                        transition={{ duration: 0.3 }}
-                                    >
+                                <motion.div
+                                    className={`
+                                        w-20 h-20 rounded-full flex items-center justify-center backdrop-blur-sm
+                                        ${lastResult === 'bull'
+                                            ? 'bg-green-500/40 shadow-[0_0_40px_rgba(34,197,94,0.8)]'
+                                            : 'bg-red-500/40 shadow-[0_0_40px_rgba(239,68,68,0.8)]'
+                                        }
+                                    `}
+                                    animate={{ scale: [1, 1.1, 1] }}
+                                    transition={{ duration: 0.4 }}
+                                >
+                                    <span className="text-5xl">
                                         {lastResult === 'bull' ? '🐂' : '🐻'}
-                                    </motion.span>
-                                </div>
+                                    </span>
+                                </motion.div>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
             </div>
 
-            {/* FINAL text */}
-            <div className="text-center mt-4">
-                <h2
-                    className="text-4xl font-black tracking-[0.25em]"
+            {/* Turn indicator */}
+            <div className="text-center mt-2">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900/80 rounded-full border border-white/10">
+                    <div className={`w-2 h-2 rounded-full ${isSpinning ? 'bg-[#FFD700] animate-pulse' : 'bg-zinc-600'}`} />
+                    <span className="text-sm text-white/70 font-medium">
+                        Ход {Math.min(currentTurnIndex + 1, turns.length)} из {turns.length}
+                    </span>
+                </div>
+            </div>
+
+            {/* FINAL badge */}
+            <div className="text-center mt-3">
+                <span
+                    className="text-3xl font-black tracking-[0.2em]"
                     style={{
                         background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 50%, #CC8400 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
-                        filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.3))'
+                        filter: 'drop-shadow(0 0 15px rgba(255,215,0,0.4))'
                     }}
                 >
-                    FINAL
-                </h2>
+                    ФИНАЛ
+                </span>
             </div>
         </div>
     )
