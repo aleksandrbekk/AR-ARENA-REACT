@@ -325,9 +325,9 @@ export function FinalBattle({
                 })}
             </div>
 
-            {/* Wheel Section */}
-            <div className="flex-1 flex items-center justify-center relative">
-                <div className="relative w-60 h-60">
+            {/* Wheel Section - bigger and higher */}
+            <div className="flex items-center justify-center relative py-2">
+                <div className="relative w-72 h-72">
                     {/* Ambient glow */}
                     <div className="absolute inset-[-40px] bg-gradient-to-r from-green-500/10 via-transparent to-red-500/10 rounded-full blur-3xl animate-pulse" />
 
@@ -388,19 +388,76 @@ export function FinalBattle({
                 </div>
             </div>
 
-            {/* FINAL badge */}
-            <div className="text-center mt-2">
-                <span
-                    className="text-3xl font-black tracking-[0.15em]"
-                    style={{
-                        background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 50%, #CC8400 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.5))'
-                    }}
-                >
-                    ФИНАЛ
-                </span>
+            {/* Place Cards - 3rd, 2nd, 1st */}
+            <div className="flex justify-center gap-2 px-3 mt-2">
+                {[3, 2, 1].map(place => {
+                    const playerIdx = scores.findIndex(s => s.place === place)
+                    const player = playerIdx !== -1 ? candidates[playerIdx] : null
+                    const placeStyle = getPlaceStyle(place)
+
+                    return (
+                        <motion.div
+                            key={place}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 * place }}
+                            className={`
+                                flex-1 max-w-[110px] rounded-xl border p-2 text-center
+                                ${player && placeStyle
+                                    ? `${placeStyle.bg} ${placeStyle.glow} border-transparent`
+                                    : 'bg-zinc-900/60 border-zinc-700/50'
+                                }
+                            `}
+                        >
+                            <div className={`text-[10px] uppercase tracking-wider mb-1.5 font-bold ${
+                                player && placeStyle ? placeStyle.text : 'text-white/40'
+                            }`}>
+                                {place === 1 ? '🥇 1 место' : place === 2 ? '🥈 2 место' : '🥉 3 место'}
+                            </div>
+
+                            <AnimatePresence mode="wait">
+                                {player ? (
+                                    <motion.div
+                                        key="player"
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="flex flex-col items-center"
+                                    >
+                                        <img
+                                            src={player.player.avatar || '/default-avatar.png'}
+                                            alt=""
+                                            className={`w-10 h-10 rounded-full border-2 object-cover mb-1 ${
+                                                place === 1 ? 'border-[#FFD700]' :
+                                                place === 2 ? 'border-gray-300' :
+                                                'border-amber-600'
+                                            }`}
+                                        />
+                                        <div className={`text-[10px] font-medium truncate w-full ${
+                                            placeStyle ? placeStyle.text : 'text-white'
+                                        }`}>
+                                            {player.player.name?.slice(0, 10) || 'Player'}
+                                        </div>
+                                        <div className={`text-[9px] font-mono ${
+                                            placeStyle ? placeStyle.text + ' opacity-70' : 'text-white/50'
+                                        }`}>
+                                            #{player.ticket_number}
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="placeholder"
+                                        className="flex flex-col items-center"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-dashed border-zinc-600 flex items-center justify-center mb-1">
+                                            <span className="text-lg text-zinc-500">?</span>
+                                        </div>
+                                        <div className="text-[10px] text-white/30">—</div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
+                    )
+                })}
             </div>
         </div>
     )
