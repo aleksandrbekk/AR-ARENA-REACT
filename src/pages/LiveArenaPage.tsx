@@ -230,6 +230,34 @@ export function LiveArenaPage() {
     })) || [], [drawResults?.winners]
   );
 
+  // Winners with avatars for ResultsScreen
+  const resultsWinners = useMemo(() => {
+    if (!drawResults?.winners) return []
+
+    // Create map of ticket -> avatar from tour2 finalists
+    const avatarMap = new Map<number, string>()
+    drawResults?.tour2?.finalists?.forEach(p => {
+      avatarMap.set(p.ticket_number, p.avatar || '')
+    })
+
+    // Get prizes from giveaway and format as strings
+    const prizes = giveaway?.prizes || []
+    const formatPrize = (prize?: { amount?: number; percentage?: number }): string | undefined => {
+      if (!prize) return undefined
+      if (prize.amount) return `${prize.amount.toLocaleString()} AR`
+      if (prize.percentage) return `${prize.percentage}%`
+      return undefined
+    }
+
+    return drawResults.winners.map(w => ({
+      place: w.place,
+      ticket: w.ticket_number,
+      username: w.username,
+      avatar: avatarMap.get(w.ticket_number) || '',
+      prize: formatPrize(prizes[w.place - 1])
+    }))
+  }, [drawResults?.winners, drawResults?.tour2?.finalists, giveaway?.prizes]);
+
   // Memoized final turns
   const finalTurns = useMemo(() =>
     drawResults?.final?.turns || [], [drawResults?.final?.turns]
@@ -447,17 +475,13 @@ export function LiveArenaPage() {
         )}
 
         {stage === 'RESULTS' && (
-          <div className="h-screen flex items-center justify-center text-white">
-            <div className="text-center">
-              <h2 className="text-4xl font-black text-[#FFD700] mb-4">ПОЗДРАВЛЯЕМ ПОБЕДИТЕЛЕЙ!</h2>
-              <button
-                onClick={() => navigate(`/giveaways/${id}/results`)}
-                className="mt-8 px-8 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all"
-              >
-                Таблица результатов
-              </button>
-            </div>
-          </div>
+          <ResultsScreen
+            key="results"
+            winners={resultsWinners}
+            giveawayTitle={giveaway?.title}
+            jackpotAmount={giveaway?.jackpot_current_amount || 0}
+            onClose={() => navigate(`/giveaways/${id}`)}
+          />
         )}
 
       </AnimatePresence>
