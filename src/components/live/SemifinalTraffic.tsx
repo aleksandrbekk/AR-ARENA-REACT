@@ -40,9 +40,10 @@ export function SemifinalTraffic({
     const [isSpinning, setIsSpinning] = useState(false)
     const animationStarted = useRef(false)
 
-    // Roulette state
+    // Roulette state - start from middle of tape
     const [rouletteOffset, setRouletteOffset] = useState(0)
     const rouletteRef = useRef<HTMLDivElement>(null)
+    const initializedRef = useRef(false)
 
     // Refs for cleanup
     const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -77,15 +78,30 @@ export function SemifinalTraffic({
         setHitCounts(initialHits)
     }, [candidates])
 
-    // Roulette tape - cycle tickets (3x for smooth looping)
-    const ITEM_WIDTH = 72 // px per ticket (including margin)
-    const rouletteTape = [...candidates, ...candidates, ...candidates]
+    // Initialize roulette to middle of tape
+    useEffect(() => {
+        if (initializedRef.current || candidates.length === 0) return
+        initializedRef.current = true
+        // Start at cycle 10 (middle of 20 repeats)
+        const ITEM_W = 72
+        const initialOffset = 10 * candidates.length * ITEM_W
+        setRouletteOffset(initialOffset)
+    }, [candidates])
+
+    // Roulette config
+    const ITEM_WIDTH = 72 // px per ticket (68px + 4px margin)
+    const REPEAT_COUNT = 20 // Много повторений для бесконечности
+
+    // Создаём длинную ленту с повторениями
+    const rouletteTape = Array(REPEAT_COUNT).fill(candidates).flat()
+
+    // Длина одного цикла (всех 5 билетов)
+    const cycleWidth = candidates.length * ITEM_WIDTH
 
     // Animate roulette spin to target ticket
     const spinRoulette = useCallback((targetTicket: number, onStop: () => void) => {
         setIsSpinning(true)
 
-        // Find target index in the MIDDLE repetition (so we can spin from left)
         const baseIndex = candidates.findIndex(c => c.ticket_number === targetTicket)
         if (baseIndex === -1) {
             setIsSpinning(false)
@@ -93,17 +109,16 @@ export function SemifinalTraffic({
             return
         }
 
-        // Target position: middle repetition + baseIndex
-        // We want this item to be centered under the arrow
-        const targetIndex = candidates.length + baseIndex
-        const finalOffset = targetIndex * ITEM_WIDTH
+        // Текущая позиция в цикле
+        const currentCycle = Math.floor(rouletteOffset / cycleWidth)
 
-        // Add extra full rotations for visual effect
-        const extraRotations = candidates.length * ITEM_WIDTH * 2
-        const totalDistance = finalOffset + extraRotations
+        // Целевая позиция: следующий цикл + baseIndex (чтобы всегда крутилось вперёд)
+        const targetCycle = currentCycle + 2 + Math.floor(Math.random() * 2) // 2-3 полных оборота
+        const finalOffset = (targetCycle * candidates.length + baseIndex) * ITEM_WIDTH
 
-        const spinDuration = 1800
+        const spinDuration = 2000
         const startOffset = rouletteOffset
+        const distance = finalOffset - startOffset
         const startTime = performance.now()
 
         const animate = (now: number) => {
@@ -112,16 +127,15 @@ export function SemifinalTraffic({
             const elapsed = now - startTime
             const progress = Math.min(elapsed / spinDuration, 1)
 
-            // Cubic ease-out for smooth deceleration
+            // Cubic ease-out
             const eased = 1 - Math.pow(1 - progress, 3)
-            const currentOffset = startOffset + (totalDistance - startOffset) * eased
+            const currentOffset = startOffset + distance * eased
 
             setRouletteOffset(currentOffset)
 
             if (progress < 1) {
                 requestAnimationFrame(animate)
             } else {
-                // Snap to exact position
                 setRouletteOffset(finalOffset)
                 setIsSpinning(false)
                 onStop()
@@ -129,7 +143,7 @@ export function SemifinalTraffic({
         }
 
         requestAnimationFrame(animate)
-    }, [candidates, rouletteOffset])
+    }, [candidates, rouletteOffset, cycleWidth])
 
     // Animate through spins
     useEffect(() => {
