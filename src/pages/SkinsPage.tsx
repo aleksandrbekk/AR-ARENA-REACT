@@ -187,8 +187,7 @@ export default function SkinsPage() {
   };
 
   // Calculate total tap power: tap_power + skin bonus (как в SQL и StatusBar)
-  const tapPower = gameState?.tap_power || 1
-  const totalTap = tapPower + (selectedSkin?.tap_bonus || 0)
+  const totalTap = 1 + (selectedSkin?.tap_bonus || 0)
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col overflow-hidden">

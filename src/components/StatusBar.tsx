@@ -4,13 +4,12 @@ import type { Skin } from '../types'
 interface StatusBarProps {
   energy: number
   energyMax: number
-  tapPower?: number // Базовая сила тапа из gameState
   activeSkin?: Skin | null
 }
 
-export function StatusBar({ energy, energyMax, tapPower = 1, activeSkin }: StatusBarProps) {
-  // Calculate total tap power: tap_power + skin bonus (как в SQL: tap_power + tap_bonus)
-  const totalTap = tapPower + (activeSkin?.tap_bonus || 0)
+export function StatusBar({ energy, energyMax, activeSkin }: StatusBarProps) {
+  // Calculate total tap power: 1 (base) + skin bonus
+  const totalTap = 1 + (activeSkin?.tap_bonus || 0)
 
   return (
     <div className="px-4 pb-6 flex justify-center">
