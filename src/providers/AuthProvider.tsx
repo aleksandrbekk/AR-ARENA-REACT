@@ -161,6 +161,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     console.error('AuthProvider: User upsert fetch error:', e)
                 })
 
+                // Обработка реферального кода из ?startapp=CODE
+                const startParam = tg.initDataUnsafe?.start_param
+                if (startParam) {
+                    console.log('AuthProvider: Processing referral code:', startParam)
+                    supabase.rpc('apply_referral_code', {
+                        p_telegram_id: user.id.toString(),
+                        p_referral_code: startParam
+                    }).then(({ data, error: refError }) => {
+                        if (refError) {
+                            console.error('AuthProvider: Referral code error:', refError)
+                        } else if (data?.success) {
+                            console.log('AuthProvider: Referral code applied successfully')
+                        } else if (data?.error === 'ALREADY_HAS_REFERRER') {
+                            console.log('AuthProvider: User already has referrer')
+                        } else {
+                            console.log('AuthProvider: Referral code result:', data)
+                        }
+                    })
+                }
+
                 // Загружаем стейт
                 await loadGameState(user.id)
 

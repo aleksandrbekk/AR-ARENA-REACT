@@ -203,6 +203,7 @@ export function Home() {
           onTap={handleTap}
         >
           <SideButtons
+            onFriendsClick={() => navigate('/partners')}
             onSkinsClick={() => navigate('/skins')}
             onFarmClick={() => navigate('/farm')}
             onGiveawaysClick={() => navigate('/giveaways')}

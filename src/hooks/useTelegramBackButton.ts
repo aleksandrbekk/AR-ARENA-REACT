@@ -9,7 +9,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
  * - Автоматически скрывает на главной странице
  */
 // Страницы, которые сами управляют BackButton
-const SELF_MANAGED_PAGES = ['/live-test', '/admin', '/shop', '/full-crm', '/skins']
+const SELF_MANAGED_PAGES = ['/live-test', '/admin', '/shop', '/full-crm', '/skins', '/partners']
 
 export function useTelegramBackButton() {
   const navigate = useNavigate()

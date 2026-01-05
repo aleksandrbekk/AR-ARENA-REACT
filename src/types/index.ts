@@ -27,6 +27,7 @@ export interface TelegramWebApp {
     query_id?: string;
     auth_date?: number;
     hash?: string;
+    start_param?: string;
   };
   version: string;
   platform: string;
@@ -88,6 +89,7 @@ export interface TelegramWebApp {
   setHeaderColor: (color: string) => void;
   setBackgroundColor: (color: string) => void;
   openLink: (url: string) => void;
+  openTelegramLink: (url: string) => void;
 }
 
 // Состояние игры (ответ от get_bull_game_state)
