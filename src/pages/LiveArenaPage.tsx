@@ -65,6 +65,13 @@ export function LiveArenaPage() {
   // Sounds
   const sounds = useArenaSounds()
 
+  // Cleanup sounds on unmount
+  useEffect(() => {
+    return () => {
+      sounds.stopAllSounds()
+    }
+  }, [sounds])
+
   // Fetch logic
   useEffect(() => {
     if (!id) return
