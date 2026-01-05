@@ -229,22 +229,21 @@ export function GiveawayDetailsPageV2() {
             </div>
 
             {/* Stats Row */}
-            <div className="flex gap-2 mt-4">
-              <div className="flex-1 bg-black/30 rounded-xl p-2.5 text-center border border-white/5">
-                <div className="text-[10px] text-white/40 uppercase mb-0.5">Всего билетов</div>
-                <div className="text-white font-bold">{totalTickets}</div>
+            <div className="flex gap-3 mt-4">
+              <div className="flex-1 bg-black/40 rounded-xl p-3 text-center border border-white/10">
+                <div className="text-[10px] text-white/50 uppercase tracking-wider mb-1">Всего билетов</div>
+                <div className="text-xl text-white font-bold">{totalTickets}</div>
               </div>
-              <div className="flex-1 bg-black/30 rounded-xl p-2.5 text-center border border-white/5">
-                <div className="text-[10px] text-white/40 uppercase mb-0.5">Мои билеты</div>
-                <div className="text-white font-bold">{myTickets}</div>
+              <div className="flex-1 bg-black/40 rounded-xl p-3 text-center border border-white/10">
+                <div className="text-[10px] text-white/50 uppercase tracking-wider mb-1">Мои билеты</div>
+                <div className="text-xl text-white font-bold">{myTickets}</div>
               </div>
-              {myTickets > 0 && (
-                <div className="flex-1 bg-emerald-500/10 rounded-xl p-2.5 text-center border border-emerald-500/20">
-                  <div className="text-[10px] text-emerald-400/60 uppercase mb-0.5">Шанс</div>
-                  <div className="text-emerald-400 font-bold">{winChance}%</div>
-                </div>
-              )}
             </div>
+            {myTickets > 0 && (
+              <div className="mt-2 text-center text-sm text-emerald-400">
+                Шанс на победу: <span className="font-bold">{winChance}%</span>
+              </div>
+            )}
           </div>
 
           {/* Prizes List */}
