@@ -12,21 +12,32 @@ import { SemifinalTraffic } from '../components/live/SemifinalTraffic'
 import { FinalBattle } from '../components/live/FinalBattle'
 import { HowToPlayButton } from '../components/HowToPlayButton'
 
-// Types for draw results 
+// Types for draw results (matches giveaway-engine.ts output)
+interface DrawParticipant {
+  ticket_number: number
+  username: string
+  avatar?: string
+  telegram_id: string
+}
+
 interface DrawResults {
+  seed: number
   tour1: {
-    winners: number[],
-    participants: { ticket_number: number, username: string }[]
+    participants: DrawParticipant[]
   }
   tour2: {
-    finalists: { ticket_number: number, username: string }[]
+    finalists: DrawParticipant[]
   }
   semifinal: {
-    finalists3: { ticket_number: number, username: string }[],
-    eliminated: { ticket_number: number, username: string, place: number }[]
+    spins: { ticket: number; hits: number }[]
+    eliminated: { ticket_number: number; username: string; place: number }[]
+    finalists3: DrawParticipant[]
   }
-  final: { turns: any[] }
-  winners: { place: number; ticket_number: number; username: string; telegram_id?: string }[]
+  final: {
+    turn_order: number[]
+    turns: { turn: number; player: number; result: 'bull' | 'bear' }[]
+  }
+  winners: { place: number; ticket_number: number; username: string; telegram_id: string }[]
 }
 
 const STAGES = {
@@ -160,38 +171,43 @@ export function LiveArenaPage() {
     )
   }
 
-  // Data helpers
+  // Data helpers - transform drawResults to component props format
   const tour1Winners = (drawResults.tour1.participants || []).map(p => ({
     ticket: p.ticket_number,
-    user: p.username
+    user: p.username,
+    avatar: p.avatar || ''
   }));
 
   const tour2Finalists = (drawResults.tour2.finalists || []).map(p => ({
     ticket: p.ticket_number,
-    user: p.username
+    user: p.username,
+    avatar: p.avatar || ''
   }));
 
   const semifinalCandidates = (drawResults.tour2.finalists || []).map(p => ({
     ticket: p.ticket_number,
     ticket_number: p.ticket_number,
     user: p.username,
-    user_id: '0',
-    player: { id: '0', name: p.username, avatar: '' },
-    avatar: ''
+    user_id: p.telegram_id,
+    player: { id: p.telegram_id, name: p.username, avatar: p.avatar || '' },
+    avatar: p.avatar || ''
   }));
 
-  // Map for eliminated players in semifinal: ticket -> hits (mocking hits for now as 3)
+  // Map for eliminated players in semifinal: ticket -> hits (using data from spins)
   const semifinalEliminated = new Map<number, number>();
   (drawResults.semifinal.eliminated || []).forEach(p => {
-    semifinalEliminated.set(p.ticket_number, 3);
+    // Find actual hit count from spins, or default to 3 (eliminated)
+    const spinsForPlayer = (drawResults.semifinal.spins || []).filter(s => s.ticket === p.ticket_number);
+    const maxHits = spinsForPlayer.length > 0 ? Math.max(...spinsForPlayer.map(s => s.hits)) : 3;
+    semifinalEliminated.set(p.ticket_number, maxHits);
   });
 
   const finalCandidates = (drawResults.semifinal.finalists3 || []).map(p => ({
     ticket: p.ticket_number,
     ticket_number: p.ticket_number,
     user: p.username,
-    user_id: '0',
-    player: { id: '0', name: p.username, avatar: '' }
+    user_id: p.telegram_id,
+    player: { id: p.telegram_id, name: p.username, avatar: p.avatar || '' }
   }));
 
   const finalWinners = (drawResults.winners || []).map(w => ({
@@ -283,11 +299,22 @@ export function LiveArenaPage() {
         )}
 
         {stage === 'TOUR2' && (
-          // Fixed prop: 'candidates' instead of 'cards'
           <Tour2Squeeze
             key="tour2"
-            candidates={tour1Winners.map(w => ({ ticket: w.ticket, user: w.user, player: { id: '0', name: w.user, avatar: '' }, ticket_number: w.ticket, user_id: '0' }))}
-            finalists={tour2Finalists.map(w => ({ ticket: w.ticket, user: w.user, player: { id: '0', name: w.user, avatar: '' }, ticket_number: w.ticket, user_id: '0' }))}
+            candidates={tour1Winners.map(w => ({
+              ticket: w.ticket,
+              user: w.user,
+              player: { id: '0', name: w.user, avatar: w.avatar || '' },
+              ticket_number: w.ticket,
+              user_id: '0'
+            }))}
+            finalists={tour2Finalists.map(w => ({
+              ticket: w.ticket,
+              user: w.user,
+              player: { id: '0', name: w.user, avatar: w.avatar || '' },
+              ticket_number: w.ticket,
+              user_id: '0'
+            }))}
             onComplete={handleStageComplete}
           />
         )}

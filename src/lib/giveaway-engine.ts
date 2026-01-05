@@ -1,12 +1,31 @@
 import type { Ticket } from '../types'
 
+// Participant info stored in draw results
+export interface DrawParticipant {
+    ticket_number: number
+    username: string
+    avatar?: string
+    telegram_id: string
+}
+
 export interface DrawResults {
     seed: number
-    tour1: { winners: number[] }
-    tour2: { selected_indices: number[]; finalists: number[] }
-    semifinal: { spins: { ticket: number; hits: number }[]; eliminated: number[]; finalists3: number[] }
-    final: { turn_order: number[]; turns: { turn: number; player: number; result: 'bull' | 'bear' }[] }
-    winners: { place: number; ticket: number; username: string; telegram_id?: string }[]
+    tour1: {
+        participants: DrawParticipant[]
+    }
+    tour2: {
+        finalists: DrawParticipant[]
+    }
+    semifinal: {
+        spins: { ticket: number; hits: number }[]
+        eliminated: { ticket_number: number; username: string; place: number }[]
+        finalists3: DrawParticipant[]
+    }
+    final: {
+        turn_order: number[]
+        turns: { turn: number; player: number; result: 'bull' | 'bear' }[]
+    }
+    winners: { place: number; ticket_number: number; username: string; telegram_id: string }[]
 }
 
 // ==================== HELPERS ====================
@@ -174,16 +193,39 @@ export const generateDrawResults = async (tickets: Ticket[], giveawayId: string)
 
     const finalWinners = places.map(p => ({
         place: p.place,
-        ticket: finalists3[p.playerIndex].ticket_number,
+        ticket_number: finalists3[p.playerIndex].ticket_number,
         username: finalists3[p.playerIndex].player.name,
         telegram_id: finalists3[p.playerIndex].user_id.toString()
     }))
 
+    // Helper to convert Ticket to DrawParticipant
+    const toParticipant = (t: Ticket): DrawParticipant => ({
+        ticket_number: t.ticket_number,
+        username: t.player.name,
+        avatar: t.player.avatar,
+        telegram_id: t.user_id.toString()
+    })
+
     return {
         seed,
-        tour1: { winners: tour1Winners.map(t => t.ticket_number) },
-        tour2: { selected_indices: selectedIndices, finalists: tour2Finalists.map(t => t.ticket_number) },
-        semifinal: { spins, eliminated, finalists3: finalists3.map(t => t.ticket_number) },
+        tour1: {
+            participants: tour1Winners.map(toParticipant)
+        },
+        tour2: {
+            finalists: tour2Finalists.map(toParticipant)
+        },
+        semifinal: {
+            spins,
+            eliminated: eliminated.map((ticketNum, idx) => {
+                const ticket = tour2Finalists.find(t => t.ticket_number === ticketNum)!
+                return {
+                    ticket_number: ticketNum,
+                    username: ticket.player.name,
+                    place: 5 - idx  // First eliminated = 5th, second = 4th
+                }
+            }),
+            finalists3: finalists3.map(toParticipant)
+        },
         final: { turn_order: turnOrder, turns },
         winners: finalWinners.sort((a, b) => a.place - b.place)
     }
