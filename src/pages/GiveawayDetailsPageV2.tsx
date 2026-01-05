@@ -112,13 +112,12 @@ export function GiveawayDetailsPageV2() {
 
   const fetchMyTickets = async () => {
     if (!telegramUser) return
-    const { data } = await supabase
+    const { count } = await supabase
       .from('giveaway_tickets')
-      .select('ticket_count')
+      .select('*', { count: 'exact', head: true })
       .eq('giveaway_id', id)
-      .eq('telegram_id', telegramUser.id.toString())
-      .single()
-    if (data) setMyTickets(data.ticket_count || 0)
+      .eq('user_id', telegramUser.id)
+    setMyTickets(count || 0)
   }
 
   const handleBuySuccess = () => {

@@ -44,13 +44,13 @@ export function useGiveaways() {
       // Получаем количество уникальных участников
       const { data: ticketData, error: ticketError } = await supabase
         .from('giveaway_tickets')
-        .select('telegram_id')
+        .select('user_id')
         .eq('giveaway_id', giveawayId)
 
       if (ticketError) throw ticketError
 
       // Подсчитываем уникальных участников
-      const uniqueParticipants = new Set(ticketData?.map(t => t.telegram_id) || [])
+      const uniqueParticipants = new Set(ticketData?.map(t => t.user_id) || [])
       const totalTickets = ticketData?.length || 0
 
       return {
