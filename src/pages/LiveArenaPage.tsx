@@ -10,7 +10,7 @@ import { Tour1Drum } from '../components/live/Tour1Drum'
 import { Tour2Squeeze } from '../components/live/Tour2Squeeze'
 import { SemifinalTraffic } from '../components/live/SemifinalTraffic'
 import { FinalBattle } from '../components/live/FinalBattle'
-// HowToPlayButton removed from Live Arena header
+import { ResultsScreen } from '../components/live/ResultsScreen'
 
 // Hooks
 import { useArenaSounds } from '../hooks/useArenaSounds'

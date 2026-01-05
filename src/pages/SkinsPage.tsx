@@ -186,8 +186,8 @@ export default function SkinsPage() {
     }
   };
 
-  // Calculate total tap power: tap_power + skin bonus (как в SQL и StatusBar)
-  const tapPower = gameState?.tap_power || 1
+  // Calculate total tap power: 1 + skin bonus (без tap_power)
+  const tapPower = 1
   const totalTap = tapPower + (selectedSkin?.tap_bonus || 0)
 
   return (
