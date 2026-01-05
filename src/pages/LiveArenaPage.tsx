@@ -462,7 +462,7 @@ export function LiveArenaPage() {
             winners={resultsWinners}
             giveawayTitle={giveaway?.title}
             jackpotAmount={giveaway?.jackpot_current_amount || 0}
-            onClose={() => navigate(`/giveaways/${id}`)}
+            onClose={() => navigate(`/giveaway/${id}`)}
           />
         )}
 
