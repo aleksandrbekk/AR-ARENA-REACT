@@ -90,8 +90,7 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: CHANNEL_ID,
-            member_limit: 1,
-            expire_date: Math.floor(Date.now() / 1000) + 86400 // 24 часа
+            member_limit: 1
           })
         }
       )
@@ -105,8 +104,7 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: CHAT_ID,
-            member_limit: 1,
-            expire_date: Math.floor(Date.now() / 1000) + 86400 // 24 часа
+            member_limit: 1
           })
         }
       )

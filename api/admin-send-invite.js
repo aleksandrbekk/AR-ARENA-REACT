@@ -23,8 +23,7 @@ async function createInviteLink(chatId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: chatId,
-        member_limit: 1,
-        expire_date: Math.floor(Date.now() / 1000) + 86400 * 7 // 7 дней
+        member_limit: 1
       })
     });
 
@@ -116,7 +115,7 @@ export default async function handler(req, res) {
 📺 <b>Канал:</b> ${channelLink}
 💬 <b>Чат:</b> ${chatLink}
 
-⚠️ Ссылки одноразовые и действуют 7 дней.`;
+⚠️ Ссылки одноразовые.`;
 
       sent = await sendMessage(telegram_id, message);
 
