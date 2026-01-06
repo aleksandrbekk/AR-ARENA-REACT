@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+
 import { Layout } from '../components/layout/Layout'
-import { Check, Star, Users, Ticket, Play } from 'lucide-react'
+import { Check, Star, Users, Ticket } from 'lucide-react'
 
 // Mock Data for Prototype
 const MOCK_GIVEAWAY = {
