@@ -1,13 +1,12 @@
 import { useState } from 'react'
-
 import { Layout } from '../components/layout/Layout'
-import { Check, Star, Users, Ticket } from 'lucide-react'
+import { Check, Star, Users, Ticket, Trophy } from 'lucide-react'
 
-// Mock Data for Prototype
+// Mock Data matching current V2 structure
 const MOCK_GIVEAWAY = {
     title: "ЕЖЕНЕДЕЛЬНЫЙ РОЗЫГРЫШ",
     subtitle: "WEEKLY LOTTERY",
-    jackpot: "$200",
+    jackpot: "$2,000",
     timeLeft: { days: "04", hours: "02", minutes: "29", seconds: "58" },
     myTickets: 3,
     totalParticipants: 127
@@ -27,147 +26,138 @@ const WINNERS = [
 ]
 
 export function GiveawayPremiumExample() {
-    const [activeTab, setActiveTab] = useState<'free' | 'vip'>('free')
-
     return (
         <Layout hideNavbar>
             <div className="min-h-screen bg-[#050505] pb-24 font-sans text-white overflow-x-hidden">
 
-                {/* --- HEADER SLOT MACHINE SECTION --- */}
-                <div className="relative pt-6 pb-12 overflow-hidden">
-                    {/* Background Glows */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-yellow-600/20 blur-[100px] rounded-full pointer-events-none" />
+                {/* --- LUXURY BURGUNDY BANNER --- */}
+                <div className="relative pt-8 pb-16 overflow-hidden">
+                    {/* Background Gradient & Glows */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#4a0404] via-[#2a0202] to-[#050505]" />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-[#ff0033]/20 blur-[120px] rounded-full pointer-events-none" />
 
-                    {/* Main Card */}
-                    <div className="mx-4 relative z-10 rounded-[32px] p-[2px] bg-gradient-to-b from-[#FFD700] via-[#FFA500] to-transparent shadow-[0_0_30px_rgba(255,215,0,0.15)]">
-                        <div className="bg-gradient-to-b from-[#1a1500] to-[#0a0a0a] rounded-[30px] p-6 flex flex-col items-center text-center relative overflow-hidden">
+                    {/* Main Content */}
+                    <div className="relative z-10 flex flex-col items-center text-center px-4">
 
-                            {/* Slot Icon Placeholder */}
-                            <div className="w-20 h-20 mb-4 bg-gradient-to-b from-gray-800 to-black rounded-2xl border border-yellow-500/30 flex items-center justify-center shadow-lg transform -rotate-3">
-                                <span className="text-4xl filter drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">🎰</span>
-                            </div>
+                        {/* New Luxury Icon */}
+                        <div className="relative w-28 h-28 mb-6">
+                            <div className="absolute inset-0 bg-[#ff0033]/40 blur-2xl rounded-full animate-pulse" />
+                            <img
+                                src="/luxury_red_slot_machine.png"
+                                alt="Luxury Icon"
+                                className="relative w-full h-full object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform duration-500"
+                                onError={(e) => {
+                                    e.currentTarget.src = '/icons/gift.png' // Fallback
+                                }}
+                            />
+                        </div>
 
-                            {/* Titles */}
-                            <h1 className="text-2xl font-black text-[#FFD700] uppercase tracking-wide drop-shadow-md">
-                                {MOCK_GIVEAWAY.title}
-                            </h1>
-                            <p className="text-[10px] font-bold text-[#b8860b] tracking-[0.3em] uppercase mb-6">
-                                {MOCK_GIVEAWAY.subtitle}
-                            </p>
+                        {/* Titles */}
+                        <h1 className="text-3xl font-black text-white uppercase tracking-wide drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] mb-2">
+                            {MOCK_GIVEAWAY.title}
+                        </h1>
+                        <p className="text-xs font-bold text-[#FFD700] tracking-[0.4em] uppercase mb-8 opacity-90">
+                            {MOCK_GIVEAWAY.subtitle}
+                        </p>
 
-                            {/* Jackpot Display */}
-                            <div className="relative mb-8">
-                                <div className="absolute inset-0 bg-yellow-500/20 blur-xl rounded-full" />
-                                <span className="relative text-6xl font-black text-[#FFD700] drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
-                                    {MOCK_GIVEAWAY.jackpot}
-                                </span>
-                            </div>
-
-                            {/* Timer Grid */}
-                            <div className="flex gap-3 w-full justify-center">
-                                <TimerBox value={MOCK_GIVEAWAY.timeLeft.days} label="ДН" />
-                                <TimerBox value={MOCK_GIVEAWAY.timeLeft.hours} label="Ч" />
-                                <TimerBox value={MOCK_GIVEAWAY.timeLeft.minutes} label="МИН" />
-                                <TimerBox value={MOCK_GIVEAWAY.timeLeft.seconds} label="СЕК" />
-                            </div>
+                        {/* Timer Grid (Burgundy Style) */}
+                        <div className="flex gap-3 justify-center w-full max-w-sm">
+                            <TimerBox value={MOCK_GIVEAWAY.timeLeft.days} label="ДН" />
+                            <div className="pt-2 text-2xl font-thin text-white/20">:</div>
+                            <TimerBox value={MOCK_GIVEAWAY.timeLeft.hours} label="Ч" />
+                            <div className="pt-2 text-2xl font-thin text-white/20">:</div>
+                            <TimerBox value={MOCK_GIVEAWAY.timeLeft.minutes} label="МИН" />
+                            <div className="pt-2 text-2xl font-thin text-white/20">:</div>
+                            <TimerBox value={MOCK_GIVEAWAY.timeLeft.seconds} label="СЕК" isRed />
                         </div>
                     </div>
                 </div>
 
-                {/* --- STATS BAR --- */}
-                <div className="px-4 flex gap-3 mb-8">
-                    <div className="flex-1 bg-[#111] border border-white/5 rounded-2xl p-3 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-500">
-                            <Ticket className="w-4 h-4" />
+                {/* --- STATS BAR (Floating) --- */}
+                <div className="px-4 -mt-8 relative z-20">
+                    <div className="bg-[#1a0505] border border-[#ff0033]/20 backdrop-blur-xl rounded-2xl p-4 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] flex items-center justify-between">
+
+                        {/* Jackpot */}
+                        <div className="flex flex-col">
+                            <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold mb-1">Джекпот</span>
+                            <span className="text-3xl font-black text-[#FFD700] drop-shadow-sm">{MOCK_GIVEAWAY.jackpot}</span>
                         </div>
-                        <div>
-                            <div className="text-[10px] text-white/40 uppercase font-bold">Мои билеты</div>
-                            <div className="text-xl font-bold text-[#FFD700]">{MOCK_GIVEAWAY.myTickets}</div>
-                        </div>
-                        <button className="ml-auto w-8 h-8 rounded-lg bg-[#FFD700] text-black flex items-center justify-center font-bold text-lg active:scale-95 transition-transform">
-                            +
-                        </button>
-                    </div>
-                    <div className="flex-1 bg-[#111] border border-white/5 rounded-2xl p-3 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/60">
-                            <Users className="w-4 h-4" />
-                        </div>
-                        <div>
-                            <div className="text-[10px] text-white/40 uppercase font-bold">Участников</div>
-                            <div className="text-xl font-bold text-white">{MOCK_GIVEAWAY.totalParticipants}</div>
+
+                        {/* Vertical Divider */}
+                        <div className="w-px h-10 bg-white/10" />
+
+                        {/* My Tickets */}
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold mb-1">Мои билеты</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-2xl font-bold text-white">{MOCK_GIVEAWAY.myTickets}</span>
+                                <div className="w-8 h-8 rounded-full bg-[#ff0033] flex items-center justify-center text-white text-lg font-bold shadow-[0_0_15px_rgba(255,0,51,0.4)]">
+                                    <Ticket className="w-4 h-4 fill-current" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* --- CONDITIONS SECTION --- */}
-                <div className="px-4 mb-8">
-                    <div className="flex items-center gap-2 mb-4 justify-center">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#FFD700] to-[#b8860b] flex items-center justify-center text-black text-xs font-bold">✓</div>
-                        <h2 className="text-lg font-black uppercase tracking-wide">Условия участия</h2>
+                <div className="px-4 mt-8 mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-1 h-6 bg-[#ff0033] rounded-full" />
+                        <h2 className="text-xl font-bold uppercase tracking-wide text-white">Условия участия</h2>
                     </div>
 
-                    {/* Type Switcher */}
-                    <div className="flex bg-[#111] p-1 rounded-xl mb-6 border border-white/5">
-                        <button
-                            onClick={() => setActiveTab('free')}
-                            className={`flex-1 py-3 rounded-lg font-black text-sm uppercase transition-all ${activeTab === 'free' ? 'bg-[#FFD700] text-black shadow-lg' : 'text-white/40'}`}
-                        >
-                            Free
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('vip')}
-                            className={`flex-1 py-3 rounded-lg font-black text-sm uppercase transition-all ${activeTab === 'vip' ? 'bg-[#FFD700] text-black shadow-lg' : 'text-white/40'}`}
-                        >
-                            VIP
-                        </button>
-                    </div>
-
-                    {/* List */}
-                    <div className="bg-[#111] border border-white/5 rounded-3xl p-6 space-y-4 relative overflow-hidden">
-                        {/* Corner Accent */}
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full" />
-
+                    <div className="space-y-3">
                         {CONDITIONS.map((cond) => (
-                            <div key={cond.id} className="flex items-center justify-between group">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${cond.done ? 'bg-[#FFD700] border-[#FFD700] text-black' : 'border-white/10 text-transparent'}`}>
-                                        <Check className="w-3.5 h-3.5" strokeWidth={4} />
+                            <div key={cond.id} className="relative overflow-hidden bg-[#111] border border-white/5 rounded-2xl p-4 flex items-center justify-between group">
+                                {cond.done && (
+                                    <div className="absolute inset-0 bg-gradient-to-r from-[#ff0033]/5 to-transparent pointer-events-none" />
+                                )}
+
+                                <div className="flex items-center gap-4 relative z-10">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${cond.done ? 'bg-[#ff0033] border-[#ff0033] text-white' : 'border-white/10 text-white/20'}`}>
+                                        <Check className="w-4 h-4" strokeWidth={3} />
                                     </div>
                                     <span className="font-medium text-sm text-white/90">{cond.text}</span>
                                 </div>
 
-                                {cond.done ? (
-                                    <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider">Выполнено</span>
-                                ) : cond.action ? (
-                                    <button className="px-4 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform">
-                                        {cond.action}
-                                    </button>
-                                ) : (
-                                    <span className="text-sm font-bold text-[#FFD700]">{cond.progress}</span>
-                                )}
+                                <div className="relative z-10">
+                                    {cond.done ? (
+                                        <span className="text-[10px] font-bold text-[#ff0033] uppercase tracking-wider bg-[#ff0033]/10 px-2 py-1 rounded-md">Выполнено</span>
+                                    ) : cond.action ? (
+                                        <button className="px-4 py-2 rounded-lg bg-white text-black text-xs font-bold hover:bg-gray-200 active:scale-95 transition-all">
+                                            {cond.action}
+                                        </button>
+                                    ) : (
+                                        <span className="text-sm font-bold text-white/40">{cond.progress}</span>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
 
                 {/* --- WINNERS SECTION --- */}
-                <div className="px-4">
-                    <div className="flex items-center gap-2 mb-4 justify-center">
-                        <Star className="w-5 h-5 text-[#cda434]" fill="#cda434" />
-                        <h2 className="text-lg font-black uppercase tracking-wide">Прошлые победители</h2>
+                <div className="px-4 pb-8">
+                    <div className="flex items-center gap-2 mb-4 justify-between">
+                        <div className="flex items-center gap-2">
+                            <Trophy className="w-5 h-5 text-[#FFD700]" />
+                            <h2 className="text-lg font-bold uppercase tracking-wide text-white">Победители</h2>
+                        </div>
+                        <button className="text-xs font-bold text-white/40 uppercase">Все</button>
                     </div>
 
                     <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
-                        {WINNERS.map((winner) => (
-                            <div key={winner.id} className="min-w-[140px] bg-[#111] border border-white/5 rounded-2xl p-4 flex flex-col">
-                                <div className="text-[#FFD700] font-black text-xs mb-1 uppercase tracking-wider">
-                                    {winner.name}
+                        {WINNERS.map((winner, i) => (
+                            <div key={winner.id} className="min-w-[160px] bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-white/5 rounded-2xl p-4 relative group">
+                                {i === 0 && <div className="absolute top-3 right-3 text-xs">🥇</div>}
+                                <div className="text-white/40 font-bold text-[10px] mb-2 uppercase tracking-wider">
+                                    {winner.date}
                                 </div>
-                                <div className="text-2xl font-black text-white mb-1">
+                                <div className="text-xl font-black text-white mb-1 group-hover:text-[#ff0033] transition-colors">
                                     {winner.amount}
                                 </div>
-                                <div className="text-[10px] text-white/30 font-medium">
-                                    {winner.date}
+                                <div className="text-sm font-bold text-white/80">
+                                    {winner.name}
                                 </div>
                             </div>
                         ))}
@@ -179,15 +169,17 @@ export function GiveawayPremiumExample() {
     )
 }
 
-function TimerBox({ value, label }: { value: string, label: string }) {
+function TimerBox({ value, label, isRed = false }: { value: string, label: string, isRed?: boolean }) {
     return (
-        <div className="flex flex-col items-center gap-1">
-            <div className="w-14 h-14 rounded-xl bg-[#1a1a1a] border border-[#FFD700]/30 flex items-center justify-center relative overflow-hidden shadow-inner">
-                <span className="text-xl font-bold text-[#FFD700] pt-1">{value}</span>
-                {/* Shine */}
-                <div className="absolute top-0 inset-x-0 h-[1px] bg-white/20" />
+        <div className="flex flex-col items-center gap-2">
+            <div className={`w-16 h-18 rounded-2xl flex items-center justify-center relative overflow-hidden backdrop-blur-md border 
+        ${isRed ? 'bg-[#ff0033]/20 border-[#ff0033]/50' : 'bg-white/5 border-white/10'}`}>
+                <span className={`text-2xl font-bold ${isRed ? 'text-[#ff0033]' : 'text-white'}`}>{value}</span>
+
+                {/* Glossy Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
             </div>
-            <span className="text-[9px] font-bold text-[#888] uppercase tracking-widest">{label}</span>
+            <span className={`text-[9px] font-bold uppercase tracking-widest ${isRed ? 'text-[#ff0033]' : 'text-white/30'}`}>{label}</span>
         </div>
     )
 }
