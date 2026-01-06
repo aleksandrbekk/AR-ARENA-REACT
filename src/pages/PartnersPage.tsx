@@ -187,16 +187,22 @@ export function PartnersPage() {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col overflow-hidden">
+      {/* Spotlight Effect */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[40vh] pointer-events-none z-0"
+        style={{ background: 'radial-gradient(circle at 50% -10%, rgba(255,215,0,0.08) 0%, transparent 60%)' }}
+      />
+
       {/* Header */}
-      <div className="pt-[70px] px-4 pb-4 bg-gradient-to-b from-yellow-500/10 to-transparent">
+      <div className="pt-[70px] px-4 pb-4 relative z-10">
         <h1 className="text-2xl font-black text-white mb-1">Партнёрская программа</h1>
         <p className="text-white/50 text-sm">Приглашай друзей и зарабатывай!</p>
       </div>
 
       {/* Referral Link Card */}
-      <div className="px-4 mb-4">
+      <div className="px-4 mb-4 relative z-10">
         <motion.div
-          className="bg-gradient-to-br from-yellow-500/20 to-orange-500/10 rounded-2xl p-4 border border-yellow-500/30"
+          className="bg-gradient-to-br from-yellow-500/20 via-orange-500/10 to-transparent rounded-2xl p-4 border border-yellow-500/20 backdrop-blur-sm"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -240,7 +246,7 @@ export function PartnersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="px-4 mb-4 grid grid-cols-2 gap-3">
+      <div className="px-4 mb-4 grid grid-cols-2 gap-3 relative z-10">
         <motion.div
           className="bg-zinc-900/80 rounded-xl p-4 border border-white/5"
           initial={{ opacity: 0, x: -20 }}
@@ -303,7 +309,7 @@ export function PartnersPage() {
       </div>
 
       {/* Tabs */}
-      <div className="px-4 mb-4">
+      <div className="px-4 mb-4 relative z-10">
         <div className="flex bg-zinc-900/80 rounded-xl p-1 border border-white/5">
           {(['overview', 'team', 'earnings'] as TabType[]).map((tab) => (
             <button
@@ -324,7 +330,7 @@ export function PartnersPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 pb-8 relative z-10">
         <AnimatePresence mode="wait">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
