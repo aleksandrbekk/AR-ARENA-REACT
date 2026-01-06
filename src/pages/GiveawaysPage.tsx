@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { GiveawayCard } from '../components/giveaways/GiveawayCard'
 import { useGiveaways } from '../hooks/useGiveaways'
@@ -8,6 +9,7 @@ import { HowToPlayButton } from '../components/HowToPlayButton'
 type TabType = 'active' | 'completed'
 
 export function GiveawaysPage() {
+  const navigate = useNavigate()
   const [tab, setTab] = useState<TabType>('active')
   const { giveaways, loading, error, getGiveaways } = useGiveaways()
 
@@ -23,6 +25,14 @@ export function GiveawaysPage() {
 
         {/* Content Container */}
         <div className="relative z-10">
+          {/* TEMP BUTTON FOR TESTING */}
+          <button
+            onClick={() => navigate('/giveaway/premium-test')}
+            className="w-full mb-6 py-3 bg-red-500/20 border border-red-500 text-red-400 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-500/30 transition-colors"
+          >
+            [DEV] Test Premium Design
+          </button>
+
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -39,8 +49,8 @@ export function GiveawaysPage() {
             <button
               onClick={() => setTab('active')}
               className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${tab === 'active'
-                  ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
-                  : 'text-white/50 hover:text-white hover:bg-white/5'
+                ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
+                : 'text-white/50 hover:text-white hover:bg-white/5'
                 }`}
             >
               Активные
@@ -48,8 +58,8 @@ export function GiveawaysPage() {
             <button
               onClick={() => setTab('completed')}
               className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${tab === 'completed'
-                  ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
-                  : 'text-white/50 hover:text-white hover:bg-white/5'
+                ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
+                : 'text-white/50 hover:text-white hover:bg-white/5'
                 }`}
             >
               Завершённые
