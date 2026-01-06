@@ -19,9 +19,16 @@ fi
 echo "✅ Build successful!"
 echo ""
 
+# Проверка переменной окружения для пароля
+if [ -z "$SSH_PASS" ]; then
+    echo "⚠️  SSH_PASS environment variable is not set."
+    echo "   Please run with: SSH_PASS='your_password' ./deploy.sh"
+    exit 1
+fi
+
 # Деплой
 echo "🚀 Deploying to server..."
-sshpass -p 'T9WLiUYq0Uv0Yn2W' scp -r dist/* root@91.229.11.228:/www/ararena.pro/
+sshpass -p "$SSH_PASS" scp -r dist/* root@91.229.11.228:/www/ararena.pro/
 
 if [ $? -ne 0 ]; then
     echo "❌ Deploy failed!"
