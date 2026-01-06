@@ -25,15 +25,14 @@ export function GiveawayPremiumExample() {
         <Layout hideNavbar>
             <div className="min-h-screen bg-[#050505] pb-24 font-sans text-white overflow-x-hidden relative">
 
-                {/* --- HEADER BACKGROUND & PROJECTORS --- */}
-                <div className="absolute top-0 inset-x-0 h-[500px] overflow-hidden pointer-events-none z-0">
-                    {/* Base Gradient */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#2a0a3b] via-[#0f0214] to-[#050505]" />
-
-                    {/* Left Projector */}
-                    <div className="absolute -top-20 left-10 w-[200px] h-[600px] bg-gradient-to-b from-purple-500/20 to-transparent blur-[40px] rotate-[25deg] transform-origin-top" />
-                    {/* Right Projector */}
-                    <div className="absolute -top-20 right-10 w-[200px] h-[600px] bg-gradient-to-b from-purple-500/20 to-transparent blur-[40px] -rotate-[25deg] transform-origin-top" />
+                {/* --- HEADER BACKGROUND IMAGE --- */}
+                <div className="absolute top-0 inset-x-0 h-[600px] overflow-hidden pointer-events-none z-0">
+                    <img
+                        src="/giveaway_hero_bg_purple_gold.png"
+                        alt="Background"
+                        className="w-full h-full object-cover opacity-80"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#050505]/50 to-[#050505]" />
                 </div>
 
 
@@ -42,14 +41,11 @@ export function GiveawayPremiumExample() {
                     <div className="flex flex-col items-center text-center px-4">
 
                         {/* NEON ICON (Circular & Floating) */}
-                        <div className="relative w-56 h-56 -mt-8 mb-2">
-                            {/* Purple Glow behind */}
-                            <div className="absolute inset-0 bg-purple-600/30 blur-[70px] rounded-full animate-pulse" />
-
+                        <div className="relative w-64 h-64 -mt-4 mb-2">
                             <img
                                 src="/luxury_neon_slot_machine_circle.png"
                                 alt="Neon Slot"
-                                className="relative w-full h-full object-contain drop-shadow-[0_0_30px_rgba(168,85,247,0.4)] transform hover:scale-105 transition-transform duration-500"
+                                className="relative w-full h-full object-contain drop-shadow-[0_10px_40px_rgba(0,0,0,0.6)] transform hover:scale-105 transition-transform duration-500"
                                 onError={(e) => {
                                     e.currentTarget.src = '/icons/gift.png'
                                 }}
