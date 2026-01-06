@@ -1,5 +1,27 @@
 # Current State
 
+## 🎫 FIX: Ошибка покупки билета - ИСПРАВЛЕНО (06.01.2026)
+
+### Проблема:
+При покупке билета в розыгрыше появлялась ошибка:
+```
+Could not choose the best candidate function between:
+public.buy_giveaway_ticket_v2(p_telegram_id => text, p_giveaway_id => text, p_count => integer),
+public.buy_giveaway_ticket_v2(p_telegram_id => text, p_giveaway_id => uuid, p_count => integer)
+```
+
+### Причина:
+В Supabase накопились две перегруженные функции `buy_giveaway_ticket_v2` с разными типами параметра `p_giveaway_id` (text vs uuid). PostgreSQL не мог выбрать нужную.
+
+### Решение:
+1. Удалена функция с UUID сигнатурой: `DROP FUNCTION IF EXISTS buy_giveaway_ticket_v2(text, uuid, integer)`
+2. Пересоздана функция с TEXT сигнатурой (с поддержкой prices.ar/prices.bul)
+
+### Ожидает:
+**Проверка в Telegram (@ARARENA_BOT) → покупка билета в розыгрыше**
+
+---
+
 ## 🔍 Партнёрская программа - Тестовые данные ДОБАВЛЕНЫ (06.01.2026)
 
 ### ✅ Тестовые рефералы созданы:
@@ -58,12 +80,11 @@
 - RPC: `generate_referral_code`, `apply_referral_code`, `process_referral_bonus`, `get_partner_stats`
 - Поля в users: `referral_code`, `referred_by`, `total_referral_ar`, `total_referral_bul`
 
-### ⚠️ ТРЕБУЕТСЯ ДЕЙСТВИЕ:
-
-**Выполни SQL в Supabase SQL Editor:**
-https://supabase.com/dashboard/project/syxjkircmiwpnpagznay/sql
-
-Скопируй содержимое из `REFERRAL_SYSTEM_SQL.md` и выполни.
+### ✅ SQL ВЫПОЛНЕН (06.01.2025):
+- Все таблицы созданы (`referrals`, `referral_earnings`)
+- Все RPC функции загружены в Supabase
+- Триггеры активны
+- Партнёрская программа активна
 
 ### 📊 Параметры системы:
 - **Линия 1 (L1):** 10% от покупок прямых рефералов
