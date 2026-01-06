@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { Layout } from '../components/layout/Layout'
-import { Check, Star, Users, Ticket, Trophy } from 'lucide-react'
+import { Check, Ticket, Trophy } from 'lucide-react'
 
 // Mock Data matching current V2 structure
 const MOCK_GIVEAWAY = {
