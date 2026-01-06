@@ -284,9 +284,13 @@ export function SemifinalTraffic({
 
             {/* Horizontal Roulette */}
             <div className="relative mb-6">
-                {/* Cursor Arrow */}
+                {/* Cursor Arrow - same as FinalBattle */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20">
-                    <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[14px] border-l-transparent border-r-transparent border-t-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" />
+                    <img
+                        src="/icons/Cursor.png"
+                        alt="cursor"
+                        className="w-8 h-8"
+                    />
                 </div>
 
                 {/* Roulette Container */}
