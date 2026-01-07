@@ -105,9 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                   window.location.hostname === '127.0.0.1'
 
                 const tg = window.Telegram?.WebApp
+                const hasTelegramUser = tg?.initDataUnsafe?.user?.id
 
-                // Если нет Telegram WebApp, но есть dev-режим — используем mock
-                if (!tg && isDevMode) {
+                // DEV MODE: если нет реального Telegram пользователя — используем mock
+                if (isDevMode && !hasTelegramUser) {
                     console.log('AuthProvider: DEV MODE - using mock Telegram user')
                     
                     const devUser: TelegramUser = {
