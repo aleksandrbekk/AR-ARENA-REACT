@@ -107,6 +107,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const tg = window.Telegram?.WebApp
                 const hasTelegramUser = tg?.initDataUnsafe?.user?.id
 
+                // BROWSER AUTH: проверяем localStorage на наличие авторизации через Telegram Login Widget
+                const browserAuthData = localStorage.getItem('telegram_browser_auth')
+                if (browserAuthData && !hasTelegramUser) {
+                    try {
+                        const savedUser = JSON.parse(browserAuthData)
+                        // Проверяем что auth_date не старше 7 дней
+                        const authAge = Date.now() / 1000 - savedUser.auth_date
+                        if (authAge < 604800) { // 7 дней в секундах
+                            console.log('AuthProvider: BROWSER AUTH - using saved Telegram user')
+                            
+                            const browserUser: TelegramUser = {
+                                id: savedUser.id,
+                                first_name: savedUser.first_name,
+                                last_name: savedUser.last_name,
+                                username: savedUser.username,
+                                photo_url: savedUser.photo_url
+                            }
+                            
+                            setTelegramUser(browserUser)
+                            await loadGameState(browserUser.id)
+                            setIsLoading(false)
+                            return
+                        } else {
+                            // Авторизация устарела, удаляем
+                            localStorage.removeItem('telegram_browser_auth')
+                        }
+                    } catch (e) {
+                        console.error('AuthProvider: Error parsing browser auth:', e)
+                        localStorage.removeItem('telegram_browser_auth')
+                    }
+                }
+
                 // DEV MODE: если нет реального Telegram пользователя — используем mock
                 if (isDevMode && !hasTelegramUser) {
                     console.log('AuthProvider: DEV MODE - using mock Telegram user')

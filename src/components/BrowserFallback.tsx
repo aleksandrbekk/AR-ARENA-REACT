@@ -1,6 +1,58 @@
-// Красивый экран для пользователей, открывших сайт в браузере (не в Telegram)
-export function BrowserFallback() {
+// Экран для пользователей, открывших сайт в браузере (не в Telegram)
+// Теперь с возможностью авторизации через Telegram Login Widget
+
+import { useState } from 'react'
+import { TelegramLoginButton, TelegramAuthData } from './TelegramLoginButton'
+
+interface BrowserFallbackProps {
+  onAuth?: (user: TelegramAuthData) => void
+}
+
+export function BrowserFallback({ onAuth }: BrowserFallbackProps) {
   const botUrl = 'https://t.me/ARARENA_BOT'
+  const botName = 'ARARENA_BOT'
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
+
+  const handleTelegramAuth = async (user: TelegramAuthData) => {
+    console.log('Telegram auth callback:', user)
+    setIsAuthenticating(true)
+    setAuthError(null)
+
+    try {
+      // Верифицируем на сервере
+      const response = await fetch('/api/telegram-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      })
+
+      const data = await response.json()
+
+      if (data.success && data.user) {
+        // Сохраняем в localStorage для persistence
+        localStorage.setItem('telegram_browser_auth', JSON.stringify({
+          ...data.user,
+          auth_date: user.auth_date
+        }))
+        
+        // Вызываем callback если есть
+        if (onAuth) {
+          onAuth(user)
+        }
+        
+        // Перезагружаем страницу чтобы AuthProvider подхватил
+        window.location.reload()
+      } else {
+        setAuthError(data.error || 'Ошибка авторизации')
+      }
+    } catch (err) {
+      console.error('Auth error:', err)
+      setAuthError('Ошибка подключения к серверу')
+    } finally {
+      setIsAuthenticating(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-6 relative overflow-hidden">
@@ -22,17 +74,38 @@ export function BrowserFallback() {
         Telegram Mini App
       </p>
 
-      {/* Message */}
-      <div className="relative z-10 bg-zinc-900/80 border border-white/10 rounded-2xl p-6 max-w-sm text-center mb-8">
-        <div className="text-4xl mb-4">📱</div>
-        <p className="text-white/80 text-sm leading-relaxed">
-          Это приложение работает только в Telegram.
-          <br />
-          Откройте бота и запустите Mini App.
+      {/* Auth Section */}
+      <div className="relative z-10 bg-zinc-900/80 border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center mb-6">
+        <div className="text-4xl mb-4">🔐</div>
+        <p className="text-white/80 text-sm leading-relaxed mb-6">
+          Войдите через Telegram чтобы<br />
+          использовать приложение в браузере
         </p>
+
+        {isAuthenticating ? (
+          <div className="text-white/60">Авторизация...</div>
+        ) : (
+          <TelegramLoginButton
+            botName={botName}
+            onAuth={handleTelegramAuth}
+            buttonSize="large"
+            cornerRadius={12}
+          />
+        )}
+
+        {authError && (
+          <p className="text-red-400 text-sm mt-4">{authError}</p>
+        )}
       </div>
 
-      {/* Button */}
+      {/* Divider */}
+      <div className="relative z-10 flex items-center gap-4 mb-6 w-full max-w-sm">
+        <div className="flex-1 h-px bg-white/10" />
+        <span className="text-white/30 text-sm">или</span>
+        <div className="flex-1 h-px bg-white/10" />
+      </div>
+
+      {/* Open in Telegram Button */}
       <a
         href={botUrl}
         target="_blank"

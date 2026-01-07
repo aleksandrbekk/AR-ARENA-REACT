@@ -36,16 +36,28 @@ export function AdminPage() {
   const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
   const isTelegramWebApp = !!window.Telegram?.WebApp?.initData
   const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
+  
+  // DEV MODE check
+  const urlParams = new URLSearchParams(window.location.search)
+  const isDevMode = urlParams.get('dev') === 'true' || 
+                    window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1'
 
   // Проверка авторизации при загрузке
   useEffect(() => {
+    // DEV MODE: автоматическая авторизация если есть telegramUser из AuthProvider
+    if (isDevMode && isAdmin) {
+      setIsAuthenticated(true)
+      return
+    }
+    
     if (isTelegramWebApp) {
       setIsAuthenticated(isAdmin)
     } else {
       const saved = localStorage.getItem('admin_auth')
       if (saved === 'true') setIsAuthenticated(true)
     }
-  }, [isTelegramWebApp, isAdmin])
+  }, [isTelegramWebApp, isAdmin, isDevMode])
 
   const handlePasswordSubmit = () => {
     if (passwordInput === ADMIN_PASSWORD) {
