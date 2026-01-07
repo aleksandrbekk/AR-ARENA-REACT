@@ -98,11 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setIsLoading(true)
                 setError(null)
 
-                // DEV MODE: проверяем ?dev=true или localhost
+                // DEV MODE: только если ЯВНО указано ?dev=true
                 const urlParams = new URLSearchParams(window.location.search)
-                const isDevMode = urlParams.get('dev') === 'true' || 
-                                  window.location.hostname === 'localhost' ||
-                                  window.location.hostname === '127.0.0.1'
+                const isDevMode = urlParams.get('dev') === 'true'
 
                 const tg = window.Telegram?.WebApp
                 const hasTelegramUser = tg?.initDataUnsafe?.user?.id
@@ -139,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     }
                 }
 
-                // DEV MODE: если нет реального Telegram пользователя — используем mock
+                // DEV MODE: если ЯВНО указано ?dev=true — используем mock (для быстрой разработки)
                 if (isDevMode && !hasTelegramUser) {
                     console.log('AuthProvider: DEV MODE - using mock Telegram user')
                     
@@ -156,8 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     return
                 }
 
+                // Если нет Telegram WebApp и нет browser auth — показываем экран авторизации
                 if (!tg) {
-                    console.error('Telegram WebApp not available')
+                    console.log('AuthProvider: No Telegram WebApp - showing browser auth screen')
                     setError('This app only works in Telegram Mini App')
                     setIsLoading(false)
                     return
