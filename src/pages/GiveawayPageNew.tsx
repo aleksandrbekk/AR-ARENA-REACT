@@ -8,36 +8,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
 
-// ============ MOCK DATA (потом заменим на реальные) ============
-const MOCK_GIVEAWAY = {
-  id: '1',
-  title: 'ЕЖЕНЕДЕЛЬНЫЙ',
-  subtitle: 'Розыгрыш',
-  jackpot: 15000,
-  currency: 'AR',
-  endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000 + 29 * 60 * 1000), // 4д 2ч 29м
-  status: 'active' as 'active' | 'completed',
-  myTickets: 3,
-  totalTickets: 847,
-  totalParticipants: 234,
-  prizes: [
-    { place: 1, amount: 10000, percentage: 50, label: 'Главный приз' },
-    { place: 2, amount: 5000, percentage: 30 },
-    { place: 3, amount: 3000, percentage: 20 },
-    { place: 4, amount: 2000 },
-    { place: 5, amount: 1000 },
-  ],
-  winners: [
-    { place: 1, username: 'CryptoKing', amount: 15000 },
-    { place: 2, username: 'LuckyTrader', amount: 8000 },
-    { place: 3, username: 'DiamondHands', amount: 5600 },
-    { place: 4, username: 'MoonBoy', amount: 2000 },
-    { place: 5, username: 'Hodler228', amount: 1000 },
-  ]
-}
-
-// CONDITIONS убраны - только покупка билетов
-
+// Recent winners - можно загружать из базы
 const RECENT_WINNERS = [
   { name: 'Alex***', amount: 12500, date: '05.01' },
   { name: 'Dima***', amount: 8200, date: '02.01' },
@@ -140,77 +111,120 @@ function TimerDigit({ value, label, highlight }: { value: number; label: string;
   )
 }
 
-function WinnerCard({ winner, index, currency }: { winner: typeof MOCK_GIVEAWAY.winners[0]; index: number; currency: string }) {
-  const colors = [
-    { bg: 'from-[#FFD700]/20 to-[#FFA500]/5', border: 'border-[#FFD700]/40', text: 'text-[#FFD700]', glow: 'shadow-[0_0_30px_rgba(255,215,0,0.3)]' },
-    { bg: 'from-gray-300/20 to-gray-400/5', border: 'border-gray-300/40', text: 'text-gray-300', glow: '' },
-    { bg: 'from-orange-500/20 to-orange-600/5', border: 'border-orange-500/40', text: 'text-orange-400', glow: '' },
-    { bg: 'from-white/10 to-white/5', border: 'border-white/20', text: 'text-white', glow: '' },
-    { bg: 'from-white/10 to-white/5', border: 'border-white/20', text: 'text-white', glow: '' },
-  ]
-  const style = colors[index] || colors[4]
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className={`
-        relative overflow-hidden rounded-xl p-4
-        bg-gradient-to-r ${style.bg} border ${style.border} ${style.glow}
-      `}
-    >
-      {/* Shine effect for 1st place */}
-      {index === 0 && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
-      )}
-
-      <div className="relative flex items-center gap-4">
-        {/* Place Badge */}
-        <div className={`
-          w-10 h-10 rounded-lg flex items-center justify-center font-black text-lg
-          ${index === 0 ? 'bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black' :
-            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-black' :
-            index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-black' :
-            'bg-white/10 text-white/60'
-          }
-        `}>
-          {winner.place}
-        </div>
-
-        {/* Username */}
-        <div className="flex-1">
-          <p className={`font-bold ${style.text}`}>{winner.username}</p>
-          {index === 0 && <p className="text-[10px] text-[#FFD700]/60">Победитель</p>}
-        </div>
-
-        {/* Prize */}
-        <div className="text-right">
-          <span className={`font-black text-lg ${style.text}`}>
-            {winner.amount.toLocaleString()}
-          </span>
-          <span className="text-white/40 text-sm ml-1">{currency}</span>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
 
 // ============ MAIN PAGE ============
 
 export function GiveawayPageNew() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { telegramUser, gameState } = useAuth()
+  const { getGiveawayStats } = useGiveaways()
 
-  // В реальности тут будет загрузка данных
-  const giveaway = MOCK_GIVEAWAY
-  const isActive = giveaway.status === 'active'
-  const isCompleted = giveaway.status === 'completed'
+  // State
+  const [giveaway, setGiveaway] = useState<Giveaway | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [myTickets, setMyTickets] = useState(0)
+  const [participantsCount, setParticipantsCount] = useState(0)
+  const [totalTickets, setTotalTickets] = useState(0)
+  const [showModal, setShowModal] = useState(false)
+  const [isEnded, setIsEnded] = useState(false)
 
-  // Шанс на победу
-  const winChance = giveaway.totalTickets > 0 && giveaway.myTickets > 0
-    ? ((giveaway.myTickets / giveaway.totalTickets) * 100).toFixed(2)
-    : '0'
+  // Data fetching
+  const fetchGiveaway = useCallback(async () => {
+    if (!id) return
+    setLoading(true)
+    const { data } = await supabase
+      .from('giveaways')
+      .select('*')
+      .eq('id', id)
+      .single()
+    if (data) setGiveaway(data)
+    setLoading(false)
+  }, [id])
+
+  const fetchStats = useCallback(async () => {
+    if (!id) return
+    const stats = await getGiveawayStats(id)
+    setParticipantsCount(stats.participants_count)
+    setTotalTickets(stats.total_tickets || 0)
+  }, [id, getGiveawayStats])
+
+  const fetchMyTickets = useCallback(async () => {
+    if (!telegramUser || !id) return
+    const { data } = await supabase
+      .from('giveaway_tickets')
+      .select('ticket_count')
+      .eq('giveaway_id', id)
+      .eq('telegram_id', telegramUser.id.toString())
+      .single()
+    if (data) setMyTickets(data.ticket_count || 0)
+  }, [telegramUser, id])
+
+  useEffect(() => {
+    if (id) {
+      fetchGiveaway()
+      fetchStats()
+      if (telegramUser) fetchMyTickets()
+    }
+  }, [id, telegramUser, fetchGiveaway, fetchStats, fetchMyTickets])
+
+  // Check if ended
+  useEffect(() => {
+    if (!giveaway?.end_date) return
+
+    const checkEnded = () => {
+      const difference = +new Date(giveaway.end_date) - +new Date()
+      const ended = difference <= 0
+      setIsEnded(ended)
+
+      if (ended && giveaway.status === 'active') {
+        setTimeout(() => navigate(`/giveaway/${id}/results`), 3000)
+      }
+    }
+
+    const timer = setInterval(checkEnded, 1000)
+    checkEnded()
+    return () => clearInterval(timer)
+  }, [giveaway?.end_date, giveaway?.status, id, navigate])
+
+  const handleBuySuccess = () => {
+    fetchGiveaway()
+    fetchMyTickets()
+    fetchStats()
+  }
+
+  const isActive = giveaway?.status === 'active'
+  const isCompleted = giveaway?.status === 'completed'
+
+  // Win chance
+  const winChance = totalTickets > 0 && myTickets > 0
+    ? ((myTickets / totalTickets) * 100).toFixed(2)
+    : '0.00'
+
+  // Loading state
+  if (loading) {
+    return (
+      <Layout hideNavbar>
+        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-[#FFD700]/20 border-t-[#FFD700] rounded-full animate-spin" />
+        </div>
+      </Layout>
+    )
+  }
+
+  // Not found state
+  if (!giveaway) {
+    return (
+      <Layout hideNavbar>
+        <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center">
+          <p className="text-white/50 mb-4">Розыгрыш не найден</p>
+          <button onClick={() => navigate('/giveaways')} className="text-[#FFD700]">
+            Назад к розыгрышам
+          </button>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout hideNavbar>
@@ -257,7 +271,7 @@ export function GiveawayPageNew() {
             {/* Balance */}
             <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md border border-[#FFD700]/30 rounded-full px-4 py-2">
               <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
-              <span className="text-white font-bold">{/* balance from gameState */}0</span>
+              <span className="text-white font-bold">{gameState?.balance_ar?.toLocaleString() || '0'}</span>
             </div>
           </div>
 
@@ -280,24 +294,24 @@ export function GiveawayPageNew() {
               transition={{ delay: 0.2 }}
             >
               <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFD700] drop-shadow-[0_0_30px_rgba(255,215,0,0.5)]">
-                {giveaway.jackpot.toLocaleString()}
+                {(giveaway.jackpot_current_amount || giveaway.prices?.ar || 0).toLocaleString()}
               </div>
               <div className="text-white/60 text-sm font-medium tracking-[0.3em] uppercase mt-1">
-                {giveaway.currency} · Джекпот
+                AR · Джекпот
               </div>
             </motion.div>
 
             {/* Title */}
             <div className="mt-4">
-              <h1 className="text-xl font-bold text-white">{giveaway.title}</h1>
+              <h1 className="text-xl font-bold text-white">{giveaway.title || 'Розыгрыш'}</h1>
               <p className="text-white/40 text-sm">{giveaway.subtitle}</p>
             </div>
 
             {/* Timer */}
-            {isActive && (
+            {isActive && !isEnded && giveaway.end_date && (
               <div className="mt-6">
                 <p className="text-xs text-white/40 uppercase tracking-widest mb-3">До розыгрыша</p>
-                <TimerBlock endDate={giveaway.endDate} />
+                <TimerBlock endDate={new Date(giveaway.end_date)} />
               </div>
             )}
 
@@ -320,14 +334,14 @@ export function GiveawayPageNew() {
               <div>
                 <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Мои билеты</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-white">{giveaway.myTickets}</span>
-                  <span className="text-white/30">/ {giveaway.totalTickets} всего</span>
+                  <span className="text-3xl font-black text-white">{myTickets}</span>
+                  <span className="text-white/30">/ {totalTickets} всего</span>
                 </div>
               </div>
 
               {/* Visual Tickets */}
               <div className="flex -space-x-3">
-                {[...Array(Math.min(giveaway.myTickets, 3))].map((_, i) => (
+                {[...Array(Math.min(myTickets, 3))].map((_, i) => (
                   <div
                     key={i}
                     className="w-12 h-16 rounded-lg bg-gradient-to-br from-[#FFD700] to-[#FFA500] border-2 border-[#0a0a0a] flex items-center justify-center shadow-lg"
@@ -340,7 +354,7 @@ export function GiveawayPageNew() {
             </div>
 
             {/* Win Chance */}
-            {giveaway.myTickets > 0 && (
+            {myTickets > 0 && (
               <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
                 <span className="text-white/40 text-sm">Твой шанс на победу</span>
                 <span className="text-[#FFD700] font-bold text-lg">{winChance}%</span>
@@ -349,67 +363,18 @@ export function GiveawayPageNew() {
           </div>
 
 
-          {/* ===== PRIZES SECTION (Active State) ===== */}
-          {isActive && (
+          {/* ===== PRIZE INFO (Active State) ===== */}
+          {isActive && (giveaway.prices?.ar || giveaway.price) && (
             <div className="px-4 mb-4">
-              <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-3 ml-1">
-                Призовые места
-              </h3>
-              <div className="space-y-2">
-                {giveaway.prizes.map((prize, idx) => (
-                  <div
-                    key={prize.place}
-                    className={`
-                      flex items-center gap-4 p-3 rounded-xl border
-                      ${idx === 0
-                        ? 'bg-gradient-to-r from-[#FFD700]/10 to-transparent border-[#FFD700]/30'
-                        : 'bg-white/5 border-white/10'
-                      }
-                    `}
-                  >
-                    <div className={`
-                      w-9 h-9 rounded-lg flex items-center justify-center font-bold
-                      ${idx === 0 ? 'bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black' :
-                        idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-black' :
-                        idx === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-black' :
-                        'bg-white/10 text-white/60'
-                      }
-                    `}>
-                      {prize.place}
-                    </div>
-                    <div className="flex-1">
-                      <span className={`font-bold ${idx === 0 ? 'text-[#FFD700]' : 'text-white'}`}>
-                        {prize.amount.toLocaleString()} {giveaway.currency}
-                      </span>
-                      {prize.percentage && (
-                        <span className="text-white/40 ml-1">+ {prize.percentage}%</span>
-                      )}
-                      {prize.label && (
-                        <p className="text-[10px] text-[#FFD700]/60">{prize.label}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              <div className="p-4 bg-gradient-to-r from-[#FFD700]/10 to-transparent rounded-xl border border-[#FFD700]/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/60">Стоимость билета</span>
+                  <span className="text-[#FFD700] font-bold text-lg">{giveaway.prices?.ar ?? giveaway.price} AR</span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* ===== WINNERS SECTION (Completed State) ===== */}
-          {isCompleted && (
-            <div className="px-4 mb-4">
-              <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-3 ml-1 flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-                Победители
-              </h3>
-              <div className="space-y-2">
-                {giveaway.winners.map((winner, idx) => (
-                  <WinnerCard key={winner.place} winner={winner} index={idx} currency={giveaway.currency} />
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* ===== RECENT WINNERS SECTION ===== */}
           <div className="px-4 mb-4">
@@ -434,12 +399,12 @@ export function GiveawayPageNew() {
           {/* ===== STATS BAR ===== */}
           <div className="px-4 py-4 flex items-center justify-center gap-6 border-t border-white/5">
             <div className="text-center">
-              <p className="text-xl font-bold text-white">{giveaway.totalParticipants}</p>
+              <p className="text-xl font-bold text-white">{participantsCount}</p>
               <p className="text-[10px] text-white/40 uppercase tracking-wider">Участников</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
-              <p className="text-xl font-bold text-white">{giveaway.totalTickets}</p>
+              <p className="text-xl font-bold text-white">{totalTickets}</p>
               <p className="text-[10px] text-white/40 uppercase tracking-wider">Билетов</p>
             </div>
             <div className="w-px h-8 bg-white/10" />
@@ -452,12 +417,15 @@ export function GiveawayPageNew() {
         </div>
 
         {/* ===== BOTTOM CTA ===== */}
-        {isActive && (
+        {isActive && !isEnded && (
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/95 to-transparent z-50">
-            <button className="w-full py-4 rounded-2xl font-black text-lg text-black bg-gradient-to-r from-[#FFD700] to-[#FFA500] shadow-[0_0_30px_rgba(255,215,0,0.4)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+            <button
+              onClick={() => setShowModal(true)}
+              className="w-full py-4 rounded-2xl font-black text-lg text-black bg-gradient-to-r from-[#FFD700] to-[#FFA500] shadow-[0_0_30px_rgba(255,215,0,0.4)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+            >
               <TicketIcon />
               <span>КУПИТЬ БИЛЕТ</span>
-              <span className="bg-black/20 px-2 py-0.5 rounded text-sm">100 AR</span>
+              <span className="bg-black/20 px-2 py-0.5 rounded text-sm">{giveaway.prices?.ar ?? giveaway.price ?? 100} AR</span>
             </button>
           </div>
         )}
@@ -487,6 +455,14 @@ export function GiveawayPageNew() {
           100% { transform: translateX(200%); }
         }
       `}</style>
+
+      {/* Buy Ticket Modal */}
+      <BuyTicketModal
+        isOpen={showModal}
+        giveaway={giveaway}
+        onClose={() => setShowModal(false)}
+        onSuccess={handleBuySuccess}
+      />
     </Layout>
   )
 }
