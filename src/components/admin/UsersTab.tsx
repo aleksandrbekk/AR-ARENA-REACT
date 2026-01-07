@@ -36,6 +36,7 @@ interface Transaction {
 interface UserSkin {
   skin_id: number
   is_equipped: boolean
+  is_active: boolean
   purchased_at: string
   skin_name?: string
   skin_rarity?: string
@@ -53,6 +54,14 @@ interface GiveawayTicket {
   ticket_number: number
   giveaway_name?: string
   giveaway_status?: string
+}
+
+interface PremiumStatus {
+  plan: string
+  expires_at: string
+  in_channel: boolean
+  in_chat: boolean
+  total_paid_usd: number
 }
 
 type SortField = 'created_at' | 'balance_ar' | 'balance_bul' | 'level' | 'last_seen_at'
@@ -79,6 +88,7 @@ export function UsersTab() {
   const [userSkins, setUserSkins] = useState<UserSkin[]>([])
   const [userEquipment, setUserEquipment] = useState<UserEquipment[]>([])
   const [userTickets, setUserTickets] = useState<GiveawayTicket[]>([])
+  const [userPremium, setUserPremium] = useState<PremiumStatus | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
 
   // Модалки
@@ -168,8 +178,8 @@ export function UsersTab() {
 
     try {
       // Параллельно загружаем все данные профиля
-      const [transRes, skinsRes, equipRes, ticketsRes] = await Promise.all([
-        // Транзакции (user_id в transactions = users.id, не telegram_id)
+      const [transRes, skinsRes, equipRes, ticketsRes, premiumRes] = await Promise.all([
+        // Транзакции (user_id = users.id UUID)
         supabase
           .from('transactions')
           .select('*')
@@ -177,29 +187,37 @@ export function UsersTab() {
           .order('created_at', { ascending: false })
           .limit(50),
 
-        // Скины
+        // Скины (user_id = users.id UUID)
         supabase
           .from('user_skins')
-          .select('skin_id, is_equipped, purchased_at')
-          .eq('user_id', user.telegram_id),
+          .select('skin_id, is_equipped, is_active, purchased_at')
+          .eq('user_id', user.id),
 
-        // Оборудование фермы (level переименован в quantity)
+        // Оборудование фермы (user_id = telegram_id BIGINT)
         supabase
           .from('user_equipment')
           .select('equipment_slug, quantity')
           .eq('user_id', user.telegram_id),
 
-        // Билеты
+        // Билеты (user_id = telegram_id BIGINT)
         supabase
           .from('giveaway_tickets')
           .select('giveaway_id, ticket_number')
-          .eq('user_id', user.telegram_id)
+          .eq('user_id', user.telegram_id),
+
+        // Премиум статус (telegram_id)
+        supabase
+          .from('premium_clients')
+          .select('plan, expires_at, in_channel, in_chat, total_paid_usd')
+          .eq('telegram_id', user.telegram_id)
+          .maybeSingle()
       ])
 
       setUserTransactions(transRes.data || [])
       setUserSkins(skinsRes.data || [])
       setUserEquipment(equipRes.data || [])
       setUserTickets(ticketsRes.data || [])
+      setUserPremium(premiumRes.data || null)
 
     } catch (err) {
       console.error('Error loading profile:', err)
@@ -602,6 +620,45 @@ export function UsersTab() {
               </div>
             </div>
 
+            {/* Премиум статус */}
+            {userPremium && (
+              <div className="bg-gradient-to-r from-purple-900/50 to-pink-900/50 backdrop-blur-md rounded-xl border border-purple-500/30 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-purple-300 text-xs uppercase tracking-wide font-semibold">Premium</div>
+                  <div className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
+                    new Date(userPremium.expires_at) > new Date()
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-red-500/20 text-red-400'
+                  }`}>
+                    {new Date(userPremium.expires_at) > new Date() ? 'Активен' : 'Истёк'}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-purple-300 text-lg font-bold uppercase">{userPremium.plan}</div>
+                    <div className="text-white/40 text-xs">Тариф</div>
+                  </div>
+                  <div>
+                    <div className="text-white text-lg font-bold">${userPremium.total_paid_usd}</div>
+                    <div className="text-white/40 text-xs">Оплачено</div>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="text-white/60 text-sm">
+                    До: <span className="text-white">{new Date(userPremium.expires_at).toLocaleDateString('ru-RU')}</span>
+                  </div>
+                  <div className="flex gap-3 mt-2">
+                    <div className={`text-xs ${userPremium.in_channel ? 'text-green-400' : 'text-red-400'}`}>
+                      Канал: {userPremium.in_channel ? '✓' : '✗'}
+                    </div>
+                    <div className={`text-xs ${userPremium.in_chat ? 'text-green-400' : 'text-red-400'}`}>
+                      Чат: {userPremium.in_chat ? '✓' : '✗'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Билеты */}
             <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-4">
               <div className="flex items-center justify-between mb-3">
@@ -666,9 +723,9 @@ export function UsersTab() {
                   {userSkins.map(skin => (
                     <div
                       key={skin.skin_id}
-                      className={`px-3 py-1 rounded-lg text-sm ${skin.is_equipped ? 'bg-[#FFD700]/20 text-[#FFD700]' : 'bg-zinc-800 text-white/60'}`}
+                      className={`px-3 py-1 rounded-lg text-sm ${skin.is_active ? 'bg-[#FFD700]/20 text-[#FFD700]' : 'bg-zinc-800 text-white/60'}`}
                     >
-                      Скин #{skin.skin_id} {skin.is_equipped && '✓'}
+                      Скин #{skin.skin_id} {skin.is_active && '✓'}
                     </div>
                   ))}
                 </div>
