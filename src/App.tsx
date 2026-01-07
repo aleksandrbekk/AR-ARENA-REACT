@@ -14,6 +14,7 @@ import { FarmPage } from './pages/FarmPage'
 import { FarmPageGemini } from './pages/FarmPageGemini'
 import { GiveawaysPage } from './pages/GiveawaysPage'
 import { GiveawayPremiumExample } from './pages/GiveawayPremiumExample'
+import { GiveawayPageNew } from './pages/GiveawayPageNew'
 import { GiveawayDetailsPageV2 } from './pages/GiveawayDetailsPageV2'
 import { GiveawayResultsPage } from './pages/GiveawayResultsPage'
 import { LiveArenaPage } from './pages/LiveArenaPage'
@@ -64,6 +65,7 @@ const router = createBrowserRouter([
       { path: "giveaways", element: <GiveawaysPage /> },
       { path: "giveaway/:id", element: <GiveawayDetailsPageV2 /> },
       { path: "giveaway/premium-test", element: <GiveawayPremiumExample /> },
+      { path: "giveaway/new-design", element: <GiveawayPageNew /> },
       { path: "giveaway/:id/v2", element: <GiveawayDetailsPageV2 /> },
       { path: "giveaway/:id/results", element: <GiveawayResultsPage /> },
       { path: "live-arena/:id", element: <LiveArenaPage /> },
