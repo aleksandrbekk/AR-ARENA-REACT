@@ -1,7 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { motion } from 'framer-motion'
+import { BuyTicketModal } from '../components/giveaways/BuyTicketModal'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
+import { useGiveaways } from '../hooks/useGiveaways'
+import type { Giveaway } from '../types'
 
 // ============ MOCK DATA (потом заменим на реальные) ============
 const MOCK_GIVEAWAY = {
@@ -31,11 +36,7 @@ const MOCK_GIVEAWAY = {
   ]
 }
 
-const CONDITIONS = [
-  { id: 1, text: 'Подписаться на Telegram', done: true, icon: 'tg' },
-  { id: 2, text: 'Пригласить 2 друзей', progress: '1/2', action: 'Пригласить', done: false, icon: 'friends' },
-  { id: 3, text: 'Купить минимум 1 билет', progress: '3/1', done: true, icon: 'ticket' },
-]
+// CONDITIONS убраны - только покупка билетов
 
 const RECENT_WINNERS = [
   { name: 'Alex***', amount: 12500, date: '05.01' },
@@ -83,27 +84,7 @@ const TicketIcon = () => (
   </svg>
 )
 
-const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-)
 
-const ConditionIcon = ({ type }: { type: string }) => {
-  if (type === 'tg') return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.74 4-1.73 6.67-2.88 8-3.44 3.81-1.6 4.6-1.88 5.12-1.89.11 0 .37.03.53.17.14.12.18.28.2.45-.02.07-.02.14-.04.22z"/>
-    </svg>
-  )
-  if (type === 'friends') return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
-    </svg>
-  )
-  return <TicketIcon />
-}
 
 // ============ COMPONENTS ============
 
@@ -265,20 +246,18 @@ export function GiveawayPageNew() {
         <div className="relative z-10">
 
           {/* Header */}
-          <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center justify-between px-4 pt-[70px] pb-2">
             <button
               onClick={() => navigate('/giveaways')}
-              className="p-2 bg-white/5 rounded-full border border-white/10"
+              className="w-10 h-10 bg-white/5 rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6"/>
-              </svg>
+              <img src="/Cursor.png" alt="" className="w-5 h-5 rotate-180" />
             </button>
 
             {/* Balance */}
-            <div className="flex items-center gap-2 bg-black/40 border border-[#FFD700]/30 rounded-full px-4 py-2">
-              <span className="text-white font-bold">9,500</span>
-              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500]" />
+            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md border border-[#FFD700]/30 rounded-full px-4 py-2">
+              <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
+              <span className="text-white font-bold">{/* balance from gameState */}0</span>
             </div>
           </div>
 
@@ -369,46 +348,6 @@ export function GiveawayPageNew() {
             )}
           </div>
 
-          {/* ===== CONDITIONS SECTION ===== */}
-          <div className="px-4 mb-4">
-            <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-3 ml-1">
-              Условия участия
-            </h3>
-            <div className="space-y-2">
-              {CONDITIONS.map((cond) => (
-                <div
-                  key={cond.id}
-                  className={`
-                    flex items-center justify-between p-4 rounded-xl border
-                    ${cond.done
-                      ? 'bg-emerald-500/10 border-emerald-500/20'
-                      : 'bg-white/5 border-white/10'
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cond.done ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-white/40'}`}>
-                      <ConditionIcon type={cond.icon} />
-                    </div>
-                    <span className={cond.done ? 'text-white/80' : 'text-white/60'}>{cond.text}</span>
-                  </div>
-
-                  {cond.done ? (
-                    <div className="flex items-center gap-1.5 text-emerald-400">
-                      <CheckIcon />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <span className="text-white/30 text-sm">{cond.progress}</span>
-                      <button className="px-4 py-1.5 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-sm font-medium">
-                        {cond.action}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* ===== PRIZES SECTION (Active State) ===== */}
           {isActive && (

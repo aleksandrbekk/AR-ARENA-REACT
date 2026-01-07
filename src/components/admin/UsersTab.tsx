@@ -43,7 +43,7 @@ interface UserSkin {
 
 interface UserEquipment {
   equipment_slug: string
-  level: number
+  quantity: number
   equipment_name?: string
   income_per_hour?: number
 }
@@ -169,11 +169,11 @@ export function UsersTab() {
     try {
       // Параллельно загружаем все данные профиля
       const [transRes, skinsRes, equipRes, ticketsRes] = await Promise.all([
-        // Транзакции
+        // Транзакции (user_id в transactions = users.id, не telegram_id)
         supabase
           .from('transactions')
           .select('*')
-          .eq('user_id', user.telegram_id)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(50),
 
@@ -183,10 +183,10 @@ export function UsersTab() {
           .select('skin_id, is_equipped, purchased_at')
           .eq('user_id', user.telegram_id),
 
-        // Оборудование фермы
+        // Оборудование фермы (level переименован в quantity)
         supabase
           .from('user_equipment')
-          .select('equipment_slug, level')
+          .select('equipment_slug, quantity')
           .eq('user_id', user.telegram_id),
 
         // Билеты
@@ -687,7 +687,7 @@ export function UsersTab() {
                   {userEquipment.map(eq => (
                     <div key={eq.equipment_slug} className="flex items-center justify-between">
                       <div className="text-white">{eq.equipment_slug}</div>
-                      <div className="text-white/60">Lv.{eq.level}</div>
+                      <div className="text-white/60">{eq.quantity} шт</div>
                     </div>
                   ))}
                 </div>

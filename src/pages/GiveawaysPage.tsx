@@ -25,21 +25,13 @@ export function GiveawaysPage() {
 
         {/* Content Container */}
         <div className="relative z-10">
-          {/* TEMP BUTTONS FOR TESTING */}
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => navigate('/giveaway/new-design')}
-              className="flex-1 py-3 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-emerald-500/30 transition-colors"
-            >
-              [NEW] Premium Design
-            </button>
-            <button
-              onClick={() => navigate('/giveaway/premium-test')}
-              className="flex-1 py-3 bg-red-500/20 border border-red-500 text-red-400 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-500/30 transition-colors"
-            >
-              [OLD] Test
-            </button>
-          </div>
+          {/* Premium Design Button */}
+          <button
+            onClick={() => navigate('/giveaway/new-design')}
+            className="w-full py-3 mb-6 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-emerald-500/30 transition-colors"
+          >
+            [NEW] Premium Design
+          </button>
 
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
