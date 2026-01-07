@@ -13,15 +13,17 @@
 - [x] Страница списка розыгрышей (`GiveawaysPage.tsx`)
 - [x] Страница деталей розыгрыша (`GiveawayDetailsPage.tsx`)
 - [x] Страница результатов (`GiveawayResultsPage.tsx`)
-- [x] Edge Function генерации (`generate-giveaway-result/index.ts`) — УПРОЩЁННАЯ
-- [x] Компонент анимации (`GiveawayDrawAnimation.tsx`) — УПРОЩЁННАЯ
+- [x] Edge Function генерации (`generate-giveaway-result/index.ts`)
+- [x] Полная 4-этапная механика (Tour 1 → Tour 2 → Semifinal → Final)
+- [x] LIVE страница (`LiveArenaPage.tsx`)
+- [x] Tour 1 Drum (барабан выбора 20 участников)
+- [x] Tour 2 Cards (карточки ликвидации)
+- [x] Semifinal Traffic Light
+- [x] Final Battle (Быки и Медведи)
+- [x] Results Screen с подиумом
 
 ### Чего не хватает:
-- [ ] Полная 4-этапная механика (Tour 1 → Tour 2 → Semifinal → Final)
-- [ ] LIVE страница с реальной анимацией всех этапов
-- [ ] Traffic Light (полуфинал)
-- [ ] Battle of Traders (финал)
-- [ ] Автоматический запуск по cron
+- [ ] Автоматический запуск по cron (сейчас вручную)
 
 ---
 
