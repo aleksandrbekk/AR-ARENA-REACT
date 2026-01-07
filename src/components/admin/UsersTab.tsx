@@ -4,7 +4,7 @@ import { useToast } from '../ToastProvider'
 
 // ============ ТИПЫ ============
 interface AppUser {
-  id: number
+  id: string  // UUID в Supabase
   telegram_id: string
   username: string | null
   first_name: string | null
@@ -25,7 +25,7 @@ interface AppUser {
 }
 
 interface Transaction {
-  id: number
+  id: string  // UUID
   currency: string
   amount: number
   type: string
