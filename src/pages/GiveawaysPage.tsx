@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { GiveawayCard } from '../components/giveaways/GiveawayCard'
 import { useGiveaways } from '../hooks/useGiveaways'
@@ -9,7 +8,6 @@ import { HowToPlayButton } from '../components/HowToPlayButton'
 type TabType = 'active' | 'completed'
 
 export function GiveawaysPage() {
-  const navigate = useNavigate()
   const [tab, setTab] = useState<TabType>('active')
   const { giveaways, loading, error, getGiveaways } = useGiveaways()
 
@@ -25,14 +23,6 @@ export function GiveawaysPage() {
 
         {/* Content Container */}
         <div className="relative z-10">
-          {/* Premium Design Button */}
-          <button
-            onClick={() => navigate('/giveaway/new-design')}
-            className="w-full py-3 mb-6 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-emerald-500/30 transition-colors"
-          >
-            [NEW] Premium Design
-          </button>
-
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
