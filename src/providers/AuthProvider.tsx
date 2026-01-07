@@ -98,7 +98,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setIsLoading(true)
                 setError(null)
 
+                // DEV MODE: проверяем ?dev=true или localhost
+                const urlParams = new URLSearchParams(window.location.search)
+                const isDevMode = urlParams.get('dev') === 'true' || 
+                                  window.location.hostname === 'localhost' ||
+                                  window.location.hostname === '127.0.0.1'
+
                 const tg = window.Telegram?.WebApp
+
+                // Если нет Telegram WebApp, но есть dev-режим — используем mock
+                if (!tg && isDevMode) {
+                    console.log('AuthProvider: DEV MODE - using mock Telegram user')
+                    
+                    const devUser: TelegramUser = {
+                        id: 190202791,
+                        first_name: 'Александр',
+                        username: 'AleksandrBekk',
+                        language_code: 'ru'
+                    }
+                    
+                    setTelegramUser(devUser)
+                    await loadGameState(devUser.id)
+                    setIsLoading(false)
+                    return
+                }
 
                 if (!tg) {
                     console.error('Telegram WebApp not available')
