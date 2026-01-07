@@ -2,7 +2,8 @@
 // Теперь с возможностью авторизации через Telegram Login Widget
 
 import { useState } from 'react'
-import { TelegramLoginButton, TelegramAuthData } from './TelegramLoginButton'
+import { TelegramLoginButton } from './TelegramLoginButton'
+import type { TelegramAuthData } from '../types'
 
 interface BrowserFallbackProps {
   onAuth?: (user: TelegramAuthData) => void
