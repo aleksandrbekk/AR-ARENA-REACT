@@ -4,13 +4,12 @@ import { Layout } from '../components/layout/Layout'
 import { motion } from 'framer-motion'
 import { BuyTicketModal } from '../components/giveaways/BuyTicketModal'
 import { PremiumTimer } from '../components/giveaways/PremiumTimer'
-import { GiveawayHero } from '../components/giveaways/GiveawayHero'
 import { ParticleBackground } from '../components/giveaways/ParticleBackground'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
-import { Ticket, Users } from 'lucide-react'
+import { Ticket, Users, Trophy, ChevronLeft } from 'lucide-react'
 
 // Recent winners - можно загружать из базы
 const RECENT_WINNERS = [
@@ -146,7 +145,7 @@ export function GiveawayPageNew() {
             onClick={() => navigate('/giveaways')}
             className="w-10 h-10 bg-white/5 rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-transform backdrop-blur-md"
           >
-            <img src="/icons/Cursor.png" alt="" className="w-5 h-5 rotate-180 opacity-80" />
+            <ChevronLeft className="w-6 h-6 text-white" />
           </button>
 
           <div className="flex items-center gap-2 bg-black/40 backdrop-blur-xl border border-[#FFD700]/20 rounded-full px-4 py-2 shadow-lg">
@@ -160,8 +159,19 @@ export function GiveawayPageNew() {
 
           {/* Hero Section */}
           <div className="px-4 pt-4">
-            <GiveawayHero />
-            {/* Note: GiveawayHero contains its own padding and height, but we ensure container structure */}
+            {/* Replaced Bull with Trophy */}
+            <div className="relative w-full h-[200px] flex items-center justify-center mb-8">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-40 h-40 bg-[#FFD700]/10 blur-[50px] rounded-full" />
+              </div>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              >
+                <Trophy className="w-24 h-24 text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]" strokeWidth={1} />
+              </motion.div>
+            </div>
 
             {/* Titles & Jackpot */}
             <div className="text-center -mt-6 relative z-20">
