@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { motion } from 'framer-motion'
 import { BuyTicketModal } from '../components/giveaways/BuyTicketModal'
+import { PremiumTimer } from '../components/giveaways/PremiumTimer'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
@@ -26,10 +27,10 @@ const TrophyIcon = () => (
         <stop offset="100%" stopColor="#FFD700" />
       </linearGradient>
       <filter id="glow">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
         <feMerge>
-          <feMergeNode in="coloredBlur"/>
-          <feMergeNode in="SourceGraphic"/>
+          <feMergeNode in="coloredBlur" />
+          <feMergeNode in="SourceGraphic" />
         </feMerge>
       </filter>
     </defs>
@@ -40,77 +41,20 @@ const TrophyIcon = () => (
       fill="none"
       filter="url(#glow)"
     />
-    <path d="M54 20H62C64 20 66 22 66 24V28C66 34 62 38 56 38H54" stroke="url(#trophyGold)" strokeWidth="3" fill="none"/>
-    <path d="M26 20H18C16 20 14 22 14 24V28C14 34 18 38 24 38H26" stroke="url(#trophyGold)" strokeWidth="3" fill="none"/>
-    <path d="M28 68H52" stroke="url(#trophyGold)" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M40 60V68" stroke="url(#trophyGold)" strokeWidth="3"/>
-    <circle cx="40" cy="32" r="8" fill="url(#trophyGold)" opacity="0.3"/>
+    <path d="M54 20H62C64 20 66 22 66 24V28C66 34 62 38 56 38H54" stroke="url(#trophyGold)" strokeWidth="3" fill="none" />
+    <path d="M26 20H18C16 20 14 22 14 24V28C14 34 18 38 24 38H26" stroke="url(#trophyGold)" strokeWidth="3" fill="none" />
+    <path d="M28 68H52" stroke="url(#trophyGold)" strokeWidth="3" strokeLinecap="round" />
+    <path d="M40 60V68" stroke="url(#trophyGold)" strokeWidth="3" />
+    <circle cx="40" cy="32" r="8" fill="url(#trophyGold)" opacity="0.3" />
   </svg>
 )
 
 const TicketIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path d="M4 6h16v3a2 2 0 100 4v3H4v-3a2 2 0 100-4V6z" stroke="currentColor" strokeWidth="2"/>
-    <path d="M10 6v12" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2"/>
+    <path d="M4 6h16v3a2 2 0 100 4v3H4v-3a2 2 0 100-4V6z" stroke="currentColor" strokeWidth="2" />
+    <path d="M10 6v12" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />
   </svg>
 )
-
-
-
-// ============ COMPONENTS ============
-
-function TimerBlock({ endDate }: { endDate: Date }) {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
-
-  useEffect(() => {
-    const calc = () => {
-      const diff = +endDate - +new Date()
-      if (diff > 0) {
-        setTimeLeft({
-          days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((diff / 1000 / 60) % 60),
-          seconds: Math.floor((diff / 1000) % 60)
-        })
-      }
-    }
-    calc()
-    const timer = setInterval(calc, 1000)
-    return () => clearInterval(timer)
-  }, [endDate])
-
-  return (
-    <div className="flex items-center justify-center gap-2">
-      <TimerDigit value={timeLeft.days} label="ДН" />
-      <span className="text-2xl text-white/20 font-light mt-[-20px]">:</span>
-      <TimerDigit value={timeLeft.hours} label="ЧАС" />
-      <span className="text-2xl text-white/20 font-light mt-[-20px]">:</span>
-      <TimerDigit value={timeLeft.minutes} label="МИН" />
-      <span className="text-2xl text-white/20 font-light mt-[-20px]">:</span>
-      <TimerDigit value={timeLeft.seconds} label="СЕК" highlight />
-    </div>
-  )
-}
-
-function TimerDigit({ value, label, highlight }: { value: number; label: string; highlight?: boolean }) {
-  return (
-    <div className="flex flex-col items-center">
-      <div className={`
-        w-14 h-16 rounded-xl flex items-center justify-center
-        ${highlight
-          ? 'bg-gradient-to-b from-[#FFD700]/20 to-[#FFA500]/10 border border-[#FFD700]/30 shadow-[0_0_20px_rgba(255,215,0,0.2)]'
-          : 'bg-white/5 border border-white/10'
-        }
-      `}>
-        <span className={`text-2xl font-mono font-bold ${highlight ? 'text-[#FFD700]' : 'text-white'}`}>
-          {String(value).padStart(2, '0')}
-        </span>
-      </div>
-      <span className="text-[10px] text-white/40 mt-1.5 tracking-wider">{label}</span>
-    </div>
-  )
-}
-
 
 // ============ MAIN PAGE ============
 
@@ -311,7 +255,7 @@ export function GiveawayPageNew() {
             {isActive && !isEnded && giveaway.end_date && (
               <div className="mt-6">
                 <p className="text-xs text-white/40 uppercase tracking-widest mb-3">До розыгрыша</p>
-                <TimerBlock endDate={new Date(giveaway.end_date)} />
+                <PremiumTimer targetDate={giveaway.end_date} />
               </div>
             )}
 
