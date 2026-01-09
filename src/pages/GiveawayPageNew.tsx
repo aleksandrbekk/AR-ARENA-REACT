@@ -4,10 +4,13 @@ import { Layout } from '../components/layout/Layout'
 import { motion } from 'framer-motion'
 import { BuyTicketModal } from '../components/giveaways/BuyTicketModal'
 import { PremiumTimer } from '../components/giveaways/PremiumTimer'
+import { GiveawayHero } from '../components/giveaways/GiveawayHero'
+import { ParticleBackground } from '../components/giveaways/ParticleBackground'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
+import { Ticket, Users } from 'lucide-react'
 
 // Recent winners - можно загружать из базы
 const RECENT_WINNERS = [
@@ -16,47 +19,6 @@ const RECENT_WINNERS = [
   { name: 'Kate***', amount: 15000, date: '29.12' },
   { name: 'Max***', amount: 5600, date: '26.12' },
 ]
-
-// ============ ICONS ============
-const TrophyIcon = () => (
-  <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-    <defs>
-      <linearGradient id="trophyGold" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FFD700" />
-        <stop offset="50%" stopColor="#FFA500" />
-        <stop offset="100%" stopColor="#FFD700" />
-      </linearGradient>
-      <filter id="glow">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-        <feMerge>
-          <feMergeNode in="coloredBlur" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    </defs>
-    <path
-      d="M40 60V50M40 50C48 50 54 42 54 32V16H26V32C26 42 32 50 40 50Z"
-      stroke="url(#trophyGold)"
-      strokeWidth="3"
-      fill="none"
-      filter="url(#glow)"
-    />
-    <path d="M54 20H62C64 20 66 22 66 24V28C66 34 62 38 56 38H54" stroke="url(#trophyGold)" strokeWidth="3" fill="none" />
-    <path d="M26 20H18C16 20 14 22 14 24V28C14 34 18 38 24 38H26" stroke="url(#trophyGold)" strokeWidth="3" fill="none" />
-    <path d="M28 68H52" stroke="url(#trophyGold)" strokeWidth="3" strokeLinecap="round" />
-    <path d="M40 60V68" stroke="url(#trophyGold)" strokeWidth="3" />
-    <circle cx="40" cy="32" r="8" fill="url(#trophyGold)" opacity="0.3" />
-  </svg>
-)
-
-const TicketIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path d="M4 6h16v3a2 2 0 100 4v3H4v-3a2 2 0 100-4V6z" stroke="currentColor" strokeWidth="2" />
-    <path d="M10 6v12" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />
-  </svg>
-)
-
-// ============ MAIN PAGE ============
 
 export function GiveawayPageNew() {
   const { id } = useParams<{ id: string }>()
@@ -172,241 +134,187 @@ export function GiveawayPageNew() {
 
   return (
     <Layout hideNavbar>
-      <div className="min-h-screen bg-[#0a0a0a] pb-32 relative overflow-hidden">
+      <div className="min-h-screen bg-[#0a0a0a] pb-32 relative overflow-hidden flex flex-col">
 
-        {/* ===== BACKGROUND EFFECTS ===== */}
-        <div className="fixed inset-0 pointer-events-none">
-          {/* Центральное золотое свечение */}
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#FFD700]/10 blur-[150px] rounded-full" />
-          {/* Боковые акценты */}
-          <div className="absolute top-40 -left-20 w-60 h-60 bg-purple-500/10 blur-[100px] rounded-full" />
-          <div className="absolute top-60 -right-20 w-60 h-60 bg-orange-500/10 blur-[100px] rounded-full" />
-          {/* Виньетка */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0a0a0a_70%)]" />
+        {/* Background Atmosphere */}
+        <ParticleBackground />
+        <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-zinc-800/20 via-[#0a0a0a] to-[#0a0a0a] z-0" />
+
+        {/* Header */}
+        <div className="relative z-50 flex items-center justify-between px-4 pt-[60px] pb-4">
+          <button
+            onClick={() => navigate('/giveaways')}
+            className="w-10 h-10 bg-white/5 rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-transform backdrop-blur-md"
+          >
+            <img src="/icons/Cursor.png" alt="" className="w-5 h-5 rotate-180 opacity-80" />
+          </button>
+
+          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-xl border border-[#FFD700]/20 rounded-full px-4 py-2 shadow-lg">
+            <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
+            <span className="text-white font-bold tracking-wide">{gameState?.balance_ar?.toLocaleString() || '0'}</span>
+          </div>
         </div>
 
-        {/* ===== GEOMETRIC LINES ===== */}
-        <svg className="absolute top-0 left-0 right-0 h-32 pointer-events-none" viewBox="0 0 400 128" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="lineGold" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#FFD700" stopOpacity="0" />
-              <stop offset="50%" stopColor="#FFD700" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#FFD700" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <line x1="0" y1="80" x2="120" y2="30" stroke="url(#lineGold)" strokeWidth="1" />
-          <line x1="400" y1="80" x2="280" y2="30" stroke="url(#lineGold)" strokeWidth="1" />
-          <line x1="120" y1="30" x2="200" y2="10" stroke="url(#lineGold)" strokeWidth="1" />
-          <line x1="280" y1="30" x2="200" y2="10" stroke="url(#lineGold)" strokeWidth="1" />
-        </svg>
+        {/* Content Scrollable */}
+        <div className="relative z-10 flex-1 overflow-y-auto pb-20 no-scrollbar">
 
-        {/* ===== CONTENT ===== */}
-        <div className="relative z-10">
+          {/* Hero Section */}
+          <div className="px-4 pt-4">
+            <GiveawayHero />
+            {/* Note: GiveawayHero contains its own padding and height, but we ensure container structure */}
 
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 pt-[70px] pb-2">
-            <button
-              onClick={() => navigate('/giveaways')}
-              className="w-10 h-10 bg-white/5 rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
-            >
-              <img src="/icons/Cursor.png" alt="" className="w-5 h-5 rotate-180" />
-            </button>
-
-            {/* Balance */}
-            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md border border-[#FFD700]/30 rounded-full px-4 py-2">
-              <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
-              <span className="text-white font-bold">{gameState?.balance_ar?.toLocaleString() || '0'}</span>
-            </div>
-          </div>
-
-          {/* ===== HERO SECTION ===== */}
-          <div className="px-4 pt-8 pb-6 text-center">
-            {/* Trophy / Prize Visual */}
-            <motion.div
-              initial={{ scale: 0, rotate: -10 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', bounce: 0.5 }}
-              className="mx-auto mb-4"
-            >
-              <TrophyIcon />
-            </motion.div>
-
-            {/* Jackpot Amount */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFD700] drop-shadow-[0_0_30px_rgba(255,215,0,0.5)]">
-                {(giveaway.jackpot_current_amount || giveaway.prices?.ar || 0).toLocaleString()}
-              </div>
-              <div className="text-white/60 text-sm font-medium tracking-[0.3em] uppercase mt-1">
-                AR · Джекпот
-              </div>
-            </motion.div>
-
-            {/* Title */}
-            <div className="mt-4">
-              <h1 className="text-xl font-bold text-white">{giveaway.title || 'Розыгрыш'}</h1>
-              <p className="text-white/40 text-sm">{giveaway.subtitle}</p>
-            </div>
-
-            {/* Timer */}
-            {isActive && !isEnded && giveaway.end_date && (
-              <div className="mt-6">
-                <p className="text-xs text-white/40 uppercase tracking-widest mb-3">До розыгрыша</p>
-                <PremiumTimer targetDate={giveaway.end_date} />
-              </div>
-            )}
-
-            {/* Completed State */}
-            {isCompleted && (
+            {/* Titles & Jackpot */}
+            <div className="text-center -mt-6 relative z-20">
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-full"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-block"
               >
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-emerald-400 font-medium">Розыгрыш завершён</span>
+                <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FFD700] to-[#FFA500] drop-shadow-[0_0_20px_rgba(255,215,0,0.3)]">
+                  {(giveaway.jackpot_current_amount || giveaway.prices?.ar || 0).toLocaleString()}
+                </h1>
+                <p className="text-[#FFD700]/60 text-xs font-bold tracking-[0.4em] uppercase mt-1">
+                  AR · Джекпот
+                </p>
               </motion.div>
-            )}
-          </div>
 
-          {/* ===== MY TICKETS SECTION ===== */}
-          <div className="px-4 py-4 mx-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 mb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/40 text-xs uppercase tracking-wider mb-1">Мои билеты</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-white">{myTickets}</span>
-                  <span className="text-white/30">/ {totalTickets} всего</span>
-                </div>
-              </div>
-
-              {/* Visual Tickets */}
-              <div className="flex -space-x-3">
-                {[...Array(Math.min(myTickets, 3))].map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-12 h-16 rounded-lg bg-gradient-to-br from-[#FFD700] to-[#FFA500] border-2 border-[#0a0a0a] flex items-center justify-center shadow-lg"
-                    style={{ transform: `rotate(${(i - 1) * 8}deg)` }}
-                  >
-                    <span className="text-black font-black text-xs">AR</span>
-                  </div>
-                ))}
+              <div className="mt-6">
+                <h2 className="text-xl font-bold text-white tracking-wide">{giveaway.title}</h2>
+                <p className="text-white/40 text-sm mt-1">{giveaway.subtitle}</p>
               </div>
             </div>
-
-            {/* Win Chance */}
-            {myTickets > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
-                <span className="text-white/40 text-sm">Твой шанс на победу</span>
-                <span className="text-[#FFD700] font-bold text-lg">{winChance}%</span>
-              </div>
-            )}
           </div>
 
-
-          {/* ===== PRIZE INFO (Active State) ===== */}
-          {isActive && (giveaway.prices?.ar || giveaway.price) && (
-            <div className="px-4 mb-4">
-              <div className="p-4 bg-gradient-to-r from-[#FFD700]/10 to-transparent rounded-xl border border-[#FFD700]/20">
-                <div className="flex items-center justify-between">
-                  <span className="text-white/60">Стоимость билета</span>
-                  <span className="text-[#FFD700] font-bold text-lg">{giveaway.prices?.ar ?? giveaway.price} AR</span>
-                </div>
+          {/* Timer */}
+          {isActive && !isEnded && giveaway.end_date && (
+            <div className="mt-8 px-4">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <span className="text-[10px] uppercase tracking-widest text-white/30 font-bold">До розыгрыша</span>
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               </div>
+              <PremiumTimer targetDate={giveaway.end_date} />
             </div>
           )}
 
+          {/* Dashboard Grid */}
+          <div className="px-4 mt-8 grid grid-cols-2 gap-3">
+            {/* Participants */}
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center">
+              <Users className="w-6 h-6 text-white/30 mb-2" />
+              <span className="text-lg font-bold text-white">{participantsCount}</span>
+              <span className="text-[10px] text-white/30 uppercase tracking-wider">Участников</span>
+            </div>
 
-          {/* ===== RECENT WINNERS SECTION ===== */}
-          <div className="px-4 mb-4">
-            <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-3 ml-1">
+            {/* My Tickets */}
+            <div className={`rounded-2xl p-4 border flex flex-col items-center justify-center relative overflow-hidden
+                ${myTickets > 0 ? 'bg-gradient-to-br from-[#FFD700]/10 to-[#FFA500]/5 border-[#FFD700]/30' : 'bg-white/5 border-white/5'}`}
+            >
+              <Ticket className={`w-6 h-6 mb-2 ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white/30'}`} />
+              <span className={`text-lg font-bold ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white'}`}>
+                {myTickets}
+              </span>
+              <span className={`text-[10px] uppercase tracking-wider ${myTickets > 0 ? 'text-[#FFD700]/60' : 'text-white/30'}`}>
+                Мои билеты
+              </span>
+
+              {/* Win Chance Badge */}
+              {myTickets > 0 && totalTickets > 0 && (
+                <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-[#FFD700] text-black text-[9px] font-bold">
+                  {winChance}%
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Winners */}
+          <div className="px-4 mt-8 mb-8">
+            <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4 pl-1">
               Последние победители
             </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {RECENT_WINNERS.map((w, i) => (
-                <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/10">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/60 text-sm">{w.name}</span>
-                    <span className="text-white/30 text-xs">{w.date}</span>
+            <div className="space-y-2">
+              {RECENT_WINNERS.map((winner, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center text-[#FFD700] text-xs font-bold">
+                      {winner.name[0]}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-white font-medium">{winner.name}</span>
+                      <span className="text-[10px] text-white/30">{winner.date}</span>
+                    </div>
                   </div>
-                  <div className="text-[#FFD700] font-bold mt-1">
-                    +{w.amount.toLocaleString()} AR
+                  <div className="text-[#FFD700] font-bold text-sm">
+                    +{winner.amount.toLocaleString()} AR
                   </div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* ===== STATS BAR ===== */}
-          <div className="px-4 py-4 flex items-center justify-center gap-6 border-t border-white/5">
-            <div className="text-center">
-              <p className="text-xl font-bold text-white">{participantsCount}</p>
-              <p className="text-[10px] text-white/40 uppercase tracking-wider">Участников</p>
-            </div>
-            <div className="w-px h-8 bg-white/10" />
-            <div className="text-center">
-              <p className="text-xl font-bold text-white">{totalTickets}</p>
-              <p className="text-[10px] text-white/40 uppercase tracking-wider">Билетов</p>
-            </div>
-            <div className="w-px h-8 bg-white/10" />
-            <div className="text-center">
-              <p className="text-xl font-bold text-[#FFD700]">{winChance}%</p>
-              <p className="text-[10px] text-white/40 uppercase tracking-wider">Твой шанс</p>
-            </div>
-          </div>
-
         </div>
 
-        {/* ===== BOTTOM CTA ===== */}
-        {isActive && !isEnded && (
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/95 to-transparent z-50">
+        {/* Fixed Bottom CTA */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-[#0a0a0a] from-60% via-[#0a0a0a]/90 to-transparent z-50">
+          {isActive && !isEnded && (
             <button
               onClick={() => setShowModal(true)}
-              className="w-full py-4 rounded-2xl font-black text-lg text-black bg-gradient-to-r from-[#FFD700] to-[#FFA500] shadow-[0_0_30px_rgba(255,215,0,0.4)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+              className="group relative w-full h-14 rounded-2xl overflow-hidden shadow-[0_0_40px_-5px_rgba(255,215,0,0.3)]"
             >
-              <TicketIcon />
-              <span>КУПИТЬ БИЛЕТ</span>
-              <span className="bg-black/20 px-2 py-0.5 rounded text-sm">{giveaway.prices?.ar ?? giveaway.price ?? 100} AR</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] animate-shimmer bg-[length:200%_100%]" />
+              <div className="absolute inset-[1px] rounded-[15px] bg-zinc-900 flex items-center justify-center gap-2 group-active:bg-zinc-800 transition-colors">
+                <span className="text-[#FFD700] font-black text-lg tracking-wide uppercase">Купить билет</span>
+                <div className="w-px h-4 bg-[#FFD700]/20" />
+                <span className="text-white/90 font-bold text-sm">
+                  {giveaway.prices?.ar ?? giveaway.price ?? 100} AR
+                </span>
+              </div>
             </button>
-          </div>
-        )}
+          )}
 
-        {isCompleted && (
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/95 to-transparent z-50">
+          {isCompleted && (
             <div className="flex gap-3">
               <button
                 onClick={() => navigate(`/live/${id}`)}
-                className="flex-1 py-4 rounded-2xl font-bold text-white bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center gap-2"
+                className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-red-600 to-red-500 flex items-center justify-center gap-2 font-bold text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]"
               >
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                 LIVE
               </button>
-              <button className="flex-1 py-4 rounded-2xl font-bold text-black bg-white">
+              <button
+                onClick={() => navigate(`/giveaway/${id}/results`)}
+                className="flex-1 h-14 rounded-2xl bg-white text-black font-bold"
+              >
                 Результаты
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
+        {/* Modal */}
+        <BuyTicketModal
+          isOpen={showModal}
+          giveaway={giveaway}
+          onClose={() => setShowModal(false)}
+          onSuccess={handleBuySuccess}
+        />
+
+        <style>{`
+          @keyframes shimmer {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+          }
+          .animate-shimmer {
+            animation: shimmer 3s linear infinite;
+          }
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        `}</style>
       </div>
-
-      {/* Shimmer Animation */}
-      <style>{`
-        @keyframes shimmer {
-          100% { transform: translateX(200%); }
-        }
-      `}</style>
-
-      {/* Buy Ticket Modal */}
-      <BuyTicketModal
-        isOpen={showModal}
-        giveaway={giveaway}
-        onClose={() => setShowModal(false)}
-        onSuccess={handleBuySuccess}
-      />
     </Layout>
   )
 }
