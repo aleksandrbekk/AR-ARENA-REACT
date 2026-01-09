@@ -219,7 +219,8 @@ export function FarmPage() {
       await loadFarmData()
       setShowLocationModal(false)
     } else {
-      showToast({ variant: 'error', title: 'Ошибка', description: 'Не удалось сменить локацию' })
+      const msg = data?.error || error?.message || 'Не удалось сменить локацию'
+      showToast({ variant: 'error', title: 'Ошибка', description: msg })
     }
   }
 
@@ -514,15 +515,14 @@ export function FarmPage() {
                       handlePurchaseLocation(location.slug)
                     }
                   }}
-                  className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                    location.is_current
+                  className={`flex items-center gap-3 p-3 rounded-xl transition-all ${location.is_current
                       ? 'bg-yellow-500/20 border border-yellow-500/50'
                       : location.purchased
-                      ? 'bg-zinc-900 active:scale-[0.98]'
-                      : location.can_purchase
-                      ? 'bg-zinc-900 active:scale-[0.98]'
-                      : 'bg-zinc-900/50 opacity-50'
-                  }`}
+                        ? 'bg-zinc-900 active:scale-[0.98]'
+                        : location.can_purchase
+                          ? 'bg-zinc-900 active:scale-[0.98]'
+                          : 'bg-zinc-900/50 opacity-50'
+                    }`}
                 >
                   <img
                     src={location.image}
