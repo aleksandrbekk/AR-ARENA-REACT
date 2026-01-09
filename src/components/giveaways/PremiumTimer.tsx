@@ -35,7 +35,7 @@ export function PremiumTimer({ targetDate }: PremiumTimerProps) {
     }, [targetDate])
 
     return (
-        <div className="flex items-center justify-center gap-2 sm:gap-4 my-8 relative z-20">
+        <div className="flex items-start justify-center gap-2 sm:gap-4 my-8 relative z-20">
             <TimeUnit value={timeLeft.days} label="ДНИ" />
             <Separator />
             <TimeUnit value={timeLeft.hours} label="ЧАСЫ" />
@@ -72,7 +72,7 @@ function TimeUnit({ value, label, isActive = false }: { value: string; label: st
 
 function Separator() {
     return (
-        <div className="flex flex-col gap-2 pb-6">
+        <div className="h-20 sm:h-24 flex flex-col justify-center gap-2">
             <div className="w-1 h-1 rounded-full bg-[#FFD700]/40" />
             <div className="w-1 h-1 rounded-full bg-[#FFD700]/40" />
         </div>

@@ -209,7 +209,7 @@ export function GiveawayPageNew() {
               onClick={() => navigate('/giveaways')}
               className="w-10 h-10 bg-white/5 rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
             >
-              <img src="/Cursor.png" alt="" className="w-5 h-5 rotate-180" />
+              <img src="/icons/Cursor.png" alt="" className="w-5 h-5 rotate-180" />
             </button>
 
             {/* Balance */}
