@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
-import { Ticket, Users, Trophy, ChevronLeft } from 'lucide-react'
+import { Ticket, Users, ChevronLeft } from 'lucide-react'
 
 // Recent winners - можно загружать из базы
 const RECENT_WINNERS = [
@@ -159,17 +159,22 @@ export function GiveawayPageNew() {
 
           {/* Hero Section */}
           <div className="px-4 pt-4">
-            {/* Replaced Bull with Trophy */}
-            <div className="relative w-full h-[200px] flex items-center justify-center mb-8">
+            {/* Replaced Icon with Premium 3D Trophy */}
+            <div className="relative w-full h-[220px] flex items-center justify-center mb-6">
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-40 h-40 bg-[#FFD700]/10 blur-[50px] rounded-full" />
+                <div className="w-48 h-48 bg-[#FFD700]/20 blur-[60px] rounded-full animate-pulse" />
               </div>
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                initial={{ scale: 0.8, opacity: 0, y: 10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                className="relative z-10 w-[240px] h-[240px] flex items-center justify-center"
               >
-                <Trophy className="w-24 h-24 text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]" strokeWidth={1} />
+                <img
+                  src="/giveaway_trophy_premium.png"
+                  alt="Premium Trophy"
+                  className="w-full h-full object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                />
               </motion.div>
             </div>
 
