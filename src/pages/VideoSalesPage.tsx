@@ -5,6 +5,8 @@ import { PaymentModal } from '../components/premium/PaymentModal'
 // ============ КОНФИГУРАЦИЯ ============
 const SECRET_CODE = '2025' // Секретный код из видео
 const VIDEO_EMBED_URL = '' // Вставь сюда YouTube/Vimeo embed URL
+const CODE_REVEAL_PERCENT = 70 // Процент просмотра, когда появляется код
+const VIDEO_DURATION_SECONDS = 120 // Длительность видео в секундах (для демо)
 
 // ============ СТИЛИ ДЛЯ AURORA ============
 const auroraStyles = `
@@ -625,12 +627,50 @@ export function VideoSalesPage() {
 
                             {/* Video Player */}
                             <motion.div
-                                className="w-full max-w-2xl mb-8 sm:mb-12"
+                                className="w-full max-w-2xl mb-4"
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.6, delay: 0.2 }}
                             >
                                 <VideoPlayer onProgress={setVideoProgress} />
+
+                                {/* Countdown under video */}
+                                {videoProgress < CODE_REVEAL_PERCENT && (
+                                    <motion.div
+                                        className="mt-4 text-center"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                    >
+                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                                            <svg className="w-4 h-4 text-[#FFD700]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span className="text-white/60 text-sm">
+                                                До момента, когда ты увидишь код:
+                                            </span>
+                                            <span className="text-[#FFD700] font-bold tabular-nums">
+                                                {Math.ceil((CODE_REVEAL_PERCENT - videoProgress) / 100 * VIDEO_DURATION_SECONDS)} сек
+                                            </span>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {videoProgress >= CODE_REVEAL_PERCENT && (
+                                    <motion.div
+                                        className="mt-4 text-center"
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                    >
+                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30">
+                                            <svg className="w-4 h-4 text-[#FFD700]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7h2a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2m2-4h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V4a1 1 0 011-1z" />
+                                            </svg>
+                                            <span className="text-[#FFD700] font-medium">
+                                                Код озвучен! Введите его ниже
+                                            </span>
+                                        </div>
+                                    </motion.div>
+                                )}
                             </motion.div>
 
                             {/* Code Input Section */}
