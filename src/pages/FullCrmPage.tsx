@@ -257,7 +257,10 @@ export function FullCrmPage() {
             .order(orderBy, { ascending, nullsFirst: false })
             .range(page * pageSize, (page + 1) * pageSize - 1)
 
-          if (error) throw error
+          if (error) {
+            console.error(`❌ Ошибка загрузки ${tableName}:`, error)
+            throw error
+          }
 
           if (data) {
             allData = [...allData, ...data]
@@ -330,10 +333,18 @@ export function FullCrmPage() {
       setBotUsers(botUsersData as BotUser[] || [])
 
       // Загружаем историю платежей для точной статистики
+      console.log('📊 Загружаем payment_history...')
       const paymentHistoryData = await fetchAllRows(
         'payment_history',
-        '*'
+        '*',
+        'created_at',
+        false
       )
+
+      console.log(`✅ Загружено ${paymentHistoryData?.length || 0} платежей из payment_history`)
+      if (paymentHistoryData?.length) {
+        console.log('Пример платежа:', paymentHistoryData[0])
+      }
 
       setPaymentHistory(paymentHistoryData as PaymentRecord[] || [])
 

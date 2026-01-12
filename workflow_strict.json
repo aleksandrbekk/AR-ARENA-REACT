@@ -1,0 +1,777 @@
+{
+  "name": "\ud83c\udfa8 \u041a\u0410\u0420\u0423\u0421\u0415\u041b\u0418 \u2192 Telegram + Instagram [Imagen 3]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "carousel-bot",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "carousel-bot"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst now = Date.now();\n\nlet payload = $json.body ?? $json;\n\nif (typeof payload === 'string') {\n  try { payload = JSON.parse(payload); }\n  catch (e) { throw new Error('Parse Message: body is string but not valid JSON'); }\n}\n\nif (payload && payload.body && typeof payload.body === 'object') {\n  payload = payload.body;\n}\n\nif (!payload || !payload.slides || !Array.isArray(payload.slides)) {\n  throw new Error('Parse Message: JSON format invalid. Need { topic, product, slides[] }');\n}\n\nconst dedupeKey = `${payload.topic || ''}_${payload.product || ''}_${payload.slides.length}`;\nconst lastRun = staticData.lastDedupeKey;\nconst lastTime = staticData.lastDedupeTime || 0;\nconst DEDUPE_WINDOW = 5 * 60 * 1000;\n\nif (lastRun === dedupeKey && (now - lastTime) < DEDUPE_WINDOW) {\n  return [{\n    json: {\n      error: true,\n      errorMsg: `\u0414\u0423\u0411\u041b\u0418\u041a\u0410\u0422: \\\"${payload.topic}\\\" \u0443\u0436\u0435 \u0437\u0430\u043f\u0443\u0449\u0435\u043d ${Math.round((now - lastTime) / 1000)} \u0441\u0435\u043a \u043d\u0430\u0437\u0430\u0434. \u0418\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u044e.`,\n      chatId: payload.chatId || 190202791\n    }\n  }];\n}\n\nstaticData.lastDedupeKey = dedupeKey;\nstaticData.lastDedupeTime = now;\n\n// \u0424\u0418\u041a\u0421 v2: Cloudinary URLs \u0441 \u0442\u0440\u0430\u043d\u0441\u0444\u043e\u0440\u043c\u0430\u0446\u0438\u0435\u0439 \u0434\u043b\u044f \u043e\u043f\u0442\u0438\u043c\u0438\u0437\u0430\u0446\u0438\u0438\n// \u0414\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u043c f_jpg,q_auto,w_768 \u0434\u043b\u044f \u0443\u043c\u0435\u043d\u044c\u0448\u0435\u043d\u0438\u044f \u0440\u0430\u0437\u043c\u0435\u0440\u0430\nconst PHOTOS = {\n  'AVATAR': 'https://res.cloudinary.com/ds8ylsl2x/image/upload/f_jpg,q_auto,w_768/v1765779570/AVATAR_uufavj.png',\n  'POINT_UP': 'https://res.cloudinary.com/ds8ylsl2x/image/upload/f_jpg,q_auto,w_768/v1765779571/point_up_nmbrvy.jpg',\n  'GREEN_BG': 'https://res.cloudinary.com/ds8ylsl2x/image/upload/f_jpg,q_auto,w_768/v1765779570/green_bg_ttqd4h.jpg',\n  'YOUTUBE': 'https://res.cloudinary.com/ds8ylsl2x/image/upload/f_jpg,q_auto,w_768/v1765779571/youtube_q4hmhi.jpg',\n  'LAPTOP': 'https://res.cloudinary.com/ds8ylsl2x/image/upload/f_jpg,q_auto,w_768/v1765690616/laptop_xzhjzv.jpg',\n  'BEACH': 'https://res.cloudinary.com/ds8ylsl2x/image/upload/f_jpg,q_auto,w_768/v1765690616/beach_x3zg3v.jpg',\n  'STUDIO_FULL': 'https://res.cloudinary.com/ds8ylsl2x/image/upload/f_jpg,q_auto,w_768/v1765690615/studio_full_ii7zqv.jpg',\n  'STUDIO_HALF': 'https://res.cloudinary.com/ds8ylsl2x/image/upload/f_jpg,q_auto,w_768/v1765690615/studio_half_jrhy7y.jpg'\n};\n\nconst FACE_ANCHOR_HAIR = PHOTOS['POINT_UP'];\nconst FACE_ANCHOR_CAP = PHOTOS['AVATAR'];\n\nconst totalSlides = payload.slides.length;\n\nconst slides = payload.slides.map((slide, idx) => {\n  const isFaceSlide = slide.human_mode === 'FACE';\n  const isLastSlide = (idx === totalSlides - 1);\n  \n  let photoUrl = null;\n  let refType = 'NONE';\n  \n  if (isFaceSlide) {\n    if (isLastSlide) {\n      photoUrl = FACE_ANCHOR_CAP;\n      refType = 'AVATAR_CAP';\n    } else {\n      photoUrl = FACE_ANCHOR_HAIR;\n      refType = 'POINT_UP_HAIR';\n    }\n  }\n  \n  return {\n    slideIndex: idx + 1,\n    template: slide.template || 'UNKNOWN',\n    humanMode: slide.human_mode || 'NONE',\n    ref: slide.ref || 'NONE',\n    visualTask: slide.visual_task || '',\n    content: slide.content || [],\n    photoUrl,\n    refType,\n    isLastSlide\n  };\n});\n\nreturn [{\n  json: {\n    error: false,\n    topic: payload.topic || '',\n    caption: payload.post_text || payload.caption || '',\n    product: payload.product || '',\n    slides,\n    totalSlides,\n    chatId: payload.chatId || 190202791\n  }\n}];"
+      },
+      "id": "parse",
+      "name": "Parse Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-error",
+      "name": "Has Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot8506935474:AAGQyGXWcnydp46yzvAVV-8zGZc1oWcPveU/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"chat_id\": {{ $json.chatId }}, \"text\": \"\u274c {{ $json.errorMsg }}\"}",
+        "options": {}
+      },
+      "id": "send-error",
+      "name": "Send Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        752,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot8506935474:AAGQyGXWcnydp46yzvAVV-8zGZc1oWcPveU/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"chat_id\": {{ $json.chatId }}, \"text\": \"\ud83c\udfa8 \u0413\u0435\u043d\u0435\u0440\u0438\u0440\u0443\u044e {{ $json.totalSlides }} \u0441\u043b\u0430\u0439\u0434(\u043e\u0432)...\\n\ud83d\udcd0 Gemini 3 Pro Image\\n\ud83d\udd27 FIX v2: optimized refs\\n\u23f3 ~90 \u0441\u0435\u043a\"}",
+        "options": {}
+      },
+      "id": "send-start",
+      "name": "Send Start",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        752,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Parse Message').first().json;\n\nreturn data.slides.map((slide) => ({\n  json: {\n    slideIndex: slide.slideIndex,\n    template: slide.template,\n    humanMode: slide.humanMode,\n    visualTask: slide.visualTask,\n    content: slide.content,\n    photoUrl: slide.photoUrl,\n    refType: slide.refType,\n    isLastSlide: slide.isLastSlide,\n    hasPhoto: !!slide.photoUrl,\n    totalSlides: data.totalSlides,\n    chatId: data.chatId,\n    topic: data.topic,\n    caption: data.caption,\n    product: data.product\n  }\n}));"
+      },
+      "id": "split",
+      "name": "Split Slides",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.hasPhoto ? $json.photoUrl : 'https://httpbin.org/status/204' }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "fetch-photo",
+      "name": "Fetch Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1264,
+        112
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// \u0424\u0418\u041a\u0421 v4: \u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f \u0438\u043d\u0434\u0435\u043a\u0441\u043e\u0432 slides \u0438 fetchedPhotos\nconst slides = $('Split Slides').all();\nconst fetchedPhotos = $input.all();\nconst results = [];\n\nconsole.log('DEBUG: slides count:', slides.length, 'fetched count:', fetchedPhotos.length);\n\nfor (let i = 0; i < slides.length; i++) {\n  const slide = slides[i].json;\n  const fetched = fetchedPhotos[i];\n  \n  let promptText = slide.visualTask;\n  \n  // \u0423\u0431\u0438\u0440\u0430\u0435\u043c \u0442\u0440\u0438\u0433\u0433\u0435\u0440\u043d\u044b\u0435 \u0441\u043b\u043e\u0432\u0430 \u0438\u0437 \u043f\u0440\u043e\u043c\u043f\u0442\u0430\n  promptText = promptText\n    .replace(/Aleksandr Bekk/gi, 'the person from reference')\n    .replace(/CRITICAL/gi, 'Important')\n    .replace(/MUST BE/gi, 'should be')\n    .replace(/EXACT/gi, 'same')\n    .replace(/DO NOT/gi, 'avoid')\n    .replace(/NEVER/gi, 'avoid');\n  \n  if (slide.content && slide.content.length > 0) {\n    promptText += '\\n\\nTEXT CONTENT TO INCLUDE:\\n' + slide.content.join('\\n');\n  }\n\n  let geminiBody;\n  let debugInfo = {\n    slideIndex: slide.slideIndex,\n    hasPhoto: slide.hasPhoto,\n    refType: slide.refType,\n    fetchedIndex: i,\n    fetchedHasBinary: !!(fetched && fetched.binary),\n    fetchedBinaryKeys: fetched && fetched.binary ? Object.keys(fetched.binary) : []\n  };\n\n  // \u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u0435\u0441\u0442\u044c \u043b\u0438 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0435 \u0434\u0430\u043d\u043d\u044b\u0435\n  let base64Data = null;\n  let mimeType = 'image/jpeg';\n  \n  if (slide.hasPhoto && fetched && fetched.binary) {\n    // n8n \u0445\u0440\u0430\u043d\u0438\u0442 binary \u0434\u0430\u043d\u043d\u044b\u0435 \u043f\u043e\u0434 \u043a\u043b\u044e\u0447\u043e\u043c (\u043e\u0431\u044b\u0447\u043d\u043e 'data')\n    const binaryKey = Object.keys(fetched.binary)[0];\n    debugInfo.binaryKey = binaryKey;\n    \n    if (binaryKey && fetched.binary[binaryKey]) {\n      const binaryObj = fetched.binary[binaryKey];\n      debugInfo.binaryObjKeys = Object.keys(binaryObj);\n      \n      // \u041f\u0440\u043e\u0431\u0443\u0435\u043c \u0440\u0430\u0437\u043d\u044b\u0435 \u0441\u043f\u043e\u0441\u043e\u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c base64\n      if (binaryObj.data && typeof binaryObj.data === 'string' && binaryObj.data.length > 100) {\n        base64Data = binaryObj.data;\n        mimeType = binaryObj.mimeType || 'image/jpeg';\n        debugInfo.dataSource = 'binaryObj.data';\n      } else if (binaryObj.base64 && typeof binaryObj.base64 === 'string') {\n        base64Data = binaryObj.base64;\n        mimeType = binaryObj.mimeType || 'image/jpeg';\n        debugInfo.dataSource = 'binaryObj.base64';\n      }\n    }\n  }\n  \n  debugInfo.hasBase64 = !!base64Data;\n  debugInfo.base64Length = base64Data ? base64Data.length : 0;\n  debugInfo.base64SizeKB = base64Data ? Math.round(base64Data.length * 0.75 / 1024) : 0;\n\n  if (base64Data && base64Data.length > 100) {\n    const faceInstruction = slide.isLastSlide\n      ? 'Use the reference photo to maintain the same person and facial features. Keep beard consistent. The person should wear a cap similar to the reference.'\n      : 'Use the reference photo to maintain the same person and facial features. Keep beard and hairline consistent. Avoid adding hat or cap unless shown in reference.';\n    \n    geminiBody = {\n      contents: [{\n        parts: [\n          { \n            inlineData: { \n              mimeType: mimeType, \n              data: base64Data \n            } \n          },\n          { text: faceInstruction + '\\n\\n' + promptText }\n        ]\n      }],\n      generationConfig: { \n        responseModalities: ['TEXT', 'IMAGE'] \n      }\n    };\n    debugInfo.mode = 'WITH_REFERENCE';\n  } else {\n    debugInfo.mode = 'NO_REFERENCE';\n    \n    geminiBody = {\n      contents: [{ \n        parts: [{ text: promptText }] \n      }],\n      generationConfig: { \n        responseModalities: ['TEXT', 'IMAGE'] \n      }\n    };\n  }\n\n  results.push({\n    json: {\n      slideIndex: slide.slideIndex,\n      template: slide.template,\n      geminiBody,\n      refUsed: base64Data ? slide.refType : 'NONE',\n      debugInfo,\n      chatId: slide.chatId,\n      topic: slide.topic,\n      caption: slide.caption,\n      product: slide.product,\n      totalSlides: slide.totalSlides\n    }\n  });\n}\n\nreturn results;\n"
+      },
+      "id": "prepare",
+      "name": "Prepare Gemini",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=AIzaSyBqlHKBYUDRDqYOF0MzuSa3qqetwo8Q_K0",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.geminiBody) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "gemini",
+      "name": "Gemini Generate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\nconst items = $input.all();\nconst preparedData = $('Prepare Gemini').all();\n\nfor (let i = 0; i < items.length; i++) {\n  const response = items[i].json;\n  const prepared = preparedData[i]?.json || {};\n  \n  let imageBase64 = null;\n  let error = false;\n  let errorMsg = '';\n  let finishReason = '';\n  \n  // \u0418\u0437\u0432\u043b\u0435\u043a\u0430\u0435\u043c finishReason \u0434\u043b\u044f \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0438\n  if (response.candidates?.[0]) {\n    finishReason = response.candidates[0].finishReason || '';\n  }\n  \n  if (response.candidates?.[0]?.content?.parts) {\n    for (const part of response.candidates[0].content.parts) {\n      if (part.inlineData?.data) { \n        imageBase64 = part.inlineData.data; \n        break; \n      }\n    }\n  }\n  \n  if (!imageBase64) {\n    error = true;\n    if (finishReason === 'IMAGE_OTHER') {\n      errorMsg = `IMAGE_OTHER: Gemini \u043e\u0442\u043a\u0430\u0437\u0430\u043b\u0441\u044f \u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c. \u0421\u043b\u0430\u0439\u0434 ${prepared.slideIndex}, ref: ${prepared.refUsed}`;\n    } else if (finishReason === 'SAFETY') {\n      errorMsg = `SAFETY: \u0417\u0430\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0444\u0438\u043b\u044c\u0442\u0440\u043e\u043c. \u0421\u043b\u0430\u0439\u0434 ${prepared.slideIndex}`;\n    } else {\n      errorMsg = response.error?.message || `Unknown error. finishReason: ${finishReason}. Response: ${JSON.stringify(response).substring(0, 200)}`;\n    }\n  }\n  \n  results.push({ \n    json: { \n      slideIndex: prepared.slideIndex || i + 1, \n      imageBase64, \n      error, \n      errorMsg,\n      finishReason,\n      debugInfo: prepared.debugInfo,\n      chatId: prepared.chatId, \n      caption: prepared.caption, \n      product: prepared.product, \n      totalSlides: prepared.totalSlides \n    } \n  });\n}\nreturn results;"
+      },
+      "id": "extract",
+      "name": "Extract Images",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot8506935474:AAGQyGXWcnydp46yzvAVV-8zGZc1oWcPveU/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, text: `\ud83d\udd0d \u0421\u043b\u0430\u0439\u0434 ${$json.slideIndex}/${$json.totalSlides}:\\n${$json.error ? '\u274c ' + $json.errorMsg : '\u2705 OK'}\\nref: ${$json.debugInfo.refType || 'NONE'}, size: ${$json.debugInfo.base64SizeKB || 0}KB\\nmode: ${$json.debugInfo.mode || 'N/A'}\\nbinaryKeys: ${JSON.stringify($json.debugInfo.fetchedBinaryKeys || [])}`, disable_notification: true }) }}",
+        "options": {}
+      },
+      "id": "log-slide",
+      "name": "Log Slide",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2256,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.imageBase64 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter",
+      "name": "Filter Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2256,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudinary.com/v1_1/ds8ylsl2x/image/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "=data:image/png;base64,{{ $json.imageBase64 }}"
+            },
+            {
+              "name": "upload_preset",
+              "value": "carousel_unsigned"
+            },
+            {
+              "name": "folder",
+              "value": "carousels"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cloudinary",
+      "name": "Cloudinary Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2512,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const uploaded = $json;\nconst prev = $('Filter Valid').first().json;\n\nreturn [{\n  json: {\n    slideIndex: prev.slideIndex,\n    imageUrl: uploaded.secure_url,\n    chatId: prev.chatId,\n    caption: prev.caption,\n    product: prev.product,\n    totalSlides: prev.totalSlides\n  }\n}];"
+      },
+      "id": "collect",
+      "name": "Collect URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot8506935474:AAGQyGXWcnydp46yzvAVV-8zGZc1oWcPveU/sendPhoto",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"chat_id\": {{ $json.chatId }}, \"photo\": \"{{ $json.imageUrl }}\", \"caption\": \"\ud83d\udcf8 \u0421\u043b\u0430\u0439\u0434 {{ $json.slideIndex }}/{{ $json.totalSlides }}\"}",
+        "options": {}
+      },
+      "id": "send-photo",
+      "name": "Send Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3024,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "allSlides",
+        "options": {}
+      },
+      "id": "aggregate",
+      "name": "Aggregate URLs",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        3280,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allSlides = $json.allSlides || [];\n\n// \u0421\u043e\u0440\u0442\u0438\u0440\u0443\u0435\u043c \u043f\u043e slideIndex\nconst sorted = allSlides.sort((a, b) => a.slideIndex - b.slideIndex);\n\nconst imageUrls = sorted.map(s => s.imageUrl).filter(Boolean);\nconst caption = sorted[0]?.caption || '';\nconst chatId = sorted[0]?.chatId || 190202791;\n\nif (imageUrls.length < 2) {\n  throw new Error(`\u041d\u0443\u0436\u043d\u043e \u043c\u0438\u043d\u0438\u043c\u0443\u043c 2 \u043a\u0430\u0440\u0442\u0438\u043d\u043a\u0438 \u0434\u043b\u044f \u043a\u0430\u0440\u0443\u0441\u0435\u043b\u0438. \u041f\u043e\u043b\u0443\u0447\u0435\u043d\u043e: ${imageUrls.length}`);\n}\n\nreturn [{\n  json: {\n    imageUrls,\n    caption,\n    chatId,\n    totalGenerated: imageUrls.length\n  }\n}];"
+      },
+      "id": "prepare-ig",
+      "name": "Prepare IG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3536,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const urls = $json.imageUrls;\nconst results = [];\n\nfor (const url of urls) {\n  results.push({\n    json: {\n      imageUrl: url,\n      caption: $json.caption,\n      chatId: $json.chatId,\n      totalGenerated: $json.totalGenerated\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "split-ig",
+      "name": "Split for IG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3792,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.instagram.com/v21.0/17841401344934994/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.imageUrl }}"
+            },
+            {
+              "name": "is_carousel_item",
+              "value": "true"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAIBNOYp8VoBO5OLstKnvZCBF48wVxrEp7D4ZCgLhPUl8A3reFZAd8CZAUbLMRiEIEwslEgZAVuVZAlqhfC3ZAhPdTJWCdPnZAZBP5OZCf3seoUpT5dCifMBrOhF7NStd9RuWsS9UqbYMM2T0UxdD2U3Sq7hEwlMBIXm2RZCmGZCpyLLPTdJRtzQfpZB6F3wHH2wZB"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ig-container",
+      "name": "Create IG Containers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4048,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "id": "wait-ig",
+      "name": "Wait for IG",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4304,
+        200
+      ],
+      "webhookId": "wait-ig"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "containers",
+        "options": {}
+      },
+      "id": "aggregate-containers",
+      "name": "Aggregate Containers",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const containers = $json.containers || [];\nconst containerIds = containers.map(c => c.id).filter(Boolean);\n\nconst firstItem = $('Prepare IG').first().json;\n\nreturn [{\n  json: {\n    containerIds,\n    caption: firstItem.caption,\n    chatId: firstItem.chatId\n  }\n}];"
+      },
+      "id": "prepare-carousel",
+      "name": "Prepare Carousel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4816,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.instagram.com/v21.0/17841401344934994/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "CAROUSEL"
+            },
+            {
+              "name": "children",
+              "value": "={{ $json.containerIds.join(',') }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAIBNOYp8VoBO5OLstKnvZCBF48wVxrEp7D4ZCgLhPUl8A3reFZAd8CZAUbLMRiEIEwslEgZAVuVZAlqhfC3ZAhPdTJWCdPnZAZBP5OZCf3seoUpT5dCifMBrOhF7NStd9RuWsS9UqbYMM2T0UxdD2U3Sq7hEwlMBIXm2RZCmGZCpyLLPTdJRtzQfpZB6F3wHH2wZB"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ig-carousel",
+      "name": "Create IG Carousel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5072,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-publish",
+      "name": "Wait for Publish",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5328,
+        200
+      ],
+      "webhookId": "wait-publish"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.instagram.com/v21.0/17841401344934994/media_publish",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $('Create IG Carousel').first().json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAIBNOYp8VoBO5OLstKnvZCBF48wVxrEp7D4ZCgLhPUl8A3reFZAd8CZAUbLMRiEIEwslEgZAVuVZAlqhfC3ZAhPdTJWCdPnZAZBP5OZCf3seoUpT5dCifMBrOhF7NStd9RuWsS9UqbYMM2T0UxdD2U3Sq7hEwlMBIXm2RZCmGZCpyLLPTdJRtzQfpZB6F3wHH2wZB"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ig-publish",
+      "name": "Publish to IG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5584,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot8506935474:AAGQyGXWcnydp46yzvAVV-8zGZc1oWcPveU/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"chat_id\": {{ $('Prepare Carousel').first().json.chatId }}, \"text\": \"\u2705 \u041a\u0410\u0420\u0423\u0421\u0415\u041b\u042c \u041e\u041f\u0423\u0411\u041b\u0418\u041a\u041e\u0412\u0410\u041d\u0410!\\n\\n\ud83d\udcf1 https://instagram.com/p/{{ $json.id }}\\n\\n\ud83c\udf89 \u0412\u0441\u0451 \u0433\u043e\u0442\u043e\u0432\u043e!\"}",
+        "options": {}
+      },
+      "id": "send-success",
+      "name": "Send IG Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5840,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Message": {
+      "main": [
+        [
+          {
+            "node": "Has Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error?": {
+      "main": [
+        [
+          {
+            "node": "Send Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Start": {
+      "main": [
+        [
+          {
+            "node": "Split Slides",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Slides": {
+      "main": [
+        [
+          {
+            "node": "Fetch Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Photo": {
+      "main": [
+        [
+          {
+            "node": "Prepare Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Gemini": {
+      "main": [
+        [
+          {
+            "node": "Gemini Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Generate": {
+      "main": [
+        [
+          {
+            "node": "Extract Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Images": {
+      "main": [
+        [
+          {
+            "node": "Log Slide",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Valid": {
+      "main": [
+        [
+          {
+            "node": "Cloudinary Upload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Cloudinary Upload": {
+      "main": [
+        [
+          {
+            "node": "Collect URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect URLs": {
+      "main": [
+        [
+          {
+            "node": "Send Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Photo": {
+      "main": [
+        [
+          {
+            "node": "Aggregate URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate URLs": {
+      "main": [
+        [
+          {
+            "node": "Prepare IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare IG": {
+      "main": [
+        [
+          {
+            "node": "Split for IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split for IG": {
+      "main": [
+        [
+          {
+            "node": "Create IG Containers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create IG Containers": {
+      "main": [
+        [
+          {
+            "node": "Wait for IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for IG": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Containers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Containers": {
+      "main": [
+        [
+          {
+            "node": "Prepare Carousel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Carousel": {
+      "main": [
+        [
+          {
+            "node": "Create IG Carousel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create IG Carousel": {
+      "main": [
+        [
+          {
+            "node": "Wait for Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Publish": {
+      "main": [
+        [
+          {
+            "node": "Publish to IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to IG": {
+      "main": [
+        [
+          {
+            "node": "Send IG Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  }
+}
