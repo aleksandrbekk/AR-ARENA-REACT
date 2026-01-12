@@ -884,8 +884,8 @@ export default async function handler(req, res) {
     const adminMessage = `💰 <b>Новый платёж Lava.top!</b>\n\n` +
       `👤 ID: <code>${finalTelegramId || 'N/A'}</code>\n` +
       `📋 Тариф: <b>${period.name}</b>\n` +
-      `💵 Сумма: <b>${amount} ${currency}</b>\n` +
-      `💲 В USD: <b>$${(parseFloat(amount) * (CURRENCY_TO_USD[currency] || 1)).toFixed(2)}</b>\n` +
+      `💵 Сумма: <b>${grossAmount} ${currency}</b>\n` +
+      `💲 В USD: <b>$${(parseFloat(grossAmount) * (CURRENCY_TO_USD[currency] || 1)).toFixed(2)}</b>\n` +
       `📅 Дней: ${period.days}\n` +
       `🆕 Новый: ${isNewClient ? 'Да' : 'Нет (продление)'}`;
 
