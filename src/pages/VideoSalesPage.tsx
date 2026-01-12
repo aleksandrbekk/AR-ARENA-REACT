@@ -337,78 +337,14 @@ function PricingCard({ tariff, index, onBuy }: PricingCardProps) {
     )
 }
 
-// ============ CIRCULAR PROGRESS TIMER ============
-interface CircularProgressProps {
-    progress: number
-    size?: number
-    strokeWidth?: number
-}
-
-function CircularProgress({ progress, size = 280, strokeWidth = 6 }: CircularProgressProps) {
-    const radius = (size - strokeWidth) / 2
-    const circumference = 2 * Math.PI * radius
-    const strokeDashoffset = circumference - (progress / 100) * circumference
-
-    return (
-        <svg
-            width={size}
-            height={size}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ transform: 'translate(-50%, -50%) rotate(-90deg)' }}
-        >
-            {/* Background circle */}
-            <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke="rgba(255, 215, 0, 0.15)"
-                strokeWidth={strokeWidth}
-            />
-            {/* Progress circle with glow */}
-            <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke="url(#goldGradient)"
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-                style={{
-                    transition: 'stroke-dashoffset 0.5s ease',
-                    filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.6))'
-                }}
-            />
-            {/* Glowing dot at progress end */}
-            {progress > 0 && (
-                <circle
-                    cx={size / 2 + radius * Math.cos((progress / 100) * 2 * Math.PI - Math.PI / 2)}
-                    cy={size / 2 + radius * Math.sin((progress / 100) * 2 * Math.PI - Math.PI / 2)}
-                    r={strokeWidth * 1.5}
-                    fill="#FFD700"
-                    style={{ filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.8))' }}
-                />
-            )}
-            {/* Gradient definition */}
-            <defs>
-                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#FFD700" />
-                    <stop offset="100%" stopColor="#FFA500" />
-                </linearGradient>
-            </defs>
-        </svg>
-    )
-}
-
-// ============ CODE INPUT ============
+// ============ CODE INPUT WITH BORDER PROGRESS ============
 interface CodeInputProps {
     onComplete: (code: string) => void
     error: boolean
+    progress: number // 0-100
 }
 
-function CodeInput({ onComplete, error }: CodeInputProps) {
+function CodeInput({ onComplete, error, progress }: CodeInputProps) {
     const [digits, setDigits] = useState(['', '', '', ''])
     const inputRefs = [
         useRef<HTMLInputElement>(null),
@@ -459,35 +395,89 @@ function CodeInput({ onComplete, error }: CodeInputProps) {
         }
     }
 
+    // Calculate border progress for each field (each field fills 25%)
+    const getFieldProgress = (fieldIndex: number) => {
+        const fieldStart = fieldIndex * 25
+        const fieldEnd = (fieldIndex + 1) * 25
+
+        if (progress >= fieldEnd) return 100 // Field fully filled
+        if (progress <= fieldStart) return 0 // Field not started
+        return ((progress - fieldStart) / 25) * 100 // Partial progress within field
+    }
+
     return (
         <div className="flex gap-3 sm:gap-4">
-            {digits.map((digit, index) => (
-                <motion.input
-                    key={index}
-                    ref={inputRefs[index]}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
-                    onPaste={handlePaste}
-                    className={`
-            w-14 h-16 sm:w-16 sm:h-20 text-center text-2xl sm:text-3xl font-bold rounded-xl
-            bg-white/5 border-2 outline-none transition-all
-            focus:border-[#FFD700] focus:shadow-[0_0_20px_rgba(255,215,0,0.3)]
-            ${error
-                            ? 'border-red-500 animate-shake'
-                            : digit
-                                ? 'border-[#FFD700]/50'
-                                : 'border-white/20'
-                        }
-          `}
-                    style={{ color: '#FFD700' }}
-                    animate={error ? { x: [0, -10, 10, -10, 10, 0] } : {}}
-                    transition={{ duration: 0.4 }}
-                />
-            ))}
+            {digits.map((digit, index) => {
+                const fieldProgress = getFieldProgress(index)
+
+                return (
+                    <div key={index} className="relative">
+                        {/* Animated border SVG */}
+                        <svg
+                            className="absolute inset-0 w-full h-full pointer-events-none"
+                            viewBox="0 0 64 80"
+                            fill="none"
+                            style={{ borderRadius: 12 }}
+                        >
+                            {/* Background border */}
+                            <rect
+                                x="1"
+                                y="1"
+                                width="62"
+                                height="78"
+                                rx="11"
+                                stroke="rgba(255, 255, 255, 0.15)"
+                                strokeWidth="2"
+                                fill="none"
+                            />
+                            {/* Animated progress border */}
+                            <rect
+                                x="1"
+                                y="1"
+                                width="62"
+                                height="78"
+                                rx="11"
+                                stroke="url(#borderGradient)"
+                                strokeWidth="2.5"
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeDasharray="280"
+                                strokeDashoffset={280 - (fieldProgress / 100) * 280}
+                                style={{
+                                    transition: 'stroke-dashoffset 0.3s ease',
+                                    filter: fieldProgress > 0 ? 'drop-shadow(0 0 6px rgba(255, 215, 0, 0.6))' : 'none'
+                                }}
+                            />
+                            <defs>
+                                <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#FFD700" />
+                                    <stop offset="100%" stopColor="#FFA500" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+
+                        <motion.input
+                            ref={inputRefs[index]}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={digit}
+                            onChange={(e) => handleChange(index, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(index, e)}
+                            onPaste={handlePaste}
+                            className={`
+                                w-14 h-20 sm:w-16 sm:h-24 text-center text-2xl sm:text-3xl font-bold rounded-xl
+                                bg-white/5 border-2 border-transparent outline-none transition-all
+                                focus:bg-white/10
+                                ${error ? 'animate-shake' : ''}
+                            `}
+                            style={{ color: '#FFD700' }}
+                            animate={error ? { x: [0, -10, 10, -10, 10, 0] } : {}}
+                            transition={{ duration: 0.4 }}
+                        />
+                    </div>
+                )
+            })}
         </div>
     )
 }
@@ -693,19 +683,15 @@ export function VideoSalesPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.6, delay: 0.4 }}
                             >
-                                {/* Circular Progress */}
-                                <div className="relative flex items-center justify-center mb-6" style={{ minWidth: 300, minHeight: 180 }}>
-                                    <CircularProgress progress={videoProgress} size={300} strokeWidth={5} />
+                                {/* Code Input with border progress */}
+                                <div className="flex flex-col items-center mb-6">
+                                    <CodeInput onComplete={handleCodeComplete} error={codeError} progress={videoProgress} />
 
-                                    <div className="relative z-10 flex flex-col items-center">
-                                        <CodeInput onComplete={handleCodeComplete} error={codeError} />
-
-                                        <div className="mt-4 text-center">
-                                            <p className="text-white/50 text-sm">Введите код из видео</p>
-                                            <p className="text-[#FFD700] text-xs mt-1 font-medium tabular-nums">
-                                                {Math.round(videoProgress)}% просмотрено
-                                            </p>
-                                        </div>
+                                    <div className="mt-4 text-center">
+                                        <p className="text-white/50 text-sm">Введите код из видео</p>
+                                        <p className="text-[#FFD700] text-xs mt-1 font-medium tabular-nums">
+                                            {Math.round(videoProgress)}% просмотрено
+                                        </p>
                                     </div>
                                 </div>
                             </motion.div>
