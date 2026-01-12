@@ -4,7 +4,7 @@ import { PaymentModal } from '../components/premium/PaymentModal'
 
 // ============ КОНФИГУРАЦИЯ ============
 const SECRET_CODE = '2025' // Секретный код из видео
-const VIDEO_EMBED_URL = '' // Вставь сюда YouTube/Vimeo embed URL
+const VIDEO_EMBED_URL = 'https://www.youtube.com/embed/dQw4w9WgXcQ' // Тестовое видео
 const CODE_REVEAL_PERCENT = 70 // Процент просмотра, когда появляется код
 const VIDEO_DURATION_SECONDS = 120 // Длительность видео в секундах (для демо)
 
