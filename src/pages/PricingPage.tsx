@@ -116,26 +116,6 @@ const tariffs: Tariff[] = [
     bonuses: ['Групповые разборы портфелей'],
     buttonStyle: 'outline',
     buttonColor: '#8A8A8A'
-  },
-  {
-    id: 'private',
-    name: 'PRIVATE',
-    duration: '1 год',
-    durationShort: '/12 мес',
-    price: 37900,
-    oldPrice: 48000,
-    discount: null,
-    badge: 'VIP',
-    cardImage: '/cards/PRIVATE.png',
-    auroraColors: ['#9B2335', '#7B1E2D'],
-    auroraOpacity: 0.8,
-    auroraBlur: 22,
-    auroraSpeed: 7,
-    isFeatured: false,
-    baseFeatures: commonFeatures,
-    bonuses: ['Личный разбор портфеля в Zoom'],
-    buttonStyle: 'outline',
-    buttonColor: '#9B2335'
   }
 ]
 
@@ -497,7 +477,7 @@ export function PricingPage() {
           </header>
 
           {/* Карточки тарифов */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 mb-12 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mb-12 items-start max-w-5xl mx-auto">
             {tariffs.map((tariff, index) => (
               <PricingCard
                 key={tariff.id}
