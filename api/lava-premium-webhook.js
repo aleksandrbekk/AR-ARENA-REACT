@@ -839,18 +839,15 @@ export default async function handler(req, res) {
     // ============================================
     // 8. ЗАПИСЬ В PAYMENT_HISTORY
     // ============================================
-    // ============================================
-    // 8. ЗАПИСЬ В PAYMENT_HISTORY
-    // ============================================
     try {
       const { error: paymentError } = await supabase
         .from('payment_history')
         .insert({
           telegram_id: telegramIdInt ? String(telegramIdInt) : extractedUsername,
-          amount_usd: grossAmount, // Используем grossAmount как amount
+          amount: grossAmount,
           currency: currency,
           source: 'lava.top',
-          contract_id: contractId || `manual_${Date.now()}`,  // Уникальный ID
+          contract_id: contractId || `lava_${Date.now()}`,
           plan: period.tariff,
           status: 'success',
           created_at: new Date().toISOString()
@@ -863,12 +860,6 @@ export default async function handler(req, res) {
       }
     } catch (dbError) {
       log('⚠️ Critical DB Error in history recording', dbError);
-    }
-
-    if (paymentError) {
-      log('⚠️ Failed to record payment history', paymentError);
-    } else {
-      log('📝 Payment history recorded');
     }
 
     // ============================================
@@ -888,8 +879,8 @@ export default async function handler(req, res) {
     const adminMessage = `💰 <b>Новый платёж Lava.top!</b>\n\n` +
       `👤 ID: <code>${finalTelegramId || 'N/A'}</code>\n` +
       `📋 Тариф: <b>${period.name}</b>\n` +
-      `💵 Сумма: <b>${amount} ${currency}</b>\n` +
-      `💲 В USD: <b>$${(parseFloat(amount) * (CURRENCY_TO_USD[currency] || 1)).toFixed(2)}</b>\n` +
+      `💵 Сумма: <b>${grossAmount} ${currency}</b>\n` +
+      `💲 В USD: <b>$${(grossAmount * (CURRENCY_TO_USD[currency] || 1)).toFixed(2)}</b>\n` +
       `📅 Дней: ${period.days}\n` +
       `🆕 Новый: ${isNewClient ? 'Да' : 'Нет (продление)'}`;
 

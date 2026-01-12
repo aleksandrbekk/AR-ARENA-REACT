@@ -225,6 +225,23 @@ export default async function handler(req, res) {
     }
 
     // ============================================
+    // ПРОВЕРКА НА ДУБЛИКАТ (по eventId)
+    // ============================================
+    const uniquePaymentId = eventId || data?.id || data?.subscriptionId;
+    if (uniquePaymentId) {
+      const { data: existingPayment } = await supabase
+        .from('payment_history')
+        .select('id')
+        .eq('contract_id', uniquePaymentId)
+        .single();
+
+      if (existingPayment) {
+        log(`⚠️ Duplicate payment detected: eventId ${uniquePaymentId} already processed - ignoring`);
+        return res.status(200).json({ message: 'Payment already processed (duplicate)' });
+      }
+    }
+
+    // ============================================
     // 3. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ
     // ============================================
     const period = getPeriodByAmount(amount);
@@ -371,7 +388,8 @@ export default async function handler(req, res) {
         telegram_id: String(telegramIdInt),
         amount: amount,
         currency: currency,
-        source: 'toolsy'
+        source: 'toolsy',
+        contract_id: uniquePaymentId || `toolsy_${Date.now()}`
       });
 
     if (paymentError) {

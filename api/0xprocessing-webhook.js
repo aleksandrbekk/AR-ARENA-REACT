@@ -348,26 +348,20 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // ПРОВЕРКА НА ДУБЛИКАТ (по времени последнего платежа)
+    // ПРОВЕРКА НА ДУБЛИКАТ (по PaymentId или TransactionHash)
     // ============================================
-    // Если тот же клиент платил в последние 5 минут — это retry, игнорируем
-    const clientIdentifier = /^\d+$/.test(ClientId) ? parseInt(ClientId) : null;
-    if (clientIdentifier) {
-      const { data: recentClient } = await supabase
-        .from('premium_clients')
-        .select('last_payment_at')
-        .eq('telegram_id', clientIdentifier)
+    // Проверяем по уникальному ID платежа чтобы не обрабатывать один платёж дважды
+    const uniquePaymentId = PaymentId || TransactionHash || BillingId;
+    if (uniquePaymentId) {
+      const { data: existingPayment } = await supabase
+        .from('payment_history')
+        .select('id')
+        .eq('contract_id', uniquePaymentId)
         .single();
 
-      if (recentClient?.last_payment_at) {
-        const lastPayment = new Date(recentClient.last_payment_at);
-        const now = new Date();
-        const minutesSinceLastPayment = (now - lastPayment) / 1000 / 60;
-
-        if (minutesSinceLastPayment < 5) {
-          log(`⚠️ Duplicate payment detected: last payment was ${minutesSinceLastPayment.toFixed(1)} min ago - ignoring`);
-          return res.status(200).json({ message: 'Payment already processed (duplicate)' });
-        }
+      if (existingPayment) {
+        log(`⚠️ Duplicate payment detected: PaymentId ${uniquePaymentId} already processed - ignoring`);
+        return res.status(200).json({ message: 'Payment already processed (duplicate)' });
       }
     }
 
@@ -591,6 +585,7 @@ export default async function handler(req, res) {
         amount: parseFloat(amountUSD),
         currency: 'USD',
         source: '0xprocessing',
+        contract_id: uniquePaymentId || `0x_${Date.now()}`,
         tx_hash: TransactionHash || null
       });
 
