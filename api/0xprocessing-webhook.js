@@ -584,21 +584,30 @@ export default async function handler(req, res) {
     // ============================================
     // 6. ЗАПИСЬ В PAYMENT_HISTORY
     // ============================================
-    const { error: paymentError } = await supabase
-      .from('payment_history')
-      .insert({
+    try {
+      const paymentData = {
         telegram_id: telegramIdInt ? String(telegramIdInt) : username,
         amount: parseFloat(amountUSD),
         currency: 'USD',
         source: '0xprocessing',
         contract_id: PaymentId || TransactionHash || `0x_${Date.now()}`,
-        tx_hash: TransactionHash || null
-      });
+        tx_hash: TransactionHash || null,
+        created_at: new Date().toISOString()
+      };
 
-    if (paymentError) {
-      log('⚠️ Failed to record payment history', paymentError);
-    } else {
-      log('📝 Payment history recorded');
+      log('📝 Записываем в payment_history:', paymentData);
+
+      const { error: paymentError } = await supabase
+        .from('payment_history')
+        .insert(paymentData);
+
+      if (paymentError) {
+        log('❌ Failed to record payment history:', paymentError);
+      } else {
+        log('✅ Payment history recorded successfully');
+      }
+    } catch (dbError) {
+      log('❌ Critical error recording payment:', dbError);
     }
 
     // ============================================

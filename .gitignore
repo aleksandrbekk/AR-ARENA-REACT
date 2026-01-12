@@ -35,3 +35,4 @@ dist-ssr
 *.backup
 *.bak
 .env.vercel
+.env*.local

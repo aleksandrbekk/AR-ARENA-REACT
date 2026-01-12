@@ -837,38 +837,34 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // 8. ЗАПИСЬ В PAYMENT_HISTORY
-    // ============================================
     // ============================================
     // 8. ЗАПИСЬ В PAYMENT_HISTORY
     // ============================================
     try {
+      const paymentData = {
+        telegram_id: telegramIdInt ? String(telegramIdInt) : extractedUsername,
+        amount: grossAmount, // Сумма платежа
+        currency: currency,
+        source: 'lava.top',
+        contract_id: contractId || `lava_${Date.now()}`,  // Уникальный ID
+        plan: period.tariff,
+        status: 'success',
+        created_at: new Date().toISOString()
+      };
+
+      log('📝 Записываем в payment_history:', paymentData);
+
       const { error: paymentError } = await supabase
         .from('payment_history')
-        .insert({
-          telegram_id: telegramIdInt ? String(telegramIdInt) : extractedUsername,
-          amount: grossAmount, // Сумма платежа
-          currency: currency,
-          source: 'lava.top',
-          contract_id: contractId || `lava_${Date.now()}`,  // Уникальный ID
-          plan: period.tariff,
-          status: 'success',
-          created_at: new Date().toISOString()
-        });
+        .insert(paymentData);
 
       if (paymentError) {
-        log('⚠️ Failed to record payment history', paymentError);
+        log('❌ Failed to record payment history:', paymentError);
       } else {
-        log('📝 Payment history recorded');
+        log('✅ Payment history recorded successfully');
       }
     } catch (dbError) {
-      log('⚠️ Critical DB Error in history recording', dbError);
-    }
-
-    if (paymentError) {
-      log('⚠️ Failed to record payment history', paymentError);
-    } else {
-      log('📝 Payment history recorded');
+      log('❌ Critical DB Error in history recording:', dbError);
     }
 
     // ============================================
