@@ -654,6 +654,38 @@ export default async function handler(req, res) {
     log(`📅 Period determined: ${period.days} days (${period.name})`);
 
     // ============================================
+    // 4.1. ЗАПИСЬ В PAYMENT_HISTORY (ИДЕМПОТЕНТНОСТЬ!)
+    // ============================================
+    // ВАЖНО: Записываем ПЕРЕД обновлением premium_clients!
+    // Если эта запись упадёт — webhook вернёт ошибку и Lava ретрайнет.
+    // При ретрае проверка дубликата (выше) найдёт запись и остановится.
+    const paymentHistoryId = contractId || `lava_${Date.now()}_${telegramId || extractedUsername}`;
+    const paymentData = {
+      telegram_id: telegramId ? String(telegramId) : extractedUsername,
+      amount: grossAmount,
+      currency: currency,
+      source: 'lava.top',
+      contract_id: paymentHistoryId,
+      plan: period.tariff,
+      status: 'success',
+      created_at: new Date().toISOString()
+    };
+
+    log('📝 Записываем в payment_history (BEFORE premium_clients):', paymentData);
+
+    const { error: paymentHistoryError } = await supabase
+      .from('payment_history')
+      .insert(paymentData);
+
+    if (paymentHistoryError) {
+      log('❌ CRITICAL: Failed to record payment_history, aborting:', paymentHistoryError);
+      // Возвращаем 500 чтобы Lava ретрайнула, но premium_clients НЕ обновлён
+      return res.status(500).json({ error: 'Failed to record payment', details: paymentHistoryError.message });
+    }
+
+    log('✅ Payment history recorded, proceeding to update premium_clients');
+
+    // ============================================
     // 5. UPSERT В PREMIUM_CLIENTS
     // ============================================
     const now = new Date();
@@ -836,36 +868,7 @@ export default async function handler(req, res) {
       log(`⚠️ No telegram_id available. Username: ${extractedUsername}`);
     }
 
-    // ============================================
-    // ============================================
-    // 8. ЗАПИСЬ В PAYMENT_HISTORY
-    // ============================================
-    try {
-      const paymentData = {
-        telegram_id: telegramIdInt ? String(telegramIdInt) : extractedUsername,
-        amount: grossAmount, // Сумма платежа
-        currency: currency,
-        source: 'lava.top',
-        contract_id: contractId || `lava_${Date.now()}`,  // Уникальный ID
-        plan: period.tariff,
-        status: 'success',
-        created_at: new Date().toISOString()
-      };
-
-      log('📝 Записываем в payment_history:', paymentData);
-
-      const { error: paymentError } = await supabase
-        .from('payment_history')
-        .insert(paymentData);
-
-      if (paymentError) {
-        log('❌ Failed to record payment history:', paymentError);
-      } else {
-        log('✅ Payment history recorded successfully');
-      }
-    } catch (dbError) {
-      log('❌ Critical DB Error in history recording:', dbError);
-    }
+    // NOTE: payment_history уже записан в начале (шаг 4.1) для идемпотентности
 
     // ============================================
     // 8.1. ТРЕКИНГ UTM КОНВЕРСИИ
