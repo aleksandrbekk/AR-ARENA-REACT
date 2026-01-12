@@ -632,16 +632,11 @@ export default async function handler(req, res) {
     // Проверяем по contractId чтобы не обрабатывать один и тот же платёж дважды
     // Но разрешаем несколько разных платежей от одного пользователя (апгрейд, продление)
     if (contractId) {
-      const { data: existingPayment, error: checkError } = await supabase
+      const { data: existingPayment } = await supabase
         .from('payment_history')
         .select('id')
         .eq('contract_id', contractId)
-        .maybeSingle(); // Используем maybeSingle вместо single для безопасности
-
-      if (checkError) {
-        log(`❌ Database error checking duplicate: ${checkError.message}`);
-        // Продолжаем обработку, но логируем ошибку
-      }
+        .single();
 
       if (existingPayment) {
         log(`⚠️ Duplicate payment detected: contractId ${contractId} already processed - ignoring`);
@@ -844,15 +839,18 @@ export default async function handler(req, res) {
     // ============================================
     // 8. ЗАПИСЬ В PAYMENT_HISTORY
     // ============================================
+    // ============================================
+    // 8. ЗАПИСЬ В PAYMENT_HISTORY
+    // ============================================
     try {
       const { error: paymentError } = await supabase
         .from('payment_history')
         .insert({
           telegram_id: telegramIdInt ? String(telegramIdInt) : extractedUsername,
-          amount: grossAmount,
+          amount: grossAmount, // Сумма платежа
           currency: currency,
           source: 'lava.top',
-          contract_id: contractId || `lava_${Date.now()}`,
+          contract_id: contractId || `lava_${Date.now()}`,  // Уникальный ID
           plan: period.tariff,
           status: 'success',
           created_at: new Date().toISOString()
@@ -865,6 +863,12 @@ export default async function handler(req, res) {
       }
     } catch (dbError) {
       log('⚠️ Critical DB Error in history recording', dbError);
+    }
+
+    if (paymentError) {
+      log('⚠️ Failed to record payment history', paymentError);
+    } else {
+      log('📝 Payment history recorded');
     }
 
     // ============================================
@@ -884,8 +888,8 @@ export default async function handler(req, res) {
     const adminMessage = `💰 <b>Новый платёж Lava.top!</b>\n\n` +
       `👤 ID: <code>${finalTelegramId || 'N/A'}</code>\n` +
       `📋 Тариф: <b>${period.name}</b>\n` +
-      `💵 Сумма: <b>${grossAmount} ${currency}</b>\n` +
-      `💲 В USD: <b>$${(grossAmount * (CURRENCY_TO_USD[currency] || 1)).toFixed(2)}</b>\n` +
+      `💵 Сумма: <b>${amount} ${currency}</b>\n` +
+      `💲 В USD: <b>$${(parseFloat(amount) * (CURRENCY_TO_USD[currency] || 1)).toFixed(2)}</b>\n` +
       `📅 Дней: ${period.days}\n` +
       `🆕 Новый: ${isNewClient ? 'Да' : 'Нет (продление)'}`;
 
