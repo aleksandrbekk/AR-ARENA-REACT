@@ -632,11 +632,16 @@ export default async function handler(req, res) {
     // Проверяем по contractId чтобы не обрабатывать один и тот же платёж дважды
     // Но разрешаем несколько разных платежей от одного пользователя (апгрейд, продление)
     if (contractId) {
-      const { data: existingPayment } = await supabase
+      const { data: existingPayment, error: checkError } = await supabase
         .from('payment_history')
         .select('id')
         .eq('contract_id', contractId)
-        .single();
+        .maybeSingle(); // Используем maybeSingle вместо single для безопасности
+
+      if (checkError) {
+        log(`❌ Database error checking duplicate: ${checkError.message}`);
+        // Продолжаем обработку, но логируем ошибку
+      }
 
       if (existingPayment) {
         log(`⚠️ Duplicate payment detected: contractId ${contractId} already processed - ignoring`);

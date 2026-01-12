@@ -352,12 +352,40 @@ export default async function handler(req, res) {
     // ============================================
     // Проверяем по уникальному ID платежа чтобы не обрабатывать один платёж дважды
     const uniquePaymentId = PaymentId || TransactionHash || BillingId;
-    if (uniquePaymentId) {
-      const { data: existingPayment } = await supabase
+
+    // ВАЖНО: Если нет уникального ID, генерируем его чтобы избежать дублей
+    if (!uniquePaymentId) {
+      log(`⚠️ WARNING: No unique payment ID found, using fallback ID`);
+      // Создаём уникальный ID из данных платежа
+      const fallbackId = `0x_${ClientId}_${Amount}_${Date.now()}`;
+
+      // Проверяем по fallback ID
+      const { data: existingPayment, error: checkError } = await supabase
+        .from('payment_history')
+        .select('id')
+        .eq('contract_id', fallbackId)
+        .maybeSingle();
+
+      if (checkError) {
+        log(`❌ Database error checking duplicate: ${checkError.message}`);
+      }
+
+      if (existingPayment) {
+        log(`⚠️ Duplicate payment detected by fallback ID - ignoring`);
+        return res.status(200).json({ message: 'Payment already processed (duplicate)' });
+      }
+    } else {
+      // Проверяем по основному ID
+      const { data: existingPayment, error: checkError } = await supabase
         .from('payment_history')
         .select('id')
         .eq('contract_id', uniquePaymentId)
-        .single();
+        .maybeSingle(); // Используем maybeSingle вместо single для безопасности
+
+      if (checkError) {
+        log(`❌ Database error checking duplicate: ${checkError.message}`);
+        // Продолжаем обработку, но логируем ошибку
+      }
 
       if (existingPayment) {
         log(`⚠️ Duplicate payment detected: PaymentId ${uniquePaymentId} already processed - ignoring`);
@@ -578,6 +606,9 @@ export default async function handler(req, res) {
     // ============================================
     // 6. ЗАПИСЬ В PAYMENT_HISTORY
     // ============================================
+    // Используем тот же ID что был при проверке дубликата
+    const finalPaymentId = uniquePaymentId || `0x_${ClientId}_${Amount}_${Date.now()}`;
+
     const { error: paymentError } = await supabase
       .from('payment_history')
       .insert({
@@ -585,7 +616,7 @@ export default async function handler(req, res) {
         amount: parseFloat(amountUSD),
         currency: 'USD',
         source: '0xprocessing',
-        contract_id: uniquePaymentId || `0x_${Date.now()}`,
+        contract_id: finalPaymentId,
         tx_hash: TransactionHash || null
       });
 
