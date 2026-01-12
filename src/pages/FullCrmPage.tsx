@@ -1967,8 +1967,8 @@ export function FullCrmPage() {
                           <span className="text-white font-medium">{client.source || '-'}</span>
                         </div>
                         <div className="flex justify-between bg-zinc-800/30 rounded-lg px-3 py-2">
-                          <span className="text-white/40">Начало</span>
-                          <span className="text-white font-medium">{formatDate(client.started_at)}</span>
+                          <span className="text-white/40">Посл. платёж</span>
+                          <span className="text-white font-medium">{client.last_payment_at ? formatDate(client.last_payment_at) : formatDate(client.started_at)}</span>
                         </div>
                       </div>
 
