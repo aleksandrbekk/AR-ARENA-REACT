@@ -1599,7 +1599,9 @@ export function FullCrmPage() {
               {/* Статистика */}
               {(() => {
                 // === СТАТИСТИКА: используем payment_history если есть, иначе premium_clients ===
-                const hasPaymentHistory = paymentHistory.length > 0
+                // TEMP: payment_history table is incomplete (only has recent records)
+                // Use premium_clients which has ALL historical payment data
+                const hasPaymentHistory = false // paymentHistory.length > 0
 
                 // Хелперы для валют
                 // Крипто (0xprocessing и крипто-валюты)
