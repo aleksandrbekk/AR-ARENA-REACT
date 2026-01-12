@@ -334,16 +334,38 @@ export function FullCrmPage() {
 
       // Загружаем историю платежей для точной статистики
       console.log('📊 Загружаем payment_history...')
-      const paymentHistoryData = await fetchAllRows(
-        'payment_history',
-        '*',
-        'created_at',
-        false
-      )
+      let paymentHistoryData: any[] = []
 
-      console.log(`✅ Загружено ${paymentHistoryData?.length || 0} платежей из payment_history`)
-      if (paymentHistoryData?.length) {
-        console.log('Пример платежа:', paymentHistoryData[0])
+      try {
+        paymentHistoryData = await fetchAllRows(
+          'payment_history',
+          '*',
+          'created_at',
+          false
+        )
+
+        console.log(`✅ Загружено ${paymentHistoryData?.length || 0} платежей из payment_history`)
+        if (paymentHistoryData?.length) {
+          console.log('Пример платежа:', paymentHistoryData[0])
+
+          // Подсчитаем общую сумму для отладки
+          const totalSum = paymentHistoryData.reduce((sum, p) => sum + (p.amount || 0), 0)
+          console.log('💰 Общая сумма всех платежей:', totalSum, 'USD')
+
+          // Группировка по валютам
+          const byCurrency = paymentHistoryData.reduce((acc, p) => {
+            const key = `${p.currency || 'UNKNOWN'}_${p.source || 'UNKNOWN'}`
+            acc[key] = (acc[key] || 0) + 1
+            return acc
+          }, {})
+          console.log('📈 Платежи по валютам:', byCurrency)
+        } else {
+          console.warn('⚠️ payment_history пустая! Проверьте RLS политики или данные в БД')
+        }
+      } catch (paymentError) {
+        console.error('❌ Ошибка загрузки payment_history:', paymentError)
+        // Не прерываем выполнение, используем пустой массив
+        paymentHistoryData = []
       }
 
       setPaymentHistory(paymentHistoryData as PaymentRecord[] || [])
@@ -1602,6 +1624,8 @@ export function FullCrmPage() {
 
                 if (hasPaymentHistory) {
                   // Используем payment_history для точной статистики
+                  console.log(`📊 Вычисляем статистику из payment_history за период: ${statsMonth}`)
+
                   const paymentsFiltered = statsMonth === 'all'
                     ? paymentHistory
                     : paymentHistory.filter(p => {
@@ -1611,16 +1635,27 @@ export function FullCrmPage() {
                       return paymentMonth === statsMonth
                     })
 
+                  console.log(`Найдено ${paymentsFiltered.length} платежей для периода ${statsMonth}`)
+
                   paymentsFiltered.forEach(p => {
                     const amount = p.amount || 0
                     // Суммы в БД уже чистые (Lava показывает после комиссии)
 
-                    if (isRubCurrency(p.currency, p.source)) totalRub += amount
-                    else if (isEurCurrency(p.currency)) totalEur += amount
-                    else if (isCryptoCurrency(p.currency, p.source)) totalUsdt += amount
-                    else if (isUsdCurrency(p.currency, p.source)) totalUsd += amount
+                    if (isRubCurrency(p.currency, p.source)) {
+                      totalRub += amount
+                    } else if (isEurCurrency(p.currency)) {
+                      totalEur += amount
+                    } else if (isCryptoCurrency(p.currency, p.source)) {
+                      totalUsdt += amount
+                    } else if (isUsdCurrency(p.currency, p.source)) {
+                      totalUsd += amount
+                    } else {
+                      console.warn(`Неизвестная валюта: ${p.currency} от источника ${p.source}`)
+                    }
                   })
                   paidCountThisMonth = paymentsFiltered.length
+
+                  console.log(`💵 Статистика за ${statsMonth}:`, { totalRub, totalUsd, totalUsdt, totalEur, count: paidCountThisMonth })
                 } else {
                   // Fallback: используем premium_clients (менее точно)
                   const allPaidClients = premiumClients.filter(c =>
