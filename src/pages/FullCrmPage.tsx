@@ -420,7 +420,7 @@ export function FullCrmPage() {
       // Фильтр по месяцу (по дате последнего платежа)
       if (monthFilter !== 'all' && client.last_payment_at) {
         const paymentDate = new Date(client.last_payment_at)
-        const paymentMonth = `${paymentDate.getFullYear()} -${String(paymentDate.getMonth() + 1).padStart(2, '0')} `
+        const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
         if (paymentMonth !== monthFilter) return false
       }
 
@@ -2730,8 +2730,8 @@ export function FullCrmPage() {
                 <div className="space-y-2">
                   {activeGiveaways.map(g => (
                     <label key={g.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${selectedGiveawayId === g.id
-                        ? 'bg-[#FFD700]/10 border-[#FFD700] text-white'
-                        : 'bg-zinc-800 border-transparent text-white/60 hover:bg-zinc-700'
+                      ? 'bg-[#FFD700]/10 border-[#FFD700] text-white'
+                      : 'bg-zinc-800 border-transparent text-white/60 hover:bg-zinc-700'
                       }`}>
                       <div className="flex items-center gap-3">
                         <input
