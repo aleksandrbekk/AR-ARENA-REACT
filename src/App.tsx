@@ -25,6 +25,7 @@ import { VaultPage } from './pages/VaultPage'
 import { ChartBattleDemoPage } from './pages/demo/ChartBattleDemoPage'
 import { LiveArenaTestPage } from './pages/LiveArenaTestPage'
 import { PartnersPage } from './pages/PartnersPage'
+import { VideoSalesPage } from './pages/VideoSalesPage'
 
 // Lazy Loaded Admin Modules for Unified Workspace
 const AdminLayoutLazy = lazy(() => import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout })))
@@ -73,6 +74,7 @@ const router = createBrowserRouter([
       { path: "demo/battle", element: <ChartBattleDemoPage /> },
       { path: "live-test", element: <LiveArenaTestPage /> },
       { path: "partners", element: <PartnersPage /> },
+      { path: "promo", element: <VideoSalesPage /> },
 
       // --- LEGACY / STANDALONE ADMIN ROUTES ---
       // (Leaving them for backward compatibility until fully migrated)
