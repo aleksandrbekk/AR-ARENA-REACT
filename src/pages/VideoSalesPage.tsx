@@ -344,7 +344,7 @@ interface CircularProgressProps {
     strokeWidth?: number
 }
 
-function CircularProgress({ progress, size = 220, strokeWidth = 4 }: CircularProgressProps) {
+function CircularProgress({ progress, size = 280, strokeWidth = 6 }: CircularProgressProps) {
     const radius = (size - strokeWidth) / 2
     const circumference = 2 * Math.PI * radius
     const strokeDashoffset = circumference - (progress / 100) * circumference
@@ -353,8 +353,8 @@ function CircularProgress({ progress, size = 220, strokeWidth = 4 }: CircularPro
         <svg
             width={size}
             height={size}
-            className="absolute -z-10"
-            style={{ transform: 'rotate(-90deg)' }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ transform: 'translate(-50%, -50%) rotate(-90deg)' }}
         >
             {/* Background circle */}
             <circle
@@ -362,10 +362,10 @@ function CircularProgress({ progress, size = 220, strokeWidth = 4 }: CircularPro
                 cy={size / 2}
                 r={radius}
                 fill="none"
-                stroke="rgba(255, 215, 0, 0.1)"
+                stroke="rgba(255, 215, 0, 0.15)"
                 strokeWidth={strokeWidth}
             />
-            {/* Progress circle */}
+            {/* Progress circle with glow */}
             <circle
                 cx={size / 2}
                 cy={size / 2}
@@ -376,8 +376,21 @@ function CircularProgress({ progress, size = 220, strokeWidth = 4 }: CircularPro
                 strokeLinecap="round"
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
-                style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+                style={{
+                    transition: 'stroke-dashoffset 0.5s ease',
+                    filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.6))'
+                }}
             />
+            {/* Glowing dot at progress end */}
+            {progress > 0 && (
+                <circle
+                    cx={size / 2 + radius * Math.cos((progress / 100) * 2 * Math.PI - Math.PI / 2)}
+                    cy={size / 2 + radius * Math.sin((progress / 100) * 2 * Math.PI - Math.PI / 2)}
+                    r={strokeWidth * 1.5}
+                    fill="#FFD700"
+                    style={{ filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.8))' }}
+                />
+            )}
             {/* Gradient definition */}
             <defs>
                 <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -681,15 +694,15 @@ export function VideoSalesPage() {
                                 transition={{ duration: 0.6, delay: 0.4 }}
                             >
                                 {/* Circular Progress */}
-                                <div className="relative flex items-center justify-center mb-6">
-                                    <CircularProgress progress={videoProgress} size={240} strokeWidth={3} />
+                                <div className="relative flex items-center justify-center mb-6" style={{ minWidth: 300, minHeight: 180 }}>
+                                    <CircularProgress progress={videoProgress} size={300} strokeWidth={5} />
 
-                                    <div className="flex flex-col items-center">
+                                    <div className="relative z-10 flex flex-col items-center">
                                         <CodeInput onComplete={handleCodeComplete} error={codeError} />
 
                                         <div className="mt-4 text-center">
                                             <p className="text-white/50 text-sm">Введите код из видео</p>
-                                            <p className="text-[#FFD700] text-xs mt-1 font-medium">
+                                            <p className="text-[#FFD700] text-xs mt-1 font-medium tabular-nums">
                                                 {Math.round(videoProgress)}% просмотрено
                                             </p>
                                         </div>
