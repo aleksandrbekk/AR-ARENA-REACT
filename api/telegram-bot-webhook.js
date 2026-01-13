@@ -22,8 +22,8 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
 const WEB_APP_URL = 'https://ararena.pro';
 const PRICING_URL = 'https://ararena.pro/pricing';
 
-// File ID для welcome картинки
-const WELCOME_IMAGE_FILE_ID = 'AgACAgIAAxkDAAIBgmlKOHkPSECVGl5g6uKX7gnzOTaGAALkC2sb-DpYSqPtt60_I9skAQADAgADeAADNgQ';
+// URL для welcome картинки (новая с 3 тарифами)
+const WELCOME_IMAGE_URL = 'https://ararena.pro/images/ar_premium_club_welcome.jpg';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -353,7 +353,7 @@ async function handleStartPremium(chatId, telegramId, conversationId, utmSource 
     await sendMessage(chatId, text, keyboard);
     saveOutgoingMessage(conversationId, telegramId, text); // fire-and-forget
   } else {
-    const caption = `🔐 <b>Добро пожаловать в Premium AR Club</b>
+    const caption = `🏆 <b>Добро пожаловать в Premium AR Club</b>
 
 Закрытое сообщество трейдеров и инвесторов.
 9 лет опыта. 82% успешных сделок. 5000+ участников.
@@ -363,9 +363,10 @@ async function handleStartPremium(chatId, telegramId, conversationId, utmSource 
 🖤 CLASSIC — старт в крипте
 🥇 GOLD — активный трейдинг
 💎 PLATINUM — полный арсенал
-🍷 PRIVATE — персональное сопровождение
 
-👇 Жми по кнопке. Выбирай клубную карту`;
+👇 Жми по кнопке. Выбирай клубную карту
+
+💬 Служба заботы: @AlexRich83`;
 
     const keyboard = {
       inline_keyboard: [
@@ -373,7 +374,7 @@ async function handleStartPremium(chatId, telegramId, conversationId, utmSource 
       ]
     };
 
-    await sendPhoto(chatId, WELCOME_IMAGE_FILE_ID, caption, keyboard);
+    await sendPhoto(chatId, WELCOME_IMAGE_URL, caption, keyboard);
     saveOutgoingMessage(conversationId, telegramId, caption); // fire-and-forget
   }
 }
