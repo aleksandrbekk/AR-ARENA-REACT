@@ -366,11 +366,12 @@ async function handleStartPremium(chatId, telegramId, conversationId, utmSource 
 
 👇 Жми по кнопке. Выбирай клубную карту
 
-💬 Служба заботы: @AlexRich83`;
+💬 Служба заботы: @Andrey_cryptoinvestor`;
 
     const keyboard = {
       inline_keyboard: [
-        [{ text: '🎴 Выбрать клубную карту', web_app: { url: PRICING_URL } }]
+        [{ text: '🎴 Тарифы', web_app: { url: PRICING_URL } }],
+        [{ text: '💬 Поддержка', url: 'https://t.me/Andrey_cryptoinvestor' }]
       ]
     };
 
