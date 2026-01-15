@@ -275,10 +275,20 @@ async function extractTelegramIdOrUsername(payload) {
     }
   }
 
-  // Fallback: проверяем buyer email
-  if (payload.buyer?.email) {
-    const email = payload.buyer.email;
+  // Fallback: проверяем email во всех возможных местах payload
+  // Lava может передавать email в разных полях в зависимости от версии API
+  const possibleEmails = [
+    payload.buyer?.email,
+    payload.email,
+    payload.invoice?.email,
+    payload.payment?.email,
+    payload.customer?.email,
+    payload.buyerEmail
+  ].filter(Boolean);
 
+  log(`📧 Checking ${possibleEmails.length} possible email fields:`, possibleEmails);
+
+  for (const email of possibleEmails) {
     // Формат: 123456789@premium.ararena.pro (telegram_id)
     const idMatch = email.match(/^(\d{6,})@/);
     if (idMatch) {
