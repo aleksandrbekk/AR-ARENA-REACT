@@ -13,7 +13,7 @@ import { ProfilePage } from './pages/ProfilePage'
 import { FarmPage } from './pages/FarmPage'
 import { FarmPageGemini } from './pages/FarmPageGemini'
 import { GiveawaysPage } from './pages/GiveawaysPage'
-import { GiveawayPageV3 } from './pages/GiveawayPageV3'
+import { GiveawayPageNew } from './pages/GiveawayPageNew'
 import { GiveawayResultsPage } from './pages/GiveawayResultsPage'
 import { LiveArenaPage } from './pages/LiveArenaPage'
 import { AdminPage } from './pages/AdminPage'
@@ -62,7 +62,7 @@ const router = createBrowserRouter([
       { path: "farm", element: <FarmPage /> },
       { path: "profile", element: <ProfilePage /> },
       { path: "giveaways", element: <GiveawaysPage /> },
-      { path: "giveaway/:id", element: <GiveawayPageV3 /> },
+      { path: "giveaway/:id", element: <GiveawayPageNew /> },
       { path: "giveaway/:id/results", element: <GiveawayResultsPage /> },
       { path: "live-arena/:id", element: <LiveArenaPage /> },
       { path: "live/:id", element: <LiveArenaPage /> },
