@@ -22,7 +22,7 @@ const RECENT_WINNERS = [
 export function GiveawayPageNew() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { telegramUser, gameState } = useAuth()
+  const { telegramUser } = useAuth()
   const { getGiveawayStats } = useGiveaways()
 
   // State
