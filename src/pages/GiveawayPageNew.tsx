@@ -212,7 +212,7 @@ export function GiveawayPageNew() {
               <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#141414] rounded-2xl p-4 border border-[#FFD700]/20 overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#FFD700]/40 to-transparent" />
                 <div className="text-center">
-                  <img src="/icons/l.png" alt="" className="w-8 h-8 mx-auto mb-2" />
+                  <img src="/icons/tiket.png" alt="" className="w-8 h-8 mx-auto mb-2" />
                   <div className="text-[#FFD700] text-2xl font-black">{myTickets}</div>
                   <div className="text-white/40 text-[10px] uppercase tracking-wider">Билетов</div>
                 </div>
@@ -232,7 +232,7 @@ export function GiveawayPageNew() {
               <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#141414] rounded-2xl p-4 border border-emerald-500/20 overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
                 <div className="text-center">
-                  <div className="w-8 h-8 mx-auto mb-2 flex items-center justify-center text-2xl">🎯</div>
+                  <img src="/icons/kubic.png" alt="" className="w-8 h-8 mx-auto mb-2" />
                   <div className="text-emerald-400 text-2xl font-black">
                     {myTickets > 0 && participantsCount > 0
                       ? `${((myTickets / participantsCount) * 100).toFixed(1)}%`
