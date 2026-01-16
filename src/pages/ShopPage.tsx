@@ -71,7 +71,6 @@ export function ShopPage() {
   const { gameState, telegramUser } = useAuth()
   const { showToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
-  const [selectedCurrency, setSelectedCurrency] = useState<'RUB' | 'USD'>('RUB')
 
   // ============ TELEGRAM BACK ============
   const handleBackRef = useRef<() => void>(() => navigate('/'))
@@ -101,17 +100,14 @@ export function ShopPage() {
     setLoading(pkg.id)
 
     try {
-      const amount = selectedCurrency === 'USD' && pkg.priceUsd ? pkg.priceUsd : pkg.price
-      const currency = selectedCurrency
-
       const response = await fetch('/api/lava-create-invoice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegramId: telegramUser.id,
           email: `${telegramUser.id}@ararena.pro`,
-          amount,
-          currency,
+          amount: pkg.priceUsd || pkg.price,
+          currency: 'USD',
           offerId: pkg.offerId
         })
       })
@@ -159,30 +155,6 @@ export function ShopPage() {
               {gameState?.balance_ar.toLocaleString('ru-RU') ?? 0}
             </span>
           </div>
-        </div>
-
-        {/* Выбор валюты */}
-        <div className="flex gap-2 mb-6 p-1 bg-zinc-900/50 rounded-xl">
-          <button
-            onClick={() => setSelectedCurrency('RUB')}
-            className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
-              selectedCurrency === 'RUB'
-                ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-                : 'text-white/50'
-            }`}
-          >
-            ₽ Рубли
-          </button>
-          <button
-            onClick={() => setSelectedCurrency('USD')}
-            className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
-              selectedCurrency === 'USD'
-                ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-                : 'text-white/50'
-            }`}
-          >
-            $ Apple Pay
-          </button>
         </div>
 
         {/* Тарифы */}
@@ -236,11 +208,7 @@ export function ShopPage() {
                       : 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
                   }`}
                 >
-                  {loading === pkg.id ? '...' : (
-                    selectedCurrency === 'USD' && pkg.priceUsd
-                      ? `$${pkg.priceUsd}`
-                      : `${pkg.price}₽`
-                  )}
+                  {loading === pkg.id ? '...' : `$${pkg.priceUsd || pkg.price}`}
                 </motion.button>
               </div>
             </motion.div>
