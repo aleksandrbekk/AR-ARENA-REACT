@@ -7,7 +7,6 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
-import { Plus } from 'lucide-react'
 
 export function GiveawayPageNew() {
   const { id } = useParams<{ id: string }>()

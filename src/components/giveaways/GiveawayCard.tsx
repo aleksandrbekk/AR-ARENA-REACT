@@ -65,7 +65,7 @@ export function GiveawayCard({ giveaway }: GiveawayCardProps) {
       {/* Jackpot */}
       <div className="flex items-center justify-between mb-3 py-2 px-3 bg-black/30 rounded-lg">
         <div className="flex items-center gap-1.5">
-          <Trophy className="w-4 h-4 text-[#FFD700]" />
+          <img src="/icons/Jackpot.png" alt="" className="w-4 h-4 object-contain" />
           <span className="text-xs text-white/50">Призовой фонд</span>
         </div>
         <div className="flex items-center gap-1">
