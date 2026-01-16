@@ -207,9 +207,7 @@ export function GiveawayPageNew() {
           >
             {/* My Tickets */}
             <div className="flex-1 bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-[#FFD700]/20 flex items-center justify-center">
-                <img src="/icons/l.png" alt="" className="w-8 h-8" />
-              </div>
+              <img src="/icons/l.png" alt="" className="w-10 h-10" />
               <div className="flex-1">
                 <div className="text-white/50 text-xs uppercase">Мои билеты</div>
                 <div className="text-[#FFD700] text-2xl font-black">{myTickets}</div>
@@ -225,9 +223,7 @@ export function GiveawayPageNew() {
 
             {/* Participants */}
             <div className="flex-1 bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                <img src="/icons/peaple.png" alt="" className="w-8 h-8" />
-              </div>
+              <img src="/icons/peaple.png" alt="" className="w-10 h-10" />
               <div>
                 <div className="text-white/50 text-xs uppercase">Участников</div>
                 <div className="text-white text-2xl font-black">{participantsCount}</div>
@@ -235,57 +231,7 @@ export function GiveawayPageNew() {
             </div>
           </motion.div>
 
-          {/* Conditions Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-4"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">🎫</span>
-              <h3 className="text-white font-bold uppercase tracking-wider">Условия участия</h3>
-            </div>
 
-            {/* Tabs */}
-            <div className="flex bg-[#1A1A1A] rounded-2xl p-1 mb-4">
-              <button className="flex-1 py-3 rounded-xl bg-[#FFD700] text-black font-bold text-sm">
-                FREE
-              </button>
-              <button className="flex-1 py-3 rounded-xl text-white/40 font-bold text-sm">
-                VIP
-              </button>
-            </div>
-
-            {/* Conditions List */}
-            <div className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 space-y-3">
-              <ConditionItem
-                icon="✅"
-                text="Подписка на @premium_news"
-                status="Выполнено"
-                done
-              />
-              <ConditionItem
-                icon="✅"
-                text="Подписка на @AlexRich83"
-                status="Выполнено"
-                done
-              />
-              <ConditionItem
-                icon="👥"
-                text="Пригласить 3 друзей"
-                status="2/3"
-              />
-              <ConditionItem
-                icon="🎫"
-                text="Иметь минимум 1 билет"
-                status={myTickets > 0 ? "Выполнено" : undefined}
-                done={myTickets > 0}
-                actionText={myTickets === 0 ? "Купить" : undefined}
-                onAction={() => setShowModal(true)}
-              />
-            </div>
-          </motion.div>
 
           {/* Past Winners */}
           <motion.div
@@ -346,42 +292,7 @@ function TimeBlock({ value, label, isActive = false }: { value: string; label: s
   )
 }
 
-// Condition Item Component
-function ConditionItem({
-  icon,
-  text,
-  status,
-  done,
-  actionText,
-  onAction
-}: {
-  icon: string
-  text: string
-  status?: string
-  done?: boolean
-  actionText?: string
-  onAction?: () => void
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-lg">{icon}</span>
-      <span className="flex-1 text-white/80 text-sm">{text}</span>
-      {status && (
-        <span className={`text-xs font-bold ${done ? 'text-[#FFD700]' : 'text-white/40'}`}>
-          {status}
-        </span>
-      )}
-      {actionText && (
-        <button
-          onClick={onAction}
-          className="px-4 py-1.5 rounded-lg bg-[#FFD700] text-black text-xs font-bold"
-        >
-          {actionText}
-        </button>
-      )}
-    </div>
-  )
-}
+
 
 // Winner Card Component
 function WinnerCard({ name, amount, date }: { name: string; amount: string; date: string }) {
