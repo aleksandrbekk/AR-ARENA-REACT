@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
-import { Ticket, Users, ChevronLeft, Trophy, Sparkles } from 'lucide-react'
+import { Ticket, Users, Trophy } from 'lucide-react'
 
 // Recent winners - можно загружать из базы
 const RECENT_WINNERS = [
@@ -139,15 +139,8 @@ export function GiveawayPageNew() {
         <ParticleBackground />
         <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-zinc-800/20 via-[#0a0a0a] to-[#0a0a0a] z-0" />
 
-        {/* Header */}
-        <div className="relative z-50 flex items-center justify-between px-4 pt-[60px] pb-4">
-          <button
-            onClick={() => navigate('/giveaways')}
-            className="w-10 h-10 bg-white/5 rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-transform backdrop-blur-md"
-          >
-            <ChevronLeft className="w-6 h-6 text-white" />
-          </button>
-
+        {/* Header - только баланс справа */}
+        <div className="absolute top-0 right-0 z-50 px-4 pt-3">
           <div className="flex items-center gap-2 bg-black/40 backdrop-blur-xl border border-[#FFD700]/20 rounded-full px-4 py-2 shadow-lg">
             <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
             <span className="text-white font-bold tracking-wide">{gameState?.balance_ar?.toLocaleString() || '0'}</span>
@@ -158,30 +151,28 @@ export function GiveawayPageNew() {
         <div className="relative z-10 flex-1 overflow-y-auto pb-20 no-scrollbar">
 
           {/* Hero Section */}
-          <div className="px-4 pt-4">
-            {/* Premium Trophy with enhanced effects */}
-            <div className="relative w-full h-[200px] flex items-center justify-center mb-4">
+          <div className="px-4 pt-8">
+            {/* Slot icon with glow effects */}
+            <div className="relative w-full h-[180px] flex items-center justify-center mb-4">
               {/* Multi-layer glow */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-40 h-40 bg-[#FFD700]/30 blur-[80px] rounded-full" />
+                <div className="w-40 h-40 bg-[#FFD700]/20 blur-[60px] rounded-full" />
               </div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-24 h-24 bg-[#FFA500]/40 blur-[40px] rounded-full animate-pulse" />
+                <div className="w-28 h-28 bg-[#FFA500]/30 blur-[40px] rounded-full animate-pulse" />
               </div>
 
               <motion.div
-                initial={{ scale: 0.5, opacity: 0, y: 30 }}
+                initial={{ scale: 0.5, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 transition={{ type: "spring", stiffness: 120, damping: 15 }}
                 className="relative z-10"
               >
-                {/* Trophy icon fallback or image */}
-                <div className="relative w-32 h-32 flex items-center justify-center">
-                  <Trophy className="w-24 h-24 text-[#FFD700] drop-shadow-[0_0_30px_rgba(255,215,0,0.5)]" strokeWidth={1.5} />
-                  {/* Sparkle decorations */}
-                  <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-[#FFD700]/80 animate-pulse" />
-                  <Sparkles className="absolute -bottom-1 -left-3 w-5 h-5 text-[#FFA500]/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
-                </div>
+                <img
+                  src="/icons/SLOT.png"
+                  alt="Slot"
+                  className="w-28 h-28 object-contain drop-shadow-[0_0_30px_rgba(255,215,0,0.4)]"
+                />
               </motion.div>
             </div>
 
