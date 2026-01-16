@@ -214,7 +214,7 @@ export function GiveawayPageNew() {
                 <div className="text-center">
                   <img src="/icons/tiket.png" alt="" className="w-8 h-8 mx-auto mb-2" />
                   <div className="text-[#FFD700] text-2xl font-black">{myTickets}</div>
-                  <div className="text-white/40 text-[10px] uppercase tracking-wider">Билетов</div>
+                  <div className="text-[#FFD700]/60 text-[10px] uppercase tracking-wider">Билетов</div>
                 </div>
               </div>
 
@@ -224,34 +224,50 @@ export function GiveawayPageNew() {
                 <div className="text-center">
                   <img src="/icons/peaple.png" alt="" className="w-8 h-8 mx-auto mb-2" />
                   <div className="text-white text-2xl font-black">{participantsCount}</div>
-                  <div className="text-white/40 text-[10px] uppercase tracking-wider">Участников</div>
+                  <div className="text-white/60 text-[10px] uppercase tracking-wider">Участников</div>
                 </div>
               </div>
 
               {/* Шанс */}
-              <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#141414] rounded-2xl p-4 border border-emerald-500/20 overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+              <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#141414] rounded-2xl p-4 border border-[#FFD700]/20 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#FFD700]/40 to-transparent" />
                 <div className="text-center">
                   <img src="/icons/kubic.png" alt="" className="w-8 h-8 mx-auto mb-2" />
-                  <div className="text-emerald-400 text-2xl font-black">
+                  <div className="text-[#FFD700] text-2xl font-black">
                     {myTickets > 0 && participantsCount > 0
                       ? `${((myTickets / participantsCount) * 100).toFixed(1)}%`
                       : '0%'
                     }
                   </div>
-                  <div className="text-white/40 text-[10px] uppercase tracking-wider">Шанс</div>
+                  <div className="text-[#FFD700]/60 text-[10px] uppercase tracking-wider">Шанс</div>
                 </div>
               </div>
             </div>
 
-            {/* Buy Button */}
+            {/* Premium Buy Button */}
             <motion.button
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.02 }}
               onClick={() => setShowModal(true)}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#FFD700] via-[#FFED4A] to-[#FFD700] text-black font-black text-lg uppercase tracking-wider shadow-[0_4px_30px_rgba(255,215,0,0.3)] flex items-center justify-center gap-2"
+              className="relative w-full py-5 rounded-2xl overflow-hidden group"
             >
-              <Plus className="w-5 h-5" />
-              Купить билеты
+              {/* Animated glow background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] via-[#FFED4A] to-[#FFA500] opacity-100" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#FFA500] via-[#FFD700] to-[#FFED4A] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              {/* Inner shadow for depth */}
+              <div className="absolute inset-[1px] rounded-2xl bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+
+              {/* Glow effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#FFD700] via-[#FFED4A] to-[#FFD700] blur-xl opacity-40 group-hover:opacity-60 transition-opacity" />
+
+              {/* Button content */}
+              <div className="relative flex items-center justify-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-black/20 flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-black" />
+                </div>
+                <span className="text-black font-black text-xl uppercase tracking-wide">Купить билеты</span>
+              </div>
             </motion.button>
           </motion.div>
 
