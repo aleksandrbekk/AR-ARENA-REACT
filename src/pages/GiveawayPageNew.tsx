@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
-import { Users, Trophy } from 'lucide-react'
+import { Trophy } from 'lucide-react'
 
 // Recent winners - можно загружать из базы
 const RECENT_WINNERS = [
@@ -232,64 +232,39 @@ export function GiveawayPageNew() {
             </motion.div>
           )}
 
-          {/* Stats Grid */}
+          {/* Stats Row */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="px-4 mt-6 grid grid-cols-2 gap-3"
+            className="px-4 mt-6 flex justify-center gap-8"
           >
             {/* Participants */}
-            <div className="relative rounded-2xl bg-zinc-900/60 backdrop-blur-md p-4 border border-white/5 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
-              <div className="relative flex flex-col items-center">
-                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-2">
-                  <Users className="w-5 h-5 text-blue-400" />
-                </div>
-                <span className="text-2xl font-black text-white">{participantsCount}</span>
-                <span className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Участников</span>
-              </div>
+            <div className="flex flex-col items-center">
+              <img src="/icons/friends.png" alt="" className="w-12 h-12 mb-2" />
+              <span className="text-2xl font-black text-white">{participantsCount}</span>
+              <span className="text-[10px] text-white/50 uppercase tracking-wider">Участников</span>
             </div>
 
             {/* My Tickets */}
-            <div className={`relative rounded-2xl p-4 border overflow-hidden backdrop-blur-md
-                ${myTickets > 0
-                  ? 'bg-gradient-to-br from-[#FFD700]/15 to-[#FFA500]/5 border-[#FFD700]/20'
-                  : 'bg-zinc-900/60 border-white/5'
-                }`}
-            >
-              {myTickets > 0 && (
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[#FFD700]/10 via-transparent to-transparent pointer-events-none" />
-              )}
-              <div className="relative flex flex-col items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                  myTickets > 0 ? 'bg-[#FFD700]/20' : 'bg-white/5'
-                }`}>
-                  <img src="/icons/tiket.png" alt="" className={`w-6 h-6 ${myTickets > 0 ? '' : 'opacity-30 grayscale'}`} />
-                </div>
-                <span className={`text-2xl font-black ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white'}`}>
-                  {myTickets}
-                </span>
-                <span className={`text-[10px] uppercase tracking-wider mt-1 ${
-                  myTickets > 0 ? 'text-[#FFD700]/60' : 'text-white/40'
-                }`}>
-                  Мои билеты
-                </span>
+            <div className="flex flex-col items-center relative">
+              <img src="/icons/tiket.png" alt="" className="w-12 h-12 mb-2" />
+              <span className="text-2xl font-black text-[#FFD700]">{myTickets}</span>
+              <span className="text-[10px] text-[#FFD700]/60 uppercase tracking-wider">Мои билеты</span>
 
-                {/* Win Chance Badge */}
-                <AnimatePresence>
-                  {myTickets > 0 && totalTickets > 0 && (
-                    <motion.div
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-[#FFD700] text-black text-[10px] font-bold shadow-lg"
-                    >
-                      {winChance}%
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+              {/* Win Chance Badge */}
+              <AnimatePresence>
+                {myTickets > 0 && totalTickets > 0 && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    className="absolute -top-1 -right-3 px-2 py-0.5 rounded-full bg-[#FFD700] text-black text-[9px] font-bold"
+                  >
+                    {winChance}%
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
 
