@@ -65,15 +65,15 @@ export function SideButtons({
             className="flex flex-col items-center gap-1.5 group"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
+            <div className="transition-transform group-active:scale-90">
               {typeof button.icon === 'string' ? (
                 <img
                   src={button.icon}
                   alt={button.label}
-                  className="w-10 h-10 object-contain drop-shadow-md"
+                  className="w-14 h-14 object-contain drop-shadow-lg"
                 />
               ) : (
-                <button.icon className="w-10 h-10 text-[#FFD700] drop-shadow-md" />
+                <button.icon className="w-14 h-14 text-[#FFD700] drop-shadow-lg" />
               )}
             </div>
             <span className="text-xs font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
@@ -90,15 +90,15 @@ export function SideButtons({
             className="flex flex-col items-center gap-1.5 group"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
+            <div className="transition-transform group-active:scale-90">
               {typeof button.icon === 'string' ? (
                 <img
                   src={button.icon}
                   alt={button.label}
-                  className="w-10 h-10 object-contain drop-shadow-md"
+                  className="w-14 h-14 object-contain drop-shadow-lg"
                 />
               ) : (
-                <button.icon className="w-10 h-10 text-[#FFD700] drop-shadow-md" />
+                <button.icon className="w-14 h-14 text-[#FFD700] drop-shadow-lg" />
               )}
             </div>
             <span className="text-xs font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
