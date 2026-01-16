@@ -19,6 +19,73 @@ export function TapGame({ userName, isAdmin = false }: TapGameProps) {
   const [isAnimating, setIsAnimating] = useState(false)
   const [pendingTaps, setPendingTaps] = useState(0)
 
+  // Определяем функции загрузки перед useEffect
+  const loadSettings = useCallback(async () => {
+    const { data } = await supabase
+      .from('stream_settings')
+      .select('tap_game_enabled')
+      .single()
+
+    if (data) {
+      setIsEnabled(data.tap_game_enabled)
+    }
+  }, [])
+
+  const loadTopScores = useCallback(async () => {
+    const { data } = await supabase
+      .from('stream_taps')
+      .select('*')
+      .order('taps_count', { ascending: false })
+      .limit(5)
+
+    if (data) {
+      setTopScores(data)
+    }
+  }, [])
+
+  const loadMyTaps = useCallback(async () => {
+    const { data } = await supabase
+      .from('stream_taps')
+      .select('taps_count')
+      .eq('user_name', userName)
+      .single()
+
+    if (data) {
+      setMyTaps(data.taps_count)
+    }
+  }, [userName])
+
+  const saveTaps = useCallback(async () => {
+    if (pendingTaps === 0 || !userName) return
+
+    const tapsToSave = pendingTaps
+    setPendingTaps(0)
+
+    // Upsert - создаём или обновляем
+    const { data: existing } = await supabase
+      .from('stream_taps')
+      .select('id, taps_count')
+      .eq('user_name', userName)
+      .single()
+
+    if (existing) {
+      await supabase
+        .from('stream_taps')
+        .update({
+          taps_count: existing.taps_count + tapsToSave,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existing.id)
+    } else {
+      await supabase
+        .from('stream_taps')
+        .insert({
+          user_name: userName,
+          taps_count: tapsToSave
+        })
+    }
+  }, [pendingTaps, userName])
+
   // Загрузка настроек и топа
   useEffect(() => {
     loadSettings()
@@ -52,14 +119,14 @@ export function TapGame({ userName, isAdmin = false }: TapGameProps) {
       supabase.removeChannel(settingsChannel)
       supabase.removeChannel(tapsChannel)
     }
-  }, [])
+  }, [loadSettings, loadTopScores])
 
   // Загрузка моих тапов при смене имени
   useEffect(() => {
     if (userName && isEnabled) {
       loadMyTaps()
     }
-  }, [userName, isEnabled])
+  }, [userName, isEnabled, loadMyTaps])
 
   // Отправка накопленных тапов каждые 3 секунды
   useEffect(() => {
@@ -70,73 +137,7 @@ export function TapGame({ userName, isAdmin = false }: TapGameProps) {
     }, 3000)
 
     return () => clearTimeout(timer)
-  }, [pendingTaps])
-
-  const loadSettings = async () => {
-    const { data } = await supabase
-      .from('stream_settings')
-      .select('tap_game_enabled')
-      .single()
-
-    if (data) {
-      setIsEnabled(data.tap_game_enabled)
-    }
-  }
-
-  const loadTopScores = async () => {
-    const { data } = await supabase
-      .from('stream_taps')
-      .select('*')
-      .order('taps_count', { ascending: false })
-      .limit(5)
-
-    if (data) {
-      setTopScores(data)
-    }
-  }
-
-  const loadMyTaps = async () => {
-    const { data } = await supabase
-      .from('stream_taps')
-      .select('taps_count')
-      .eq('user_name', userName)
-      .single()
-
-    if (data) {
-      setMyTaps(data.taps_count)
-    }
-  }
-
-  const saveTaps = async () => {
-    if (pendingTaps === 0 || !userName) return
-
-    const tapsToSave = pendingTaps
-    setPendingTaps(0)
-
-    // Upsert - создаём или обновляем
-    const { data: existing } = await supabase
-      .from('stream_taps')
-      .select('id, taps_count')
-      .eq('user_name', userName)
-      .single()
-
-    if (existing) {
-      await supabase
-        .from('stream_taps')
-        .update({
-          taps_count: existing.taps_count + tapsToSave,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existing.id)
-    } else {
-      await supabase
-        .from('stream_taps')
-        .insert({
-          user_name: userName,
-          taps_count: tapsToSave
-        })
-    }
-  }
+  }, [pendingTaps, saveTaps])
 
   const handleTap = useCallback(() => {
     if (!userName) return

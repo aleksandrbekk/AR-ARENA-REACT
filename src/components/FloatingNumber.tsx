@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 
 interface Props {
@@ -8,7 +9,7 @@ interface Props {
 
 export function FloatingNumber({ value, id, onComplete }: Props) {
   // Случайное смещение по X для естественности
-  const randomX = Math.random() * 80 - 40
+  const [randomX] = useState(() => Math.random() * 80 - 40)
 
   return (
     <motion.div

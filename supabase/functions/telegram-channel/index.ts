@@ -29,7 +29,7 @@ serve(async (req) => {
       })
     }
 
-    let results = { channel: null, chat: null }
+    const results = { channel: null, chat: null }
 
     if (action === 'kick') {
       // Кикаем из канала

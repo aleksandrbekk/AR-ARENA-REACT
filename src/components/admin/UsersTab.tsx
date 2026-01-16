@@ -325,7 +325,7 @@ export function UsersTab() {
         .limit(1)
         .single()
 
-      let nextTicketNumber = (maxTicket?.ticket_number || 0) + 1
+      const nextTicketNumber = (maxTicket?.ticket_number || 0) + 1
 
       // Создаём билеты
       const tickets = []

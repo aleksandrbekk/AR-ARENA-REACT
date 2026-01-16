@@ -28,27 +28,30 @@ const SparkleIcon = ({ className = '' }: { className?: string }) => (
 
 // Конфетти частица
 const Confetti = ({ color, delay }: { color: string; delay: number }) => {
-  const randomX = Math.random() * 100
-  const randomRotate = Math.random() * 360
-  const randomDuration = 2 + Math.random() * 2
+  const [randomValues] = useState(() => ({
+    x: Math.random() * 100,
+    rotate: Math.random() * 360,
+    duration: 2 + Math.random() * 2,
+    isRound: Math.random() > 0.5
+  }))
 
   return (
     <motion.div
-      initial={{ y: -20, x: `${randomX}vw`, rotate: 0, opacity: 1 }}
+      initial={{ y: -20, x: `${randomValues.x}vw`, rotate: 0, opacity: 1 }}
       animate={{
         y: '100vh',
-        rotate: randomRotate + 720,
+        rotate: randomValues.rotate + 720,
         opacity: 0
       }}
       transition={{
-        duration: randomDuration,
+        duration: randomValues.duration,
         delay,
         ease: 'linear'
       }}
       className="fixed top-0 w-3 h-3 pointer-events-none z-50"
       style={{
         backgroundColor: color,
-        borderRadius: Math.random() > 0.5 ? '50%' : '2px'
+        borderRadius: randomValues.isRound ? '50%' : '2px'
       }}
     />
   )

@@ -1,12 +1,14 @@
+import { useState } from 'react'
+
 export function Particles() {
-  // Генерируем частицы один раз
-  const particles = Array.from({ length: 15 }, (_, i) => ({
+  // Генерируем частицы один раз при монтировании
+  const [particles] = useState(() => Array.from({ length: 15 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
     delay: Math.random() * 5,
     duration: 8 + Math.random() * 7,
     size: 2 + Math.random() * 3
-  }))
+  })))
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">

@@ -1,8 +1,18 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 
+interface Particle {
+  id: number
+  x: number
+  y: number
+  size: number
+  duration: number
+  xOffset: number
+  delay: number
+}
+
 export function ParticleBackground() {
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; duration: number }>>([])
+  const [particles, setParticles] = useState<Particle[]>([])
 
   useEffect(() => {
     const count = 20
@@ -11,7 +21,9 @@ export function ParticleBackground() {
       x: Math.random() * 100,
       y: Math.random() * 100,
       size: Math.random() * 3 + 1, // 1-4px
-      duration: Math.random() * 20 + 10 // 10-30s
+      duration: Math.random() * 20 + 10, // 10-30s
+      xOffset: Math.random() * 20 - 10,
+      delay: Math.random() * 10
     }))
     setParticles(newParticles)
   }, [])
@@ -22,21 +34,21 @@ export function ParticleBackground() {
         <motion.div
           key={p.id}
           className="absolute rounded-full bg-[#FFD700]"
-          initial={{ 
-            opacity: 0, 
-            x: `${p.x}%`, 
-            y: `110%` 
+          initial={{
+            opacity: 0,
+            x: `${p.x}%`,
+            y: `110%`
           }}
-          animate={{ 
-            opacity: [0, 0.4, 0], 
+          animate={{
+            opacity: [0, 0.4, 0],
             y: `-10%`,
-            x: [`${p.x}%`, `${p.x + (Math.random() * 20 - 10)}%`] 
+            x: [`${p.x}%`, `${p.x + p.xOffset}%`]
           }}
           transition={{
             duration: p.duration,
             repeat: Infinity,
             ease: "linear",
-            delay: Math.random() * 10
+            delay: p.delay
           }}
           style={{
             width: p.size,

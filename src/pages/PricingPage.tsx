@@ -122,13 +122,13 @@ const tariffs: Tariff[] = [
 
 // ============ СНЕЖИНКИ ============
 const Snowflakes = () => {
-  const flakes = Array.from({ length: 6 }, (_, i) => ({
+  const [flakes] = useState(() => Array.from({ length: 6 }, (_, i) => ({
     id: i,
     size: 2 + Math.random() * 3,
     left: Math.random() * 100,
     delay: Math.random() * 10,
     duration: 20 + Math.random() * 10
-  }))
+  })))
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">

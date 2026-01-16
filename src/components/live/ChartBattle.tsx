@@ -60,7 +60,7 @@ export function ChartBattle({
 
         // Initial data - flat line to start
         const initialData = []
-        let time = Math.floor(Date.now() / 1000) - 100
+        const time = Math.floor(Date.now() / 1000) - 100
         let price = 100
 
         for (let i = 0; i < 20; i++) {
