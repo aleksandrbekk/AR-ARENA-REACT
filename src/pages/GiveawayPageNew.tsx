@@ -171,7 +171,7 @@ export function GiveawayPageNew() {
                 <img
                   src="/icons/SLOT.png"
                   alt="Slot"
-                  className="w-28 h-28 object-contain drop-shadow-[0_0_30px_rgba(255,215,0,0.4)]"
+                  className="w-28 h-28 object-contain"
                 />
               </motion.div>
             </div>
