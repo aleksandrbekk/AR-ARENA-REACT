@@ -24,8 +24,8 @@ export function SideButtons({
   // Левая колонка
   const leftButtons: ButtonConfig[] = [
     {
-      icon: '/icons/PARTNERS.png',
-      label: 'Друзья',
+      icon: '/icons/ref.png',
+      label: 'Партнёрка',
       onClick: onFriendsClick || (() => console.log('Friends clicked')),
     },
     {
