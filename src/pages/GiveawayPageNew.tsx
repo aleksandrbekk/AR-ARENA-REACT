@@ -244,33 +244,34 @@ export function GiveawayPageNew() {
               </div>
             </div>
 
-            {/* Premium Buy Button */}
+            {/* LUXURY Buy Button */}
             <motion.button
-              whileTap={{ scale: 0.97 }}
-              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setShowModal(true)}
-              className="relative w-full py-5 rounded-2xl overflow-hidden group"
+              className="relative w-full py-4 rounded-2xl overflow-hidden group"
             >
-              {/* Dark premium background */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]" />
+              {/* Luxury gold gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#B8860B] via-[#FFD700] to-[#B8860B]" />
 
-              {/* Golden border glow */}
-              <div className="absolute inset-0 rounded-2xl border-2 border-[#FFD700]/60 group-hover:border-[#FFD700] transition-colors" />
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-[#FFD700] to-transparent" />
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-[#FFD700]/50 to-transparent" />
+              {/* Shimmer overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
-              {/* Outer glow effect */}
-              <div className="absolute -inset-1 bg-[#FFD700]/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+              {/* Inner highlight for 3D effect */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-black/20" />
 
-              {/* Button content */}
-              <div className="relative flex items-center justify-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-b from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-[0_0_15px_rgba(255,215,0,0.4)]">
-                  <Plus className="w-5 h-5 text-black" />
-                </div>
-                <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FFD700] via-[#FFED4A] to-[#FFD700] font-black text-xl uppercase tracking-wide">
-                  Купить билеты
-                </span>
-              </div>
+              {/* Top shine line */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
+
+              {/* Bottom shadow line */}
+              <div className="absolute bottom-0 left-0 right-0 h-px bg-black/30" />
+
+              {/* Outer glow */}
+              <div className="absolute -inset-1 bg-[#FFD700]/30 blur-lg rounded-2xl" />
+
+              {/* Button text */}
+              <span className="relative text-black font-black text-lg uppercase tracking-widest drop-shadow-[0_1px_0_rgba(255,255,255,0.3)]">
+                Купить билеты
+              </span>
             </motion.button>
           </motion.div>
 

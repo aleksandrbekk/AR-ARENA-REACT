@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Timer, Ticket, Trophy, Gift, GraduationCap, Users } from 'lucide-react'
 import type { GiveawayWithStats } from '../../types'
 
 interface GiveawayCardProps {
@@ -37,7 +36,7 @@ export function GiveawayCard({ giveaway }: GiveawayCardProps) {
     return () => clearInterval(timer)
   }, [giveaway.end_date])
 
-  const TypeIcon = giveaway.type === 'course' ? GraduationCap : Gift
+  const typeIcon = giveaway.type === 'course' ? '/icons/LERN.png' : '/icons/podarok.png'
 
   return (
     <motion.div
@@ -52,8 +51,8 @@ export function GiveawayCard({ giveaway }: GiveawayCardProps) {
 
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center">
-          <TypeIcon className="w-5 h-5 text-[#FFD700]" />
+        <div className="w-10 h-10 flex items-center justify-center">
+          <img src={typeIcon} alt="" className="w-8 h-8 object-contain" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-white truncate">{giveaway.title}</h3>
