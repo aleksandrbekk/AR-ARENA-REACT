@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { GiveawayCard } from '../components/giveaways/GiveawayCard'
 import { useGiveaways } from '../hooks/useGiveaways'
-import { Gift, Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle } from 'lucide-react'
 import { HowToPlayButton } from '../components/HowToPlayButton'
 
 type TabType = 'active' | 'completed'
@@ -27,7 +27,7 @@ export function GiveawaysPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center border border-[#FFD700]/10">
-                <Gift className="w-5 h-5 text-[#FFD700]" />
+                <img src="/icons/Jackpot.png" alt="" className="w-6 h-6" />
               </div>
               <h1 className="text-2xl font-bold text-white tracking-wide">Розыгрыши</h1>
             </div>
@@ -71,7 +71,7 @@ export function GiveawaysPage() {
             </div>
           ) : giveaways.length === 0 ? (
             <div className="text-center py-20 bg-zinc-900/30 rounded-2xl border border-dashed border-white/10">
-              <Gift className="w-12 h-12 text-white/10 mx-auto mb-3" />
+              <img src="/icons/Jackpot.png" alt="" className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="text-white/40">
                 {tab === 'active' ? 'Нет активных розыгрышей' : 'Нет завершённых розыгрышей'}
               </p>

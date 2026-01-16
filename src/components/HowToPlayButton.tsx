@@ -8,7 +8,7 @@ const stages = [
     title: 'Отборочный тур',
     subtitle: 'Барабан удачи',
     description: 'Все билеты участвуют в розыгрыше. 20 барабанов случайным образом выбирают 20 счастливчиков!',
-    icon: '🎰',
+    iconUrl: '/icons/slot.png',
     color: 'from-blue-500 to-cyan-500',
     tip: 'Больше билетов = выше шанс пройти'
   },
@@ -17,7 +17,7 @@ const stages = [
     title: 'Второй тур',
     subtitle: 'Карточки судьбы',
     description: 'Из 20 участников определяем ТОП-5. Каждая карта скрывает результат — ПРОШЁЛ или ВЫБЫЛ.',
-    icon: '🃏',
+    iconUrl: '/icons/cards.png',
     color: 'from-purple-500 to-pink-500',
     tip: '5 зелёных карт проходят дальше'
   },
@@ -26,7 +26,7 @@ const stages = [
     title: 'Полуфинал',
     subtitle: 'Светофор',
     description: '5 финалистов крутят рулетку. 3 попадания на твой билет = красный свет = выбывание.',
-    icon: '🚦',
+    iconUrl: '/icons/semafor.png',
     color: 'from-amber-500 to-orange-500',
     tip: '3 игрока выходят в финал'
   },
@@ -35,7 +35,7 @@ const stages = [
     title: 'Финал',
     subtitle: 'Бык vs Медведь',
     description: 'Колесо фортуны! 3 быка = ПОБЕДА и место в TOP. 3 медведя = выбывание.',
-    icon: '🎡',
+    iconUrl: '/icons/wheel.png',
     color: 'from-[#FFD700] to-[#FFA500]',
     tip: 'TOP-3 делят призовой фонд'
   }
@@ -113,7 +113,7 @@ export function HowToPlayButton({ variant = 'icon', className = '' }: HowToPlayB
               <div className="sticky top-0 bg-zinc-900/95 backdrop-blur-sm border-b border-white/10 p-4 flex items-center justify-between z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center border border-[#FFD700]/30">
-                    <span className="text-xl">📖</span>
+                    <HelpCircle className="w-5 h-5 text-[#FFD700]" />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-white">Как играть?</h2>
@@ -148,15 +148,14 @@ export function HowToPlayButton({ variant = 'icon', className = '' }: HowToPlayB
                       >
                         {/* Number badge */}
                         <div className={`absolute left-0 w-12 h-12 rounded-xl bg-gradient-to-br ${stage.color} flex items-center justify-center shadow-lg transition-transform ${activeStage === idx ? 'scale-110' : 'group-hover:scale-105'}`}>
-                          <span className="text-2xl">{stage.icon}</span>
+                          <img src={stage.iconUrl} alt="" className="w-7 h-7" />
                         </div>
 
                         {/* Card */}
-                        <div className={`p-4 rounded-xl border transition-all ${
-                          activeStage === idx
+                        <div className={`p-4 rounded-xl border transition-all ${activeStage === idx
                             ? 'bg-white/10 border-[#FFD700]/50 shadow-[0_0_20px_rgba(255,215,0,0.1)]'
                             : 'bg-white/5 border-white/10 hover:border-white/20'
-                        }`}>
+                          }`}>
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <h3 className="font-bold text-white">{stage.title}</h3>
@@ -196,7 +195,7 @@ export function HowToPlayButton({ variant = 'icon', className = '' }: HowToPlayB
                   className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-[#FFD700]/10 to-[#FFA500]/5 border border-[#FFD700]/20"
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">🏆</span>
+                    <img src="/icons/trophy.png" alt="" className="w-7 h-7" />
                     <h3 className="font-bold text-[#FFD700]">Призовой фонд</h3>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">

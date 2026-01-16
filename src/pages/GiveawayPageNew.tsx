@@ -247,26 +247,29 @@ export function GiveawayPageNew() {
             {/* Premium Buy Button */}
             <motion.button
               whileTap={{ scale: 0.97 }}
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.01 }}
               onClick={() => setShowModal(true)}
               className="relative w-full py-5 rounded-2xl overflow-hidden group"
             >
-              {/* Animated glow background */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] via-[#FFED4A] to-[#FFA500] opacity-100" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#FFA500] via-[#FFD700] to-[#FFED4A] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              {/* Dark premium background */}
+              <div className="absolute inset-0 bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]" />
 
-              {/* Inner shadow for depth */}
-              <div className="absolute inset-[1px] rounded-2xl bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+              {/* Golden border glow */}
+              <div className="absolute inset-0 rounded-2xl border-2 border-[#FFD700]/60 group-hover:border-[#FFD700] transition-colors" />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-[#FFD700] to-transparent" />
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-[#FFD700]/50 to-transparent" />
 
-              {/* Glow effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-[#FFD700] via-[#FFED4A] to-[#FFD700] blur-xl opacity-40 group-hover:opacity-60 transition-opacity" />
+              {/* Outer glow effect */}
+              <div className="absolute -inset-1 bg-[#FFD700]/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
 
               {/* Button content */}
               <div className="relative flex items-center justify-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-black/20 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-b from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-[0_0_15px_rgba(255,215,0,0.4)]">
                   <Plus className="w-5 h-5 text-black" />
                 </div>
-                <span className="text-black font-black text-xl uppercase tracking-wide">Купить билеты</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FFD700] via-[#FFED4A] to-[#FFD700] font-black text-xl uppercase tracking-wide">
+                  Купить билеты
+                </span>
               </div>
             </motion.button>
           </motion.div>
