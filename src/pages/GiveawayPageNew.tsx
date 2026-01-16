@@ -238,7 +238,7 @@ export function GiveawayPageNew() {
                 ? 'bg-gradient-to-b from-[#FFD700]/20 to-[#FFD700]/5 border-[#FFD700]/30'
                 : 'bg-zinc-900/70 border-white/5'
             }`}>
-              <img src="/icons/tiket.png" alt="" className="w-8 h-8 mx-auto mb-2" />
+              <img src="/icons/l.png" alt="" className="w-8 h-8 mx-auto mb-2" />
               <div className={`text-xl font-black ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white'}`}>
                 {myTickets}
               </div>
@@ -317,7 +317,7 @@ export function GiveawayPageNew() {
               onClick={() => setShowModal(true)}
               className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FFD700] via-[#FFED4A] to-[#FFA500] flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(255,215,0,0.3)]"
             >
-              <img src="/icons/tiket.png" alt="" className="w-6 h-6" />
+              <img src="/icons/l.png" alt="" className="w-6 h-6" />
               <span className="text-black font-black text-lg">КУПИТЬ БИЛЕТ</span>
               <div className="h-5 w-px bg-black/20" />
               <span className="text-black/70 font-bold">{ticketPrice} AR</span>
