@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
-import { Ticket, Users, Trophy } from 'lucide-react'
+import { Users, Trophy } from 'lucide-react'
 
 // Recent winners - можно загружать из базы
 const RECENT_WINNERS = [
@@ -139,13 +139,6 @@ export function GiveawayPageNew() {
         <ParticleBackground />
         <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-zinc-800/20 via-[#0a0a0a] to-[#0a0a0a] z-0" />
 
-        {/* Header - только баланс справа */}
-        <div className="absolute top-0 right-0 z-50 px-4 pt-3">
-          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-xl border border-[#FFD700]/20 rounded-full px-4 py-2 shadow-lg">
-            <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
-            <span className="text-white font-bold tracking-wide">{gameState?.balance_ar?.toLocaleString() || '0'}</span>
-          </div>
-        </div>
 
         {/* Content Scrollable */}
         <div className="relative z-10 flex-1 overflow-y-auto pb-20 no-scrollbar">
@@ -272,7 +265,7 @@ export function GiveawayPageNew() {
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
                   myTickets > 0 ? 'bg-[#FFD700]/20' : 'bg-white/5'
                 }`}>
-                  <Ticket className={`w-5 h-5 ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white/30'}`} />
+                  <img src="/icons/tiket.png" alt="" className={`w-6 h-6 ${myTickets > 0 ? '' : 'opacity-30 grayscale'}`} />
                 </div>
                 <span className={`text-2xl font-black ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white'}`}>
                   {myTickets}
