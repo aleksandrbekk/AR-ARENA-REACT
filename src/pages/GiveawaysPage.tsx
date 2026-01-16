@@ -26,9 +26,7 @@ export function GiveawaysPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center border border-[#FFD700]/10">
-                <img src="/icons/Jackpot.png" alt="" className="w-6 h-6" />
-              </div>
+              <img src="/icons/Jackpot.png" alt="" className="w-10 h-10" />
               <h1 className="text-2xl font-bold text-white tracking-wide">Розыгрыши</h1>
             </div>
             <HowToPlayButton variant="icon" />
