@@ -198,81 +198,110 @@ export function GiveawayPageNew() {
             </div>
           </motion.div>
 
-
-          {/* === STATS SECTION (REDESIGN) === */}
+          {/* Stats Row */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="space-y-3 mb-6"
+            className="flex gap-3 mb-4"
           >
-            {/* Main Stats Row */}
-            <div className="grid grid-cols-3 gap-2">
-              {/* Мои билеты */}
-              <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#141414] rounded-2xl p-4 border border-[#FFD700]/20 overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#FFD700]/40 to-transparent" />
-                <div className="text-center">
-                  <img src="/icons/l.png" alt="" className="w-8 h-8 mx-auto mb-2" />
-                  <div className="text-[#FFD700] text-2xl font-black">{myTickets}</div>
-                  <div className="text-white/40 text-[10px] uppercase tracking-wider">Билетов</div>
-                </div>
+            {/* My Tickets */}
+            <div className="flex-1 bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-[#FFD700]/20 flex items-center justify-center">
+                <img src="/icons/l.png" alt="" className="w-8 h-8" />
               </div>
-
-              {/* Участники */}
-              <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#141414] rounded-2xl p-4 border border-white/10 overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                <div className="text-center">
-                  <img src="/icons/peaple.png" alt="" className="w-8 h-8 mx-auto mb-2" />
-                  <div className="text-white text-2xl font-black">{participantsCount}</div>
-                  <div className="text-white/40 text-[10px] uppercase tracking-wider">Участников</div>
-                </div>
+              <div className="flex-1">
+                <div className="text-white/50 text-xs uppercase">Мои билеты</div>
+                <div className="text-[#FFD700] text-2xl font-black">{myTickets}</div>
               </div>
-
-              {/* Шанс */}
-              <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#141414] rounded-2xl p-4 border border-emerald-500/20 overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
-                <div className="text-center">
-                  <div className="w-8 h-8 mx-auto mb-2 flex items-center justify-center text-2xl">🎯</div>
-                  <div className="text-emerald-400 text-2xl font-black">
-                    {myTickets > 0 && participantsCount > 0
-                      ? `${((myTickets / participantsCount) * 100).toFixed(1)}%`
-                      : '0%'
-                    }
-                  </div>
-                  <div className="text-white/40 text-[10px] uppercase tracking-wider">Шанс</div>
-                </div>
-              </div>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowModal(true)}
+                className="w-10 h-10 rounded-xl bg-[#FFD700] flex items-center justify-center"
+              >
+                <Plus className="w-6 h-6 text-black" />
+              </motion.button>
             </div>
 
-            {/* Buy Button */}
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setShowModal(true)}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#FFD700] via-[#FFED4A] to-[#FFD700] text-black font-black text-lg uppercase tracking-wider shadow-[0_4px_30px_rgba(255,215,0,0.3)] flex items-center justify-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Купить билеты
-            </motion.button>
+            {/* Participants */}
+            <div className="flex-1 bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                <img src="/icons/peaple.png" alt="" className="w-8 h-8" />
+              </div>
+              <div>
+                <div className="text-white/50 text-xs uppercase">Участников</div>
+                <div className="text-white text-2xl font-black">{participantsCount}</div>
+              </div>
+            </div>
           </motion.div>
 
-          {/* === PAST WINNERS (REDESIGN) === */}
+          {/* Conditions Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mb-6"
+            className="mb-4"
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🏆</span>
-                <h3 className="text-white/60 text-xs font-bold uppercase tracking-widest">Победители</h3>
-              </div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">🎫</span>
+              <h3 className="text-white font-bold uppercase tracking-wider">Условия участия</h3>
             </div>
 
-            <div className="space-y-2">
-              <WinnerRow place={1} name="A****" amount="$200" date="07.10.2025" />
-              <WinnerRow place={2} name="D****" amount="30,000₽" date="30.09.2025" />
-              <WinnerRow place={3} name="M****" amount="25,000₽" date="23.09.2025" />
+            {/* Tabs */}
+            <div className="flex bg-[#1A1A1A] rounded-2xl p-1 mb-4">
+              <button className="flex-1 py-3 rounded-xl bg-[#FFD700] text-black font-bold text-sm">
+                FREE
+              </button>
+              <button className="flex-1 py-3 rounded-xl text-white/40 font-bold text-sm">
+                VIP
+              </button>
+            </div>
+
+            {/* Conditions List */}
+            <div className="bg-[#1A1A1A] rounded-2xl p-4 border border-white/5 space-y-3">
+              <ConditionItem
+                icon="✅"
+                text="Подписка на @premium_news"
+                status="Выполнено"
+                done
+              />
+              <ConditionItem
+                icon="✅"
+                text="Подписка на @AlexRich83"
+                status="Выполнено"
+                done
+              />
+              <ConditionItem
+                icon="👥"
+                text="Пригласить 3 друзей"
+                status="2/3"
+              />
+              <ConditionItem
+                icon="🎫"
+                text="Иметь минимум 1 билет"
+                status={myTickets > 0 ? "Выполнено" : undefined}
+                done={myTickets > 0}
+                actionText={myTickets === 0 ? "Купить" : undefined}
+                onAction={() => setShowModal(true)}
+              />
+            </div>
+          </motion.div>
+
+          {/* Past Winners */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">🏆</span>
+              <h3 className="text-white font-bold uppercase tracking-wider">Прошлые победители</h3>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+              <WinnerCard name="A****" amount="$200" date="07.10.2025" />
+              <WinnerCard name="D****" amount="30,000₽" date="30.09.2025" />
+              <WinnerCard name="M****" amount="25,000₽" date="23.09.2025" />
             </div>
           </motion.div>
 
@@ -317,27 +346,50 @@ function TimeBlock({ value, label, isActive = false }: { value: string; label: s
   )
 }
 
-
-
-// Winner Row Component (Premium Design)
-function WinnerRow({ place, name, amount, date }: { place: number; name: string; amount: string; date: string }) {
-  const placeColors = {
-    1: 'from-[#FFD700] to-[#FFA500]',
-    2: 'from-gray-300 to-gray-400',
-    3: 'from-orange-400 to-orange-600'
-  }
-
+// Condition Item Component
+function ConditionItem({
+  icon,
+  text,
+  status,
+  done,
+  actionText,
+  onAction
+}: {
+  icon: string
+  text: string
+  status?: string
+  done?: boolean
+  actionText?: string
+  onAction?: () => void
+}) {
   return (
-    <div className="flex items-center gap-3 p-3 bg-[#1a1a1a]/80 rounded-xl border border-white/5">
-      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${placeColors[place as keyof typeof placeColors] || 'from-white/20 to-white/10'} flex items-center justify-center text-black font-bold text-sm`}>
-        {place}
-      </div>
-      <div className="flex-1">
-        <div className="text-white/80 text-sm font-medium">{name}</div>
-        <div className="text-white/40 text-[10px]">{date}</div>
-      </div>
-      <div className="text-[#FFD700] font-bold text-sm">{amount}</div>
+    <div className="flex items-center gap-3">
+      <span className="text-lg">{icon}</span>
+      <span className="flex-1 text-white/80 text-sm">{text}</span>
+      {status && (
+        <span className={`text-xs font-bold ${done ? 'text-[#FFD700]' : 'text-white/40'}`}>
+          {status}
+        </span>
+      )}
+      {actionText && (
+        <button
+          onClick={onAction}
+          className="px-4 py-1.5 rounded-lg bg-[#FFD700] text-black text-xs font-bold"
+        >
+          {actionText}
+        </button>
+      )}
     </div>
   )
 }
 
+// Winner Card Component
+function WinnerCard({ name, amount, date }: { name: string; amount: string; date: string }) {
+  return (
+    <div className="min-w-[140px] bg-[#1A1A1A] rounded-2xl p-4 border border-white/5">
+      <div className="text-[#FFD700] text-xs font-bold mb-1">{name}</div>
+      <div className="text-white text-xl font-black">{amount}</div>
+      <div className="text-white/30 text-xs mt-1">{date}</div>
+    </div>
+  )
+}

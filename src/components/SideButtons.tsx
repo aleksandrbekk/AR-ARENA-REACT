@@ -24,8 +24,8 @@ export function SideButtons({
   // Левая колонка
   const leftButtons: ButtonConfig[] = [
     {
-      icon: '/icons/ref.png',
-      label: 'Партнёрка',
+      icon: '/icons/PARTNERS.png',
+      label: 'Друзья',
       onClick: onFriendsClick || (() => console.log('Friends clicked')),
     },
     {
@@ -65,15 +65,15 @@ export function SideButtons({
             className="flex flex-col items-center gap-1.5 group"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className="transition-transform group-active:scale-90">
+            <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
               {typeof button.icon === 'string' ? (
                 <img
                   src={button.icon}
                   alt={button.label}
-                  className="w-12 h-12 object-contain drop-shadow-lg"
+                  className="w-10 h-10 object-contain drop-shadow-md"
                 />
               ) : (
-                <button.icon className="w-12 h-12 text-[#FFD700] drop-shadow-lg" />
+                <button.icon className="w-10 h-10 text-[#FFD700] drop-shadow-md" />
               )}
             </div>
             <span className="text-xs font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
@@ -90,15 +90,15 @@ export function SideButtons({
             className="flex flex-col items-center gap-1.5 group"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className="transition-transform group-active:scale-90">
+            <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
               {typeof button.icon === 'string' ? (
                 <img
                   src={button.icon}
                   alt={button.label}
-                  className="w-12 h-12 object-contain drop-shadow-lg"
+                  className="w-10 h-10 object-contain drop-shadow-md"
                 />
               ) : (
-                <button.icon className="w-12 h-12 text-[#FFD700] drop-shadow-lg" />
+                <button.icon className="w-10 h-10 text-[#FFD700] drop-shadow-md" />
               )}
             </div>
             <span className="text-xs font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
