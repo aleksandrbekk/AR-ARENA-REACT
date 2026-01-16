@@ -32,13 +32,13 @@ export function GiveawaysPage() {
             <HowToPlayButton variant="icon" />
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6 p-1 bg-zinc-900/50 backdrop-blur-md rounded-2xl border border-white/5">
+          {/* Tabs - Luxury Gold Glass Style */}
+          <div className="flex gap-2 mb-6 p-1.5 bg-black/40 backdrop-blur-xl rounded-2xl border border-[#B8860B]/20">
             <button
               onClick={() => setTab('active')}
               className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${tab === 'active'
-                ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
-                : 'text-white/50 hover:text-white hover:bg-white/5'
+                ? 'bg-gradient-to-b from-[#B8860B]/30 to-[#8B6914]/20 text-[#FFD700] border border-[#B8860B]/40 shadow-[inset_0_1px_0_rgba(255,215,0,0.2)]'
+                : 'text-white/40 hover:text-white/60 hover:bg-white/5'
                 }`}
             >
               Активные
@@ -46,8 +46,8 @@ export function GiveawaysPage() {
             <button
               onClick={() => setTab('completed')}
               className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${tab === 'completed'
-                ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
-                : 'text-white/50 hover:text-white hover:bg-white/5'
+                ? 'bg-gradient-to-b from-[#B8860B]/30 to-[#8B6914]/20 text-[#FFD700] border border-[#B8860B]/40 shadow-[inset_0_1px_0_rgba(255,215,0,0.2)]'
+                : 'text-white/40 hover:text-white/60 hover:bg-white/5'
                 }`}
             >
               Завершённые

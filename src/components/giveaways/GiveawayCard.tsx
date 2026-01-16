@@ -84,16 +84,16 @@ export function GiveawayCard({ giveaway }: GiveawayCardProps) {
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-white/50">
-            <Timer className="w-3.5 h-3.5" />
+            <img src="/icons/icons/time.png" alt="" className="w-3.5 h-3.5 object-contain" />
             <span>{timeLeft}</span>
           </div>
           <div className="flex items-center gap-1.5 text-white/50">
-            <Users className="w-3.5 h-3.5" />
+            <img src="/icons/peaple.png" alt="" className="w-3.5 h-3.5 object-contain" />
             <span>{giveaway.participants_count || 0}</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <Ticket className="w-3.5 h-3.5 text-[#FFD700]" />
+          <img src="/icons/tiket.png" alt="" className="w-3.5 h-3.5 object-contain" />
           <span className="text-white/70">{giveaway.prices?.ar ?? giveaway.prices?.bul ?? giveaway.price ?? 0} {giveaway.prices?.ar !== undefined ? 'AR' : giveaway.prices?.bul !== undefined ? 'BUL' : (giveaway.currency || 'AR').toUpperCase()}</span>
         </div>
       </div>
