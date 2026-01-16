@@ -232,39 +232,58 @@ export function GiveawayPageNew() {
             </motion.div>
           )}
 
-          {/* Stats Row */}
+          {/* Stats Grid */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="px-4 mt-6 flex justify-center gap-8"
+            className="px-4 mt-6 grid grid-cols-2 gap-3"
           >
             {/* Participants */}
-            <div className="flex flex-col items-center">
-              <img src="/icons/friends.png" alt="" className="w-12 h-12 mb-2" />
-              <span className="text-2xl font-black text-white">{participantsCount}</span>
-              <span className="text-[10px] text-white/50 uppercase tracking-wider">Участников</span>
+            <div className="relative rounded-2xl bg-zinc-900/60 backdrop-blur-md p-4 border border-white/5 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
+              <div className="relative flex flex-col items-center">
+                <img src="/icons/friends.png" alt="" className="w-10 h-10 mb-2" />
+                <span className="text-2xl font-black text-white">{participantsCount}</span>
+                <span className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Участников</span>
+              </div>
             </div>
 
             {/* My Tickets */}
-            <div className="flex flex-col items-center relative">
-              <img src="/icons/tiket.png" alt="" className="w-12 h-12 mb-2" />
-              <span className="text-2xl font-black text-[#FFD700]">{myTickets}</span>
-              <span className="text-[10px] text-[#FFD700]/60 uppercase tracking-wider">Мои билеты</span>
+            <div className={`relative rounded-2xl p-4 border overflow-hidden backdrop-blur-md
+                ${myTickets > 0
+                  ? 'bg-gradient-to-br from-[#FFD700]/15 to-[#FFA500]/5 border-[#FFD700]/20'
+                  : 'bg-zinc-900/60 border-white/5'
+                }`}
+            >
+              {myTickets > 0 && (
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[#FFD700]/10 via-transparent to-transparent pointer-events-none" />
+              )}
+              <div className="relative flex flex-col items-center">
+                <img src="/icons/tiket.png" alt="" className="w-10 h-10 mb-2" />
+                <span className={`text-2xl font-black ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white'}`}>
+                  {myTickets}
+                </span>
+                <span className={`text-[10px] uppercase tracking-wider mt-1 ${
+                  myTickets > 0 ? 'text-[#FFD700]/60' : 'text-white/40'
+                }`}>
+                  Мои билеты
+                </span>
 
-              {/* Win Chance Badge */}
-              <AnimatePresence>
-                {myTickets > 0 && totalTickets > 0 && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    className="absolute -top-1 -right-3 px-2 py-0.5 rounded-full bg-[#FFD700] text-black text-[9px] font-bold"
-                  >
-                    {winChance}%
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                {/* Win Chance Badge */}
+                <AnimatePresence>
+                  {myTickets > 0 && totalTickets > 0 && (
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-[#FFD700] text-black text-[10px] font-bold shadow-lg"
+                    >
+                      {winChance}%
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </motion.div>
 
