@@ -70,10 +70,10 @@ export function SideButtons({
                 <img
                   src={button.icon}
                   alt={button.label}
-                  className="w-14 h-14 object-contain drop-shadow-lg"
+                  className="w-12 h-12 object-contain drop-shadow-lg"
                 />
               ) : (
-                <button.icon className="w-14 h-14 text-[#FFD700] drop-shadow-lg" />
+                <button.icon className="w-12 h-12 text-[#FFD700] drop-shadow-lg" />
               )}
             </div>
             <span className="text-xs font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
@@ -95,10 +95,10 @@ export function SideButtons({
                 <img
                   src={button.icon}
                   alt={button.label}
-                  className="w-14 h-14 object-contain drop-shadow-lg"
+                  className="w-12 h-12 object-contain drop-shadow-lg"
                 />
               ) : (
-                <button.icon className="w-14 h-14 text-[#FFD700] drop-shadow-lg" />
+                <button.icon className="w-12 h-12 text-[#FFD700] drop-shadow-lg" />
               )}
             </div>
             <span className="text-xs font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
