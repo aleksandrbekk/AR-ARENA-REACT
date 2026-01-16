@@ -75,9 +75,9 @@ export function HowToPlayButton({ variant = 'icon', className = '' }: HowToPlayB
         return (
           <button
             onClick={() => setIsOpen(true)}
-            className={`w-10 h-10 rounded-full bg-zinc-800/80 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:border-[#FFD700]/50 transition-all ${className}`}
+            className={`w-10 h-10 flex items-center justify-center transition-all ${className}`}
           >
-            <img src="/icons/QWIZ.png" alt="?" className="w-6 h-6" />
+            <img src="/icons/QWIZ.png" alt="?" className="w-8 h-8" />
           </button>
         )
     }
