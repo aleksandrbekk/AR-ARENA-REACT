@@ -677,6 +677,7 @@ export default async function handler(req, res) {
       source: 'lava.top',
       contract_id: paymentHistoryId,
       plan: period.tariff,
+      days_added: period.days,  // <-- ОБЯЗАТЕЛЬНОЕ ПОЛЕ!
       status: 'success',
       created_at: new Date().toISOString()
     };
