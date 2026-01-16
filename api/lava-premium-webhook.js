@@ -671,7 +671,7 @@ export default async function handler(req, res) {
     // При ретрае проверка дубликата (выше) найдёт запись и остановится.
     const paymentHistoryId = contractId || `lava_${Date.now()}_${telegramId || extractedUsername}`;
     const paymentData = {
-      telegram_id: telegramId ? String(telegramId) : extractedUsername,
+      telegram_id: telegramId ? parseInt(telegramId, 10) : null,
       amount: grossAmount,
       currency: currency,
       source: 'lava.top',
