@@ -199,13 +199,6 @@ export function ShopPage() {
               <div className={`absolute inset-0 bg-gradient-to-br ${pkg.gradient} opacity-30`} />
               <div className="absolute inset-0 bg-[#0f0f0f]/80" />
 
-              {/* Popular badge */}
-              {pkg.popular && (
-                <div className="absolute -top-0 -right-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black text-[10px] font-black px-3 py-1 rounded-bl-xl">
-                  ХИТ
-                </div>
-              )}
-
               {/* Content */}
               <div className="relative p-4 flex items-center gap-4">
                 {/* Icon */}
@@ -214,36 +207,41 @@ export function ShopPage() {
                   <img
                     src={pkg.icon}
                     alt={pkg.name}
-                    className="relative w-16 h-16 object-contain"
+                    className={`relative object-contain ${pkg.id === 'start' ? 'w-11 h-11' : 'w-16 h-16'}`}
                   />
                 </div>
 
                 {/* Info */}
                 <div className="flex-1">
-                  <div className="text-xs text-white/50 uppercase tracking-wider mb-1">{pkg.name}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-white/50 uppercase tracking-wider">{pkg.name}</div>
+                    {/* Popular badge - inline */}
+                    {pkg.popular && (
+                      <div className="bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black text-[9px] font-black px-2 py-0.5 rounded-md">
+                        ХИТ
+                      </div>
+                    )}
+                  </div>
                   <div className="text-2xl font-black text-white">{pkg.amount} <span className="text-[#FFD700]">AR</span></div>
                 </div>
 
-                {/* Price & Buy */}
-                <div className="text-right">
-                  <div className="text-xl font-black text-white mb-2">
-                    {selectedCurrency === 'USD' && pkg.priceUsd
+                {/* Buy Button with Price */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => buyAR(pkg)}
+                  disabled={loading === pkg.id}
+                  className={`px-5 py-3 rounded-xl font-bold text-sm transition-all ${
+                    loading === pkg.id
+                      ? 'bg-zinc-700 text-white/50'
+                      : 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
+                  }`}
+                >
+                  {loading === pkg.id ? '...' : (
+                    selectedCurrency === 'USD' && pkg.priceUsd
                       ? `$${pkg.priceUsd}`
-                      : `${pkg.price}₽`}
-                  </div>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => buyAR(pkg)}
-                    disabled={loading === pkg.id}
-                    className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${
-                      loading === pkg.id
-                        ? 'bg-zinc-700 text-white/50'
-                        : 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-                    }`}
-                  >
-                    {loading === pkg.id ? '...' : 'Купить'}
-                  </motion.button>
-                </div>
+                      : `${pkg.price}₽`
+                  )}
+                </motion.button>
               </div>
             </motion.div>
           ))}
