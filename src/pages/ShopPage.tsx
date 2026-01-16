@@ -3,52 +3,66 @@ import { useAuth } from '../hooks/useAuth'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../components/ToastProvider'
+import { motion } from 'framer-motion'
 
 interface ARPackage {
   id: string
+  name: string
   amount: number
   price: number
-  priceUsd?: number // Цена в USD для Apple Pay
+  priceUsd?: number
   popular?: boolean
   offerId: string
+  icon: string
+  gradient: string
+  borderColor: string
 }
 
 const AR_PACKAGES: ARPackage[] = [
   {
-    id: 'test_drive',
+    id: 'start',
+    name: 'СТАРТ',
     amount: 100,
     price: 100,
-    priceUsd: 1.1, // ~100₽ = $1.1 (примерный курс)
-    popular: true,
-    offerId: 'bfb09100-385e-4e36-932a-682032e54381' // ТЕСТ-ДРАЙВ
-  },
-  {
-    id: 'start',
-    amount: 500,
-    price: 500,
-    priceUsd: 5.5, // ~500₽ = $5.5
-    offerId: '8bc3a2ef-e5f1-412a-a356-e8aaf1a7fd06' // СТАРТ
+    priceUsd: 1.1,
+    offerId: 'bfb09100-385e-4e36-932a-682032e54381',
+    icon: '/icons/arcoin.png',
+    gradient: 'from-zinc-700 to-zinc-900',
+    borderColor: 'border-zinc-600/50'
   },
   {
     id: 'advanced',
-    amount: 1000,
-    price: 1000,
-    priceUsd: 11, // ~1000₽ = $11
-    offerId: '7b79ce70-e816-4db7-a031-3b8976df9376' // ПРОДВИНУТЫЙ
+    name: 'ПРОДВИНУТЫЙ',
+    amount: 500,
+    price: 500,
+    priceUsd: 5.5,
+    popular: true,
+    offerId: '8bc3a2ef-e5f1-412a-a356-e8aaf1a7fd06',
+    icon: '/icons/arcoinv2.png',
+    gradient: 'from-blue-600 to-blue-900',
+    borderColor: 'border-blue-500/50'
   },
   {
     id: 'expert',
-    amount: 2500,
-    price: 2500,
-    priceUsd: 27.5, // ~2500₽ = $27.5
-    offerId: 'ace5ec7e-371e-473c-80f5-cfe4374a4574' // ЭКСПЕРТ
+    name: 'ЭКСПЕРТ',
+    amount: 1000,
+    price: 1000,
+    priceUsd: 11,
+    offerId: '7b79ce70-e816-4db7-a031-3b8976df9376',
+    icon: '/icons/arcoinv3.png',
+    gradient: 'from-purple-600 to-purple-900',
+    borderColor: 'border-purple-500/50'
   },
   {
     id: 'master',
-    amount: 5000,
-    price: 5000,
-    priceUsd: 55, // ~5000₽ = $55
-    offerId: '4f758f9b-71ff-47e5-99ff-5244ba9bd80e' // МАСТЕР
+    name: 'МАСТЕР',
+    amount: 2500,
+    price: 2500,
+    priceUsd: 27.5,
+    offerId: 'ace5ec7e-371e-473c-80f5-cfe4374a4574',
+    icon: '/icons/ARCOINv4.png',
+    gradient: 'from-[#FFD700] to-[#B8860B]',
+    borderColor: 'border-[#FFD700]/50'
   }
 ]
 
@@ -57,6 +71,7 @@ export function ShopPage() {
   const { gameState, telegramUser } = useAuth()
   const { showToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
+  const [selectedCurrency, setSelectedCurrency] = useState<'RUB' | 'USD'>('RUB')
 
   // ============ TELEGRAM BACK ============
   const handleBackRef = useRef<() => void>(() => navigate('/'))
@@ -77,8 +92,6 @@ export function ShopPage() {
     }
   }, [])
 
-  const [selectedCurrency, setSelectedCurrency] = useState<'RUB' | 'USD'>('RUB')
-
   const buyAR = async (pkg: ARPackage) => {
     if (!telegramUser) {
       showToast({ variant: 'error', title: 'Нет данных пользователя' })
@@ -88,15 +101,8 @@ export function ShopPage() {
     setLoading(pkg.id)
 
     try {
-      // Выбираем цену и валюту
       const amount = selectedCurrency === 'USD' && pkg.priceUsd ? pkg.priceUsd : pkg.price
       const currency = selectedCurrency
-
-      console.log('🔄 Создаю счёт:', {
-        telegramId: telegramUser.id,
-        amount,
-        currency
-      })
 
       const response = await fetch('/api/lava-create-invoice', {
         method: 'POST',
@@ -110,35 +116,26 @@ export function ShopPage() {
         })
       })
 
-      console.log('📡 Response status:', response.status)
-
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('❌ API error:', response.status, errorText)
         showToast({ variant: 'error', title: `Ошибка ${response.status}`, description: errorText })
         return
       }
 
       const data = await response.json()
-      console.log('✅ API response:', data)
 
       if (data.ok && data.paymentUrl) {
-        console.log('🔗 Opening payment URL:', data.paymentUrl)
         showToast({ variant: 'success', title: 'Открываю оплату', description: 'Завершите оплату и вернитесь в приложение' })
 
-        // Открываем ссылку через Telegram WebApp API
         if (window.Telegram?.WebApp?.openLink) {
           window.Telegram.WebApp.openLink(data.paymentUrl)
         } else {
-          // Фоллбэк для теста в браузере
           window.open(data.paymentUrl, '_blank')
         }
       } else {
-        console.error('❌ No payment URL in response:', data)
         showToast({ variant: 'error', title: 'Не получена ссылка на оплату', description: data.error || undefined })
       }
     } catch (error) {
-      console.error('❌ Network error:', error)
       showToast({ variant: 'error', title: 'Ошибка сети', description: error instanceof Error ? error.message : 'Unknown error' })
     } finally {
       setLoading(null)
@@ -147,141 +144,129 @@ export function ShopPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-[#0a0a0a] text-white pt-[60px] pb-8 px-4">
-        {/* Header с кнопкой назад */}
-        <div className="flex items-center justify-between mb-6 px-2">
-          {/* Кнопка назад - убрал, navbar справится */}
-          <div></div>
+      <div className="min-h-screen bg-[#0a0a0a] text-white pt-[60px] pb-24 px-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <img src="/icons/SHOP.png" alt="" className="w-10 h-10" />
+            <h1 className="text-2xl font-bold">Магазин</h1>
+          </div>
 
-        {/* Баланс AR */}
-        <div className="flex items-center gap-2 bg-black/40 backdrop-blur-lg border border-white/10 rounded-full px-4 py-2">
-          <img
-            src="/icons/arcoin.png"
-            alt="AR"
-            className="w-5 h-5 object-contain"
-          />
-          <span className="text-[#FFD700] font-bold text-sm">
-            {gameState?.balance_ar.toLocaleString('ru-RU') ?? 0}
-          </span>
+          {/* Баланс AR */}
+          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-lg border border-[#FFD700]/30 rounded-full px-4 py-2">
+            <img src="/icons/arcoin.png" alt="AR" className="w-5 h-5" />
+            <span className="text-[#FFD700] font-bold">
+              {gameState?.balance_ar.toLocaleString('ru-RU') ?? 0}
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* Заголовок */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-center mb-4">
-          Магазин AR
-        </h1>
-        
         {/* Выбор валюты */}
-        <div className="flex justify-center gap-2 mb-4">
+        <div className="flex gap-2 mb-6 p-1 bg-zinc-900/50 rounded-xl">
           <button
             onClick={() => setSelectedCurrency('RUB')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
               selectedCurrency === 'RUB'
                 ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-                : 'bg-zinc-800 text-white/60'
+                : 'text-white/50'
             }`}
           >
-            ₽ RUB
+            ₽ Рубли
           </button>
           <button
             onClick={() => setSelectedCurrency('USD')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
               selectedCurrency === 'USD'
                 ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
-                : 'bg-zinc-800 text-white/60'
+                : 'text-white/50'
             }`}
           >
-            $ USD (Apple Pay)
+            $ Apple Pay
           </button>
         </div>
-      </div>
 
-      {/* Пакеты AR */}
-      <div className="space-y-4 max-w-md mx-auto">
-        {AR_PACKAGES.map((pkg) => (
-          <div
-            key={pkg.id}
-            className="relative bg-black/40 backdrop-blur-lg border border-white/10 rounded-2xl p-6 shadow-xl"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,165,0,0.05) 100%)',
-              boxShadow: '0 8px 32px 0 rgba(255,215,0,0.2)'
-            }}
-          >
-            {pkg.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black text-xs font-bold px-4 py-1 rounded-full">
-                Популярное
-              </div>
-            )}
-
-            <div className="flex items-center justify-between mb-4">
-              {/* AR Amount */}
-              <div className="flex items-center gap-3">
-                <img
-                  src="/icons/arcoin.png"
-                  alt="AR"
-                  className="w-12 h-12 object-contain"
-                  style={{
-                    filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.6))'
-                  }}
-                />
-                <div>
-                  <div className="text-2xl font-bold text-[#FFD700]">
-                    {pkg.amount} AR
-                  </div>
-                  <div className="text-sm text-white/60">
-                    Игровая валюта
-                  </div>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="text-right">
-                <div className="text-3xl font-bold text-white">
-                  {selectedCurrency === 'USD' && pkg.priceUsd
-                    ? `$${pkg.priceUsd}`
-                    : `${pkg.price} ₽`}
-                </div>
-                {selectedCurrency === 'USD' && pkg.priceUsd && (
-                  <div className="text-xs text-white/40 line-through">
-                    {pkg.price} ₽
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Buy Button */}
-            <button
-              onClick={() => buyAR(pkg)}
-              disabled={loading === pkg.id}
-              className="w-full py-3 rounded-xl font-bold text-black text-lg transition-all disabled:opacity-50"
-              style={{
-                background: loading === pkg.id
-                  ? 'linear-gradient(135deg, #999 0%, #666 100%)'
-                  : 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                boxShadow: '0 4px 20px rgba(255,215,0,0.4)'
-              }}
+        {/* Тарифы */}
+        <div className="space-y-4">
+          {AR_PACKAGES.map((pkg, index) => (
+            <motion.div
+              key={pkg.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className={`relative rounded-2xl overflow-hidden border ${pkg.borderColor}`}
             >
-              {loading === pkg.id ? 'Загрузка...' : 'Купить'}
-            </button>
-          </div>
-        ))}
-      </div>
+              {/* Background gradient */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${pkg.gradient} opacity-30`} />
+              <div className="absolute inset-0 bg-[#0f0f0f]/80" />
 
-      {/* Info */}
-      <div className="mt-8 max-w-md mx-auto">
-        <div className="bg-black/20 backdrop-blur-lg border border-white/5 rounded-xl p-4">
-          <h3 className="text-sm font-bold text-[#FFD700] mb-2">
-            Зачем нужен AR?
-          </h3>
-          <ul className="text-sm text-white/70 space-y-1">
-            <li>• Покупай уникальные скины быков</li>
-            <li>• Участвуй в эксклюзивных событиях</li>
-            <li>• Получай преимущества в игре</li>
-          </ul>
+              {/* Popular badge */}
+              {pkg.popular && (
+                <div className="absolute -top-0 -right-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black text-[10px] font-black px-3 py-1 rounded-bl-xl">
+                  ХИТ
+                </div>
+              )}
+
+              {/* Content */}
+              <div className="relative p-4 flex items-center gap-4">
+                {/* Icon */}
+                <div className="relative">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${pkg.gradient} blur-xl opacity-50`} />
+                  <img
+                    src={pkg.icon}
+                    alt={pkg.name}
+                    className="relative w-16 h-16 object-contain"
+                  />
+                </div>
+
+                {/* Info */}
+                <div className="flex-1">
+                  <div className="text-xs text-white/50 uppercase tracking-wider mb-1">{pkg.name}</div>
+                  <div className="text-2xl font-black text-white">{pkg.amount} <span className="text-[#FFD700]">AR</span></div>
+                </div>
+
+                {/* Price & Buy */}
+                <div className="text-right">
+                  <div className="text-xl font-black text-white mb-2">
+                    {selectedCurrency === 'USD' && pkg.priceUsd
+                      ? `$${pkg.priceUsd}`
+                      : `${pkg.price}₽`}
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => buyAR(pkg)}
+                    disabled={loading === pkg.id}
+                    className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${
+                      loading === pkg.id
+                        ? 'bg-zinc-700 text-white/50'
+                        : 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
+                    }`}
+                  >
+                    {loading === pkg.id ? '...' : 'Купить'}
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
+
+        {/* Info block */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-6 p-4 rounded-2xl bg-zinc-900/50 border border-white/5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <img src="/icons/arcoin.png" alt="" className="w-6 h-6" />
+            <h3 className="text-sm font-bold text-[#FFD700]">Зачем нужен AR?</h3>
+          </div>
+          <ul className="text-sm text-white/60 space-y-1">
+            <li>• Покупай билеты на розыгрыши</li>
+            <li>• Приобретай уникальные скины</li>
+            <li>• Участвуй в эксклюзивных событиях</li>
+          </ul>
+        </motion.div>
       </div>
-    </div>
     </Layout>
   )
 }
