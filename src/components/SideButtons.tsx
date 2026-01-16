@@ -38,7 +38,7 @@ export function SideButtons({
   // Правая колонка
   const rightButtons: ButtonConfig[] = [
     {
-      icon: '/icons/GIVEAWAY.png',
+      icon: '/icons/giv.png',
       label: 'Розыгрыши',
       onClick: onGiveawaysClick || (() => console.log('Giveaways clicked')),
     },
@@ -57,51 +57,51 @@ export function SideButtons({
   return (
     <div className="absolute inset-0 pointer-events-none z-50">
       {/* Левая колонка */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-6 pointer-events-auto">
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-5 pointer-events-auto">
         {leftButtons.map((button) => (
           <button
             key={button.label}
             onClick={button.onClick}
-            className="flex flex-col items-center gap-1 group"
+            className="flex flex-col items-center gap-1.5 group"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
+            <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
               {typeof button.icon === 'string' ? (
                 <img
                   src={button.icon}
                   alt={button.label}
-                  className="w-8 h-8 object-contain drop-shadow-md"
+                  className="w-10 h-10 object-contain drop-shadow-md"
                 />
               ) : (
-                <button.icon className="w-8 h-8 text-[#FFD700] drop-shadow-md" />
+                <button.icon className="w-10 h-10 text-[#FFD700] drop-shadow-md" />
               )}
             </div>
-            <span className="text-[11px] font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
+            <span className="text-xs font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
           </button>
         ))}
       </div>
 
       {/* Правая колонка */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-6 pointer-events-auto">
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-5 pointer-events-auto">
         {rightButtons.map((button) => (
           <button
             key={button.label}
             onClick={button.onClick}
-            className="flex flex-col items-center gap-1 group"
+            className="flex flex-col items-center gap-1.5 group"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
+            <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform group-active:scale-90">
               {typeof button.icon === 'string' ? (
                 <img
                   src={button.icon}
                   alt={button.label}
-                  className="w-8 h-8 object-contain drop-shadow-md"
+                  className="w-10 h-10 object-contain drop-shadow-md"
                 />
               ) : (
-                <button.icon className="w-8 h-8 text-[#FFD700] drop-shadow-md" />
+                <button.icon className="w-10 h-10 text-[#FFD700] drop-shadow-md" />
               )}
             </div>
-            <span className="text-[11px] font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
+            <span className="text-xs font-bold text-white drop-shadow-md tracking-wide">{button.label}</span>
           </button>
         ))}
       </div>
