@@ -5,11 +5,17 @@ interface StatusBarProps {
   energy: number
   energyMax: number
   activeSkin?: Skin | null
+  isLoading?: boolean
 }
 
-export function StatusBar({ energy, energyMax, activeSkin }: StatusBarProps) {
+export function StatusBar({ energy, energyMax, activeSkin, isLoading = false }: StatusBarProps) {
   // Calculate total tap power: 1 + skin bonus (без tap_power)
   const totalTap = 1 + (activeSkin?.tap_bonus || 0)
+
+  // Skeleton placeholder для загрузки
+  const SkeletonValue = () => (
+    <span className="inline-block w-6 h-3 bg-white/10 rounded animate-pulse" />
+  )
 
   return (
     <div className="px-4 pb-6 flex justify-center">
@@ -33,7 +39,7 @@ export function StatusBar({ energy, energyMax, activeSkin }: StatusBarProps) {
           <div className="flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" />
             <span className="text-xs font-bold text-white">
-              +{totalTap}
+              {isLoading ? <SkeletonValue /> : `+${totalTap}`}
             </span>
           </div>
           <span className="text-[8px] text-white/40 uppercase tracking-wider">Тап</span>
@@ -44,9 +50,9 @@ export function StatusBar({ energy, energyMax, activeSkin }: StatusBarProps) {
         {/* Farm Bonus */}
         <div className="flex flex-col items-center gap-0.5">
           <div className="flex items-center gap-1.5">
-            <Pickaxe className={`w-3.5 h-3.5 ${activeSkin?.farm_bonus ? "text-green-400" : "text-white/20"}`} />
-            <span className={`text-xs font-bold ${activeSkin?.farm_bonus ? "text-white" : "text-white/30"}`}>
-              +{activeSkin?.farm_bonus || 0}
+            <Pickaxe className={`w-3.5 h-3.5 ${!isLoading && activeSkin?.farm_bonus ? "text-green-400" : "text-white/20"}`} />
+            <span className={`text-xs font-bold ${!isLoading && activeSkin?.farm_bonus ? "text-white" : "text-white/30"}`}>
+              {isLoading ? <SkeletonValue /> : `+${activeSkin?.farm_bonus || 0}`}
             </span>
           </div>
           <span className="text-[8px] text-white/40 uppercase tracking-wider">Ферма</span>
@@ -57,9 +63,9 @@ export function StatusBar({ energy, energyMax, activeSkin }: StatusBarProps) {
         {/* Regen Bonus */}
         <div className="flex flex-col items-center gap-0.5">
           <div className="flex items-center gap-1.5">
-            <Battery className={`w-3.5 h-3.5 ${activeSkin?.regen_bonus ? "text-blue-400" : "text-white/20"}`} />
-            <span className={`text-xs font-bold ${activeSkin?.regen_bonus ? "text-white" : "text-white/30"}`}>
-              +{activeSkin?.regen_bonus || 0}
+            <Battery className={`w-3.5 h-3.5 ${!isLoading && activeSkin?.regen_bonus ? "text-blue-400" : "text-white/20"}`} />
+            <span className={`text-xs font-bold ${!isLoading && activeSkin?.regen_bonus ? "text-white" : "text-white/30"}`}>
+              {isLoading ? <SkeletonValue /> : `+${activeSkin?.regen_bonus || 0}`}
             </span>
           </div>
           <span className="text-[8px] text-white/40 uppercase tracking-wider">Реген</span>

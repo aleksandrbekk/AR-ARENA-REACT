@@ -20,7 +20,7 @@ const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
 export function Home() {
   const { telegramUser, gameState, isLoading, error, updateGameState } = useAuth()
   const { tap, isProcessing } = useTap(telegramUser?.id?.toString() || '')
-  const { activeSkin } = useSkins()
+  const { activeSkin, loading: skinsLoading } = useSkins()
   const navigate = useNavigate()
 
   // Редирект не-админов на страницу тарифов (приложение в разработке)
@@ -92,9 +92,10 @@ export function Home() {
         console.log('🎉 LEVEL UP!')
       }
 
-      // Синхронизируем с сервером (если сервер вернул другие значения)
+      // Синхронизируем с сервером ТОЛЬКО энергию, level, xp
+      // НЕ трогаем balance_bul - оптимистичное значение уже правильное
+      // Это предотвращает race condition когда сервер возвращает старый баланс
       updateGameState({
-        balance_bul: result.balance_bul,
         energy: result.energy,
         level: result.level,
         xp: result.xp,
@@ -215,6 +216,7 @@ export function Home() {
           energy={gameState.energy}
           energyMax={gameState.energy_max}
           activeSkin={activeSkin}
+          isLoading={skinsLoading}
         />
       </div>
 
