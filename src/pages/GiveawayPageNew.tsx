@@ -243,7 +243,7 @@ export function GiveawayPageNew() {
             <div className="relative rounded-2xl bg-zinc-900/60 backdrop-blur-md p-4 border border-white/5 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
               <div className="relative flex flex-col items-center">
-                <img src="/icons/friends.png" alt="" className="w-10 h-10 mb-2" />
+                <img src="/icons/peaple.png" alt="" className="w-10 h-10 mb-2" />
                 <span className="text-2xl font-black text-white">{participantsCount}</span>
                 <span className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Участников</span>
               </div>
