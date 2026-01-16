@@ -93,7 +93,7 @@ export function HowToPlayButton({ variant = 'icon', className = '' }: HowToPlayB
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center"
           >
             {/* Backdrop */}
             <div
@@ -153,8 +153,8 @@ export function HowToPlayButton({ variant = 'icon', className = '' }: HowToPlayB
 
                         {/* Card */}
                         <div className={`p-4 rounded-xl border transition-all ${activeStage === idx
-                            ? 'bg-white/10 border-[#FFD700]/50 shadow-[0_0_20px_rgba(255,215,0,0.1)]'
-                            : 'bg-white/5 border-white/10 hover:border-white/20'
+                          ? 'bg-white/10 border-[#FFD700]/50 shadow-[0_0_20px_rgba(255,215,0,0.1)]'
+                          : 'bg-white/5 border-white/10 hover:border-white/20'
                           }`}>
                           <div className="flex items-center justify-between mb-2">
                             <div>
