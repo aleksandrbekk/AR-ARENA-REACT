@@ -193,11 +193,8 @@ export function PartnersPage() {
         style={{ background: 'radial-gradient(circle at 50% -10%, rgba(255,215,0,0.08) 0%, transparent 60%)' }}
       />
 
-      {/* Header */}
-      <div className="pt-[70px] px-4 pb-4 relative z-10">
-        <h1 className="text-2xl font-black text-white mb-1">Партнёрская программа</h1>
-        <p className="text-white/50 text-sm">Приглашай друзей и зарабатывай!</p>
-      </div>
+      {/* Header - just spacing for safe area */}
+      <div className="pt-[100px] px-4 pb-2 relative z-10" />
 
       {/* Referral Link Card - Premium Design */}
       <div className="px-4 mb-4 relative z-10">
@@ -357,11 +354,10 @@ export function PartnersPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === tab
                   ? 'bg-yellow-500 text-black'
                   : 'text-white/50 hover:text-white/70'
-              }`}
+                }`}
             >
               {tab === 'overview' && 'Обзор'}
               {tab === 'team' && 'Команда'}
@@ -434,12 +430,10 @@ export function PartnersPage() {
                         className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            earning.level === 1 ? 'bg-green-500/20' : 'bg-blue-500/20'
-                          }`}>
-                            <span className={`text-xs font-bold ${
-                              earning.level === 1 ? 'text-green-400' : 'text-blue-400'
-                            }`}>L{earning.level}</span>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${earning.level === 1 ? 'bg-green-500/20' : 'bg-blue-500/20'
+                            }`}>
+                            <span className={`text-xs font-bold ${earning.level === 1 ? 'text-green-400' : 'text-blue-400'
+                              }`}>L{earning.level}</span>
                           </div>
                           <div>
                             <p className="text-white text-sm">
@@ -497,31 +491,28 @@ export function PartnersPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setTeamFilter(null)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    teamFilter === null
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${teamFilter === null
                       ? 'bg-yellow-500 text-black'
                       : 'bg-zinc-800 text-white/50'
-                  }`}
+                    }`}
                 >
                   Все ({stats?.team?.length || 0})
                 </button>
                 <button
                   onClick={() => setTeamFilter(1)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    teamFilter === 1
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${teamFilter === 1
                       ? 'bg-green-500 text-black'
                       : 'bg-zinc-800 text-white/50'
-                  }`}
+                    }`}
                 >
                   L1 ({stats?.l1_count || 0})
                 </button>
                 <button
                   onClick={() => setTeamFilter(2)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    teamFilter === 2
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${teamFilter === 2
                       ? 'bg-blue-500 text-black'
                       : 'bg-zinc-800 text-white/50'
-                  }`}
+                    }`}
                 >
                   L2 ({stats?.l2_count || 0})
                 </button>
@@ -558,11 +549,10 @@ export function PartnersPage() {
                           <p className="text-white font-medium truncate">
                             {member.first_name || member.username || 'Пользователь'}
                           </p>
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                            member.level === 1
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${member.level === 1
                               ? 'bg-green-500/20 text-green-400'
                               : 'bg-blue-500/20 text-blue-400'
-                          }`}>
+                            }`}>
                             L{member.level}
                           </span>
                         </div>
@@ -617,11 +607,10 @@ export function PartnersPage() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          earning.level === 1
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${earning.level === 1
                             ? 'bg-green-500/20 text-green-400'
                             : 'bg-blue-500/20 text-blue-400'
-                        }`}>
+                          }`}>
                           L{earning.level} • {earning.bonus_percent}%
                         </span>
                         <span className="text-white/40 text-xs">
