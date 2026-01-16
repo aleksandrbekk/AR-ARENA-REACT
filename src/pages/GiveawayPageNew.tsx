@@ -161,7 +161,7 @@ export function GiveawayPageNew() {
             {/* Slot Icon */}
             <div className="relative w-24 h-24 mx-auto mb-6">
               <div className="absolute inset-0 bg-[#FFD700]/30 blur-2xl rounded-full animate-pulse" />
-              <img src="/icons/SLOT.png" alt="" className="relative w-full h-full object-contain" />
+              <img src="/icons/Jackpot.png" alt="" className="relative w-full h-full object-contain" />
             </div>
 
             {/* Jackpot Label */}
