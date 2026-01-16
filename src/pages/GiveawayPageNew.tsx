@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { BuyTicketModal } from '../components/giveaways/BuyTicketModal'
 import { PremiumTimer } from '../components/giveaways/PremiumTimer'
 import { ParticleBackground } from '../components/giveaways/ParticleBackground'
@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useGiveaways } from '../hooks/useGiveaways'
 import type { Giveaway } from '../types'
-import { Ticket, Users, ChevronLeft } from 'lucide-react'
+import { Ticket, Users, ChevronLeft, Trophy, Sparkles } from 'lucide-react'
 
 // Recent winners - можно загружать из базы
 const RECENT_WINNERS = [
@@ -159,113 +159,196 @@ export function GiveawayPageNew() {
 
           {/* Hero Section */}
           <div className="px-4 pt-4">
-            {/* Replaced Icon with Premium 3D Trophy */}
-            <div className="relative w-full h-[220px] flex items-center justify-center mb-6">
+            {/* Premium Trophy with enhanced effects */}
+            <div className="relative w-full h-[200px] flex items-center justify-center mb-4">
+              {/* Multi-layer glow */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-48 h-48 bg-[#FFD700]/20 blur-[60px] rounded-full animate-pulse" />
+                <div className="w-40 h-40 bg-[#FFD700]/30 blur-[80px] rounded-full" />
               </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-24 h-24 bg-[#FFA500]/40 blur-[40px] rounded-full animate-pulse" />
+              </div>
+
               <motion.div
-                initial={{ scale: 0.8, opacity: 0, y: 10 }}
+                initial={{ scale: 0.5, opacity: 0, y: 30 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                className="relative z-10 w-[240px] h-[240px] flex items-center justify-center"
+                transition={{ type: "spring", stiffness: 120, damping: 15 }}
+                className="relative z-10"
               >
-                <img
-                  src="/giveaway_trophy_premium.png"
-                  alt="Premium Trophy"
-                  className="w-full h-full object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-                />
+                {/* Trophy icon fallback or image */}
+                <div className="relative w-32 h-32 flex items-center justify-center">
+                  <Trophy className="w-24 h-24 text-[#FFD700] drop-shadow-[0_0_30px_rgba(255,215,0,0.5)]" strokeWidth={1.5} />
+                  {/* Sparkle decorations */}
+                  <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-[#FFD700]/80 animate-pulse" />
+                  <Sparkles className="absolute -bottom-1 -left-3 w-5 h-5 text-[#FFA500]/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
+                </div>
               </motion.div>
             </div>
 
-            {/* Titles & Jackpot */}
-            <div className="text-center -mt-6 relative z-20">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="inline-block"
-              >
-                <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FFD700] to-[#FFA500] drop-shadow-[0_0_20px_rgba(255,215,0,0.3)]">
+            {/* Jackpot Amount - Hero */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center relative z-20"
+            >
+              {/* Main amount */}
+              <div className="relative inline-block">
+                <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#FFA500]">
                   {(giveaway.jackpot_current_amount || giveaway.prices?.ar || 0).toLocaleString()}
                 </h1>
-                <p className="text-[#FFD700]/60 text-xs font-bold tracking-[0.4em] uppercase mt-1">
-                  AR · Джекпот
-                </p>
-              </motion.div>
-
-              <div className="mt-6">
-                <h2 className="text-xl font-bold text-white tracking-wide">{giveaway.title}</h2>
-                <p className="text-white/40 text-sm mt-1">{giveaway.subtitle}</p>
+                {/* Glow behind text */}
+                <div className="absolute inset-0 text-5xl font-black text-[#FFD700] blur-lg opacity-30 -z-10">
+                  {(giveaway.jackpot_current_amount || giveaway.prices?.ar || 0).toLocaleString()}
+                </div>
               </div>
-            </div>
+
+              {/* Currency label */}
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#FFD700]/30" />
+                <span className="text-[#FFD700]/70 text-xs font-bold tracking-[0.3em] uppercase">
+                  AR Джекпот
+                </span>
+                <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#FFD700]/30" />
+              </div>
+
+              {/* Title */}
+              <div className="mt-5">
+                <h2 className="text-lg font-bold text-white">{giveaway.title}</h2>
+                {giveaway.subtitle && (
+                  <p className="text-white/40 text-sm mt-1">{giveaway.subtitle}</p>
+                )}
+              </div>
+            </motion.div>
           </div>
 
-          {/* Timer */}
+          {/* Timer Section */}
           {isActive && !isEnded && giveaway.end_date && (
-            <div className="mt-8 px-4">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                <span className="text-[10px] uppercase tracking-widest text-white/30 font-bold">До розыгрыша</span>
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-6 mx-4"
+            >
+              {/* Timer container with glass effect */}
+              <div className="relative rounded-2xl bg-zinc-900/60 backdrop-blur-xl border border-white/5 p-4 overflow-hidden">
+                {/* Subtle gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+
+                {/* Label */}
+                <div className="text-center mb-2">
+                  <span className="text-[11px] uppercase tracking-widest text-white/40 font-semibold">
+                    До розыгрыша осталось
+                  </span>
+                </div>
+
+                {/* Timer */}
+                <PremiumTimer targetDate={giveaway.end_date} />
               </div>
-              <PremiumTimer targetDate={giveaway.end_date} />
-            </div>
+            </motion.div>
           )}
 
-          {/* Dashboard Grid */}
-          <div className="px-4 mt-8 grid grid-cols-2 gap-3">
+          {/* Stats Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="px-4 mt-6 grid grid-cols-2 gap-3"
+          >
             {/* Participants */}
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center">
-              <Users className="w-6 h-6 text-white/30 mb-2" />
-              <span className="text-lg font-bold text-white">{participantsCount}</span>
-              <span className="text-[10px] text-white/30 uppercase tracking-wider">Участников</span>
+            <div className="relative rounded-2xl bg-zinc-900/60 backdrop-blur-md p-4 border border-white/5 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
+              <div className="relative flex flex-col items-center">
+                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-2">
+                  <Users className="w-5 h-5 text-blue-400" />
+                </div>
+                <span className="text-2xl font-black text-white">{participantsCount}</span>
+                <span className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Участников</span>
+              </div>
             </div>
 
             {/* My Tickets */}
-            <div className={`rounded-2xl p-4 border flex flex-col items-center justify-center relative overflow-hidden
-                ${myTickets > 0 ? 'bg-gradient-to-br from-[#FFD700]/10 to-[#FFA500]/5 border-[#FFD700]/30' : 'bg-white/5 border-white/5'}`}
+            <div className={`relative rounded-2xl p-4 border overflow-hidden backdrop-blur-md
+                ${myTickets > 0
+                  ? 'bg-gradient-to-br from-[#FFD700]/15 to-[#FFA500]/5 border-[#FFD700]/20'
+                  : 'bg-zinc-900/60 border-white/5'
+                }`}
             >
-              <Ticket className={`w-6 h-6 mb-2 ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white/30'}`} />
-              <span className={`text-lg font-bold ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white'}`}>
-                {myTickets}
-              </span>
-              <span className={`text-[10px] uppercase tracking-wider ${myTickets > 0 ? 'text-[#FFD700]/60' : 'text-white/30'}`}>
-                Мои билеты
-              </span>
-
-              {/* Win Chance Badge */}
-              {myTickets > 0 && totalTickets > 0 && (
-                <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-[#FFD700] text-black text-[9px] font-bold">
-                  {winChance}%
-                </div>
+              {myTickets > 0 && (
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[#FFD700]/10 via-transparent to-transparent pointer-events-none" />
               )}
+              <div className="relative flex flex-col items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
+                  myTickets > 0 ? 'bg-[#FFD700]/20' : 'bg-white/5'
+                }`}>
+                  <Ticket className={`w-5 h-5 ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white/30'}`} />
+                </div>
+                <span className={`text-2xl font-black ${myTickets > 0 ? 'text-[#FFD700]' : 'text-white'}`}>
+                  {myTickets}
+                </span>
+                <span className={`text-[10px] uppercase tracking-wider mt-1 ${
+                  myTickets > 0 ? 'text-[#FFD700]/60' : 'text-white/40'
+                }`}>
+                  Мои билеты
+                </span>
+
+                {/* Win Chance Badge */}
+                <AnimatePresence>
+                  {myTickets > 0 && totalTickets > 0 && (
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-[#FFD700] text-black text-[10px] font-bold shadow-lg"
+                    >
+                      {winChance}%
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Recent Winners */}
-          <div className="px-4 mt-8 mb-8">
-            <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4 pl-1">
-              Последние победители
-            </h3>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="px-4 mt-6 mb-8"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Trophy className="w-4 h-4 text-[#FFD700]/60" />
+              <h3 className="text-white/50 text-xs font-bold uppercase tracking-widest">
+                Последние победители
+              </h3>
+            </div>
+
             <div className="space-y-2">
               {RECENT_WINNERS.map((winner, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 + i * 0.1 }}
+                  className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/60 backdrop-blur-sm border border-white/5 hover:border-white/10 transition-colors"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center text-[#FFD700] text-xs font-bold">
-                      {winner.name[0]}
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10 flex items-center justify-center border border-[#FFD700]/20">
+                      <span className="text-[#FFD700] text-sm font-bold">{winner.name[0]}</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm text-white font-medium">{winner.name}</span>
                       <span className="text-[10px] text-white/30">{winner.date}</span>
                     </div>
                   </div>
-                  <div className="text-[#FFD700] font-bold text-sm">
-                    +{winner.amount.toLocaleString()} AR
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#FFD700] font-bold text-sm">+{winner.amount.toLocaleString()}</span>
+                    <img src="/icons/arcoin.png" alt="" className="w-4 h-4" />
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Fixed Bottom CTA */}

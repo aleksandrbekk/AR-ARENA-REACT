@@ -199,111 +199,153 @@ export function PartnersPage() {
         <p className="text-white/50 text-sm">Приглашай друзей и зарабатывай!</p>
       </div>
 
-      {/* Referral Link Card */}
+      {/* Referral Link Card - Premium Design */}
       <div className="px-4 mb-4 relative z-10">
         <motion.div
-          className="bg-gradient-to-br from-yellow-500/20 via-orange-500/10 to-transparent rounded-2xl p-4 border border-yellow-500/20 backdrop-blur-sm"
+          className="relative rounded-2xl overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="flex items-center gap-2 mb-3">
-            <Link2 className="w-5 h-5 text-yellow-400" />
-            <span className="text-white/70 text-sm">Твоя реферальная ссылка</span>
-          </div>
+          {/* Background with gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700]/15 via-[#FFA500]/10 to-transparent" />
+          <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-xl" />
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#FFD700]/30 to-transparent" />
 
-          <div className="flex gap-2">
-            <div className="flex-1 bg-black/40 rounded-xl px-4 py-3 border border-white/10 overflow-hidden">
-              <span className="text-white font-mono text-sm truncate block">
-                t.me/ARARENA_BOT?startapp={stats?.referral_code || '...'}
-              </span>
+          <div className="relative p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-[#FFD700]/20 flex items-center justify-center">
+                <Link2 className="w-4 h-4 text-[#FFD700]" />
+              </div>
+              <span className="text-white/80 text-sm font-medium">Твоя реферальная ссылка</span>
             </div>
 
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={copyLink}
-              className="w-12 h-12 rounded-xl bg-yellow-500 flex items-center justify-center"
-            >
-              {copied ? (
-                <Check className="w-5 h-5 text-black" />
-              ) : (
-                <Copy className="w-5 h-5 text-black" />
-              )}
-            </motion.button>
+            <div className="flex gap-2">
+              <div className="flex-1 bg-black/50 rounded-xl px-4 py-3.5 border border-white/10 overflow-hidden">
+                <span className="text-white/90 font-mono text-sm truncate block">
+                  t.me/ARARENA_BOT?startapp={stats?.referral_code || '...'}
+                </span>
+              </div>
 
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={shareLink}
-              className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center"
-            >
-              <Share2 className="w-5 h-5 text-white" />
-            </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={copyLink}
+                className="w-12 h-12 rounded-xl bg-gradient-to-b from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-lg shadow-[#FFD700]/20"
+              >
+                {copied ? (
+                  <Check className="w-5 h-5 text-black" />
+                ) : (
+                  <Copy className="w-5 h-5 text-black" />
+                )}
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={shareLink}
+                className="w-12 h-12 rounded-xl bg-gradient-to-b from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20"
+              >
+                <Share2 className="w-5 h-5 text-white" />
+              </motion.button>
+            </div>
+
+            {/* Bonus info */}
+            <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-white/5">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-white/50 text-xs">L1: 10%</span>
+              </div>
+              <div className="w-px h-3 bg-white/10" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-white/50 text-xs">L2: 5%</span>
+              </div>
+            </div>
           </div>
-
-          <p className="text-white/40 text-xs mt-3">
-            10% с покупок друзей (L1) + 5% с их рефералов (L2)
-          </p>
         </motion.div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Premium Design */}
       <div className="px-4 mb-4 grid grid-cols-2 gap-3 relative z-10">
+        {/* AR Earned */}
         <motion.div
-          className="bg-zinc-900/80 rounded-xl p-4 border border-white/5"
+          className="relative rounded-xl overflow-hidden"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <CurrencyIcon type="AR" className="w-5 h-5" />
-            <span className="text-white/50 text-xs">Заработано AR</span>
-          </div>
-          <div className="text-2xl font-black text-white">
-            {stats?.total_earned_ar?.toLocaleString() || 0}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700]/10 to-transparent" />
+          <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-sm" />
+          <div className="relative p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CurrencyIcon type="AR" className="w-5 h-5" />
+              <span className="text-white/50 text-xs">Заработано AR</span>
+            </div>
+            <div className="text-2xl font-black text-[#FFD700]">
+              {stats?.total_earned_ar?.toLocaleString() || 0}
+            </div>
           </div>
         </motion.div>
 
+        {/* BUL Earned */}
         <motion.div
-          className="bg-zinc-900/80 rounded-xl p-4 border border-white/5"
+          className="relative rounded-xl overflow-hidden"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.15 }}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <CurrencyIcon type="BUL" className="w-5 h-5" />
-            <span className="text-white/50 text-xs">Заработано BUL</span>
-          </div>
-          <div className="text-2xl font-black text-white">
-            {stats?.total_earned_bul?.toLocaleString() || 0}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent" />
+          <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-sm" />
+          <div className="relative p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CurrencyIcon type="BUL" className="w-5 h-5" />
+              <span className="text-white/50 text-xs">Заработано BUL</span>
+            </div>
+            <div className="text-2xl font-black text-purple-400">
+              {stats?.total_earned_bul?.toLocaleString() || 0}
+            </div>
           </div>
         </motion.div>
 
+        {/* L1 Count */}
         <motion.div
-          className="bg-zinc-900/80 rounded-xl p-4 border border-white/5"
+          className="relative rounded-xl overflow-hidden"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="w-4 h-4 text-green-400" />
-            <span className="text-white/50 text-xs">Линия 1 (10%)</span>
-          </div>
-          <div className="text-2xl font-black text-white">
-            {stats?.l1_count || 0}
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent" />
+          <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-sm" />
+          <div className="relative p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+                <Users className="w-3 h-3 text-green-400" />
+              </div>
+              <span className="text-white/50 text-xs">Линия 1 (10%)</span>
+            </div>
+            <div className="text-2xl font-black text-green-400">
+              {stats?.l1_count || 0}
+            </div>
           </div>
         </motion.div>
 
+        {/* L2 Count */}
         <motion.div
-          className="bg-zinc-900/80 rounded-xl p-4 border border-white/5"
+          className="relative rounded-xl overflow-hidden"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.25 }}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="w-4 h-4 text-blue-400" />
-            <span className="text-white/50 text-xs">Линия 2 (5%)</span>
-          </div>
-          <div className="text-2xl font-black text-white">
-            {stats?.l2_count || 0}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent" />
+          <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-sm" />
+          <div className="relative p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <Users className="w-3 h-3 text-blue-400" />
+              </div>
+              <span className="text-white/50 text-xs">Линия 2 (5%)</span>
+            </div>
+            <div className="text-2xl font-black text-blue-400">
+              {stats?.l2_count || 0}
+            </div>
           </div>
         </motion.div>
       </div>
