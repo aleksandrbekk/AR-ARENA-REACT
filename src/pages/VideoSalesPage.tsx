@@ -1,12 +1,17 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ReactPlayer from 'react-player'
 import { PaymentModal } from '../components/premium/PaymentModal'
+
+const ReactPlayerAny = ReactPlayer as any
 
 // ============ КОНФИГУРАЦИЯ ============
 const SECRET_CODE = '2025' // Секретный код из видео
-const VIDEO_EMBED_URL = 'https://www.youtube.com/embed/dQw4w9WgXcQ' // Тестовое видео
+// Сюда можно вставить прямую ссылку на YouTube/Vimeo или полный код вставки <iframe>
+const VIDEO_SOURCE = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 const CODE_REVEAL_PERCENT = 70 // Процент просмотра, когда появляется код
-const VIDEO_DURATION_SECONDS = 120 // Длительность видео в секундах (для демо)
+
+// Длительность определяется автоматически плеером
 
 // ============ СТИЛИ ДЛЯ AURORA ============
 const auroraStyles = `
@@ -483,55 +488,50 @@ function CodeInput({ onComplete, error, progress }: CodeInputProps) {
 }
 
 // ============ VIDEO PLAYER ============
+// ============ VIDEO PLAYER ============
 interface VideoPlayerProps {
     onProgress: (percent: number) => void
+    onDuration: (duration: number) => void
 }
 
-function VideoPlayer({ onProgress }: VideoPlayerProps) {
-    // Simulate video progress for demo (replace with actual video API)
-    useEffect(() => {
-        if (!VIDEO_EMBED_URL) {
-            // Demo: auto-progress when no video
-            let progress = 0
-            const interval = setInterval(() => {
-                progress += 0.5
-                if (progress >= 100) {
-                    progress = 100
-                    clearInterval(interval)
-                }
-                onProgress(progress)
-            }, 100)
-            return () => clearInterval(interval)
+function VideoPlayer({ onProgress, onDuration }: VideoPlayerProps) {
+    // Хелпер для извлечения URL из iframes или использования "как есть"
+    const videoUrl = useMemo(() => {
+        if (!VIDEO_SOURCE) return ''
+        // Если это iframe, вытаскиваем src
+        if (VIDEO_SOURCE.includes('<iframe')) {
+            const match = VIDEO_SOURCE.match(/src=["'](.*?)["']/)
+            return match ? match[1] : ''
         }
-    }, [onProgress])
+        return VIDEO_SOURCE
+    }, [])
 
     return (
         <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10">
-            {VIDEO_EMBED_URL ? (
-                <iframe
-                    src={VIDEO_EMBED_URL}
-                    className="absolute inset-0 w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                />
+            {videoUrl ? (
+                <div className="absolute inset-0 w-full h-full">
+                    <ReactPlayerAny
+                        url={videoUrl}
+                        width="100%"
+                        height="100%"
+                        controls={true}
+                        playing={false}
+                        config={{
+                            youtube: {
+                                playerVars: { showinfo: 0, rel: 0 }
+                            }
+                        } as any}
+                        onProgress={(state: any) => {
+                            // state.played is 0..1
+                            onProgress(state.played * 100)
+                        }}
+                        onDuration={onDuration}
+                    />
+                </div>
             ) : (
                 // Placeholder when no video
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
-                    <motion.div
-                        className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
-                        style={{
-                            background: 'linear-gradient(135deg, #FFD70020, #FFA50010)',
-                            border: '2px solid #FFD70030'
-                        }}
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                    >
-                        <svg className="w-10 h-10 text-[#FFD700]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                        </svg>
-                    </motion.div>
-                    <p className="text-white/40 text-sm">Видео будет здесь</p>
-                    <p className="text-white/20 text-xs mt-1">Демо-режим: прогресс симулируется</p>
+                    <p className="text-white/40 text-sm">Видео не настроено</p>
                 </div>
             )}
 
@@ -549,6 +549,7 @@ function VideoPlayer({ onProgress }: VideoPlayerProps) {
 // ============ ГЛАВНАЯ СТРАНИЦА ============
 export function VideoSalesPage() {
     const [videoProgress, setVideoProgress] = useState(0)
+    const [videoDuration, setVideoDuration] = useState(0) // Duration in seconds
     const [isUnlocked, setIsUnlocked] = useState(false)
     const [codeError, setCodeError] = useState(false)
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -579,6 +580,15 @@ export function VideoSalesPage() {
         setSelectedTariff(tariff)
         setIsPaymentModalOpen(true)
     }
+
+    // Рассчет времени до появления кода
+    const timeRemaining = useMemo(() => {
+        if (!videoDuration) return null
+        const revealTime = (CODE_REVEAL_PERCENT / 100) * videoDuration
+        const currentTime = (videoProgress / 100) * videoDuration
+        const remaining = Math.max(0, revealTime - currentTime)
+        return Math.ceil(remaining)
+    }, [videoDuration, videoProgress])
 
     return (
         <>
@@ -635,10 +645,13 @@ export function VideoSalesPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.6, delay: 0.2 }}
                             >
-                                <VideoPlayer onProgress={setVideoProgress} />
+                                <VideoPlayer
+                                    onProgress={setVideoProgress}
+                                    onDuration={setVideoDuration}
+                                />
 
                                 {/* Countdown under video */}
-                                {videoProgress < CODE_REVEAL_PERCENT && (
+                                {videoProgress < CODE_REVEAL_PERCENT && timeRemaining !== null && (
                                     <motion.div
                                         className="mt-4 text-center"
                                         initial={{ opacity: 0 }}
@@ -652,7 +665,7 @@ export function VideoSalesPage() {
                                                 До момента, когда ты увидишь код:
                                             </span>
                                             <span className="text-[#FFD700] font-bold tabular-nums">
-                                                {Math.ceil((CODE_REVEAL_PERCENT - videoProgress) / 100 * VIDEO_DURATION_SECONDS)} сек
+                                                {timeRemaining} сек
                                             </span>
                                         </div>
                                     </motion.div>
