@@ -1,9 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import ReactPlayer from 'react-player'
-import { useKinescopePlayer } from '../hooks/useKinescopePlayer'
-
-const ReactPlayerAny = ReactPlayer as any
+// @ts-ignore - types may not be available
+import KinescopePlayer from '@kinescope/react-kinescope-player'
 
 interface KinescopeVideoPlayerProps {
     videoSource: string
@@ -13,6 +11,15 @@ interface KinescopeVideoPlayerProps {
     ProgressBar: React.FC<{ progress: number }>
 }
 
+// Extract video ID from Kinescope embed code or URL
+function extractVideoId(videoSource: string): string | null {
+    if (!videoSource) return null
+    const embedMatch = videoSource.match(/kinescope\.io\/embed\/([a-zA-Z0-9]+)/)
+    if (embedMatch) return embedMatch[1]
+    if (/^[a-zA-Z0-9]+$/.test(videoSource)) return videoSource
+    return null
+}
+
 export function KinescopeVideoPlayer({
     videoSource,
     onProgress,
@@ -20,43 +27,45 @@ export function KinescopeVideoPlayer({
     videoProgress,
     ProgressBar
 }: KinescopeVideoPlayerProps) {
-    const isKinescope = videoSource.includes('kinescope.io')
+    const videoId = extractVideoId(videoSource)
 
-    // Use Kinescope hook for Kinescope videos
-    const {
-        iframeRef,
-        videoUrl,
-        isLoading,
-        isReady,
-        play
-    } = useKinescopePlayer({
-        videoSource,
-        onProgress,
-        onDuration
-    })
-
-    // State to track if user clicked play (hide overlay permanently)
+    const [isReady, setIsReady] = useState(false)
     const [hasClickedPlay, setHasClickedPlay] = useState(false)
+    const [playerRef, setPlayerRef] = useState<any>(null)
 
-    // Fallback for non-Kinescope videos
-    const [fallbackPlaying, setFallbackPlaying] = useState(false)
-    const fallbackUrl = useMemo(() => {
-        if (!videoSource || isKinescope) return ''
-        if (videoSource.includes('<iframe')) {
-            const match = videoSource.match(/src=["'](.*?)["']/)
-            return match ? match[1] : ''
-        }
-        return videoSource
-    }, [videoSource, isKinescope])
+    const handleReady = useCallback(({ duration }: { duration: number }) => {
+        setIsReady(true)
+        if (duration) onDuration(duration)
+    }, [onDuration])
 
-    // Click handler for play button - hide overlay after first click
-    const handlePlayClick = () => {
-        setHasClickedPlay(true) // Hide our overlay permanently
-        if (isKinescope) {
-            play()
-        } else {
-            setFallbackPlaying(true)
+    const handleTimeUpdate = useCallback(({ currentTime, duration }: { currentTime: number; duration: number }) => {
+        if (duration > 0) {
+            const percent = (currentTime / duration) * 100
+            onProgress(percent)
         }
+    }, [onProgress])
+
+    const handleDurationChange = useCallback(({ duration }: { duration: number }) => {
+        if (duration > 0) onDuration(duration)
+    }, [onDuration])
+
+    const handlePlayClick = useCallback(() => {
+        setHasClickedPlay(true)
+        playerRef?.play?.()
+    }, [playerRef])
+
+    const handleRef = useCallback((ref: any) => {
+        setPlayerRef(ref)
+    }, [])
+
+    if (!videoId) {
+        return (
+            <div className="w-full">
+                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10 flex items-center justify-center">
+                    <p className="text-white/40 text-sm">Видео не настроено</p>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -67,94 +76,57 @@ export function KinescopeVideoPlayer({
             </div>
 
             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10 group">
-                {isKinescope && videoUrl ? (
-                    <>
-                        {/* Kinescope iframe */}
-                        <iframe
-                            ref={iframeRef}
-                            src={videoUrl}
-                            className="absolute inset-0 w-full h-full"
-                            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
-                            frameBorder="0"
-                            allowFullScreen
-                            id="kinescope-player"
-                        />
+                {/* Kinescope React Player */}
+                <div className="absolute inset-0">
+                    <KinescopePlayer
+                        videoId={videoId}
+                        ref={handleRef}
+                        onReady={handleReady}
+                        onTimeUpdate={handleTimeUpdate}
+                        onDurationChange={handleDurationChange}
+                        controls={false}
+                        autoPlay={false}
+                        muted={false}
+                        width="100%"
+                        height="100%"
+                    />
+                </div>
 
-                        {/* CSS overlay to block timeline/controls interaction */}
-                        {/* This transparent div covers the bottom part where controls are */}
-                        <div
-                            className="absolute bottom-0 left-0 right-0 h-16 z-30"
+                {/* CSS overlay to block timeline/seek interaction */}
+                <div
+                    className="absolute bottom-0 left-0 right-0 h-16 z-30"
+                    style={{
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
+                        pointerEvents: 'auto'
+                    }}
+                />
+
+                {/* Custom Play Button Overlay */}
+                {!hasClickedPlay && isReady && (
+                    <div
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-40 cursor-pointer"
+                        onClick={handlePlayClick}
+                    >
+                        <motion.div
+                            className="w-20 h-20 rounded-full flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300"
                             style={{
-                                background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
-                                pointerEvents: 'auto' // Block clicks on controls
+                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)'
                             }}
-                        />
-
-                        {/* Custom Play Button Overlay - hide permanently after first click */}
-                        {!hasClickedPlay && isReady && (
-                            <div
-                                className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-40 cursor-pointer"
-                                onClick={handlePlayClick}
-                            >
-                                <motion.div
-                                    className="w-20 h-20 rounded-full flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300"
-                                    style={{
-                                        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                                        boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)'
-                                    }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    <svg className="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M8 5v14l11-7z" />
-                                    </svg>
-                                    {/* Ripple effect */}
-                                    <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-[#FFD700]" />
-                                </motion.div>
-                            </div>
-                        )}
-
-                        {/* Pause/Play overlay when video is playing - click to pause */}
-                        {hasClickedPlay && (
-                            <div
-                                className="absolute inset-0 z-20"
-                                style={{
-                                    // Allow clicks to pass through to iframe for play/pause
-                                    // but we keep bottom overlay to block controls
-                                    pointerEvents: 'none'
-                                }}
-                            />
-                        )}
-
-                        {/* Loading Spinner */}
-                        {isLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-50">
-                                <div className="w-12 h-12 border-4 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
-                            </div>
-                        )}
-                    </>
-                ) : fallbackUrl ? (
-                    <div className="absolute inset-0 w-full h-full">
-                        <ReactPlayerAny
-                            url={fallbackUrl}
-                            width="100%"
-                            height="100%"
-                            controls={true}
-                            playing={fallbackPlaying}
-                            config={{
-                                youtube: {
-                                    playerVars: { showinfo: 0, rel: 0, controls: 0 }
-                                }
-                            } as any}
-                            onProgress={(state: any) => {
-                                onProgress(state.played * 100)
-                            }}
-                            onDuration={onDuration}
-                            onPlay={() => setFallbackPlaying(true)}
-                        />
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <svg className="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                            </svg>
+                            <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-[#FFD700]" />
+                        </motion.div>
                     </div>
-                ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
-                        <p className="text-white/40 text-sm">Видео не настроено</p>
+                )}
+
+                {/* Loading Spinner */}
+                {!isReady && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-50">
+                        <div className="w-12 h-12 border-4 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
                     </div>
                 )}
 
