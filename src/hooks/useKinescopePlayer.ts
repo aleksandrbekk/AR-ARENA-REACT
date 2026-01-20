@@ -91,6 +91,27 @@ export function useKinescopePlayer({
                     onDuration(e.data.duration)
                 })
 
+                // Polling for smooth progress updates (every 1 second)
+                const progressInterval = setInterval(async () => {
+                    if (playerRef.current) {
+                        try {
+                            const [currentTime, duration] = await Promise.all([
+                                playerRef.current.getCurrentTime(),
+                                playerRef.current.getDuration()
+                            ])
+                            if (duration > 0) {
+                                const percent = (currentTime / duration) * 100
+                                onProgress(percent)
+                            }
+                        } catch (e) {
+                            // Ignore errors during polling
+                        }
+                    }
+                }, 1000)
+
+                    // Store interval for cleanup
+                    ; (player as any)._progressInterval = progressInterval
+
             } catch (err) {
                 console.error('Kinescope SDK init error:', err)
                 setIsLoading(false)
@@ -102,6 +123,10 @@ export function useKinescopePlayer({
         return () => {
             mounted = false
             if (player) {
+                // Clear polling interval
+                if ((player as any)._progressInterval) {
+                    clearInterval((player as any)._progressInterval)
+                }
                 player.destroy()
             }
         }
