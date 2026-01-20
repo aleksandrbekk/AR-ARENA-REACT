@@ -504,26 +504,40 @@ function CustomProgressBar({ progress }: { progress: number }) {
                 <span className="text-[#FFD700] text-xs font-bold tabular-nums">{Math.round(progress)}%</span>
             </div>
 
-            {/* Bar */}
-            <div className="relative w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                {/* Glow follower */}
-                <div
-                    className="absolute top-0 bottom-0 w-8 bg-[#FFD700] blur-[10px] opacity-50 transition-all duration-300 ease-out will-change-transform"
-                    style={{ left: `${progress}%`, transform: 'translateX(-50%)' }}
-                />
+            {/* Bar Container */}
+            <div className="relative w-full h-1.5 flex items-center">
+                {/* Background Track */}
+                <div className="absolute inset-0 bg-white/10 rounded-full overflow-hidden" />
 
                 {/* Fill */}
                 <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#C9A962] to-[#FFD700] transition-all duration-300 ease-out will-change-width"
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#C9A962] to-[#FFD700] rounded-full transition-all duration-300 ease-out will-change-width z-10"
                     style={{ width: `${progress}%` }}
-                />
+                >
+                    {/* Glow follower (inside fill) */}
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#FFD700] blur-[6px] opacity-100" />
+                </div>
+
+                {/* Gift Icon at the end */}
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 z-20 transform translate-x-1/3">
+                    <motion.div
+                        animate={progress >= 100 ? { scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] } : {}}
+                        transition={{ duration: 1, repeat: progress >= 100 ? Infinity : 0, repeatDelay: 2 }}
+                        className={`p-1.5 rounded-full border border-white/10 backdrop-blur-sm transition-colors duration-300 ${progress >= 100 ? 'bg-[#FFD700] text-black' : 'bg-black/80 text-white/40'}`}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                    </motion.div>
+                </div>
             </div>
         </div>
     )
 }
 
 function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps & { videoProgress: number }) {
-    const DEBUG = false // Set to true if we need to see events on screen
+    const [isPlaying, setIsPlaying] = useState(false)
+    const iframeRef = useRef<HTMLIFrameElement>(null)
 
     // Хелпер для извлечения URL из iframes или использования "как есть"
     const { videoUrl, isKinescope } = useMemo(() => {
@@ -539,9 +553,9 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
                 url = VIDEO_SOURCE
             }
 
-            // Add params to try to force clean player
+            // Allow API control
             if (url && !url.includes('?')) {
-                url += '?controls=false&header=false'
+                url += '?controls=false'
             }
             return { videoUrl: url, isKinescope: true }
         }
@@ -554,44 +568,49 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
         return { videoUrl: VIDEO_SOURCE, isKinescope: false }
     }, [])
 
+    const handlePlayClick = () => {
+        setIsPlaying(true)
+        if (isKinescope && iframeRef.current) {
+            // Send Kinescope API command
+            iframeRef.current.contentWindow?.postMessage(JSON.stringify({ command: 'play' }), '*')
+        }
+    }
+
     // Kinescope Event Listener
     useEffect(() => {
         if (!isKinescope) return
 
         const handleMessage = (event: MessageEvent) => {
             try {
-                // Ignore empty data
                 if (!event.data) return
-
-                // Kinescope messages are often pure objects, but sometimes strings
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-
-                // Debug log
-                if (DEBUG) console.log('Kinescope Event:', data)
-
-                // Normalize event type (some versions use 'type', others 'event')
                 const eventType = data.event || data.type || ''
 
-                // 1. TIME UPDATE
+                // Debug
+                // console.log('Kinescope:', eventType, data)
+
                 if (eventType === 'timeupdate') {
-                    // Structure might be data.data.currentTime OR data.currentTime
                     const payload = data.data || data
                     const currentTime = payload.currentTime
                     const duration = payload.duration
-
                     if (duration > 0 && typeof currentTime === 'number') {
-                        const percent = (currentTime / duration) * 100
-                        onProgress(percent)
+                        onProgress((currentTime / duration) * 100)
                         onDuration(duration)
+                        // If we get time updates, we are playing
+                        setIsPlaying(true)
                     }
                 }
 
-                // 2. DURATION CHANGE / READY
-                if (eventType === 'durationchange' || eventType === 'ready') {
-                    const payload = data.data || data
-                    if (payload.duration) {
-                        onDuration(payload.duration)
-                    }
+                if (eventType === 'playing' || eventType === 'play') {
+                    setIsPlaying(true)
+                }
+
+                if (eventType === 'pause' || eventType === 'ended') {
+                    setIsPlaying(false)
+                }
+
+                if ((eventType === 'durationchange' || eventType === 'ready') && data.data?.duration) {
+                    onDuration(data.data.duration)
                 }
             } catch (e) {
                 // Ignore parse errors
@@ -610,6 +629,7 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
                         {isKinescope ? (
                             <>
                                 <iframe
+                                    ref={iframeRef}
                                     src={videoUrl}
                                     className="absolute inset-0 w-full h-full"
                                     allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
@@ -617,11 +637,28 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
                                     allowFullScreen
                                     id="kinescope-player"
                                 />
-                                {/* MASK OVERLAY: Covers the bottom control bar of Kinescope */}
-                                <div className="absolute bottom-0 left-0 right-0 h-12 bg-transparent pointer-events-auto" />
-                                {/* We keep it transparent but pointer-events-auto might block clicks if needed.
-                                    Better approach: we just place our bar ON TOP. 
-                                */}
+                                {/* Click mask to trigger Play if not started via native controls */}
+                                {!isPlaying && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-20 cursor-pointer" onClick={handlePlayClick}>
+                                        <motion.div
+                                            className="w-20 h-20 rounded-full flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300"
+                                            style={{
+                                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                                boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)'
+                                            }}
+                                            whileTap={{ scale: 0.95 }}
+                                        >
+                                            <svg className="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M8 5v14l11-7z" />
+                                            </svg>
+                                            {/* Ripple effect */}
+                                            <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-[#FFD700]" />
+                                        </motion.div>
+                                    </div>
+                                )}
+
+                                {/* Bottom Mask */}
+                                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-10" />
                             </>
                         ) : (
                             <ReactPlayerAny
@@ -629,7 +666,7 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
                                 width="100%"
                                 height="100%"
                                 controls={true}
-                                playing={false}
+                                playing={isPlaying}
                                 config={{
                                     youtube: {
                                         playerVars: { showinfo: 0, rel: 0, controls: 0 }
@@ -650,17 +687,13 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
 
                 {/* Internal Border Glow */}
                 <div
-                    className="absolute inset-0 pointer-events-none rounded-2xl"
+                    className="absolute inset-0 pointer-events-none rounded-2xl z-20"
                     style={{
                         boxShadow: 'inset 0 0 0 1px rgba(255, 215, 0, 0.1), 0 0 40px rgba(255, 215, 0, 0.05)'
                     }}
                 />
             </div>
 
-            {/* Custom Progress Bar - Negative margin to overlay/hide bottom of video if we want, 
-                OR just sit below. User asked to "remove timeline". 
-                The most reliable way to "remove" it without API access is to COVER it. 
-            */}
             <div className="-mt-1.5 relative z-10">
                 <CustomProgressBar progress={videoProgress} />
             </div>
