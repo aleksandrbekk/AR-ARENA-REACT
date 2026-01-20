@@ -1,6 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-// @ts-ignore - types may not be available
 import KinescopePlayer from '@kinescope/react-kinescope-player'
 
 interface KinescopeVideoPlayerProps {
@@ -11,13 +10,28 @@ interface KinescopeVideoPlayerProps {
     ProgressBar: React.FC<{ progress: number }>
 }
 
-// Extract video ID from Kinescope embed code or URL
-function extractVideoId(videoSource: string): string | null {
-    if (!videoSource) return null
-    const embedMatch = videoSource.match(/kinescope\.io\/embed\/([a-zA-Z0-9]+)/)
-    if (embedMatch) return embedMatch[1]
-    if (/^[a-zA-Z0-9]+$/.test(videoSource)) return videoSource
-    return null
+// Извлекаем videoId из embed кода или URL
+function extractVideoId(videoSource: string): string {
+    if (!videoSource) return ''
+    
+    // Если это embed код с iframe
+    if (videoSource.includes('<iframe')) {
+        const match = videoSource.match(/embed\/([a-zA-Z0-9]+)/)
+        return match ? match[1] : ''
+    }
+    
+    // Если это прямой URL
+    if (videoSource.includes('kinescope.io')) {
+        const match = videoSource.match(/embed\/([a-zA-Z0-9]+)/)
+        return match ? match[1] : ''
+    }
+    
+    // Если это уже videoId
+    if (videoSource.length > 0 && !videoSource.includes('http') && !videoSource.includes('<')) {
+        return videoSource
+    }
+    
+    return ''
 }
 
 export function KinescopeVideoPlayer({
@@ -28,32 +42,58 @@ export function KinescopeVideoPlayer({
     ProgressBar
 }: KinescopeVideoPlayerProps) {
     const videoId = extractVideoId(videoSource)
+    const playerRef = useRef<any>(null)
 
-    const [isReady, setIsReady] = useState(false)
     const [hasClickedPlay, setHasClickedPlay] = useState(false)
-    const [playerRef, setPlayerRef] = useState<any>(null)
+    const [duration, setDuration] = useState<number>(0)
 
-    const handleReady = useCallback(({ duration }: { duration: number }) => {
-        setIsReady(true)
-        if (duration) onDuration(duration)
-    }, [onDuration])
-
-    const handleTimeUpdate = useCallback(({ percent }: { currentTime: number; percent: number }) => {
-        onProgress(percent)
-    }, [onProgress])
-
-    const handleDurationChange = useCallback(({ duration }: { duration: number }) => {
-        if (duration > 0) onDuration(duration)
-    }, [onDuration])
-
-    const handlePlayClick = useCallback(() => {
+    const handlePlayClick = async () => {
         setHasClickedPlay(true)
-        playerRef?.play?.()
-    }, [playerRef])
+        // Запускаем видео через ref
+        if (playerRef.current) {
+            try {
+                await playerRef.current.play()
+            } catch (error) {
+                console.error('Error playing video:', error)
+            }
+        }
+    }
 
-    const handleRef = useCallback((ref: any) => {
-        setPlayerRef(ref)
-    }, [])
+    const handleVideoClick = async () => {
+        if (!playerRef.current) return
+        
+        try {
+            const isPaused = await playerRef.current.isPaused()
+            if (isPaused) {
+                await playerRef.current.play()
+            } else {
+                await playerRef.current.pause()
+            }
+        } catch (error) {
+            console.error('Error toggling playback:', error)
+        }
+    }
+
+    const handleTimeUpdate = (data: { currentTime: number }) => {
+        if (duration > 0) {
+            const percent = Math.min((data.currentTime / duration) * 100, 100)
+            onProgress(percent)
+        }
+    }
+
+    const handleDurationChange = (data: { duration: number }) => {
+        const newDuration = data.duration
+        setDuration(newDuration)
+        onDuration(newDuration)
+    }
+
+    const handlePlay = () => {
+        // Событие воспроизведения - можно использовать для UI если нужно
+    }
+
+    const handlePause = () => {
+        // Событие паузы - можно использовать для UI если нужно
+    }
 
     if (!videoId) {
         return (
@@ -72,67 +112,66 @@ export function KinescopeVideoPlayer({
                 <ProgressBar progress={videoProgress} />
             </div>
 
-            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10 group">
-                {/* Kinescope React Player */}
-                <div className="absolute inset-0">
+            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 group">
+                {/* Kinescope Player */}
+                <div className="absolute inset-0 w-full h-full">
                     <KinescopePlayer
+                        ref={playerRef}
                         videoId={videoId}
-                        ref={handleRef}
-                        onReady={handleReady}
+                        controls={false}
                         onTimeUpdate={handleTimeUpdate}
                         onDurationChange={handleDurationChange}
-                        controls={false}
+                        onPlay={handlePlay}
+                        onPause={handlePause}
+                        className="w-full h-full"
+                        style={{ width: '100%', height: '100%' }}
+                        playsInline={true}
                         autoPlay={false}
-                        muted={false}
-                        width="100%"
-                        height="100%"
                     />
                 </div>
 
-                {/* CSS overlay to block timeline/seek interaction */}
+                {/* Click overlay for play/pause tracking */}
+                {hasClickedPlay && (
+                    <div
+                        className="absolute inset-0 z-20 cursor-pointer"
+                        onClick={handleVideoClick}
+                        style={{ pointerEvents: 'auto' }}
+                        onDoubleClick={(e) => e.preventDefault()} // Предотвращаем fullscreen на двойной клик
+                    />
+                )}
+
+                {/* Overlay to block controls at bottom (на случай если контролы всё равно видны) - выше кликабельного overlay */}
                 <div
-                    className="absolute bottom-0 left-0 right-0 h-16 z-30"
-                    style={{
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
-                        pointerEvents: 'auto'
-                    }}
+                    className="absolute bottom-0 left-0 right-0 h-14 z-30 pointer-events-auto"
+                    style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)' }}
                 />
 
-                {/* Custom Play Button Overlay */}
-                {!hasClickedPlay && isReady && (
+                {/* Custom Play Button */}
+                {!hasClickedPlay && (
                     <div
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-40 cursor-pointer"
+                        className="absolute inset-0 flex items-center justify-center bg-black/50 z-40 cursor-pointer"
                         onClick={handlePlayClick}
                     >
                         <motion.div
-                            className="w-20 h-20 rounded-full flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300"
+                            className="w-20 h-20 rounded-full flex items-center justify-center"
                             style={{
                                 background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                                 boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)'
                             }}
+                            whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
                         >
                             <svg className="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z" />
                             </svg>
-                            <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-[#FFD700]" />
                         </motion.div>
                     </div>
                 )}
 
-                {/* Loading Spinner */}
-                {!isReady && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-50">
-                        <div className="w-12 h-12 border-4 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
-                    </div>
-                )}
-
-                {/* Internal Border Glow */}
+                {/* Border glow */}
                 <div
-                    className="absolute inset-0 pointer-events-none rounded-2xl z-10"
-                    style={{
-                        boxShadow: 'inset 0 0 0 1px rgba(255, 215, 0, 0.1), 0 0 40px rgba(255, 215, 0, 0.05)'
-                    }}
+                    className="absolute inset-0 pointer-events-none rounded-2xl"
+                    style={{ boxShadow: 'inset 0 0 0 1px rgba(255, 215, 0, 0.1)' }}
                 />
             </div>
         </div>
