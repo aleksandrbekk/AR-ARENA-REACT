@@ -24,8 +24,8 @@ export function KinescopeVideoPlayer({
 
     // Use Kinescope hook for Kinescope videos
     const {
-        containerRef,
-        videoId,
+        iframeRef,
+        videoUrl,
         isLoading,
         isReady,
         play
@@ -67,18 +67,33 @@ export function KinescopeVideoPlayer({
             </div>
 
             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10 group">
-                {isKinescope && videoId ? (
+                {isKinescope && videoUrl ? (
                     <>
-                        {/* Kinescope player container */}
-                        <div
-                            ref={containerRef}
+                        {/* Kinescope iframe */}
+                        <iframe
+                            ref={iframeRef}
+                            src={videoUrl}
                             className="absolute inset-0 w-full h-full"
+                            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
+                            frameBorder="0"
+                            allowFullScreen
+                            id="kinescope-player"
+                        />
+
+                        {/* CSS overlay to block timeline/controls interaction */}
+                        {/* This transparent div covers the bottom part where controls are */}
+                        <div
+                            className="absolute bottom-0 left-0 right-0 h-16 z-30"
+                            style={{
+                                background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
+                                pointerEvents: 'auto' // Block clicks on controls
+                            }}
                         />
 
                         {/* Custom Play Button Overlay - hide permanently after first click */}
                         {!hasClickedPlay && isReady && (
                             <div
-                                className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-20 cursor-pointer"
+                                className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-40 cursor-pointer"
                                 onClick={handlePlayClick}
                             >
                                 <motion.div
@@ -98,15 +113,24 @@ export function KinescopeVideoPlayer({
                             </div>
                         )}
 
+                        {/* Pause/Play overlay when video is playing - click to pause */}
+                        {hasClickedPlay && (
+                            <div
+                                className="absolute inset-0 z-20"
+                                style={{
+                                    // Allow clicks to pass through to iframe for play/pause
+                                    // but we keep bottom overlay to block controls
+                                    pointerEvents: 'none'
+                                }}
+                            />
+                        )}
+
                         {/* Loading Spinner */}
                         {isLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-30">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-50">
                                 <div className="w-12 h-12 border-4 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
                             </div>
                         )}
-
-                        {/* Bottom Mask */}
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-10" />
                     </>
                 ) : fallbackUrl ? (
                     <div className="absolute inset-0 w-full h-full">
@@ -136,7 +160,7 @@ export function KinescopeVideoPlayer({
 
                 {/* Internal Border Glow */}
                 <div
-                    className="absolute inset-0 pointer-events-none rounded-2xl z-20"
+                    className="absolute inset-0 pointer-events-none rounded-2xl z-10"
                     style={{
                         boxShadow: 'inset 0 0 0 1px rgba(255, 215, 0, 0.1), 0 0 40px rgba(255, 215, 0, 0.05)'
                     }}
