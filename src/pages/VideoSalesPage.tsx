@@ -579,8 +579,18 @@ export function VideoSalesPage() {
         sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     }, []) // Пустой массив зависимостей = выполняется только при монтировании
 
-    // Сохранение UTM из URL и запись клика в БД
+    // Сохранение UTM из URL и запись клика в БД + сохранение telegram_id/username
     useEffect(() => {
+        // Сохраняем telegram_id/username в localStorage для использования в PaymentModal
+        const tg = window.Telegram?.WebApp
+        const user = tg?.initDataUnsafe?.user
+        if (user?.id) {
+            localStorage.setItem('promo_telegram_id', user.id.toString())
+            if (user.username) {
+                localStorage.setItem('promo_telegram_username', user.username)
+            }
+        }
+
         const params = new URLSearchParams(window.location.search)
         const utmSource = params.get('utm_source')
         if (utmSource) {
@@ -610,7 +620,7 @@ export function VideoSalesPage() {
                     }
 
                     // Записываем событие начала просмотра
-                    const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+                    const telegramId = user?.id
                     await supabase
                         .from('promo_events')
                         .insert({

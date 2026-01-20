@@ -1,19 +1,24 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function PaymentSuccessPage() {
   const navigate = useNavigate();
+  const [hasTelegramId, setHasTelegramId] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    // Автоматический редирект через 3 секунды
-    const timer = setTimeout(() => {
-      navigate('/shop');
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [navigate]);
+    // Проверяем наличие telegram_id
+    // @ts-ignore
+    const tg = window.Telegram?.WebApp;
+    const telegramIdFromWebApp = tg?.initDataUnsafe?.user?.id;
+    const telegramIdFromStorage = localStorage.getItem('promo_telegram_id');
+    const usernameFromStorage = localStorage.getItem('promo_telegram_username');
+    
+    setHasTelegramId(!!(telegramIdFromWebApp || telegramIdFromStorage));
+    setTelegramUsername(usernameFromStorage);
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center px-6">
@@ -66,32 +71,104 @@ export default function PaymentSuccessPage() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-lg text-white/60 mb-12 text-center"
+          className="text-lg text-white/60 mb-8 text-center max-w-md"
         >
-          AR зачислены на ваш счёт
+          {hasTelegramId 
+            ? 'Доступ к Premium клубу активирован! Проверьте сообщения в боте.'
+            : 'Оплата успешно обработана! Для получения доступа выполните следующие шаги:'
+          }
         </motion.p>
 
-        {/* Кнопка */}
-        <motion.button
+        {/* Инструкция для пользователей не в боте */}
+        {!hasTelegramId && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mb-8 max-w-md w-full"
+          >
+            <div className="bg-zinc-900/50 border border-yellow-500/20 rounded-xl p-6 space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-yellow-500 font-bold text-sm">1</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-medium mb-1">Добавьтесь в бота</p>
+                    <p className="text-white/60 text-sm">
+                      Откройте Telegram и перейдите по ссылке:
+                    </p>
+                    <a
+                      href="https://t.me/ARARENA_BOT"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-yellow-500 hover:text-yellow-400 text-sm font-medium mt-1 inline-block break-all"
+                    >
+                      @ARARENA_BOT
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-yellow-500 font-bold text-sm">2</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-medium mb-1">Нажмите "Start" в боте</p>
+                    <p className="text-white/60 text-sm">
+                      {telegramUsername 
+                        ? `Используйте ваш username: @${telegramUsername}`
+                        : 'Используйте тот же Telegram аккаунт, который вы указали при оплате'
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-yellow-500 font-bold text-sm">3</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-medium mb-1">Получите доступ</p>
+                    <p className="text-white/60 text-sm">
+                      Бот автоматически выдаст вам доступ к Premium клубу и отправит приглашения в канал и чат
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Кнопки */}
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/shop')}
-          className="px-8 py-4 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold text-lg rounded-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-shadow"
+          transition={{ delay: 0.7 }}
+          className="flex flex-col sm:flex-row gap-3"
         >
-          Вернуться в магазин
-        </motion.button>
-
-        {/* Таймер */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-6 text-sm text-white/40"
-        >
-          Автоматический возврат через 3 сек...
-        </motion.p>
+          {!hasTelegramId && (
+            <motion.a
+              href="https://t.me/ARARENA_BOT"
+              target="_blank"
+              rel="noopener noreferrer"
+              whileTap={{ scale: 0.95 }}
+              className="px-8 py-4 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold text-lg rounded-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-shadow text-center"
+            >
+              Открыть бота
+            </motion.a>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/')}
+            className={`px-8 py-4 ${hasTelegramId 
+              ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black' 
+              : 'bg-zinc-800 text-white border border-white/10'
+            } font-bold text-lg rounded-xl shadow-lg transition-shadow`}
+          >
+            {hasTelegramId ? 'Вернуться на главную' : 'Позже'}
+          </motion.button>
+        </motion.div>
       </motion.div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Define Tariff interface locally to match PricingPage
@@ -46,7 +46,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     // @ts-ignore
     const tg = window.Telegram?.WebApp
     const telegramIdFromWebApp = tg?.initDataUnsafe?.user?.id
-    const [showUsernameInput] = useState(!telegramIdFromWebApp)
+    const telegramIdFromStorage = localStorage.getItem('promo_telegram_id')
+    const telegramUsernameFromStorage = localStorage.getItem('promo_telegram_username')
+    const hasTelegramId = telegramIdFromWebApp || telegramIdFromStorage
+    const [showUsernameInput] = useState(!hasTelegramId)
+    
+    // Если есть username из localStorage, используем его как начальное значение
+    useEffect(() => {
+        if (telegramUsernameFromStorage && !username) {
+            setUsername(telegramUsernameFromStorage.replace('@', ''))
+        }
+    }, [telegramUsernameFromStorage])
 
     // Единый offerId для Premium подписки + periodicity для выбора срока
     const PREMIUM_OFFER_ID = '755e7046-e658-43e1-908d-0738766b464d'
@@ -75,9 +85,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const handleCardCurrencySelect = async (currency: typeof CARD_CURRENCIES[0]) => {
         // @ts-ignore
         const tg = window.Telegram?.WebApp
-        const telegramId = tg?.initDataUnsafe?.user?.id
-        const tgUsername = username.trim().replace('@', '')
-        const streamUtmSource = localStorage.getItem('stream_utm_source') || ''
+        // Приоритет: WebApp > localStorage (с промо-страницы) > введенный username
+        const telegramId = tg?.initDataUnsafe?.user?.id || localStorage.getItem('promo_telegram_id') || null
+        const tgUsername = username.trim().replace('@', '') || localStorage.getItem('promo_telegram_username')?.replace('@', '') || ''
+        const streamUtmSource = localStorage.getItem('stream_utm_source') || localStorage.getItem('promo_utm_source') || ''
 
         // Проверяем наличие идентификатора
         if (!telegramId && !tgUsername) {
@@ -144,9 +155,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const handleCryptoNetworkSelect = async (network: typeof CRYPTO_NETWORKS[0]) => {
         // @ts-ignore
         const tg = window.Telegram?.WebApp
-        const telegramId = tg?.initDataUnsafe?.user?.id
-        const tgUsername = username.trim().replace('@', '')
-        const streamUtmSource = localStorage.getItem('stream_utm_source') || ''
+        // Приоритет: WebApp > localStorage (с промо-страницы) > введенный username
+        const telegramId = tg?.initDataUnsafe?.user?.id || localStorage.getItem('promo_telegram_id') || null
+        const tgUsername = username.trim().replace('@', '') || localStorage.getItem('promo_telegram_username')?.replace('@', '') || ''
+        const streamUtmSource = localStorage.getItem('stream_utm_source') || localStorage.getItem('promo_utm_source') || ''
 
         if (!telegramId && !tgUsername) {
             alert('Пожалуйста, введите ваш Telegram username')
