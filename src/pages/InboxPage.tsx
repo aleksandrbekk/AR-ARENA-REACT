@@ -56,6 +56,18 @@ interface InboxStats {
   today_messages: number
 }
 
+interface SystemMessage {
+  id: string
+  telegram_id: string
+  message_type: string
+  text: string
+  source: string
+  success: boolean
+  error: string | null
+  metadata: Record<string, any>
+  created_at: string
+}
+
 // ============ КОНСТАНТЫ ============
 // SECURITY: Password from env variable (set in Vercel)
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
@@ -84,7 +96,11 @@ export function InboxPage() {
   const [loading, setLoading] = useState(true)
 
   // UI state
-  const [activeTab, setActiveTab] = useState<'chats' | 'automation'>('chats')
+  const [activeTab, setActiveTab] = useState<'chats' | 'automation' | 'system'>('chats')
+  const [systemMessages, setSystemMessages] = useState<SystemMessage[]>([])
+  const [systemMessagesLoading, setSystemMessagesLoading] = useState(false)
+  const [systemMessagesFilter, setSystemMessagesFilter] = useState<'all' | 'success' | 'failed' | 'payment_welcome'>('all')
+  const [systemMessagesSourceFilter, setSystemMessagesSourceFilter] = useState<string>('all')
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [messageText, setMessageText] = useState('')
@@ -184,6 +200,44 @@ export function InboxPage() {
       console.error('Load stats error:', err)
     }
   }, [])
+
+  const loadSystemMessages = useCallback(async () => {
+    setSystemMessagesLoading(true)
+    try {
+      let query = supabase
+        .from('system_messages')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500)
+
+      if (systemMessagesFilter === 'success') {
+        query = query.eq('success', true)
+      } else if (systemMessagesFilter === 'failed') {
+        query = query.eq('success', false)
+      } else if (systemMessagesFilter === 'payment_welcome') {
+        query = query.eq('message_type', 'payment_welcome')
+      }
+
+      if (systemMessagesSourceFilter !== 'all') {
+        query = query.eq('source', systemMessagesSourceFilter)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      setSystemMessages(data || [])
+    } catch (err) {
+      console.error('Load system messages error:', err)
+    } finally {
+      setSystemMessagesLoading(false)
+    }
+  }, [systemMessagesFilter, systemMessagesSourceFilter])
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'system') {
+      loadSystemMessages()
+    }
+  }, [isAuthenticated, activeTab, loadSystemMessages])
 
   // ... (Keep existing useEffects for Auth check and Realtime) ...
   useEffect(() => {
@@ -390,6 +444,12 @@ export function InboxPage() {
             className={`py-4 px-2 text-sm font-medium border-b-2 transition ${activeTab === 'automation' ? 'border-yellow-500 text-yellow-500' : 'border-transparent text-zinc-400 hover:text-white'}`}
           >
             Автоматизация
+          </button>
+          <button
+            onClick={() => setActiveTab('system')}
+            className={`py-4 px-2 text-sm font-medium border-b-2 transition ${activeTab === 'system' ? 'border-yellow-500 text-yellow-500' : 'border-transparent text-zinc-400 hover:text-white'}`}
+          >
+            Системные сообщения
           </button>
         </div>
       </div>
@@ -625,8 +685,118 @@ export function InboxPage() {
               )}
             </div>
           </>
-        ) : (
+        ) : activeTab === 'automation' ? (
           <AutomationRules projectId={projectId} />
+        ) : (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* System Messages Header */}
+            <div className="p-4 border-b border-zinc-800">
+              <h2 className="text-xl font-bold text-white mb-4">Системные сообщения</h2>
+              
+              {/* Filters */}
+              <div className="flex gap-4 flex-wrap">
+                <div className="flex gap-2">
+                  <span className="text-zinc-400 text-sm py-2">Статус:</span>
+                  {(['all', 'success', 'failed', 'payment_welcome'] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setSystemMessagesFilter(f)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                        systemMessagesFilter === f
+                          ? 'bg-yellow-500 text-black'
+                          : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                      }`}
+                    >
+                      {f === 'all' && 'Все'}
+                      {f === 'success' && '✅ Успешно'}
+                      {f === 'failed' && '❌ Ошибки'}
+                      {f === 'payment_welcome' && '💰 Платежи'}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="flex gap-2">
+                  <span className="text-zinc-400 text-sm py-2">Источник:</span>
+                  <select
+                    value={systemMessagesSourceFilter}
+                    onChange={(e) => setSystemMessagesSourceFilter(e.target.value)}
+                    className="px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-white border border-zinc-700 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                  >
+                    <option value="all">Все</option>
+                    <option value="0xprocessing">0xProcessing</option>
+                    <option value="lava.top">Lava.top</option>
+                    <option value="toolsy">Toolsy</option>
+                    <option value="subscription-reminder">Напоминания</option>
+                    <option value="auto-kick-expired">Автокик</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* System Messages List */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {systemMessagesLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500"></div>
+                </div>
+              ) : systemMessages.length === 0 ? (
+                <div className="text-center text-zinc-500 py-12">
+                  <p>Нет системных сообщений</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {systemMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`p-4 rounded-lg border ${
+                        msg.success
+                          ? 'bg-zinc-900/50 border-zinc-800'
+                          : 'bg-red-900/20 border-red-800/50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            msg.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {msg.success ? '✅' : '❌'}
+                          </span>
+                          <span className="text-xs text-zinc-400">{msg.source}</span>
+                          <span className="text-xs text-zinc-500">{msg.message_type}</span>
+                        </div>
+                        <span className="text-xs text-zinc-500">
+                          {new Date(msg.created_at).toLocaleString('ru-RU')}
+                        </span>
+                      </div>
+                      
+                      <div className="mb-2">
+                        <span className="text-xs text-zinc-400">ID: {msg.telegram_id}</span>
+                      </div>
+                      
+                      <div className="text-sm text-white mb-2 whitespace-pre-wrap break-words">
+                        {msg.text.substring(0, 300)}{msg.text.length > 300 ? '...' : ''}
+                      </div>
+                      
+                      {msg.error && (
+                        <div className="text-xs text-red-400 mb-2">
+                          Ошибка: {msg.error}
+                        </div>
+                      )}
+                      
+                      {msg.metadata && Object.keys(msg.metadata).length > 0 && (
+                        <details className="text-xs text-zinc-400">
+                          <summary className="cursor-pointer hover:text-zinc-300">Метаданные</summary>
+                          <pre className="mt-2 p-2 bg-zinc-900 rounded overflow-auto">
+                            {JSON.stringify(msg.metadata, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

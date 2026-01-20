@@ -3,6 +3,7 @@
 // 2025-12-22
 
 import { createClient } from '@supabase/supabase-js';
+import { logSystemMessage } from './utils/log-system-message.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -639,13 +640,39 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing telegram_id or username' });
     }
 
-    // Если есть только username без telegram_id - создаём запись с username
-    if (!telegramId && extractedUsername) {
-      log(`⚠️ Only username found: ${extractedUsername}, no telegram_id`);
-      // Можем создать запись с username, но без возможности отправить сообщение
+    // Если есть только username без telegram_id - пытаемся найти telegram_id в БД
+    let telegramIdInt = telegramId ? parseInt(telegramId) : null;
+    if (!telegramIdInt && extractedUsername) {
+      log(`⚠️ Only username found: ${extractedUsername}, searching for telegram_id in DB...`);
+      
+      // Пробуем найти telegram_id по username в таблице users
+      const { data: userData } = await supabase
+        .from('users')
+        .select('telegram_id, username')
+        .ilike('username', extractedUsername)
+        .single();
+      
+      if (userData?.telegram_id) {
+        telegramIdInt = userData.telegram_id;
+        log(`✅ Found telegram_id ${telegramIdInt} for username ${extractedUsername} in users table`);
+      } else {
+        // Пробуем найти в premium_clients
+        const { data: clientData } = await supabase
+          .from('premium_clients')
+          .select('telegram_id, username')
+          .ilike('username', extractedUsername)
+          .single();
+        
+        if (clientData?.telegram_id) {
+          telegramIdInt = clientData.telegram_id;
+          log(`✅ Found telegram_id ${telegramIdInt} for username ${extractedUsername} in premium_clients table`);
+        } else {
+          log(`⚠️ Could not find telegram_id for username ${extractedUsername}`);
+        }
+      }
     }
 
-    log(`👤 Telegram ID: ${telegramId || 'N/A'}, Username: ${extractedUsername || 'N/A'}`);
+    log(`👤 Telegram ID: ${telegramIdInt || 'N/A'}, Username: ${extractedUsername || 'N/A'}`);
 
     // ============================================
     // ПРОВЕРКА НА ДУБЛИКАТ (по contractId - уникальный ID платежа от Lava)
@@ -756,8 +783,7 @@ export default async function handler(req, res) {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + period.days * 24 * 60 * 60 * 1000);
 
-    // Проверяем существующего клиента
-    const telegramIdInt = telegramId ? parseInt(telegramId) : null;
+    // telegramIdInt уже определен выше
     let existingClient = null;
 
     if (telegramIdInt) {
@@ -923,14 +949,91 @@ export default async function handler(req, res) {
 
       if (photoResult?.ok) {
         log('✅ Welcome message with card image sent');
+        // Логируем успешную отправку
+        await logSystemMessage({
+          telegram_id: finalTelegramId,
+          message_type: 'payment_welcome',
+          text: welcomeText,
+          source: 'lava.top',
+          success: true,
+          metadata: {
+            is_new_client: isNewClient,
+            tariff: period.name,
+            days: period.days,
+            amount: grossAmount,
+            currency: currency,
+            contract_id: contractId,
+            has_channel_link: !!channelLink,
+            has_chat_link: !!chatLink
+          }
+        });
       } else {
         // Fallback на текстовое сообщение если фото не отправилось
         log('⚠️ Photo failed, sending text message');
-        await sendTelegramMessage(String(finalTelegramId), welcomeText, replyMarkup);
-        log('✅ Welcome text message sent');
+        const textResult = await sendTelegramMessage(String(finalTelegramId), welcomeText, replyMarkup);
+        if (textResult?.ok) {
+          log('✅ Welcome text message sent');
+          await logSystemMessage({
+            telegram_id: finalTelegramId,
+            message_type: 'payment_welcome',
+            text: welcomeText,
+            source: 'lava.top',
+            success: true,
+            metadata: {
+              is_new_client: isNewClient,
+              tariff: period.name,
+              days: period.days,
+              amount: grossAmount,
+              currency: currency,
+              contract_id: contractId,
+              has_channel_link: !!channelLink,
+              has_chat_link: !!chatLink,
+              fallback_to_text: true
+            }
+          });
+        } else {
+          // Логируем ошибку
+          log(`❌ Failed to send welcome message to ${finalTelegramId}:`, textResult);
+          await logSystemMessage({
+            telegram_id: finalTelegramId,
+            message_type: 'payment_welcome',
+            text: welcomeText,
+            source: 'lava.top',
+            success: false,
+            error: textResult?.description || textResult?.error || 'Failed to send message',
+            metadata: {
+              is_new_client: isNewClient,
+              tariff: period.name,
+              days: period.days,
+              amount: grossAmount,
+              currency: currency,
+              contract_id: contractId,
+              has_channel_link: !!channelLink,
+              has_chat_link: !!chatLink
+            }
+          });
+        }
       }
     } else {
       log(`⚠️ No telegram_id available. Username: ${extractedUsername}`);
+      // Логируем что сообщение не отправлено из-за отсутствия telegram_id
+      await logSystemMessage({
+        telegram_id: extractedUsername || 'unknown',
+        message_type: 'payment_welcome',
+        text: welcomeText || 'Welcome message',
+        source: 'lava.top',
+        success: false,
+        error: 'No telegram_id available, only username',
+        metadata: {
+          username: extractedUsername,
+          is_new_client: isNewClient,
+          tariff: period.name,
+          days: period.days,
+          amount: grossAmount,
+          currency: currency,
+          contract_id: contractId
+        }
+      });
     }
 
     // NOTE: payment_history уже записан в начале (шаг 4.1) для идемпотентности
@@ -959,6 +1062,23 @@ export default async function handler(req, res) {
 
     await sendTelegramMessage(ADMIN_ID, adminMessage);
     log('📨 Admin notification sent');
+    
+    // Логируем админское уведомление
+    await logSystemMessage({
+      telegram_id: ADMIN_ID,
+      message_type: 'admin_notification',
+      text: adminMessage,
+      source: 'lava.top',
+      success: true,
+      metadata: {
+        user_telegram_id: finalTelegramId || extractedUsername,
+        tariff: period.name,
+        days: period.days,
+        amount: grossAmount,
+        currency: currency,
+        is_new_client: isNewClient
+      }
+    });
 
     // ============================================
     // 10. УСПЕШНЫЙ ОТВЕТ

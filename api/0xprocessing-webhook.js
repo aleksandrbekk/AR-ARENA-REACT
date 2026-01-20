@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { logSystemMessage } from './utils/log-system-message.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -739,11 +740,60 @@ export default async function handler(req, res) {
 
       if (photoResult?.ok) {
         log('✅ Welcome message with card image sent');
+        // Логируем успешную отправку
+        await logSystemMessage({
+          telegram_id: finalTelegramId,
+          message_type: 'payment_welcome',
+          text: welcomeText,
+          source: '0xprocessing',
+          success: true,
+          metadata: {
+            is_new_client: isNewClient,
+            tariff: period.name,
+            days: period.days,
+            amount_usd: amountUSD,
+            payment_id: PaymentId || TransactionHash
+          }
+        });
       } else {
         // Fallback на текстовое сообщение если фото не отправилось
         log('⚠️ Photo failed, sending text message');
-        await sendTelegramMessage(finalTelegramId, welcomeText, replyMarkup);
-        log('✅ Welcome text message sent');
+        const textResult = await sendTelegramMessage(finalTelegramId, welcomeText, replyMarkup);
+        if (textResult?.ok) {
+          log('✅ Welcome text message sent');
+          await logSystemMessage({
+            telegram_id: finalTelegramId,
+            message_type: 'payment_welcome',
+            text: welcomeText,
+            source: '0xprocessing',
+            success: true,
+            metadata: {
+              is_new_client: isNewClient,
+              tariff: period.name,
+              days: period.days,
+              amount_usd: amountUSD,
+              payment_id: PaymentId || TransactionHash,
+              fallback_to_text: true
+            }
+          });
+        } else {
+          // Логируем ошибку
+          await logSystemMessage({
+            telegram_id: finalTelegramId,
+            message_type: 'payment_welcome',
+            text: welcomeText,
+            source: '0xprocessing',
+            success: false,
+            error: textResult?.description || textResult?.error || 'Failed to send message',
+            metadata: {
+              is_new_client: isNewClient,
+              tariff: period.name,
+              days: period.days,
+              amount_usd: amountUSD,
+              payment_id: PaymentId || TransactionHash
+            }
+          });
+        }
       }
     }
 
@@ -771,6 +821,22 @@ export default async function handler(req, res) {
 
     await sendTelegramMessage(ADMIN_ID, adminMessage);
     log('📨 Admin notification sent');
+    
+    // Логируем админское уведомление
+    await logSystemMessage({
+      telegram_id: ADMIN_ID,
+      message_type: 'admin_notification',
+      text: adminMessage,
+      source: '0xprocessing',
+      success: true,
+      metadata: {
+        user_telegram_id: finalTelegramId,
+        tariff: period.name,
+        days: period.days,
+        amount_usd: amountUSD,
+        is_new_client: isNewClient
+      }
+    });
 
     // ============================================
     // 8. УСПЕШНЫЙ ОТВЕТ (200 OK без body для 0xProcessing)

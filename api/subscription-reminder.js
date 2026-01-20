@@ -3,6 +3,7 @@
 // 2025-12-29
 
 import { createClient } from '@supabase/supabase-js';
+import { logSystemMessage } from './utils/log-system-message.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -180,13 +181,26 @@ export default async function handler(req, res) {
 
       const success = await sendTelegramMessage(telegramId, message, replyMarkup);
 
-      if (success) {
+      if (success?.ok) {
         log(`✅ Reminder sent to ${telegramId} (${user.username || 'no username'})`);
         results.sent++;
         results.users.push({
           telegram_id: telegramId,
           username: user.username,
           status: 'sent'
+        });
+        // Логируем успешную отправку
+        await logSystemMessage({
+          telegram_id: telegramId,
+          message_type: 'subscription_reminder',
+          text: message,
+          source: 'subscription-reminder',
+          success: true,
+          metadata: {
+            username: user.username,
+            plan: user.plan,
+            expires_at: user.expires_at
+          }
         });
       } else {
         log(`❌ Failed to send reminder to ${telegramId}`);
@@ -195,6 +209,20 @@ export default async function handler(req, res) {
           telegram_id: telegramId,
           username: user.username,
           status: 'failed'
+        });
+        // Логируем ошибку
+        await logSystemMessage({
+          telegram_id: telegramId,
+          message_type: 'subscription_reminder',
+          text: message,
+          source: 'subscription-reminder',
+          success: false,
+          error: success?.description || success?.error || 'Failed to send message',
+          metadata: {
+            username: user.username,
+            plan: user.plan,
+            expires_at: user.expires_at
+          }
         });
       }
 

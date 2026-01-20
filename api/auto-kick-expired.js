@@ -3,6 +3,7 @@
 // 2025-12-23
 
 import { createClient } from '@supabase/supabase-js';
+import { logSystemMessage } from './utils/log-system-message.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -165,13 +166,28 @@ export default async function handler(req, res) {
       }
 
       // Отправляем уведомление пользователю
-      await sendTelegramMessage(
-        client.telegram_id,
-        `⏰ <b>Ваша подписка Premium AR Club истекла</b>\n\n` +
+      const expiredMessage = `⏰ <b>Ваша подписка Premium AR Club истекла</b>\n\n` +
         `Доступ к закрытому каналу и чату приостановлен.\n\n` +
         `Чтобы продлить подписку, откройте AR ARENA и перейдите в раздел Premium.\n\n` +
-        `📞 Служба заботы: @Andrey_cryptoinvestor`
-      );
+        `📞 Служба заботы: @Andrey_cryptoinvestor`;
+      
+      const messageResult = await sendTelegramMessage(client.telegram_id, expiredMessage);
+      
+      // Логируем отправку
+      await logSystemMessage({
+        telegram_id: client.telegram_id,
+        message_type: 'auto_kick',
+        text: expiredMessage,
+        source: 'auto-kick-expired',
+        success: messageResult?.ok || false,
+        error: messageResult?.ok ? null : (messageResult?.description || messageResult?.error || 'Failed to send'),
+        metadata: {
+          username: client.username,
+          plan: client.plan,
+          expires_at: client.expires_at,
+          kick_success: kickResult.success
+        }
+      });
 
       results.push({
         telegram_id: client.telegram_id,

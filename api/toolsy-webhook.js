@@ -3,6 +3,7 @@
 // 2025-12-22
 
 import { createClient } from '@supabase/supabase-js';
+import { logSystemMessage } from './utils/log-system-message.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -364,7 +365,23 @@ export default async function handler(req, res) {
         `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n` +
         `Оплата криптовалютой: ${amount} ${currency}`;
 
-    await sendTelegramMessage(telegramIdInt, welcomeMessage);
+    const welcomeResult = await sendTelegramMessage(telegramIdInt, welcomeMessage);
+    
+    // Логируем отправку приветственного сообщения
+    await logSystemMessage({
+      telegram_id: telegramIdInt,
+      message_type: 'payment_welcome',
+      text: welcomeMessage,
+      source: 'toolsy',
+      success: welcomeResult?.ok || false,
+      error: welcomeResult?.ok ? null : (welcomeResult?.description || welcomeResult?.error || 'Failed to send'),
+      metadata: {
+        is_new_client: isNewClient,
+        tariff: period.name,
+        days: period.days,
+        amount: amount
+      }
+    });
     log('✅ Welcome message sent');
 
     // Пробуем создать invite link
@@ -384,7 +401,20 @@ export default async function handler(req, res) {
         ]
       };
 
-      await sendTelegramMessage(telegramIdInt, '📢 Нажмите кнопку ниже, чтобы присоединиться к Premium каналу:', replyMarkup);
+      const channelResult = await sendTelegramMessage(telegramIdInt, '📢 Нажмите кнопку ниже, чтобы присоединиться к Premium каналу:', replyMarkup);
+      
+      // Логируем отправку ссылки на канал
+      await logSystemMessage({
+        telegram_id: telegramIdInt,
+        message_type: 'channel_invite',
+        text: '📢 Нажмите кнопку ниже, чтобы присоединиться к Premium каналу:',
+        source: 'toolsy',
+        success: channelResult?.ok || false,
+        error: channelResult?.ok ? null : (channelResult?.description || channelResult?.error || 'Failed to send'),
+        metadata: {
+          has_channel_link: !!channelLink
+        }
+      });
       log('✅ Invite link message sent');
     } else {
       log('⚠️ Failed to create invite link');
