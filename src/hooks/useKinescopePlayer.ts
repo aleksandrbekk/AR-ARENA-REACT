@@ -52,14 +52,19 @@ export function useKinescopePlayer({
         if (!videoUrl) return
 
         const handleMessage = (event: MessageEvent) => {
+            // Log all messages for debugging
+            console.log('postMessage received:', event.origin, event.data)
+
             // Skip non-Kinescope messages
             if (!event.origin.includes('kinescope')) return
 
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
 
+                console.log('Kinescope event:', data)
+
                 // Handle different event formats
-                const eventType = data.event || data.type || ''
+                const eventType = data.event || data.type || data.method || ''
 
                 if (eventType === 'timeupdate' || eventType === 'TimeUpdate') {
                     const payload = data.data || data
