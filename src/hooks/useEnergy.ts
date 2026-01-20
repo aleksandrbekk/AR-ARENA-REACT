@@ -15,8 +15,6 @@ export function useEnergy(
   const restoreEnergy = useCallback(async (): Promise<EnergyResult | null> => {
     if (!telegramId) return null
 
-    console.log('=== ENERGY RESTORE ===')
-
     try {
       const { data, error } = await supabase.rpc('restore_bull_energy', {
         p_telegram_id: telegramId
@@ -26,18 +24,13 @@ export function useEnergy(
 
       const result = Array.isArray(data) ? data[0] : data
 
-      console.log('Response from RPC:', data)
-      console.log('Parsed result:', result)
-
       if (result) {
-        console.log('Setting energy to:', result.energy, '/', result.energy_max)
-        console.log('Energy restored this call:', result.energy_restored)
         onEnergyUpdate(result.energy, result.energy_max)
       }
 
       return result
     } catch (err) {
-      console.error('Energy restore error:', err)
+      // SECURITY FIX: Removed verbose error logging
       return null
     }
   }, [telegramId, onEnergyUpdate])

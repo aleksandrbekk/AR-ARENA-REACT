@@ -22,14 +22,14 @@ export function KinescopeVideoPlayer({
 }: KinescopeVideoPlayerProps) {
     const isKinescope = videoSource.includes('kinescope.io')
 
-    // Use Kinescope SDK for Kinescope videos
+    // Use Kinescope hook for Kinescope videos
     const {
-        containerRef,
+        iframeRef,
+        videoUrl,
         isPlaying,
         isLoading,
         isReady,
-        play,
-        videoId
+        play
     } = useKinescopePlayer({
         videoSource,
         onProgress,
@@ -47,21 +47,44 @@ export function KinescopeVideoPlayer({
         return videoSource
     }, [videoSource, isKinescope])
 
+    // Click handler for play button
+    const handlePlayClick = () => {
+        if (isKinescope) {
+            play()
+            // Also try clicking the iframe directly as fallback
+            if (iframeRef.current) {
+                iframeRef.current.focus()
+            }
+        } else {
+            setFallbackPlaying(true)
+        }
+    }
+
     return (
         <div className="w-full">
             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10 group">
-                {isKinescope && videoId ? (
+                {isKinescope && videoUrl ? (
                     <>
-                        {/* SDK Player Container */}
-                        <div
-                            ref={containerRef}
+                        {/* Kinescope iframe */}
+                        <iframe
+                            ref={iframeRef}
+                            src={videoUrl}
                             className="absolute inset-0 w-full h-full"
-                            id="kinescope-sdk-player"
+                            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
+                            frameBorder="0"
+                            allowFullScreen
+                            id="kinescope-player"
+                            onLoad={() => {
+                                // Player loaded
+                            }}
                         />
 
                         {/* Custom Play Button Overlay */}
                         {!isPlaying && isReady && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-20 cursor-pointer" onClick={play}>
+                            <div
+                                className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-20 cursor-pointer"
+                                onClick={handlePlayClick}
+                            >
                                 <motion.div
                                     className="w-20 h-20 rounded-full flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300"
                                     style={{

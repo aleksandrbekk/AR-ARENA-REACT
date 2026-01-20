@@ -12,9 +12,9 @@ trigger: always_on
 | Браузер | Playwright MCP |
 | Автоматизации | n8n |
 
-**Supabase:** syxjkircmiwpnpagznay.supabase.co (GitHub: aleksandrbekk@bk.ru / xYrsyp-6jyhgy-gubjyc)
+**Supabase:** syxjkircmiwpnpagznay.supabase.co (см. Vercel Environment Variables)
 
-**n8n:** https://n8n.iferma.pro/ (API: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhNzA3MjRlZS1jNTIxLTQzODEtOGEwZC0wYTM5MTI3ZDdlNmUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY1NjA2Mzk3fQ.gHdOp3h7jQtGX0qZjXGlz2uzROuecGSOFYxe5gO2qQQ)
+**n8n:** https://n8n.iferma.pro/ (API: см. Vercel Environment Variables)
 
 ---
 

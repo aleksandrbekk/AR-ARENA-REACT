@@ -18,6 +18,14 @@ const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216];
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://ar-arena.games',
+  'https://www.ar-arena.games',
+  'https://ar-arena-react.vercel.app',
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+].filter(Boolean);
+
 // Отправить сообщение в Telegram
 async function sendTelegramMessage(chatId, text, replyMarkup = null) {
   try {
@@ -84,7 +92,10 @@ async function saveOutgoingMessage(conversationId, telegramId, text, sentBy) {
 
 export default async function handler(req, res) {
   // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 

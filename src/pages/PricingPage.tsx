@@ -366,19 +366,20 @@ export function PricingPage() {
               photo_url: user.photo_url || null,
               language_code: user.language_code || null
             })
-          }).then(res => {
-            if (res.ok) console.log('[PricingPage] User added to users table:', user.id)
-            else console.warn('[PricingPage] User upsert failed:', res.status)
-          }).catch(err => console.warn('[PricingPage] User upsert error:', err))
+          }).then(() => {
+            // SECURITY FIX: Removed console.log with user ID
+          }).catch(() => {
+            // Non-critical error, user registration failed silently
+          })
 
           // Также вызываем RPC для game state
           await supabase.rpc('get_bull_game_state', {
             p_telegram_id: user.id.toString()
           })
-          console.log('[PricingPage] User registered:', user.id)
+          // SECURITY FIX: Removed console.log with user ID
         }
-      } catch (err) {
-        console.warn('[PricingPage] User registration error (non-critical):', err)
+      } catch {
+        // Non-critical error, user registration failed silently
       }
     }
 

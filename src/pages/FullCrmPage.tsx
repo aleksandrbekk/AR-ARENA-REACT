@@ -1692,7 +1692,7 @@ export function FullCrmPage() {
                     }
                     else if (isEurCurrency(c.currency || '')) totalEur += amount
                     else if (isCryptoCurrency(c.currency || '', c.source || '')) {
-                      console.log('[USDT DEBUG]', c.telegram_id, 'original_amount:', c.original_amount, 'total_paid_usd:', c.total_paid_usd, 'ADDING:', amount)
+                      // SECURITY FIX: Removed console.log with telegram_id
                       totalUsdt += amount
                     }
                     else if (isUsdCurrency(c.currency || '', c.source || '')) totalUsd += amount

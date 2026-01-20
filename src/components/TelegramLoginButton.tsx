@@ -26,8 +26,8 @@ export function TelegramLoginButton({
 
   useEffect(() => {
     // Устанавливаем глобальный callback
+    // SECURITY FIX: Removed console.log with user data
     window.onTelegramAuth = (user: TelegramAuthData) => {
-      console.log('Telegram auth data received:', user)
       onAuth(user)
     }
 
@@ -42,7 +42,10 @@ export function TelegramLoginButton({
     script.async = true
 
     if (containerRef.current) {
-      containerRef.current.innerHTML = ''
+      // SECURITY FIX: Use safe DOM method instead of innerHTML
+      while (containerRef.current.firstChild) {
+        containerRef.current.removeChild(containerRef.current.firstChild)
+      }
       containerRef.current.appendChild(script)
     }
 

@@ -37,7 +37,7 @@ const ChevronRightIcon = ({ className = '' }: { className?: string }) => (
 
 export function ProfilePage() {
   const navigate = useNavigate()
-  const { telegramUser, gameState, isLoading } = useAuth()
+  const { telegramUser, gameState } = useAuth()
   const { activeSkin } = useSkins()
   const { getMyGiveawayHistory } = useGiveaways()
   const [stats, setStats] = useState<ProfileStats | null>(null)
@@ -45,38 +45,24 @@ export function ProfilePage() {
   const [giveawayHistory, setGiveawayHistory] = useState<GiveawayHistory[]>([])
   const [loadingGiveaways, setLoadingGiveaways] = useState(true)
 
-  console.log('=== PROFILE PAGE RENDER ===')
-  console.log('isLoading:', isLoading)
-  console.log('loadingStats:', loadingStats)
-  console.log('telegramUser:', telegramUser)
-  console.log('gameState:', gameState)
-  console.log('stats:', stats)
-  console.log('activeSkin:', activeSkin)
+  // SECURITY FIX: Removed debug console.log statements with user data
 
   // Загрузка статистики профиля
   useEffect(() => {
     async function loadStats() {
-      console.log('=== PROFILE PAGE LOADING STATS ===')
-      console.log('telegramUser:', telegramUser)
-
+      // SECURITY FIX: Removed debug console.log statements with user data
       if (!telegramUser) {
-        console.log('No telegramUser, skipping stats load')
         setLoadingStats(false)
         return
       }
 
       try {
-        console.log('Loading stats for telegram_id:', telegramUser.id.toString())
-
         // Получаем данные из users
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('total_taps, created_at')
           .eq('telegram_id', telegramUser.id.toString())
           .single()
-
-        console.log('userData:', userData)
-        console.log('userError:', userError)
 
         if (userError) throw userError
 
@@ -86,13 +72,10 @@ export function ProfilePage() {
           .select('*', { count: 'exact', head: true })
           .eq('telegram_id', telegramUser.id.toString())
 
-        console.log('skins count:', count)
-        console.log('skinsError:', skinsError)
-
         // Игнорируем ошибку если просто нет скинов
         // Ошибка 400 может быть когда таблица пустая для user
         if (skinsError && skinsError.code !== 'PGRST116') {
-          console.warn('Error getting skins count, using 0:', skinsError)
+          // Non-critical error, continue with 0 skins
         }
 
         const profileStats = {
@@ -101,10 +84,9 @@ export function ProfilePage() {
           created_at: userData.created_at
         }
 
-        console.log('✅ Profile stats loaded:', profileStats)
         setStats(profileStats)
       } catch (err) {
-        console.error('❌ Error loading profile stats:', err)
+        // Error loading profile stats - non-critical
       } finally {
         setLoadingStats(false)
       }

@@ -14,9 +14,20 @@ if (!LAVA_API_KEY) {
 // Premium AR Club Product/Offer ID
 const PREMIUM_OFFER_ID = 'd6edc26e-00b2-4fe0-9b0b-45fd7548b037';
 
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://ar-arena.games',
+  'https://www.ar-arena.games',
+  'https://ar-arena-react.vercel.app',
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+].filter(Boolean);
+
 export default async function handler(req, res) {
   // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 

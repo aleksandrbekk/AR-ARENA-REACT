@@ -123,11 +123,7 @@ B) [решение]
 - Заходит в Supabase Dashboard
 - Копирует SQL
 - Делает что-либо руками кроме проверки в Telegram
-- К супабэйс подключайся через гитхаб
-
-  aleksandrbekk@bk.ru
-
-  xYrsyp-6jyhgy-gubjyc
+- К супабэйс подключайся через GitHub (см. Vercel Environment Variables)
 
 ---
 
@@ -238,11 +234,11 @@ Vercel деплоит автоматом → https://ararena.pro
 | Сервис | Данные |
 |--------|--------|
 | Supabase | syxjkircmiwpnpagznay.supabase.co |
-| Supabase Auth | GitHub: aleksandrbekk@bk.ru / xYrsyp-6jyhgy-gubjyc |
+| Supabase Auth | см. Vercel Environment Variables |
 | GitHub | aleksandrbekk/AR-ARENA-REACT |
 | Admin TG | 190202791 |
 | n8n | https://n8n.iferma.pro/ |
-| n8n API | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhNzA3MjRlZS1jNTIxLTQzODEtOGEwZC0wYTM5MTI3ZDdlNmUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY1NjA2Mzk3fQ.gHdOp3h7jQtGX0qZjXGlz2uzROuecGSOFYxe5gO2qQQ |
+| n8n API | см. Vercel Environment Variables |
 
 ---
 

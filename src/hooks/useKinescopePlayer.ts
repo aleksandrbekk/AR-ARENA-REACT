@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
-import * as iframeApiLoader from '@kinescope/player-iframe-api-loader'
+import { useEffect, useRef, useState, useMemo } from 'react'
 
 interface UseKinescopePlayerOptions {
     videoSource: string
@@ -15,159 +14,127 @@ export function useKinescopePlayer({
     const [isPlaying, setIsPlaying] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [isReady, setIsReady] = useState(false)
-    const [containerElement, setContainerElement] = useState<HTMLDivElement | null>(null)
-    const playerRef = useRef<Kinescope.IframePlayer.Player | null>(null)
+    const iframeRef = useRef<HTMLIFrameElement>(null)
 
-    // Callback ref to track when container is mounted
-    const containerRef = useCallback((node: HTMLDivElement | null) => {
-        if (node !== null) {
-            setContainerElement(node)
+    // Extract video URL from Kinescope embed
+    const videoUrl = useMemo(() => {
+        if (!videoSource) return ''
+
+        let url = ''
+        // Extract src from iframe tag if present
+        if (videoSource.includes('<iframe')) {
+            const match = videoSource.match(/src=["'](.*?)["']/)
+            url = match ? match[1] : ''
+        } else if (videoSource.includes('kinescope.io')) {
+            url = videoSource
         }
-    }, [])
 
-    // Extract video ID from Kinescope embed
-    const { videoId, videoUrl } = useMemo(() => {
-        if (!videoSource) return { videoId: '', videoUrl: '' }
-
-        // Extract video ID from URL like https://kinescope.io/embed/6Y8BFWaag2M7gBLy66Paq6
-        const match = videoSource.match(/kinescope\.io\/embed\/([a-zA-Z0-9]+)/)
-        if (match) {
-            return {
-                videoId: match[1],
-                videoUrl: `https://kinescope.io/embed/${match[1]}`
-            }
+        // Add API parameters
+        if (url) {
+            const hasParams = url.includes('?')
+            const separator = hasParams ? '&' : '?'
+            url += `${separator}api=1`
         }
-        return { videoId: '', videoUrl: '' }
+
+        return url
     }, [videoSource])
 
-    // Initialize Kinescope SDK Player - only when containerElement is set
+    // Ready when URL is available
     useEffect(() => {
-        if (!videoId || !containerElement) return
+        if (videoUrl) {
+            setIsLoading(false)
+            setIsReady(true)
+        }
+    }, [videoUrl])
 
-        let player: Kinescope.IframePlayer.Player | null = null
-        let mounted = true
+    // Listen for Kinescope events via postMessage
+    useEffect(() => {
+        if (!videoUrl) return
 
-        const initPlayer = async () => {
+        const handleMessage = (event: MessageEvent) => {
+            // Skip non-Kinescope messages
+            if (!event.origin.includes('kinescope')) return
+
             try {
-                setIsLoading(true)
-                const factory = await iframeApiLoader.load()
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
 
-                if (!mounted || !containerElement) return
+                // Handle different event formats
+                const eventType = data.event || data.type || ''
 
-                player = await factory.create(containerElement, {
-                    url: videoUrl,
-                    size: { width: '100%', height: '100%' },
-                    behavior: {
-                        autoPlay: false,
-                        muted: false,
-                        localStorage: true
-                    },
-                    ui: {
-                        controls: false, // Hide native controls
-                        mainPlayButton: false // We'll show our own
+                if (eventType === 'timeupdate' || eventType === 'TimeUpdate') {
+                    const payload = data.data || data
+                    const currentTime = payload.currentTime ?? payload.current
+                    const duration = payload.duration
+                    const percent = payload.percent
+
+                    if (typeof percent === 'number') {
+                        onProgress(percent)
+                    } else if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
+                        onProgress((currentTime / duration) * 100)
                     }
-                })
 
-                playerRef.current = player
-                setIsLoading(false)
-                setIsReady(true)
+                    if (typeof duration === 'number' && duration > 0) {
+                        onDuration(duration)
+                    }
+                }
 
-                // Attach event listeners
-                player.on(player.Events.TimeUpdate, (e) => {
-                    const { percent } = e.data
-                    onProgress(percent)
-                })
-
-                player.on(player.Events.DurationChange, (e) => {
-                    onDuration(e.data.duration)
-                })
-
-                player.on(player.Events.Playing, () => {
+                if (eventType === 'playing' || eventType === 'Playing' || eventType === 'play' || eventType === 'Play') {
                     setIsPlaying(true)
-                })
+                }
 
-                player.on(player.Events.Pause, () => {
+                if (eventType === 'pause' || eventType === 'Pause' || eventType === 'ended' || eventType === 'Ended') {
                     setIsPlaying(false)
-                })
+                }
 
-                player.on(player.Events.Ended, () => {
-                    setIsPlaying(false)
-                })
+                if (eventType === 'ready' || eventType === 'Ready') {
+                    setIsReady(true)
+                }
 
-                player.on(player.Events.Loaded, (e) => {
-                    onDuration(e.data.duration)
-                })
-
-                // Polling for smooth progress updates (every 1 second)
-                const progressInterval = setInterval(async () => {
-                    if (playerRef.current) {
-                        try {
-                            const [currentTime, duration] = await Promise.all([
-                                playerRef.current.getCurrentTime(),
-                                playerRef.current.getDuration()
-                            ])
-                            if (duration > 0) {
-                                const percent = (currentTime / duration) * 100
-                                onProgress(percent)
-                            }
-                        } catch (e) {
-                            // Ignore errors during polling
-                        }
-                    }
-                }, 1000)
-
-                    // Store interval for cleanup
-                    ; (player as any)._progressInterval = progressInterval
-
-            } catch (err) {
-                console.error('Kinescope SDK init error:', err)
-                setIsLoading(false)
+                if ((eventType === 'durationchange' || eventType === 'DurationChange') && data.data?.duration) {
+                    onDuration(data.data.duration)
+                }
+            } catch {
+                // Ignore parse errors
             }
         }
 
-        initPlayer()
+        window.addEventListener('message', handleMessage)
 
         return () => {
-            mounted = false
-            if (player) {
-                // Clear polling interval
-                if ((player as any)._progressInterval) {
-                    clearInterval((player as any)._progressInterval)
-                }
-                player.destroy()
-            }
+            window.removeEventListener('message', handleMessage)
         }
-    }, [videoId, videoUrl, containerElement, onProgress, onDuration])
+    }, [videoUrl, onProgress, onDuration])
 
-    const play = async () => {
-        if (playerRef.current) {
-            try {
-                await playerRef.current.play()
-                setIsPlaying(true)
-            } catch (err) {
-                console.error('Play error:', err)
-            }
+    const play = () => {
+        if (iframeRef.current?.contentWindow) {
+            // Send play command in various formats for compatibility
+            const commands = [
+                { method: 'play' },
+                { command: 'play' },
+                { type: 'play' }
+            ]
+            commands.forEach(cmd => {
+                iframeRef.current?.contentWindow?.postMessage(JSON.stringify(cmd), '*')
+            })
+            setIsPlaying(true)
         }
     }
 
-    const pause = async () => {
-        if (playerRef.current) {
-            try {
-                await playerRef.current.pause()
-                setIsPlaying(false)
-            } catch (err) {
-                console.error('Pause error:', err)
-            }
+    const pause = () => {
+        if (iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*')
+            setIsPlaying(false)
         }
     }
 
     return {
-        containerRef,
+        iframeRef,
+        videoUrl,
         isPlaying,
         isLoading,
         isReady,
         play,
         pause,
-        videoId
+        setIsPlaying
     }
 }

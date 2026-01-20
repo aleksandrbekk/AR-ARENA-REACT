@@ -27,6 +27,14 @@ const WELCOME_IMAGE_URL = 'https://ararena.pro/images/ar_premium_club_welcome.jp
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://ar-arena.games',
+  'https://www.ar-arena.games',
+  'https://ar-arena-react.vercel.app',
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+].filter(Boolean);
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -524,7 +532,10 @@ async function checkAndRunAutomation(chatId, telegramId, conversationId, text) {
 
 export default async function handler(req, res) {
   // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 

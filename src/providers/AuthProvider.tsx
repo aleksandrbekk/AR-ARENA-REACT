@@ -86,6 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Инициализация при монтировании (один раз на все приложение)
     useEffect(() => {
+        // SECURITY FIX: AbortController for fetch requests cleanup
+        const abortController = new AbortController()
+
         const initAuth = async () => {
             try {
                 setIsLoading(true)
@@ -164,7 +167,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
 
                 setTelegramUser(telegramUserData)
-                console.log('AuthProvider: Telegram user set:', telegramUserData)
 
                 // Upsert пользователя через API с VALIDATION (initData)
                 fetch('/api/upsert-user', {
@@ -172,35 +174,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         initData: initData
-                    })
+                    }),
+                    signal: abortController.signal  // MEMORY LEAK FIX: AbortSignal
                 }).then(async (res) => {
-                    const text = await res.text()
                     if (!res.ok) {
-                        console.error('AuthProvider: User upsert API ERROR:', text)
-                        // Don't block app flow for now, but log critical error
-                    } else {
-                        console.log('AuthProvider: User upserted via SECURE API')
+                        console.error('AuthProvider: User upsert API error')
                     }
-                }).catch(e => {
-                    console.error('AuthProvider: User upsert fetch error:', e)
+                }).catch((e) => {
+                    // MEMORY LEAK FIX: Ignore AbortError on component unmount
+                    if (e.name !== 'AbortError') {
+                        console.error('AuthProvider: User upsert fetch error')
+                    }
                 })
 
                 // Обработка реферального кода из ?startapp=CODE
                 const startParam = tg.initDataUnsafe?.start_param
                 if (startParam) {
-                    console.log('AuthProvider: Processing referral code:', startParam)
                     supabase.rpc('apply_referral_code', {
                         p_telegram_id: user.id.toString(),
                         p_referral_code: startParam
-                    }).then(({ data, error: refError }) => {
+                    }).then(({ error: refError }) => {
                         if (refError) {
-                            console.error('AuthProvider: Referral code error:', refError)
-                        } else if (data?.success) {
-                            console.log('AuthProvider: Referral code applied successfully')
-                        } else if (data?.error === 'ALREADY_HAS_REFERRER') {
-                            console.log('AuthProvider: User already has referrer')
-                        } else {
-                            console.log('AuthProvider: Referral code result:', data)
+                            console.error('AuthProvider: Referral code error')
                         }
                     })
                 }
@@ -209,7 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 await loadGameState(user.id)
 
             } catch (err) {
-                console.error('AuthProvider: Init error:', err)
+                console.error('AuthProvider: Init error')
                 setError('Authentication failed')
             } finally {
                 setIsLoading(false)
@@ -217,6 +212,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         initAuth()
+
+        // CLEANUP: Abort pending fetch requests on unmount
+        return () => {
+            abortController.abort()
+        }
     }, [loadGameState])
 
     return (

@@ -111,12 +111,7 @@ export function Home() {
     }
   }
 
-  // Выводим данные в консоль для отладки
-  console.log('=== HOME PAGE DEBUG ===')
-  console.log('isLoading:', isLoading)
-  console.log('error:', error)
-  console.log('telegramUser:', telegramUser)
-  console.log('gameState:', gameState)
+  // SECURITY FIX: Removed debug console.log statements with user data
 
   // Показываем индикатор загрузки
   if (isLoading) {

@@ -16,7 +16,7 @@ export function BrowserFallback({ onAuth }: BrowserFallbackProps) {
   const [authError, setAuthError] = useState<string | null>(null)
 
   const handleTelegramAuth = async (user: TelegramAuthData) => {
-    console.log('Telegram auth callback:', user)
+    // SECURITY FIX: Removed console.log with user data
     setIsAuthenticating(true)
     setAuthError(null)
 

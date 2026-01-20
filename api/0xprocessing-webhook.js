@@ -24,6 +24,53 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
 // MerchantId для верификации
 const MERCHANT_ID = '0xMR3389551';
 
+// Webhook secret для HMAC верификации (set in Vercel environment)
+const WEBHOOK_SECRET = process.env.OXPROCESSING_WEBHOOK_SECRET;
+
+// ============================================
+// SECURITY: HMAC Signature Verification
+// ============================================
+
+/**
+ * Verify HMAC-SHA256 signature from 0xProcessing webhook
+ * Uses timing-safe comparison to prevent timing attacks
+ *
+ * @param {object|string} payload - Request body (object or string)
+ * @param {string} signature - Signature from header
+ * @param {string} secret - Webhook secret key
+ * @returns {boolean} - true if signature is valid
+ */
+function verifyWebhookSignature(payload, signature, secret) {
+  if (!signature || !secret) {
+    return false;
+  }
+
+  try {
+    // Normalize payload to string
+    const payloadString = typeof payload === 'string'
+      ? payload
+      : JSON.stringify(payload);
+
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(payloadString);
+    const expectedSignature = hmac.digest('hex');
+
+    // Use timing-safe comparison to prevent timing attacks
+    const signatureBuffer = Buffer.from(signature, 'utf8');
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+
+    // Ensure buffers are same length before comparison
+    if (signatureBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+  } catch (error) {
+    console.error('[0xProcessing] Signature verification error:', error.message);
+    return false;
+  }
+}
+
 // Маппинг суммы USD на период подписки
 // ПРОДАКШН ЦЕНЫ (крипто) - курс 80₽/$
 // Широкие диапазоны чтобы учитывать комиссии сети (могут быть $5-25)
@@ -36,6 +83,14 @@ const AMOUNT_TO_PERIOD = [
 
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://ar-arena.games',
+  'https://www.ar-arena.games',
+  'https://ar-arena-react.vercel.app',
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+].filter(Boolean);
 
 // ============================================
 // HELPER FUNCTIONS
@@ -274,9 +329,12 @@ async function createInviteLinks(telegramId) {
 
 export default async function handler(req, res) {
   // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Signature, X-Webhook-Signature, X-0x-Signature, Signature');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -305,6 +363,34 @@ export default async function handler(req, res) {
     const payload = req.body;
 
     // ============================================
+    // 0. SECURITY: HMAC SIGNATURE VERIFICATION
+    // ============================================
+    // Check for signature in common header names
+    const signature = req.headers['x-signature']
+      || req.headers['x-webhook-signature']
+      || req.headers['x-0x-signature']
+      || req.headers['signature'];
+
+    if (WEBHOOK_SECRET) {
+      // Webhook secret is configured - verify signature
+      if (signature) {
+        const isValidSignature = verifyWebhookSignature(payload, signature, WEBHOOK_SECRET);
+        if (!isValidSignature) {
+          log('SECURITY: Invalid webhook signature - rejecting request');
+          return res.status(401).json({ error: 'Invalid signature' });
+        }
+        log('SECURITY: Webhook signature verified successfully');
+      } else {
+        // Signature header missing but secret is configured
+        // Log warning but continue for backward compatibility during transition
+        log('SECURITY WARNING: WEBHOOK_SECRET is set but no signature header received. Consider requiring signatures.');
+      }
+    } else {
+      // No webhook secret configured
+      log('SECURITY WARNING: OXPROCESSING_WEBHOOK_SECRET not configured. Signature verification disabled. Set this env var for production security.');
+    }
+
+    // ============================================
     // 1. ВАЛИДАЦИЯ PAYLOAD
     // ============================================
     // 0xProcessing webhook payload содержит:
@@ -326,7 +412,7 @@ export default async function handler(req, res) {
       WalletAddress,
       MerchantId,
       PaymentId,
-      Signature
+      Signature: PayloadSignature
     } = payload;
 
     log(`📨 Payment status: ${Status}, ClientId: ${ClientId}, Amount: ${AmountUSD || Amount} ${Currency}`);
@@ -334,25 +420,45 @@ export default async function handler(req, res) {
 
     // Проверяем MerchantId
     if (MerchantId && MerchantId !== MERCHANT_ID) {
-      log(`❌ Invalid MerchantId: ${MerchantId}, expected: ${MERCHANT_ID}`);
+      log(`SECURITY: Invalid MerchantId: ${MerchantId}, expected: ${MERCHANT_ID}`);
       return res.status(200).json({ message: 'Invalid merchant' });
     }
 
     // Проверяем статус платежа
     if (Status !== 'Success' && Status !== 'Completed') {
-      log(`⚠️ Payment status: ${Status} - ignoring`);
+      log(`Payment status: ${Status} - ignoring`);
       return res.status(200).json({ message: 'Payment not successful, ignoring' });
     }
 
     if (!ClientId) {
-      log('❌ Missing ClientId in payload');
+      log('Missing ClientId in payload');
       return res.status(200).json({ message: 'No ClientId found' });
     }
 
     // ============================================
-    // ПРОВЕРКА НА ДУБЛИКАТ (по времени последнего платежа)
+    // ПРОВЕРКА НА ДУБЛИКАТ (УЛУЧШЕННАЯ)
     // ============================================
-    // Если тот же клиент платил в последние 5 минут — это retry, игнорируем
+    // 1. Проверяем по PaymentId/TransactionHash в payment_history (надёжная проверка)
+    // 2. Fallback: проверка по времени последнего платежа (защита от retry)
+
+    // Уникальный идентификатор платежа для проверки дубликатов
+    const uniquePaymentId = PaymentId || TransactionHash || null;
+
+    if (uniquePaymentId) {
+      // Проверяем по contract_id в payment_history (надёжная проверка)
+      const { data: existingPayment } = await supabase
+        .from('payment_history')
+        .select('id, created_at')
+        .eq('contract_id', uniquePaymentId)
+        .single();
+
+      if (existingPayment) {
+        log(`DUPLICATE: Payment ${uniquePaymentId} already processed at ${existingPayment.created_at} - ignoring`);
+        return res.status(200).json({ message: 'Payment already processed (duplicate by PaymentId)' });
+      }
+    }
+
+    // Fallback: проверка по времени (защита от retry без PaymentId)
     const clientIdentifier = /^\d+$/.test(ClientId) ? parseInt(ClientId) : null;
     if (clientIdentifier) {
       const { data: recentClient } = await supabase
@@ -366,9 +472,10 @@ export default async function handler(req, res) {
         const now = new Date();
         const minutesSinceLastPayment = (now - lastPayment) / 1000 / 60;
 
-        if (minutesSinceLastPayment < 5) {
-          log(`⚠️ Duplicate payment detected: last payment was ${minutesSinceLastPayment.toFixed(1)} min ago - ignoring`);
-          return res.status(200).json({ message: 'Payment already processed (duplicate)' });
+        // Если нет PaymentId и последний платёж был <5 минут назад - считаем дубликатом
+        if (!uniquePaymentId && minutesSinceLastPayment < 5) {
+          log(`DUPLICATE: No PaymentId and last payment was ${minutesSinceLastPayment.toFixed(1)} min ago - ignoring`);
+          return res.status(200).json({ message: 'Payment already processed (duplicate by time)' });
         }
       }
     }
@@ -586,18 +693,22 @@ export default async function handler(req, res) {
     // ============================================
     // 6. ЗАПИСЬ В PAYMENT_HISTORY
     // ============================================
+    // ВАЖНО: contract_id должен совпадать с uniquePaymentId из проверки дубликатов выше
     try {
+      const paymentContractId = PaymentId || TransactionHash || `0x_${Date.now()}_${telegramIdInt || username}`;
       const paymentData = {
         telegram_id: telegramIdInt ? String(telegramIdInt) : username,
         amount: parseFloat(amountUSD),
         currency: 'USD',
         source: '0xprocessing',
-        contract_id: PaymentId || TransactionHash || `0x_${Date.now()}`,
+        contract_id: paymentContractId,
         tx_hash: TransactionHash || null,
+        plan: period.tariff,
+        status: 'success',
         created_at: new Date().toISOString()
       };
 
-      log('📝 Записываем в payment_history:', paymentData);
+      log('Recording payment_history:', paymentData);
 
       const { error: paymentError } = await supabase
         .from('payment_history')
