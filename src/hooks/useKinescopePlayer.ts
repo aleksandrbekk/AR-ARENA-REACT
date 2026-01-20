@@ -35,7 +35,8 @@ export function useKinescopePlayer({
             const separator = hasParams ? '&' : '?'
             // autoplay=1 - start playing immediately
             // playButtonShow=0 - hide the native play button
-            url += `${separator}api=1&autoplay=1&playButtonShow=0`
+            // controls=0 - hide all native controls (timeline, etc)
+            url += `${separator}api=1&autoplay=1&playButtonShow=0&controls=0`
         }
 
         return url

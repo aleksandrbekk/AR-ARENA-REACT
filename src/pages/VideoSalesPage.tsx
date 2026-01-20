@@ -530,15 +530,28 @@ function CustomProgressBar({ progress }: { progress: number }) {
     )
 }
 
+// ============ ФОРМАТИРОВАНИЕ ВРЕМЕНИ ============
+function formatTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
 // ============ ГЛАВНАЯ СТРАНИЦА ============
 export function VideoSalesPage() {
     const [videoProgress, setVideoProgress] = useState(0)
+    const [videoDuration, setVideoDuration] = useState(0) // Длительность видео в секундах
     const [isUnlocked, setIsUnlocked] = useState(false)
     const [codeError, setCodeError] = useState(false)
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
     const [selectedTariff, setSelectedTariff] = useState<Tariff | null>(null)
 
     const pricingRef = useRef<HTMLDivElement>(null)
+
+    // Вычисляем оставшееся время
+    const remainingTime = videoDuration > 0
+        ? Math.max(0, videoDuration - (videoDuration * videoProgress / 100))
+        : 0
 
     const handleCodeComplete = useCallback((code: string) => {
         if (code === SECRET_CODE) {
@@ -624,7 +637,7 @@ export function VideoSalesPage() {
                                 <KinescopeVideoPlayer
                                     videoSource={VIDEO_SOURCE}
                                     onProgress={setVideoProgress}
-                                    onDuration={() => { }}
+                                    onDuration={setVideoDuration}
                                     videoProgress={videoProgress}
                                     ProgressBar={CustomProgressBar}
                                 />
@@ -658,6 +671,27 @@ export function VideoSalesPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.6, delay: 0.4 }}
                             >
+                                {/* Timer above code input */}
+                                {videoDuration > 0 && (
+                                    <div className="mb-4 text-center">
+                                        <div className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+                                            Осталось до конца видео
+                                        </div>
+                                        <div
+                                            className="text-3xl sm:text-4xl font-bold tabular-nums"
+                                            style={{
+                                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                                WebkitBackgroundClip: 'text',
+                                                WebkitTextFillColor: 'transparent',
+                                                backgroundClip: 'text',
+                                                textShadow: '0 0 30px rgba(255, 215, 0, 0.3)'
+                                            }}
+                                        >
+                                            {formatTime(remainingTime)}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Code Input with border progress */}
                                 <div className="flex flex-col items-center mb-6">
                                     <CodeInput onComplete={handleCodeComplete} error={codeError} progress={videoProgress} />

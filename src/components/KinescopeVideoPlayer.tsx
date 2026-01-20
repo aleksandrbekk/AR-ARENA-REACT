@@ -61,6 +61,11 @@ export function KinescopeVideoPlayer({
 
     return (
         <div className="w-full">
+            {/* Progress bar above video */}
+            <div className="mb-3 relative z-10">
+                <ProgressBar progress={videoProgress} />
+            </div>
+
             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10 group">
                 {isKinescope && videoUrl ? (
                     <>
@@ -144,10 +149,6 @@ export function KinescopeVideoPlayer({
                         boxShadow: 'inset 0 0 0 1px rgba(255, 215, 0, 0.1), 0 0 40px rgba(255, 215, 0, 0.05)'
                     }}
                 />
-            </div>
-
-            <div className="-mt-1.5 relative z-10">
-                <ProgressBar progress={videoProgress} />
             </div>
         </div>
     )
