@@ -91,8 +91,20 @@ export function KinescopeVideoPlayer({
                     onProgress(percent)
                 }
             }).catch(() => {
-                // Игнорируем ошибки
+                // Если не удалось получить duration, используем fallback (324 секунды)
+                const fallbackDuration = 324
+                if (duration !== fallbackDuration) {
+                    setDuration(fallbackDuration)
+                    onDuration(fallbackDuration)
+                }
+                const percent = Math.min((data.currentTime / fallbackDuration) * 100, 100)
+                onProgress(percent)
             })
+        } else {
+            // Если ref ещё не готов, используем fallback
+            const fallbackDuration = 324
+            const percent = Math.min((data.currentTime / fallbackDuration) * 100, 100)
+            onProgress(percent)
         }
     }
 
