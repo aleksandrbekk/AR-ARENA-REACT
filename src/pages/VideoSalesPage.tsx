@@ -494,18 +494,52 @@ interface VideoPlayerProps {
     onDuration: (duration: number) => void
 }
 
-function VideoPlayer({ onProgress, onDuration }: VideoPlayerProps) {
+// ============ CUSTOM PROGRESS BAR ============
+function CustomProgressBar({ progress }: { progress: number }) {
+    return (
+        <div className="w-full mt-4">
+            {/* Text Label */}
+            <div className="flex justify-between items-end mb-2">
+                <span className="text-white/40 text-[10px] uppercase tracking-wider font-medium">Прогресс просмотра</span>
+                <span className="text-[#FFD700] text-xs font-bold tabular-nums">{Math.round(progress)}%</span>
+            </div>
+
+            {/* Bar */}
+            <div className="relative w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                {/* Glow follower */}
+                <div
+                    className="absolute top-0 bottom-0 w-8 bg-[#FFD700] blur-[10px] opacity-50 transition-all duration-300 ease-out will-change-transform"
+                    style={{ left: `${progress}%`, transform: 'translateX(-50%)' }}
+                />
+
+                {/* Fill */}
+                <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#C9A962] to-[#FFD700] transition-all duration-300 ease-out will-change-width"
+                    style={{ width: `${progress}%` }}
+                />
+            </div>
+        </div>
+    )
+}
+
+function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps & { videoProgress: number }) {
     // Хелпер для извлечения URL из iframes или использования "как есть"
     const { videoUrl, isKinescope } = useMemo(() => {
         if (!VIDEO_SOURCE) return { videoUrl: '', isKinescope: false }
 
         // Kinescope detection
         if (VIDEO_SOURCE.includes('kinescope.io')) {
+            let url = ''
             if (VIDEO_SOURCE.includes('<iframe')) {
                 const match = VIDEO_SOURCE.match(/src=["'](.*?)["']/)
-                return { videoUrl: match ? match[1] : '', isKinescope: true }
+                url = match ? match[1] : ''
+            } else {
+                url = VIDEO_SOURCE
             }
-            return { videoUrl: VIDEO_SOURCE, isKinescope: true }
+
+            // Attempt to hide controls if possible via params (depends on player settings)
+            // But we can mask them if needed or rely on user settings
+            return { videoUrl: url, isKinescope: true }
         }
 
         // Standard detection (YouTube/Other)
@@ -522,13 +556,15 @@ function VideoPlayer({ onProgress, onDuration }: VideoPlayerProps) {
 
         const handleMessage = (event: MessageEvent) => {
             try {
-                // Kinescope sends events as JSON strings or objects
                 if (!event.data) return
 
+                // Kinescope might send object or string
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
 
-                // Check for timeupdate event
-                if (data.event === 'timeupdate' && data.data) {
+                // Check both standard 'event' and typical 'type' fields
+                const eventType = data.event || data.type
+
+                if (eventType === 'timeupdate' && data.data) {
                     const { currentTime, duration } = data.data
                     if (duration > 0) {
                         const percent = (currentTime / duration) * 100
@@ -537,13 +573,11 @@ function VideoPlayer({ onProgress, onDuration }: VideoPlayerProps) {
                     }
                 }
 
-                // Check for durationchange or ready event to get duration early
-                if ((data.event === 'durationchange' || data.event === 'ready') && data.data?.duration) {
+                if ((eventType === 'durationchange' || eventType === 'ready') && data.data?.duration) {
                     onDuration(data.data.duration)
                 }
-
             } catch (e) {
-                // Ignore parsing errors from other sources
+                // Ignore parsing errors
             }
         }
 
@@ -552,51 +586,54 @@ function VideoPlayer({ onProgress, onDuration }: VideoPlayerProps) {
     }, [isKinescope, onProgress, onDuration])
 
     return (
-        <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10">
-            {videoUrl ? (
-                <div className="absolute inset-0 w-full h-full">
-                    {isKinescope ? (
-                        <iframe
-                            src={videoUrl}
-                            className="absolute inset-0 w-full h-full"
-                            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
-                            frameBorder="0"
-                            allowFullScreen
-                        />
-                    ) : (
-                        <ReactPlayerAny
-                            url={videoUrl}
-                            width="100%"
-                            height="100%"
-                            controls={true}
-                            playing={false}
-                            config={{
-                                youtube: {
-                                    playerVars: { showinfo: 0, rel: 0 }
-                                }
-                            } as any}
-                            onProgress={(state: any) => {
-                                // state.played is 0..1
-                                onProgress(state.played * 100)
-                            }}
-                            onDuration={onDuration}
-                        />
-                    )}
-                </div>
-            ) : (
-                // Placeholder when no video
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
-                    <p className="text-white/40 text-sm">Видео не настроено</p>
-                </div>
-            )}
+        <div className="w-full">
+            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10">
+                {videoUrl ? (
+                    <div className="absolute inset-0 w-full h-full">
+                        {isKinescope ? (
+                            <iframe
+                                src={videoUrl}
+                                className="absolute inset-0 w-full h-full"
+                                allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
+                                frameBorder="0"
+                                allowFullScreen
+                            />
+                        ) : (
+                            <ReactPlayerAny
+                                url={videoUrl}
+                                width="100%"
+                                height="100%"
+                                controls={true}
+                                playing={false}
+                                config={{
+                                    youtube: {
+                                        playerVars: { showinfo: 0, rel: 0, controls: 0 }
+                                    }
+                                } as any}
+                                onProgress={(state: any) => {
+                                    onProgress(state.played * 100)
+                                }}
+                                onDuration={onDuration}
+                            />
+                        )}
+                    </div>
+                ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
+                        <p className="text-white/40 text-sm">Видео не настроено</p>
+                    </div>
+                )}
 
-            {/* Glowing border effect */}
-            <div
-                className="absolute inset-0 pointer-events-none rounded-2xl"
-                style={{
-                    boxShadow: 'inset 0 0 0 1px rgba(255, 215, 0, 0.1), 0 0 40px rgba(255, 215, 0, 0.05)'
-                }}
-            />
+                {/* Internal Border Glow */}
+                <div
+                    className="absolute inset-0 pointer-events-none rounded-2xl"
+                    style={{
+                        boxShadow: 'inset 0 0 0 1px rgba(255, 215, 0, 0.1), 0 0 40px rgba(255, 215, 0, 0.05)'
+                    }}
+                />
+            </div>
+
+            {/* External Custom Progress Bar (New Request) */}
+            <CustomProgressBar progress={videoProgress} />
         </div>
     )
 }
@@ -703,6 +740,7 @@ export function VideoSalesPage() {
                                 <VideoPlayer
                                     onProgress={setVideoProgress}
                                     onDuration={setVideoDuration}
+                                    videoProgress={videoProgress}
                                 />
 
                                 {/* Countdown under video */}
@@ -757,9 +795,6 @@ export function VideoSalesPage() {
 
                                     <div className="mt-4 text-center">
                                         <p className="text-white/50 text-sm">Введите код из видео</p>
-                                        <p className="text-[#FFD700] text-xs mt-1 font-medium tabular-nums">
-                                            {Math.round(videoProgress)}% просмотрено
-                                        </p>
                                     </div>
                                 </div>
                             </motion.div>
