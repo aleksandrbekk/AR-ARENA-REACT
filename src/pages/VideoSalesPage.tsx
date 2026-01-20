@@ -627,6 +627,36 @@ export function VideoSalesPage() {
             // @ts-ignore
             window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
 
+            // Отслеживаем конверсию (ввод правильного кода)
+            const trackConversion = async () => {
+                try {
+                    const utmSource = localStorage.getItem('promo_utm_source')
+                    if (utmSource) {
+                        // Находим ссылку по slug
+                        const { data: link } = await supabase
+                            .from('utm_tool_links')
+                            .select('id, conversions')
+                            .eq('slug', utmSource)
+                            .single()
+
+                        if (link) {
+                            // Увеличиваем счётчик конверсий
+                            await supabase
+                                .from('utm_tool_links')
+                                .update({
+                                    conversions: (link.conversions || 0) + 1,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('id', link.id)
+                        }
+                    }
+                } catch (err) {
+                    console.error('Track conversion error:', err)
+                }
+            }
+
+            trackConversion()
+
             // Scroll to pricing after animation
             setTimeout(() => {
                 pricingRef.current?.scrollIntoView({ behavior: 'smooth' })
