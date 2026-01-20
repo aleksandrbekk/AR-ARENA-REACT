@@ -144,8 +144,12 @@ export function KinescopeVideoPlayer({
         if (playerRef.current) {
             try {
                 await playerRef.current.seekTo(0)
+                // Автоматически запускаем воспроизведение
+                await playerRef.current.play()
+                setHasClickedPlay(true)
             } catch (error) {
-                console.error('Error seeking to start:', error)
+                console.error('Error seeking to start or playing:', error)
+                // Если автовоспроизведение заблокировано браузером, показываем кнопку play
             }
         }
     }
@@ -204,7 +208,8 @@ export function KinescopeVideoPlayer({
                         className="w-full h-full"
                         style={{ width: '100%', height: '100%' }}
                         playsInline={true}
-                        autoPlay={false}
+                        autoPlay={true}
+                        muted={false}
                     />
                 </div>
 
