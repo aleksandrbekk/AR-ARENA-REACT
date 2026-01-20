@@ -38,11 +38,8 @@ export function KinescopeVideoPlayer({
         if (duration) onDuration(duration)
     }, [onDuration])
 
-    const handleTimeUpdate = useCallback(({ currentTime, duration }: { currentTime: number; duration: number }) => {
-        if (duration > 0) {
-            const percent = (currentTime / duration) * 100
-            onProgress(percent)
-        }
+    const handleTimeUpdate = useCallback(({ currentTime, percent }: { currentTime: number; percent: number }) => {
+        onProgress(percent)
     }, [onProgress])
 
     const handleDurationChange = useCallback(({ duration }: { duration: number }) => {
