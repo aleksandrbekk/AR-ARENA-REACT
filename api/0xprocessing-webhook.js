@@ -2,6 +2,7 @@
 // Vercel Serverless Function
 // 2025-12-23
 // Updated: 2026-01-20 - Added HMAC signature verification & improved duplicate protection
+// Updated: 2026-01-XX - Fixed race condition: payment_history insert moved BEFORE subscription update to prevent duplicate payments
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
@@ -450,7 +451,7 @@ export default async function handler(req, res) {
         .from('payment_history')
         .select('id, created_at')
         .eq('contract_id', uniquePaymentId)
-        .single();
+        .maybeSingle();
 
       if (existingPayment) {
         log(`DUPLICATE: Payment ${uniquePaymentId} already processed at ${existingPayment.created_at} - ignoring`);
@@ -540,12 +541,68 @@ export default async function handler(req, res) {
     const period = getPeriodByAmount(amountUSD);
     log(`📅 Period determined: ${period.days} days (${period.name})`);
 
+    // Определяем telegramIdInt для использования ниже
+    const telegramIdInt = telegramId ? parseInt(telegramId) : null;
+
+    // ============================================
+    // 3.1. ЗАПИСЬ В PAYMENT_HISTORY (ДО ОБНОВЛЕНИЯ ПОДПИСКИ!)
+    // ============================================
+    // ВАЖНО: Записываем ДО обновления подписки для защиты от дубликатов
+    // Это предотвращает race condition при одновременных webhook запросах
+    const paymentContractId = PaymentId || TransactionHash || `0x_${Date.now()}_${telegramIdInt || username}`;
+
+    // Дополнительная проверка дубликата по contract_id (на случай если uniquePaymentId был null)
+    const { data: existingPaymentByContract } = await supabase
+      .from('payment_history')
+      .select('id, created_at')
+      .eq('contract_id', paymentContractId)
+      .maybeSingle();
+
+    if (existingPaymentByContract) {
+      log(`DUPLICATE: Payment ${paymentContractId} already processed at ${existingPaymentByContract.created_at} - ignoring`);
+      return res.status(200).json({ message: 'Payment already processed (duplicate by contract_id)' });
+    }
+
+    // Пытаемся записать в payment_history ДО обновления подписки
+    const paymentData = {
+      telegram_id: telegramIdInt ? String(telegramIdInt) : username,
+      amount: parseFloat(amountUSD),
+      currency: 'USD',
+      source: '0xprocessing',
+      contract_id: paymentContractId,
+      tx_hash: TransactionHash || null,
+      plan: period.tariff,
+      status: 'success',
+      created_at: new Date().toISOString()
+    };
+
+    log('📝 Recording payment_history BEFORE premium_clients update:', paymentData);
+
+    const { error: paymentHistoryError } = await supabase
+      .from('payment_history')
+      .insert(paymentData);
+
+    if (paymentHistoryError) {
+      // Если ошибка уникальности - это дубликат, игнорируем
+      if (paymentHistoryError.code === '23505' || 
+          paymentHistoryError.message?.includes('duplicate') || 
+          paymentHistoryError.message?.includes('unique') ||
+          paymentHistoryError.message?.includes('violates unique constraint')) {
+        log(`DUPLICATE: Payment ${paymentContractId} already exists in payment_history (unique constraint) - ignoring`);
+        return res.status(200).json({ message: 'Payment already processed (duplicate by contract_id constraint)' });
+      }
+      // Другая ошибка - критическая, возвращаем 500
+      log('❌ CRITICAL: Failed to record payment_history, aborting:', paymentHistoryError);
+      return res.status(500).json({ error: 'Failed to record payment', details: paymentHistoryError.message });
+    }
+
+    log('✅ Payment history recorded, proceeding to update premium_clients');
+
     // ============================================
     // 4. UPSERT В PREMIUM_CLIENTS
     // ============================================
     const now = new Date();
     const expiresAt = new Date(now.getTime() + period.days * 24 * 60 * 60 * 1000);
-    const telegramIdInt = telegramId ? parseInt(telegramId) : null;
 
     // Проверяем существующего клиента
     let existingClient = null;
@@ -691,40 +748,7 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // 6. ЗАПИСЬ В PAYMENT_HISTORY
-    // ============================================
-    // ВАЖНО: contract_id должен совпадать с uniquePaymentId из проверки дубликатов выше
-    try {
-      const paymentContractId = PaymentId || TransactionHash || `0x_${Date.now()}_${telegramIdInt || username}`;
-      const paymentData = {
-        telegram_id: telegramIdInt ? String(telegramIdInt) : username,
-        amount: parseFloat(amountUSD),
-        currency: 'USD',
-        source: '0xprocessing',
-        contract_id: paymentContractId,
-        tx_hash: TransactionHash || null,
-        plan: period.tariff,
-        status: 'success',
-        created_at: new Date().toISOString()
-      };
-
-      log('Recording payment_history:', paymentData);
-
-      const { error: paymentError } = await supabase
-        .from('payment_history')
-        .insert(paymentData);
-
-      if (paymentError) {
-        log('❌ Failed to record payment history:', paymentError);
-      } else {
-        log('✅ Payment history recorded successfully');
-      }
-    } catch (dbError) {
-      log('❌ Critical error recording payment:', dbError);
-    }
-
-    // ============================================
-    // 6.1. ТРЕКИНГ UTM КОНВЕРСИИ
+    // 6. ТРЕКИНГ UTM КОНВЕРСИИ
     // ============================================
     if (finalTelegramId) {
       await trackUtmConversion(finalTelegramId);
