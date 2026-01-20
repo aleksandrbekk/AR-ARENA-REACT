@@ -523,6 +523,8 @@ function CustomProgressBar({ progress }: { progress: number }) {
 }
 
 function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps & { videoProgress: number }) {
+    const DEBUG = false // Set to true if we need to see events on screen
+
     // Хелпер для извлечения URL из iframes или использования "как есть"
     const { videoUrl, isKinescope } = useMemo(() => {
         if (!VIDEO_SOURCE) return { videoUrl: '', isKinescope: false }
@@ -537,8 +539,10 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
                 url = VIDEO_SOURCE
             }
 
-            // Attempt to hide controls if possible via params (depends on player settings)
-            // But we can mask them if needed or rely on user settings
+            // Add params to try to force clean player
+            if (url && !url.includes('?')) {
+                url += '?controls=false&header=false'
+            }
             return { videoUrl: url, isKinescope: true }
         }
 
@@ -556,28 +560,41 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
 
         const handleMessage = (event: MessageEvent) => {
             try {
+                // Ignore empty data
                 if (!event.data) return
 
-                // Kinescope might send object or string
+                // Kinescope messages are often pure objects, but sometimes strings
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
 
-                // Check both standard 'event' and typical 'type' fields
-                const eventType = data.event || data.type
+                // Debug log
+                if (DEBUG) console.log('Kinescope Event:', data)
 
-                if (eventType === 'timeupdate' && data.data) {
-                    const { currentTime, duration } = data.data
-                    if (duration > 0) {
+                // Normalize event type (some versions use 'type', others 'event')
+                const eventType = data.event || data.type || ''
+
+                // 1. TIME UPDATE
+                if (eventType === 'timeupdate') {
+                    // Structure might be data.data.currentTime OR data.currentTime
+                    const payload = data.data || data
+                    const currentTime = payload.currentTime
+                    const duration = payload.duration
+
+                    if (duration > 0 && typeof currentTime === 'number') {
                         const percent = (currentTime / duration) * 100
                         onProgress(percent)
                         onDuration(duration)
                     }
                 }
 
-                if ((eventType === 'durationchange' || eventType === 'ready') && data.data?.duration) {
-                    onDuration(data.data.duration)
+                // 2. DURATION CHANGE / READY
+                if (eventType === 'durationchange' || eventType === 'ready') {
+                    const payload = data.data || data
+                    if (payload.duration) {
+                        onDuration(payload.duration)
+                    }
                 }
             } catch (e) {
-                // Ignore parsing errors
+                // Ignore parse errors
             }
         }
 
@@ -587,17 +604,25 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
 
     return (
         <div className="w-full">
-            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10">
+            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10 group">
                 {videoUrl ? (
                     <div className="absolute inset-0 w-full h-full">
                         {isKinescope ? (
-                            <iframe
-                                src={videoUrl}
-                                className="absolute inset-0 w-full h-full"
-                                allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
-                                frameBorder="0"
-                                allowFullScreen
-                            />
+                            <>
+                                <iframe
+                                    src={videoUrl}
+                                    className="absolute inset-0 w-full h-full"
+                                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
+                                    frameBorder="0"
+                                    allowFullScreen
+                                    id="kinescope-player"
+                                />
+                                {/* MASK OVERLAY: Covers the bottom control bar of Kinescope */}
+                                <div className="absolute bottom-0 left-0 right-0 h-12 bg-transparent pointer-events-auto" />
+                                {/* We keep it transparent but pointer-events-auto might block clicks if needed.
+                                    Better approach: we just place our bar ON TOP. 
+                                */}
+                            </>
                         ) : (
                             <ReactPlayerAny
                                 url={videoUrl}
@@ -632,8 +657,13 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
                 />
             </div>
 
-            {/* External Custom Progress Bar (New Request) */}
-            <CustomProgressBar progress={videoProgress} />
+            {/* Custom Progress Bar - Negative margin to overlay/hide bottom of video if we want, 
+                OR just sit below. User asked to "remove timeline". 
+                The most reliable way to "remove" it without API access is to COVER it. 
+            */}
+            <div className="-mt-1.5 relative z-10">
+                <CustomProgressBar progress={videoProgress} />
+            </div>
         </div>
     )
 }
