@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactPlayer from 'react-player'
 import { PaymentModal } from '../components/premium/PaymentModal'
@@ -6,9 +6,9 @@ import { PaymentModal } from '../components/premium/PaymentModal'
 const ReactPlayerAny = ReactPlayer as any
 
 // ============ КОНФИГУРАЦИЯ ============
-const SECRET_CODE = '2025' // Секретный код из видео
+const SECRET_CODE = '1990' // Секретный код из видео
 // Сюда можно вставить прямую ссылку на YouTube/Vimeo или полный код вставки <iframe>
-const VIDEO_SOURCE = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+const VIDEO_SOURCE = '<div style="position: relative; padding-top: 56.25%; width: 100%"><iframe src="https://kinescope.io/embed/6Y8BFWaag2M7gBLy66Paq6" allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;" frameborder="0" allowfullscreen style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;"></iframe></div>'
 const CODE_REVEAL_PERCENT = 70 // Процент просмотра, когда появляется код
 
 // Длительность определяется автоматически плеером
@@ -496,37 +496,92 @@ interface VideoPlayerProps {
 
 function VideoPlayer({ onProgress, onDuration }: VideoPlayerProps) {
     // Хелпер для извлечения URL из iframes или использования "как есть"
-    const videoUrl = useMemo(() => {
-        if (!VIDEO_SOURCE) return ''
-        // Если это iframe, вытаскиваем src
+    const { videoUrl, isKinescope } = useMemo(() => {
+        if (!VIDEO_SOURCE) return { videoUrl: '', isKinescope: false }
+
+        // Kinescope detection
+        if (VIDEO_SOURCE.includes('kinescope.io')) {
+            if (VIDEO_SOURCE.includes('<iframe')) {
+                const match = VIDEO_SOURCE.match(/src=["'](.*?)["']/)
+                return { videoUrl: match ? match[1] : '', isKinescope: true }
+            }
+            return { videoUrl: VIDEO_SOURCE, isKinescope: true }
+        }
+
+        // Standard detection (YouTube/Other)
         if (VIDEO_SOURCE.includes('<iframe')) {
             const match = VIDEO_SOURCE.match(/src=["'](.*?)["']/)
-            return match ? match[1] : ''
+            return { videoUrl: match ? match[1] : '', isKinescope: false }
         }
-        return VIDEO_SOURCE
+        return { videoUrl: VIDEO_SOURCE, isKinescope: false }
     }, [])
+
+    // Kinescope Event Listener
+    useEffect(() => {
+        if (!isKinescope) return
+
+        const handleMessage = (event: MessageEvent) => {
+            try {
+                // Kinescope sends events as JSON strings or objects
+                if (!event.data) return
+
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+
+                // Check for timeupdate event
+                if (data.event === 'timeupdate' && data.data) {
+                    const { currentTime, duration } = data.data
+                    if (duration > 0) {
+                        const percent = (currentTime / duration) * 100
+                        onProgress(percent)
+                        onDuration(duration)
+                    }
+                }
+
+                // Check for durationchange or ready event to get duration early
+                if ((data.event === 'durationchange' || data.event === 'ready') && data.data?.duration) {
+                    onDuration(data.data.duration)
+                }
+
+            } catch (e) {
+                // Ignore parsing errors from other sources
+            }
+        }
+
+        window.addEventListener('message', handleMessage)
+        return () => window.removeEventListener('message', handleMessage)
+    }, [isKinescope, onProgress, onDuration])
 
     return (
         <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10">
             {videoUrl ? (
                 <div className="absolute inset-0 w-full h-full">
-                    <ReactPlayerAny
-                        url={videoUrl}
-                        width="100%"
-                        height="100%"
-                        controls={true}
-                        playing={false}
-                        config={{
-                            youtube: {
-                                playerVars: { showinfo: 0, rel: 0 }
-                            }
-                        } as any}
-                        onProgress={(state: any) => {
-                            // state.played is 0..1
-                            onProgress(state.played * 100)
-                        }}
-                        onDuration={onDuration}
-                    />
+                    {isKinescope ? (
+                        <iframe
+                            src={videoUrl}
+                            className="absolute inset-0 w-full h-full"
+                            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
+                            frameBorder="0"
+                            allowFullScreen
+                        />
+                    ) : (
+                        <ReactPlayerAny
+                            url={videoUrl}
+                            width="100%"
+                            height="100%"
+                            controls={true}
+                            playing={false}
+                            config={{
+                                youtube: {
+                                    playerVars: { showinfo: 0, rel: 0 }
+                                }
+                            } as any}
+                            onProgress={(state: any) => {
+                                // state.played is 0..1
+                                onProgress(state.played * 100)
+                            }}
+                            onDuration={onDuration}
+                        />
+                    )}
                 </div>
             ) : (
                 // Placeholder when no video
