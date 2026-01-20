@@ -309,6 +309,9 @@ export function UtmLinksTab() {
     if (link.tool_type === 'stream') {
       return `https://ararena.pro/stream?utm_source=${link.slug}`
     }
+    if (link.tool_type === 'promo') {
+      return `https://ararena.pro/promo?utm_source=${link.slug}`
+    }
     return `https://ararena.pro/?utm_source=${link.slug}`
   }
 
@@ -750,10 +753,26 @@ export function UtmLinksTab() {
                 <div className="text-white/30 text-[10px] mt-1.5 font-mono break-all">
                   {activeTab === 'payment'
                     ? `t.me/ARARENA_BOT?start=premium_${formData.slug || 'slug'}`
-                    : `ararena.pro/stream?utm_source=${formData.slug || 'slug'}`
+                    : formData.tool_type === 'promo'
+                      ? `ararena.pro/promo?utm_source=${formData.slug || 'slug'}`
+                      : `ararena.pro/stream?utm_source=${formData.slug || 'slug'}`
                   }
                 </div>
               </div>
+
+              {activeTab === 'tools' && (
+                <div>
+                  <label className="text-white/60 text-xs mb-1.5 block">Тип инструмента</label>
+                  <select
+                    value={formData.tool_type}
+                    onChange={(e) => setFormData({ ...formData, tool_type: e.target.value })}
+                    className="w-full px-3 py-2.5 bg-zinc-800 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-yellow-500/30"
+                  >
+                    <option value="stream">Stream (Трансляция)</option>
+                    <option value="promo">Promo (Промо-страница)</option>
+                  </select>
+                </div>
+              )}
 
               {activeTab === 'payment' && !activeFolder && folders.length > 0 && (
                 <div>

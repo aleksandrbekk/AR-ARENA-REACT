@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 // ReactPlayer moved to KinescopeVideoPlayer component
 import { PaymentModal } from '../components/premium/PaymentModal'
 import { KinescopeVideoPlayer } from '../components/KinescopeVideoPlayer'
+import { supabase } from '../lib/supabase'
 
 // ReactPlayer is now handled by KinescopeVideoPlayer component
 
@@ -572,6 +573,47 @@ export function VideoSalesPage() {
         setIsUnlocked(false)
         setCodeError(false)
     }, []) // Пустой массив зависимостей = выполняется только при монтировании
+
+    // Сохранение UTM из URL и запись клика в БД
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const utmSource = params.get('utm_source')
+        if (utmSource) {
+            localStorage.setItem('promo_utm_source', utmSource)
+
+            // Записываем клик в БД
+            const trackClick = async () => {
+                try {
+                    // Находим ссылку по slug
+                    const { data: link } = await supabase
+                        .from('utm_tool_links')
+                        .select('id, clicks')
+                        .eq('slug', utmSource)
+                        .single()
+
+                    if (link) {
+                        // Увеличиваем счётчик кликов и записываем время последнего перехода
+                        await supabase
+                            .from('utm_tool_links')
+                            .update({
+                                clicks: link.clicks + 1,
+                                last_click_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', link.id)
+                    }
+                } catch (err) {
+                    // Молча игнорируем ошибки трекинга
+                    console.error('Track click error:', err)
+                }
+            }
+
+            trackClick()
+
+            // Убираем UTM из URL без перезагрузки
+            window.history.replaceState({}, '', '/promo')
+        }
+    }, [])
 
     // Вычисляем оставшееся время
     const remainingTime = videoDuration > 0
