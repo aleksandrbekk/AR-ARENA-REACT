@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 // ReactPlayer moved to KinescopeVideoPlayer component
 import { PaymentModal } from '../components/premium/PaymentModal'
@@ -547,6 +547,14 @@ export function VideoSalesPage() {
     const [selectedTariff, setSelectedTariff] = useState<Tariff | null>(null)
 
     const pricingRef = useRef<HTMLDivElement>(null)
+
+    // Сброс состояния при монтировании компонента (чтобы можно было пересмотреть)
+    useEffect(() => {
+        setVideoProgress(0)
+        setVideoDuration(0)
+        setIsUnlocked(false)
+        setCodeError(false)
+    }, []) // Пустой массив зависимостей = выполняется только при монтировании
 
     // Вычисляем оставшееся время
     const remainingTime = videoDuration > 0

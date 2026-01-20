@@ -46,6 +46,8 @@ export function KinescopeVideoPlayer({
 
     const [hasClickedPlay, setHasClickedPlay] = useState(false)
     const [duration, setDuration] = useState<number>(0)
+    const [isLoading, setIsLoading] = useState(true)
+    const [isReady, setIsReady] = useState(false)
 
     const handlePlayClick = async () => {
         setHasClickedPlay(true)
@@ -118,10 +120,22 @@ export function KinescopeVideoPlayer({
 
     const handleReady = async (data: { currentTime: number; duration: number; quality: any }) => {
         // Когда плеер готов, устанавливаем длительность
+        setIsLoading(false)
+        setIsReady(true)
         if (data.duration > 0) {
             setDuration(data.duration)
             onDuration(data.duration)
         }
+    }
+
+    const handleInit = () => {
+        // Плеер инициализирован, но ещё не готов
+        setIsLoading(true)
+    }
+
+    const handleInitError = () => {
+        setIsLoading(false)
+        console.error('Kinescope player initialization error')
     }
 
     const handlePlay = () => {
@@ -156,6 +170,9 @@ export function KinescopeVideoPlayer({
                         ref={playerRef}
                         videoId={videoId}
                         controls={false}
+                        preload="auto"
+                        onInit={handleInit}
+                        onInitError={handleInitError}
                         onReady={handleReady}
                         onTimeUpdate={handleTimeUpdate}
                         onDurationChange={handleDurationChange}
@@ -184,8 +201,19 @@ export function KinescopeVideoPlayer({
                     style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)' }}
                 />
 
+                {/* Loading Indicator */}
+                {isLoading && !isReady && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-40">
+                        <motion.div
+                            className="w-16 h-16 rounded-full flex items-center justify-center border-4 border-[#FFD700]/30 border-t-[#FFD700]"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        />
+                    </div>
+                )}
+
                 {/* Custom Play Button */}
-                {!hasClickedPlay && (
+                {!hasClickedPlay && isReady && !isLoading && (
                     <div
                         className="absolute inset-0 flex items-center justify-center bg-black/50 z-40 cursor-pointer"
                         onClick={handlePlayClick}
