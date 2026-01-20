@@ -74,38 +74,43 @@ export function useKinescopePlayer({
 
                 playerRef.current = player
 
-                // Subscribe to events
-                player.on('Ready', (event) => {
+                // Get Events enum from player
+                const Events = player.Events
+
+                // Subscribe to events using proper enum values
+                player.on(Events.Loaded, (event) => {
                     if (!mounted) return
                     setIsReady(true)
                     setIsLoading(false)
-                    if (event.data?.duration) {
-                        onDuration(event.data.duration)
+                    const data = event.data as { duration?: number }
+                    if (data?.duration) {
+                        onDuration(data.duration)
                     }
                 })
 
-                player.on('TimeUpdate', (event) => {
+                player.on(Events.TimeUpdate, (event) => {
                     if (!mounted) return
-                    const { percent } = event.data
-                    onProgress(percent)
+                    const data = event.data as { percent: number; currentTime: number }
+                    onProgress(data.percent)
                 })
 
-                player.on('DurationChange', (event) => {
+                player.on(Events.DurationChange, (event) => {
                     if (!mounted) return
-                    onDuration(event.data.duration)
+                    const data = event.data as { duration: number }
+                    onDuration(data.duration)
                 })
 
-                player.on('Playing', () => {
+                player.on(Events.Playing, () => {
                     if (!mounted) return
                     setIsPlaying(true)
                 })
 
-                player.on('Pause', () => {
+                player.on(Events.Pause, () => {
                     if (!mounted) return
                     setIsPlaying(false)
                 })
 
-                player.on('Ended', () => {
+                player.on(Events.Ended, () => {
                     if (!mounted) return
                     setIsPlaying(false)
                 })
