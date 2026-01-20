@@ -7,7 +7,7 @@ import { KinescopeVideoPlayer } from '../components/KinescopeVideoPlayer'
 // ReactPlayer is now handled by KinescopeVideoPlayer component
 
 // ============ КОНФИГУРАЦИЯ ============
-const SECRET_CODE = '1990' // Секретный код из видео
+const SECRET_CODE = '5421' // Секретный код из видео
 // Сюда можно вставить прямую ссылку на YouTube/Vimeo или полный код вставки <iframe>
 const VIDEO_SOURCE = '<div style="position: relative; padding-top: 56.25%; width: 100%"><iframe src="https://kinescope.io/embed/6Y8BFWaag2M7gBLy66Paq6" allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;" frameborder="0" allowfullscreen style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;"></iframe></div>'
 const CODE_REVEAL_PERCENT = 70 // Процент просмотра, когда появляется код
@@ -443,15 +443,19 @@ function CodeInput({ onComplete, error, progress }: CodeInputProps) {
                                 width="62"
                                 height="78"
                                 rx="11"
-                                stroke="url(#borderGradient)"
+                                stroke={error ? '#EF4444' : 'url(#borderGradient)'}
                                 strokeWidth="2.5"
                                 fill="none"
                                 strokeLinecap="round"
                                 strokeDasharray="280"
                                 strokeDashoffset={280 - (fieldProgress / 100) * 280}
                                 style={{
-                                    transition: 'stroke-dashoffset 0.3s ease',
-                                    filter: fieldProgress > 0 ? 'drop-shadow(0 0 6px rgba(255, 215, 0, 0.6))' : 'none'
+                                    transition: 'stroke-dashoffset 0.3s ease, stroke 0.3s ease',
+                                    filter: error 
+                                        ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.8))' 
+                                        : fieldProgress > 0 
+                                            ? 'drop-shadow(0 0 6px rgba(255, 215, 0, 0.6))' 
+                                            : 'none'
                                 }}
                             />
                             <defs>
@@ -473,13 +477,26 @@ function CodeInput({ onComplete, error, progress }: CodeInputProps) {
                             onPaste={handlePaste}
                             className={`
                                 w-14 h-20 sm:w-16 sm:h-24 text-center text-2xl sm:text-3xl font-bold rounded-xl
-                                bg-white/5 border-2 border-transparent outline-none transition-all
+                                bg-white/5 border-2 outline-none transition-all
                                 focus:bg-white/10
-                                ${error ? 'animate-shake' : ''}
+                                ${error ? 'animate-shake border-red-500' : 'border-transparent'}
                             `}
-                            style={{ color: '#FFD700' }}
-                            animate={error ? { x: [0, -10, 10, -10, 10, 0] } : {}}
-                            transition={{ duration: 0.4 }}
+                            style={{ 
+                                color: error ? '#EF4444' : '#FFD700',
+                                backgroundColor: error ? 'rgba(239, 68, 68, 0.1)' : undefined
+                            }}
+                            animate={error ? { 
+                                x: [0, -10, 10, -10, 10, 0],
+                                scale: [1, 1.05, 1, 1.05, 1],
+                                boxShadow: [
+                                    '0 0 0px rgba(239, 68, 68, 0)',
+                                    '0 0 20px rgba(239, 68, 68, 0.8)',
+                                    '0 0 0px rgba(239, 68, 68, 0)',
+                                    '0 0 20px rgba(239, 68, 68, 0.8)',
+                                    '0 0 0px rgba(239, 68, 68, 0)'
+                                ]
+                            } : {}}
+                            transition={{ duration: 0.5 }}
                         />
                     </div>
                 )
@@ -576,7 +593,8 @@ export function VideoSalesPage() {
             setCodeError(true)
             // @ts-ignore
             window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error')
-            setTimeout(() => setCodeError(false), 600)
+            // Красное мигание - показываем ошибку дольше для лучшей визуальной обратной связи
+            setTimeout(() => setCodeError(false), 1000)
         }
     }, [])
 
