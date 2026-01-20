@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import KinescopePlayer from '@kinescope/react-kinescope-player'
 
@@ -48,6 +48,19 @@ export function KinescopeVideoPlayer({
     const [duration, setDuration] = useState<number>(0)
     const [isLoading, setIsLoading] = useState(true)
     const [isReady, setIsReady] = useState(false)
+
+    // Сбрасываем позицию при монтировании компонента
+    useEffect(() => {
+        // Очищаем сохранённую позицию из localStorage для этого видео
+        const storageKey = `kinescope_${videoId}_time`
+        if (storageKey) {
+            try {
+                localStorage.removeItem(storageKey)
+            } catch (e) {
+                // Игнорируем ошибки localStorage
+            }
+        }
+    }, [videoId])
 
     const handlePlayClick = async () => {
         setHasClickedPlay(true)
@@ -126,6 +139,15 @@ export function KinescopeVideoPlayer({
             setDuration(data.duration)
             onDuration(data.duration)
         }
+        
+        // Сбрасываем позицию воспроизведения на начало при загрузке
+        if (playerRef.current) {
+            try {
+                await playerRef.current.seekTo(0)
+            } catch (error) {
+                console.error('Error seeking to start:', error)
+            }
+        }
     }
 
     const handleInit = () => {
@@ -171,6 +193,7 @@ export function KinescopeVideoPlayer({
                         videoId={videoId}
                         controls={false}
                         preload="auto"
+                        localStorage={false}
                         onInit={handleInit}
                         onInitError={handleInitError}
                         onReady={handleReady}
