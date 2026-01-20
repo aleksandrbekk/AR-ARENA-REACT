@@ -601,20 +601,22 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
             try {
                 if (!event.data) return
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-                const eventType = data.event || data.type || ''
 
-                // Debug
-                // console.log('Kinescope:', eventType, data)
+                // Allow fuzzy matching for event types
+                const eventType = data.event || data.type || data.name || ''
 
                 if (eventType === 'timeupdate') {
                     const payload = data.data || data
                     const currentTime = payload.currentTime
                     const duration = payload.duration
-                    if (duration > 0 && typeof currentTime === 'number') {
-                        onProgress((currentTime / duration) * 100)
+
+                    if (typeof duration === 'number' && duration > 0) {
                         onDuration(duration)
-                        // If we get time updates, we are playing
-                        setIsPlaying(true)
+                        if (typeof currentTime === 'number') {
+                            const percent = (currentTime / duration) * 100
+                            onProgress(percent)
+                            setIsPlaying(true)
+                        }
                     }
                 }
 
@@ -635,7 +637,19 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
         }
 
         window.addEventListener('message', handleMessage)
-        return () => window.removeEventListener('message', handleMessage)
+
+        // Handshake: Tell Kinescope we are listening
+        const interval = setInterval(() => {
+            if (iframeRef.current?.contentWindow) {
+                iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'subscribe', data: ['timeupdate', 'play', 'pause', 'ended'] }), '*')
+                iframeRef.current.contentWindow.postMessage(JSON.stringify({ command: 'subscribe', events: ['timeupdate'] }), '*')
+            }
+        }, 2000)
+
+        return () => {
+            window.removeEventListener('message', handleMessage)
+            clearInterval(interval)
+        }
     }, [isKinescope, onProgress, onDuration])
 
     return (
