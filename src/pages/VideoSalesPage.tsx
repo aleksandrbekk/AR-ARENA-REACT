@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import ReactPlayer from 'react-player'
+// ReactPlayer moved to KinescopeVideoPlayer component
 import { PaymentModal } from '../components/premium/PaymentModal'
+import { KinescopeVideoPlayer } from '../components/KinescopeVideoPlayer'
 
-const ReactPlayerAny = ReactPlayer as any
+// ReactPlayer is now handled by KinescopeVideoPlayer component
 
 // ============ КОНФИГУРАЦИЯ ============
 const SECRET_CODE = '1990' // Секретный код из видео
@@ -488,12 +489,6 @@ function CodeInput({ onComplete, error, progress }: CodeInputProps) {
 }
 
 // ============ VIDEO PLAYER ============
-// ============ VIDEO PLAYER ============
-interface VideoPlayerProps {
-    onProgress: (percent: number) => void
-    onDuration: (duration: number) => void
-}
-
 // ============ CUSTOM PROGRESS BAR ============
 function CustomProgressBar({ progress }: { progress: number }) {
     return (
@@ -530,203 +525,6 @@ function CustomProgressBar({ progress }: { progress: number }) {
                         </svg>
                     </motion.div>
                 </div>
-            </div>
-        </div>
-    )
-}
-
-function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps & { videoProgress: number }) {
-    const [isPlaying, setIsPlaying] = useState(false)
-    const iframeRef = useRef<HTMLIFrameElement>(null)
-
-    // Хелпер для извлечения URL из iframes или использования "как есть"
-    const { videoUrl, isKinescope } = useMemo(() => {
-        if (!VIDEO_SOURCE) return { videoUrl: '', isKinescope: false }
-
-        // Kinescope detection
-        if (VIDEO_SOURCE.includes('kinescope.io')) {
-            let url = ''
-            if (VIDEO_SOURCE.includes('<iframe')) {
-                const match = VIDEO_SOURCE.match(/src=["'](.*?)["']/)
-                url = match ? match[1] : ''
-            } else {
-                url = VIDEO_SOURCE
-            }
-
-            // Allow API control - CRITICAL: Must enable external API
-            if (url) {
-                const hasParams = url.includes('?')
-                const separator = hasParams ? '&' : '?'
-                // Add external=1 to enable postMessage API
-                // Add controls=false to hide UI
-                url += `${separator}external=1&api=1&controls=false&header=false`
-            }
-            return { videoUrl: url, isKinescope: true }
-        }
-
-        // Standard detection (YouTube/Other)
-        if (VIDEO_SOURCE.includes('<iframe')) {
-            const match = VIDEO_SOURCE.match(/src=["'](.*?)["']/)
-            return { videoUrl: match ? match[1] : '', isKinescope: false }
-        }
-        return { videoUrl: VIDEO_SOURCE, isKinescope: false }
-    }, [])
-
-    const handlePlayClick = () => {
-        setIsPlaying(true)
-        if (isKinescope && iframeRef.current) {
-            // Send Kinescope API command
-            // Try MULTIPLE formats to be safe since API version varies
-            const commands = [
-                { command: 'play' },
-                { method: 'play' },
-                { type: 'play' },
-                'play'
-            ]
-            commands.forEach(cmd => {
-                iframeRef.current?.contentWindow?.postMessage(JSON.stringify(cmd), '*')
-                // Also send generic object if stringify isn't expected
-                if (typeof cmd !== 'string') {
-                    iframeRef.current?.contentWindow?.postMessage(cmd, '*')
-                }
-            })
-        }
-    }
-
-    // Kinescope Event Listener
-    useEffect(() => {
-        if (!isKinescope) return
-
-        const handleMessage = (event: MessageEvent) => {
-            try {
-                if (!event.data) return
-                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-
-                // Allow fuzzy matching for event types
-                const eventType = data.event || data.type || data.name || ''
-
-                if (eventType === 'timeupdate') {
-                    const payload = data.data || data
-                    const currentTime = payload.currentTime
-                    const duration = payload.duration
-
-                    if (typeof duration === 'number' && duration > 0) {
-                        onDuration(duration)
-                        if (typeof currentTime === 'number') {
-                            const percent = (currentTime / duration) * 100
-                            onProgress(percent)
-                            setIsPlaying(true)
-                        }
-                    }
-                }
-
-                if (eventType === 'playing' || eventType === 'play') {
-                    setIsPlaying(true)
-                }
-
-                if (eventType === 'pause' || eventType === 'ended') {
-                    setIsPlaying(false)
-                }
-
-                if ((eventType === 'durationchange' || eventType === 'ready') && data.data?.duration) {
-                    onDuration(data.data.duration)
-                }
-            } catch (e) {
-                // Ignore parse errors
-            }
-        }
-
-        window.addEventListener('message', handleMessage)
-
-        // Handshake: Tell Kinescope we are listening
-        const interval = setInterval(() => {
-            if (iframeRef.current?.contentWindow) {
-                iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'subscribe', data: ['timeupdate', 'play', 'pause', 'ended'] }), '*')
-                iframeRef.current.contentWindow.postMessage(JSON.stringify({ command: 'subscribe', events: ['timeupdate'] }), '*')
-            }
-        }, 2000)
-
-        return () => {
-            window.removeEventListener('message', handleMessage)
-            clearInterval(interval)
-        }
-    }, [isKinescope, onProgress, onDuration])
-
-    return (
-        <div className="w-full">
-            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10 group">
-                {videoUrl ? (
-                    <div className="absolute inset-0 w-full h-full">
-                        {isKinescope ? (
-                            <>
-                                <iframe
-                                    ref={iframeRef}
-                                    src={videoUrl}
-                                    className="absolute inset-0 w-full h-full"
-                                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
-                                    frameBorder="0"
-                                    allowFullScreen
-                                    id="kinescope-player"
-                                />
-                                {/* Click mask to trigger Play if not started via native controls */}
-                                {!isPlaying && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-20 cursor-pointer" onClick={handlePlayClick}>
-                                        <motion.div
-                                            className="w-20 h-20 rounded-full flex items-center justify-center relative group-hover:scale-110 transition-transform duration-300"
-                                            style={{
-                                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                                                boxShadow: '0 0 30px rgba(255, 215, 0, 0.4)'
-                                            }}
-                                            whileTap={{ scale: 0.95 }}
-                                        >
-                                            <svg className="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M8 5v14l11-7z" />
-                                            </svg>
-                                            {/* Ripple effect */}
-                                            <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-[#FFD700]" />
-                                        </motion.div>
-                                    </div>
-                                )}
-
-                                {/* Bottom Mask */}
-                                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-10" />
-                            </>
-                        ) : (
-                            <ReactPlayerAny
-                                url={videoUrl}
-                                width="100%"
-                                height="100%"
-                                controls={true}
-                                playing={isPlaying}
-                                config={{
-                                    youtube: {
-                                        playerVars: { showinfo: 0, rel: 0, controls: 0 }
-                                    }
-                                } as any}
-                                onProgress={(state: any) => {
-                                    onProgress(state.played * 100)
-                                }}
-                                onDuration={onDuration}
-                            />
-                        )}
-                    </div>
-                ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
-                        <p className="text-white/40 text-sm">Видео не настроено</p>
-                    </div>
-                )}
-
-                {/* Internal Border Glow */}
-                <div
-                    className="absolute inset-0 pointer-events-none rounded-2xl z-20"
-                    style={{
-                        boxShadow: 'inset 0 0 0 1px rgba(255, 215, 0, 0.1), 0 0 40px rgba(255, 215, 0, 0.05)'
-                    }}
-                />
-            </div>
-
-            <div className="-mt-1.5 relative z-10">
-                <CustomProgressBar progress={videoProgress} />
             </div>
         </div>
     )
@@ -831,10 +629,12 @@ export function VideoSalesPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.6, delay: 0.2 }}
                             >
-                                <VideoPlayer
+                                <KinescopeVideoPlayer
+                                    videoSource={VIDEO_SOURCE}
                                     onProgress={setVideoProgress}
                                     onDuration={setVideoDuration}
                                     videoProgress={videoProgress}
+                                    ProgressBar={CustomProgressBar}
                                 />
 
                                 {/* Countdown under video */}

@@ -664,7 +664,50 @@ export default async function handler(req, res) {
     log(`📅 Period determined: ${period.days} days (${period.name})`);
 
     // ============================================
-    // 4.1. ЗАПИСЬ В PAYMENT_HISTORY (ИДЕМПОТЕНТНОСТЬ!)
+    // 4.2. АВТОМАТИЧЕСКОЕ СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ (если не существует)
+    // ============================================
+    // FK constraint на payment_history требует существующего telegram_id в users
+    // Создаём пользователя если его нет, чтобы платёж не отклонялся
+    const telegramIdForUser = telegramId ? parseInt(telegramId, 10) : null;
+
+    if (telegramIdForUser) {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('telegram_id')
+        .eq('telegram_id', telegramIdForUser)
+        .single();
+
+      if (!existingUser) {
+        log(`👤 User ${telegramIdForUser} not found in users table, creating...`);
+
+        const { error: createUserError } = await supabase
+          .from('users')
+          .insert({
+            telegram_id: telegramIdForUser,
+            username: extractedUsername || null,
+            first_name: null,
+            created_at: new Date().toISOString(),
+            source: 'lava_payment'
+          });
+
+        if (createUserError) {
+          // Если ошибка UNIQUE constraint - пользователь уже есть, это ОК
+          if (createUserError.code === '23505') {
+            log(`👤 User ${telegramIdForUser} already exists (race condition), continuing...`);
+          } else {
+            log(`⚠️ Warning: Could not create user record:`, createUserError);
+            // Не прерываем — попробуем записать платёж, может FK отключён
+          }
+        } else {
+          log(`✅ User ${telegramIdForUser} created successfully`);
+        }
+      } else {
+        log(`👤 User ${telegramIdForUser} already exists in users table`);
+      }
+    }
+
+    // ============================================
+    // 4.3. ЗАПИСЬ В PAYMENT_HISTORY (ИДЕМПОТЕНТНОСТЬ!)
     // ============================================
     // ВАЖНО: Записываем ПЕРЕД обновлением premium_clients!
     // Если эта запись упадёт — webhook вернёт ошибку и Lava ретрайнет.
