@@ -26,7 +26,6 @@ export function KinescopeVideoPlayer({
     const {
         iframeRef,
         videoUrl,
-        isPlaying,
         isLoading,
         isReady,
         play
@@ -35,6 +34,9 @@ export function KinescopeVideoPlayer({
         onProgress,
         onDuration
     })
+
+    // State to track if user clicked play (hide overlay permanently)
+    const [hasClickedPlay, setHasClickedPlay] = useState(false)
 
     // Fallback for non-Kinescope videos
     const [fallbackPlaying, setFallbackPlaying] = useState(false)
@@ -47,14 +49,11 @@ export function KinescopeVideoPlayer({
         return videoSource
     }, [videoSource, isKinescope])
 
-    // Click handler for play button
+    // Click handler for play button - hide overlay after first click
     const handlePlayClick = () => {
+        setHasClickedPlay(true) // Hide our overlay permanently
         if (isKinescope) {
             play()
-            // Also try clicking the iframe directly as fallback
-            if (iframeRef.current) {
-                iframeRef.current.focus()
-            }
         } else {
             setFallbackPlaying(true)
         }
@@ -79,8 +78,8 @@ export function KinescopeVideoPlayer({
                             }}
                         />
 
-                        {/* Custom Play Button Overlay */}
-                        {!isPlaying && isReady && (
+                        {/* Custom Play Button Overlay - hide permanently after first click */}
+                        {!hasClickedPlay && isReady && (
                             <div
                                 className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-20 cursor-pointer"
                                 onClick={handlePlayClick}
