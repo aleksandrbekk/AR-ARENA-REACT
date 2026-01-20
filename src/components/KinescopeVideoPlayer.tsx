@@ -24,8 +24,8 @@ export function KinescopeVideoPlayer({
 
     // Use Kinescope hook for Kinescope videos
     const {
-        iframeRef,
-        videoUrl,
+        containerRef,
+        videoId,
         isLoading,
         isReady,
         play
@@ -67,20 +67,12 @@ export function KinescopeVideoPlayer({
             </div>
 
             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-white/10 group">
-                {isKinescope && videoUrl ? (
+                {isKinescope && videoId ? (
                     <>
-                        {/* Kinescope iframe */}
-                        <iframe
-                            ref={iframeRef}
-                            src={videoUrl}
+                        {/* Kinescope player container */}
+                        <div
+                            ref={containerRef}
                             className="absolute inset-0 w-full h-full"
-                            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
-                            frameBorder="0"
-                            allowFullScreen
-                            id="kinescope-player"
-                            onLoad={() => {
-                                // Player loaded
-                            }}
                         />
 
                         {/* Custom Play Button Overlay - hide permanently after first click */}
