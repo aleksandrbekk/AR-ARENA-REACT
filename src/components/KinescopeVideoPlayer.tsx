@@ -75,18 +75,18 @@ export function KinescopeVideoPlayer({
     }
 
     const handleTimeUpdate = (data: { currentTime: number }) => {
-        // Используем текущую duration из state, если она есть, иначе пытаемся получить из ref
-        const currentDuration = duration > 0 ? duration : (playerRef.current ? null : 0)
-        
-        if (currentDuration && currentDuration > 0) {
-            const percent = Math.min((data.currentTime / currentDuration) * 100, 100)
+        // Если duration уже установлена, используем её
+        if (duration > 0) {
+            const percent = Math.min((data.currentTime / duration) * 100, 100)
             onProgress(percent)
         } else if (playerRef.current) {
             // Если duration ещё не установлена, пытаемся получить её из плеера
             playerRef.current.getDuration().then((dur: number) => {
-                if (dur > 0) {
+                if (dur > 0 && dur !== duration) {
                     setDuration(dur)
                     onDuration(dur)
+                }
+                if (dur > 0) {
                     const percent = Math.min((data.currentTime / dur) * 100, 100)
                     onProgress(percent)
                 }
