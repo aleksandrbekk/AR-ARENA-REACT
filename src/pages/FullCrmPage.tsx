@@ -201,6 +201,10 @@ export function FullCrmPage() {
   const [showPaymentsModal, setShowPaymentsModal] = useState(false)
   const [selectedPaymentPeriod, setSelectedPaymentPeriod] = useState<'5-23' | '23-5'>('5-23')
 
+  // Модалка редактирования даты
+  const [showEditDateModal, setShowEditDateModal] = useState(false)
+  const [editingDateValue, setEditingDateValue] = useState('')
+
   // Защита паролем для браузера
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [passwordInput, setPasswordInput] = useState('')
@@ -556,6 +560,39 @@ export function FullCrmPage() {
     } catch (err) {
       console.error('Error adding days:', err)
       showToast({ variant: 'error', title: 'Ошибка добавления дней' })
+    }
+  }
+
+  // ============ ИЗМЕНИТЬ ДАТУ (РУЧНОЕ УПРАВЛЕНИЕ) ============
+  const updateExpirationDate = async (clientId: string, newDateString: string) => {
+    try {
+      if (!newDateString) return showToast({ variant: 'error', title: 'Выберите дату' })
+
+      // Устанавливаем конец дня
+      const newExpires = new Date(newDateString + 'T23:59:59')
+
+      const { error } = await supabase
+        .from('premium_clients')
+        .update({ expires_at: newExpires.toISOString() })
+        .eq('id', clientId)
+
+      if (error) throw error
+
+      setPremiumClients(prev => prev.map(c =>
+        c.id === clientId ? { ...c, expires_at: newExpires.toISOString() } : c
+      ))
+      if (selectedPremiumClient?.id === clientId) {
+        setSelectedPremiumClient(prev => prev ? { ...prev, expires_at: newExpires.toISOString() } : null)
+      }
+      setShowEditDateModal(false)
+      showToast({ variant: 'success', title: 'Дата обновлена' })
+
+      if (selectedPremiumClient) {
+        sendMessage(selectedPremiumClient.telegram_id, `📅 Дата окончания подписки изменена на: ${newExpires.toLocaleDateString('ru-RU')}`)
+      }
+    } catch (err) {
+      console.error('Error updating date:', err)
+      showToast({ variant: 'error', title: 'Ошибка обновления' })
     }
   }
 
@@ -978,8 +1015,20 @@ export function FullCrmPage() {
               <div className={`text-5xl font-bold ${getDaysColor(daysRemaining)}`}>
                 {isExpired ? '0' : daysRemaining}
               </div>
-              <div className="text-white/40 text-sm mt-2">
+              <div className="text-white/40 text-sm mt-2 flex items-center justify-center gap-2">
                 {isExpired ? 'Подписка истекла' : `до ${formatFullDate(client.expires_at)}`}
+                <button
+                  onClick={() => {
+                    setEditingDateValue(new Date(client.expires_at).toISOString().split('T')[0])
+                    setShowEditDateModal(true)
+                  }}
+                  className="p-1 hover:bg-white/10 rounded-full transition-colors opacity-50 hover:opacity-100"
+                  title="Изменить дату"
+                >
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -2762,6 +2811,40 @@ export function FullCrmPage() {
               Билет будет выдан без списания средств. <br />
               В транзакциях отобразится как "Admin granted".
             </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  {/* Модалка редактирования даты */ }
+  if (showEditDateModal && selectedPremiumClient) {
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+        <div className="bg-zinc-900 rounded-2xl w-full max-w-sm p-6 border border-white/10">
+          <h3 className="text-xl font-bold text-white mb-4">Изменить дату окончания</h3>
+          <p className="text-white/40 text-sm mb-4">
+            Текущая дата: {formatFullDate(selectedPremiumClient!.expires_at)}
+          </p>
+          <input
+            type="date"
+            value={editingDateValue}
+            onChange={e => setEditingDateValue(e.target.value)}
+            className="w-full bg-zinc-800 text-white rounded-xl px-4 py-3 mb-6 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+          />
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowEditDateModal(false)}
+              className="flex-1 py-3 bg-zinc-800 text-white rounded-xl font-medium"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={() => updateExpirationDate(selectedPremiumClient!.id, editingDateValue)}
+              className="flex-1 py-3 bg-[#FFD700] text-black rounded-xl font-bold"
+            >
+              Сохранить
+            </button>
           </div>
         </div>
       </div>
