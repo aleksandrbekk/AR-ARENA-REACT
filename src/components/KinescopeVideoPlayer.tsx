@@ -75,24 +75,49 @@ export function KinescopeVideoPlayer({
     }
 
     const handleTimeUpdate = (data: { currentTime: number }) => {
-        if (duration > 0) {
-            const percent = Math.min((data.currentTime / duration) * 100, 100)
+        // Используем текущую duration из state, если она есть, иначе пытаемся получить из ref
+        const currentDuration = duration > 0 ? duration : (playerRef.current ? null : 0)
+        
+        if (currentDuration && currentDuration > 0) {
+            const percent = Math.min((data.currentTime / currentDuration) * 100, 100)
             onProgress(percent)
+        } else if (playerRef.current) {
+            // Если duration ещё не установлена, пытаемся получить её из плеера
+            playerRef.current.getDuration().then((dur: number) => {
+                if (dur > 0) {
+                    setDuration(dur)
+                    onDuration(dur)
+                    const percent = Math.min((data.currentTime / dur) * 100, 100)
+                    onProgress(percent)
+                }
+            }).catch(() => {
+                // Игнорируем ошибки
+            })
         }
     }
 
     const handleDurationChange = (data: { duration: number }) => {
         const newDuration = data.duration
-        setDuration(newDuration)
-        onDuration(newDuration)
+        if (newDuration > 0) {
+            setDuration(newDuration)
+            onDuration(newDuration)
+        }
+    }
+
+    const handleReady = async (data: { currentTime: number; duration: number; quality: any }) => {
+        // Когда плеер готов, устанавливаем длительность
+        if (data.duration > 0) {
+            setDuration(data.duration)
+            onDuration(data.duration)
+        }
     }
 
     const handlePlay = () => {
-        // Событие воспроизведения - можно использовать для UI если нужно
+        // Событие воспроизведения
     }
 
     const handlePause = () => {
-        // Событие паузы - можно использовать для UI если нужно
+        // Событие паузы
     }
 
     if (!videoId) {
@@ -119,6 +144,7 @@ export function KinescopeVideoPlayer({
                         ref={playerRef}
                         videoId={videoId}
                         controls={false}
+                        onReady={handleReady}
                         onTimeUpdate={handleTimeUpdate}
                         onDurationChange={handleDurationChange}
                         onPlay={handlePlay}
