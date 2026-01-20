@@ -1,27 +1,32 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 
 interface UseKinescopePlayerOptions {
     videoSource: string
     onProgress: (percent: number) => void
     onDuration: (duration: number) => void
+    fallbackDuration?: number // Fallback duration in seconds if postMessage doesn't work
 }
 
 export function useKinescopePlayer({
     videoSource,
     onProgress,
-    onDuration
+    onDuration,
+    fallbackDuration = 324 // 5:24 default
 }: UseKinescopePlayerOptions) {
     const [isPlaying, setIsPlaying] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [isReady, setIsReady] = useState(false)
+    const [hasReceivedProgress, setHasReceivedProgress] = useState(false)
     const iframeRef = useRef<HTMLIFrameElement>(null)
+    const timerRef = useRef<number | null>(null)
+    const startTimeRef = useRef<number>(0)
+    const elapsedRef = useRef<number>(0)
 
     // Extract video URL from Kinescope embed
     const videoUrl = useMemo(() => {
         if (!videoSource) return ''
 
         let url = ''
-        // Extract src from iframe tag if present
         if (videoSource.includes('<iframe')) {
             const match = videoSource.match(/src=["'](.*?)["']/)
             url = match ? match[1] : ''
@@ -29,7 +34,6 @@ export function useKinescopePlayer({
             url = videoSource
         }
 
-        // Add API parameter for postMessage events
         if (url) {
             const hasParams = url.includes('?')
             const separator = hasParams ? '&' : '?'
@@ -44,29 +48,52 @@ export function useKinescopePlayer({
         if (videoUrl) {
             setIsLoading(false)
             setIsReady(true)
+            // Set fallback duration immediately
+            onDuration(fallbackDuration)
         }
-    }, [videoUrl])
+    }, [videoUrl, fallbackDuration, onDuration])
+
+    // Fallback timer for progress tracking
+    const startTimer = useCallback(() => {
+        if (timerRef.current) return
+
+        startTimeRef.current = Date.now() - (elapsedRef.current * 1000)
+
+        timerRef.current = window.setInterval(() => {
+            if (!hasReceivedProgress) {
+                const elapsed = (Date.now() - startTimeRef.current) / 1000
+                elapsedRef.current = elapsed
+                const percent = Math.min((elapsed / fallbackDuration) * 100, 100)
+                onProgress(percent)
+            }
+        }, 500)
+    }, [fallbackDuration, hasReceivedProgress, onProgress])
+
+    const stopTimer = useCallback(() => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
+        }
+    }, [])
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => stopTimer()
+    }, [stopTimer])
 
     // Listen for Kinescope events via postMessage
     useEffect(() => {
         if (!videoUrl) return
 
         const handleMessage = (event: MessageEvent) => {
-            // Log all messages for debugging
-            console.log('postMessage received:', event.origin, event.data)
-
-            // Skip non-Kinescope messages
             if (!event.origin.includes('kinescope')) return
 
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-
-                console.log('Kinescope event:', data)
-
-                // Handle different event formats
                 const eventType = data.event || data.type || data.method || ''
 
                 if (eventType === 'timeupdate' || eventType === 'TimeUpdate') {
+                    setHasReceivedProgress(true)
                     const payload = data.data || data
                     const currentTime = payload.currentTime ?? payload.current
                     const duration = payload.duration
@@ -85,10 +112,19 @@ export function useKinescopePlayer({
 
                 if (eventType === 'playing' || eventType === 'Playing' || eventType === 'play' || eventType === 'Play') {
                     setIsPlaying(true)
+                    startTimer()
                 }
 
-                if (eventType === 'pause' || eventType === 'Pause' || eventType === 'ended' || eventType === 'Ended') {
+                if (eventType === 'pause' || eventType === 'Pause') {
                     setIsPlaying(false)
+                    stopTimer()
+                    elapsedRef.current = (Date.now() - startTimeRef.current) / 1000
+                }
+
+                if (eventType === 'ended' || eventType === 'Ended') {
+                    setIsPlaying(false)
+                    stopTimer()
+                    onProgress(100)
                 }
 
                 if (eventType === 'ready' || eventType === 'Ready') {
@@ -104,15 +140,11 @@ export function useKinescopePlayer({
         }
 
         window.addEventListener('message', handleMessage)
+        return () => window.removeEventListener('message', handleMessage)
+    }, [videoUrl, onProgress, onDuration, startTimer, stopTimer])
 
-        return () => {
-            window.removeEventListener('message', handleMessage)
-        }
-    }, [videoUrl, onProgress, onDuration])
-
-    const play = () => {
+    const play = useCallback(() => {
         if (iframeRef.current?.contentWindow) {
-            // Send play command in various formats for compatibility
             const commands = [
                 { method: 'play' },
                 { command: 'play' },
@@ -122,15 +154,18 @@ export function useKinescopePlayer({
                 iframeRef.current?.contentWindow?.postMessage(JSON.stringify(cmd), '*')
             })
             setIsPlaying(true)
+            startTimer() // Start fallback timer
         }
-    }
+    }, [startTimer])
 
-    const pause = () => {
+    const pause = useCallback(() => {
         if (iframeRef.current?.contentWindow) {
             iframeRef.current.contentWindow.postMessage(JSON.stringify({ method: 'pause' }), '*')
             setIsPlaying(false)
+            stopTimer()
+            elapsedRef.current = (Date.now() - startTimeRef.current) / 1000
         }
-    }
+    }, [stopTimer])
 
     return {
         iframeRef,
