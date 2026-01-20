@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@kinescope/player-iframe-api-loader": "^0.9.0",
-    "@kinescope/react-kinescope-player": "^0.6.0",
+    "@kinescope/react-kinescope-player": "^0.5.4",
     "@notionhq/client": "^5.4.0",
     "@supabase/supabase-js": "^2.86.0",
     "@types/pg": "^8.16.0",
