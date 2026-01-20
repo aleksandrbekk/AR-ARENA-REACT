@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import * as iframeApiLoader from '@kinescope/player-iframe-api-loader'
 
 interface UseKinescopePlayerOptions {
@@ -15,8 +15,15 @@ export function useKinescopePlayer({
     const [isPlaying, setIsPlaying] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [isReady, setIsReady] = useState(false)
-    const containerRef = useRef<HTMLDivElement>(null)
+    const [containerElement, setContainerElement] = useState<HTMLDivElement | null>(null)
     const playerRef = useRef<Kinescope.IframePlayer.Player | null>(null)
+
+    // Callback ref to track when container is mounted
+    const containerRef = useCallback((node: HTMLDivElement | null) => {
+        if (node !== null) {
+            setContainerElement(node)
+        }
+    }, [])
 
     // Extract video ID from Kinescope embed
     const { videoId, videoUrl } = useMemo(() => {
@@ -33,9 +40,9 @@ export function useKinescopePlayer({
         return { videoId: '', videoUrl: '' }
     }, [videoSource])
 
-    // Initialize Kinescope SDK Player
+    // Initialize Kinescope SDK Player - only when containerElement is set
     useEffect(() => {
-        if (!videoId || !containerRef.current) return
+        if (!videoId || !containerElement) return
 
         let player: Kinescope.IframePlayer.Player | null = null
         let mounted = true
@@ -45,9 +52,9 @@ export function useKinescopePlayer({
                 setIsLoading(true)
                 const factory = await iframeApiLoader.load()
 
-                if (!mounted || !containerRef.current) return
+                if (!mounted || !containerElement) return
 
-                player = await factory.create(containerRef.current, {
+                player = await factory.create(containerElement, {
                     url: videoUrl,
                     size: { width: '100%', height: '100%' },
                     behavior: {
@@ -130,7 +137,7 @@ export function useKinescopePlayer({
                 player.destroy()
             }
         }
-    }, [videoId, videoUrl, onProgress, onDuration])
+    }, [videoId, videoUrl, containerElement, onProgress, onDuration])
 
     const play = async () => {
         if (playerRef.current) {

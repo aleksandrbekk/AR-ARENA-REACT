@@ -1,8 +1,10 @@
 // 0xProcessing Webhook для Premium AR Club (крипто-оплата)
 // Vercel Serverless Function
 // 2025-12-23
+// Updated: 2026-01-20 - Added HMAC signature verification & improved duplicate protection
 
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 // ============================================
 // КОНФИГУРАЦИЯ

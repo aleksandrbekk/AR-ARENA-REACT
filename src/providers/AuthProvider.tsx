@@ -23,9 +23,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Функция загрузки состояния игры
     const loadGameState = useCallback(async (telegramId: number) => {
         try {
-            console.log('AuthProvider: Loading game state for', telegramId)
-            // setError(null) // Не сбрасываем ошибку тут, чтобы не мигать UI
-
             // Вызываем RPC функцию get_bull_game_state
             const { data, error: rpcError } = await supabase
                 .rpc('get_bull_game_state', {
@@ -33,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 })
 
             if (rpcError) {
-                console.error('AuthProvider: Error loading game state:', rpcError)
+                console.error('AuthProvider: Error loading game state')
                 throw new Error(rpcError.message)
             }
 
@@ -54,12 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
 
                 setGameState(state)
-                console.log('AuthProvider: Game state loaded:', state)
-            } else {
-                console.warn('AuthProvider: No game state returned from RPC')
             }
         } catch (err) {
-            console.error('AuthProvider: Load game state error:', err)
+            console.error('AuthProvider: Load game state error')
             // Используем mock-данные при ошибке только если это сетевая ошибка
             // Но для продакшена лучше показывать ошибку
             const mockState: GameState = {
@@ -94,13 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const initAuth = async () => {
             try {
-                console.log('AuthProvider: Initializing...')
                 setIsLoading(true)
                 setError(null)
-
-                // DEV MODE: только если ЯВНО указано ?dev=true
-                const urlParams = new URLSearchParams(window.location.search)
-                const isDevMode = urlParams.get('dev') === 'true'
 
                 const tg = window.Telegram?.WebApp
                 const hasTelegramUser = tg?.initDataUnsafe?.user?.id
@@ -113,8 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         // Проверяем что auth_date не старше 7 дней
                         const authAge = Date.now() / 1000 - savedUser.auth_date
                         if (authAge < 604800) { // 7 дней в секундах
-                            console.log('AuthProvider: BROWSER AUTH - using saved Telegram user')
-                            
                             const browserUser: TelegramUser = {
                                 id: savedUser.id,
                                 first_name: savedUser.first_name,
@@ -122,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                 username: savedUser.username,
                                 photo_url: savedUser.photo_url
                             }
-                            
+
                             setTelegramUser(browserUser)
                             await loadGameState(browserUser.id)
                             setIsLoading(false)
@@ -137,26 +124,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     }
                 }
 
-                // DEV MODE: если ЯВНО указано ?dev=true — используем mock (для быстрой разработки)
-                if (isDevMode && !hasTelegramUser) {
-                    console.log('AuthProvider: DEV MODE - using mock Telegram user')
-                    
-                    const devUser: TelegramUser = {
-                        id: 190202791,
-                        first_name: 'Александр',
-                        username: 'AleksandrBekk',
-                        language_code: 'ru'
-                    }
-                    
-                    setTelegramUser(devUser)
-                    await loadGameState(devUser.id)
-                    setIsLoading(false)
-                    return
-                }
-
                 // Если нет Telegram WebApp и нет browser auth — показываем экран авторизации
                 if (!tg) {
-                    console.log('AuthProvider: No Telegram WebApp - showing browser auth screen')
                     setError('This app only works in Telegram Mini App')
                     setIsLoading(false)
                     return
