@@ -66,6 +66,14 @@ export function KinescopeVideoPlayer({
         // Запускаем видео через ref
         if (playerRef.current) {
             try {
+                // Сначала включаем звук
+                if (playerRef.current.unmute) {
+                    await playerRef.current.unmute()
+                }
+                if (playerRef.current.setVolume) {
+                    await playerRef.current.setVolume(1) // 100% громкость
+                }
+                // Затем запускаем воспроизведение
                 await playerRef.current.play()
             } catch (error) {
                 console.error('Error playing video:', error)
@@ -79,6 +87,17 @@ export function KinescopeVideoPlayer({
         try {
             const isPaused = await playerRef.current.isPaused()
             if (isPaused) {
+                // Включаем звук при возобновлении воспроизведения
+                try {
+                    if (playerRef.current.unmute) {
+                        await playerRef.current.unmute()
+                    }
+                    if (playerRef.current.setVolume) {
+                        await playerRef.current.setVolume(1)
+                    }
+                } catch (volumeError) {
+                    console.log('Volume control error:', volumeError)
+                }
                 await playerRef.current.play()
             } else {
                 await playerRef.current.pause()
@@ -113,19 +132,33 @@ export function KinescopeVideoPlayer({
         setIsLoading(false)
         setIsReady(true)
         
-        // Автоматически запускаем воспроизведение без seekTo (быстрее)
+        // Автоматически запускаем воспроизведение (только если браузер разрешает)
         if (playerRef.current) {
             try {
                 // Если видео не на начале, сбрасываем позицию
                 if (data.currentTime > 0.5) {
                     await playerRef.current.seekTo(0)
                 }
+                // Пробуем включить звук перед автовоспроизведением
+                // (браузеры могут блокировать, но попробуем)
+                try {
+                    if (playerRef.current.unmute) {
+                        await playerRef.current.unmute()
+                    }
+                    if (playerRef.current.setVolume) {
+                        await playerRef.current.setVolume(1)
+                    }
+                } catch (volumeError) {
+                    // Игнорируем ошибки управления звуком при автовоспроизведении
+                    console.log('Volume control not available during autoplay:', volumeError)
+                }
                 // Запускаем воспроизведение
                 await playerRef.current.play()
                 setHasClickedPlay(true)
             } catch (error) {
                 // Если автовоспроизведение заблокировано браузером, показываем кнопку play
-                console.error('Error playing video:', error)
+                // Это нормально - пользователь кликнет и звук включится
+                console.log('Autoplay blocked, showing play button:', error)
             }
         }
     }, [onDuration])
@@ -141,8 +174,27 @@ export function KinescopeVideoPlayer({
         console.error('Kinescope player initialization error')
     }, [])
 
-    const handlePlay = useCallback(() => {
-        // Событие воспроизведения
+    const handlePlay = useCallback(async () => {
+        // Когда видео начинает играть, явно включаем звук
+        // Это важно для десктопов, где браузеры могут блокировать звук при автовоспроизведении
+        if (playerRef.current) {
+            try {
+                // Проверяем, не выключен ли звук
+                const isMuted = playerRef.current.isMuted ? await playerRef.current.isMuted() : false
+                if (isMuted) {
+                    if (playerRef.current.unmute) {
+                        await playerRef.current.unmute()
+                    }
+                }
+                // Устанавливаем максимальную громкость
+                if (playerRef.current.setVolume) {
+                    await playerRef.current.setVolume(1)
+                }
+            } catch (error) {
+                // Игнорируем ошибки - возможно методы недоступны
+                console.log('Volume control in onPlay:', error)
+            }
+        }
     }, [])
 
     const handlePause = useCallback(() => {
