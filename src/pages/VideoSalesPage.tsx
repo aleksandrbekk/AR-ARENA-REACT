@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 // ReactPlayer moved to KinescopeVideoPlayer component
 import { PaymentModal } from '../components/premium/PaymentModal'
@@ -533,7 +533,6 @@ function CustomProgressBar({ progress }: { progress: number }) {
 // ============ ГЛАВНАЯ СТРАНИЦА ============
 export function VideoSalesPage() {
     const [videoProgress, setVideoProgress] = useState(0)
-    const [videoDuration, setVideoDuration] = useState(0) // Duration in seconds
     const [isUnlocked, setIsUnlocked] = useState(false)
     const [codeError, setCodeError] = useState(false)
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -565,14 +564,7 @@ export function VideoSalesPage() {
         setIsPaymentModalOpen(true)
     }
 
-    // Рассчет времени до появления кода
-    const timeRemaining = useMemo(() => {
-        if (!videoDuration) return null
-        const revealTime = (CODE_REVEAL_PERCENT / 100) * videoDuration
-        const currentTime = (videoProgress / 100) * videoDuration
-        const remaining = Math.max(0, revealTime - currentTime)
-        return Math.ceil(remaining)
-    }, [videoDuration, videoProgress])
+
 
     return (
         <>
@@ -632,44 +624,27 @@ export function VideoSalesPage() {
                                 <KinescopeVideoPlayer
                                     videoSource={VIDEO_SOURCE}
                                     onProgress={setVideoProgress}
-                                    onDuration={setVideoDuration}
+                                    onDuration={() => { }}
                                     videoProgress={videoProgress}
                                     ProgressBar={CustomProgressBar}
                                 />
 
-                                {/* Countdown under video */}
-                                {videoProgress < CODE_REVEAL_PERCENT && timeRemaining !== null && (
-                                    <motion.div
-                                        className="mt-4 text-center"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                    >
-                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-                                            <svg className="w-4 h-4 text-[#FFD700]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            <span className="text-white/60 text-sm">
-                                                До момента, когда ты увидишь код:
-                                            </span>
-                                            <span className="text-[#FFD700] font-bold tabular-nums">
-                                                {timeRemaining} сек
-                                            </span>
-                                        </div>
-                                    </motion.div>
-                                )}
-
+                                {/* Completion badge - shows when video is 100% watched */}
                                 {videoProgress >= CODE_REVEAL_PERCENT && (
                                     <motion.div
                                         className="mt-4 text-center"
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                     >
-                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30">
-                                            <svg className="w-4 h-4 text-[#FFD700]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7h2a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2m2-4h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V4a1 1 0 011-1z" />
-                                            </svg>
-                                            <span className="text-[#FFD700] font-medium">
-                                                Код озвучен! Введите его ниже
+                                        <div className="inline-flex flex-col items-center gap-1 px-5 py-3 rounded-2xl bg-[#FFD700]/10 border border-[#FFD700]/30">
+                                            <span className="text-[#FFD700] font-semibold text-sm">
+                                                Введите код из видео и получите
+                                            </span>
+                                            <span className="text-white font-medium text-sm">
+                                                Лучшие условия для включения в AR Premium
+                                            </span>
+                                            <span className="text-white/60 text-xs mt-1">
+                                                Спец.бонус клуба в Январе — TOP 10 RWA активов
                                             </span>
                                         </div>
                                     </motion.div>
