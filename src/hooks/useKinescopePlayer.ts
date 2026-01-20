@@ -29,11 +29,13 @@ export function useKinescopePlayer({
             url = videoSource
         }
 
-        // Add API parameters
+        // Add API parameters - autoplay will start video immediately when user clicks
         if (url) {
             const hasParams = url.includes('?')
             const separator = hasParams ? '&' : '?'
-            url += `${separator}api=1`
+            // autoplay=1 - start playing immediately
+            // playButtonShow=0 - hide the native play button
+            url += `${separator}api=1&autoplay=1&playButtonShow=0`
         }
 
         return url
