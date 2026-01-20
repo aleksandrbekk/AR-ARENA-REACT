@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import KinescopePlayer from '@kinescope/react-kinescope-player'
 
@@ -41,28 +41,27 @@ export function KinescopeVideoPlayer({
     videoProgress,
     ProgressBar
 }: KinescopeVideoPlayerProps) {
-    const videoId = extractVideoId(videoSource)
+    const videoId = useMemo(() => extractVideoId(videoSource), [videoSource])
     const playerRef = useRef<any>(null)
+    const durationRef = useRef<number>(324) // Fallback duration сразу
 
     const [hasClickedPlay, setHasClickedPlay] = useState(false)
-    const [duration, setDuration] = useState<number>(0)
     const [isLoading, setIsLoading] = useState(true)
     const [isReady, setIsReady] = useState(false)
 
     // Сбрасываем позицию при монтировании компонента
     useEffect(() => {
         // Очищаем сохранённую позицию из localStorage для этого видео
-        const storageKey = `kinescope_${videoId}_time`
-        if (storageKey) {
+        if (videoId) {
             try {
-                localStorage.removeItem(storageKey)
+                localStorage.removeItem(`kinescope_${videoId}_time`)
             } catch (e) {
                 // Игнорируем ошибки localStorage
             }
         }
     }, [videoId])
 
-    const handlePlayClick = async () => {
+    const handlePlayClick = useCallback(async () => {
         setHasClickedPlay(true)
         // Запускаем видео через ref
         if (playerRef.current) {
@@ -72,9 +71,9 @@ export function KinescopeVideoPlayer({
                 console.error('Error playing video:', error)
             }
         }
-    }
+    }, [])
 
-    const handleVideoClick = async () => {
+    const handleVideoClick = useCallback(async () => {
         if (!playerRef.current) return
         
         try {
@@ -87,90 +86,68 @@ export function KinescopeVideoPlayer({
         } catch (error) {
             console.error('Error toggling playback:', error)
         }
-    }
+    }, [])
 
-    const handleTimeUpdate = (data: { currentTime: number }) => {
-        // Если duration уже установлена, используем её
-        if (duration > 0) {
-            const percent = Math.min((data.currentTime / duration) * 100, 100)
-            onProgress(percent)
-        } else if (playerRef.current) {
-            // Если duration ещё не установлена, пытаемся получить её из плеера
-            playerRef.current.getDuration().then((dur: number) => {
-                if (dur > 0 && dur !== duration) {
-                    setDuration(dur)
-                    onDuration(dur)
-                }
-                if (dur > 0) {
-                    const percent = Math.min((data.currentTime / dur) * 100, 100)
-                    onProgress(percent)
-                }
-            }).catch(() => {
-                // Если не удалось получить duration, используем fallback (324 секунды)
-                const fallbackDuration = 324
-                if (duration !== fallbackDuration) {
-                    setDuration(fallbackDuration)
-                    onDuration(fallbackDuration)
-                }
-                const percent = Math.min((data.currentTime / fallbackDuration) * 100, 100)
-                onProgress(percent)
-            })
-        } else {
-            // Если ref ещё не готов, используем fallback
-            const fallbackDuration = 324
-            const percent = Math.min((data.currentTime / fallbackDuration) * 100, 100)
-            onProgress(percent)
-        }
-    }
+    const handleTimeUpdate = useCallback((data: { currentTime: number }) => {
+        // Используем duration из ref для быстрого доступа
+        const currentDuration = durationRef.current
+        const percent = Math.min((data.currentTime / currentDuration) * 100, 100)
+        onProgress(percent)
+    }, [onProgress])
 
-    const handleDurationChange = (data: { duration: number }) => {
+    const handleDurationChange = useCallback((data: { duration: number }) => {
         const newDuration = data.duration
-        if (newDuration > 0) {
-            setDuration(newDuration)
+        if (newDuration > 0 && newDuration !== durationRef.current) {
+            durationRef.current = newDuration
             onDuration(newDuration)
         }
-    }
+    }, [onDuration])
 
-    const handleReady = async (data: { currentTime: number; duration: number; quality: any }) => {
+    const handleReady = useCallback(async (data: { currentTime: number; duration: number; quality: any }) => {
         // Когда плеер готов, устанавливаем длительность
-        setIsLoading(false)
-        setIsReady(true)
-        if (data.duration > 0) {
-            setDuration(data.duration)
+        if (data.duration > 0 && data.duration !== durationRef.current) {
+            durationRef.current = data.duration
             onDuration(data.duration)
         }
         
-        // Сбрасываем позицию воспроизведения на начало при загрузке
+        setIsLoading(false)
+        setIsReady(true)
+        
+        // Автоматически запускаем воспроизведение без seekTo (быстрее)
         if (playerRef.current) {
             try {
-                await playerRef.current.seekTo(0)
-                // Автоматически запускаем воспроизведение
+                // Если видео не на начале, сбрасываем позицию
+                if (data.currentTime > 0.5) {
+                    await playerRef.current.seekTo(0)
+                }
+                // Запускаем воспроизведение
                 await playerRef.current.play()
                 setHasClickedPlay(true)
             } catch (error) {
-                console.error('Error seeking to start or playing:', error)
                 // Если автовоспроизведение заблокировано браузером, показываем кнопку play
+                console.error('Error playing video:', error)
             }
         }
-    }
+    }, [onDuration])
 
-    const handleInit = () => {
+    const handleInit = useCallback(() => {
         // Плеер инициализирован, но ещё не готов
         setIsLoading(true)
-    }
+    }, [])
 
-    const handleInitError = () => {
+    const handleInitError = useCallback(() => {
         setIsLoading(false)
+        setIsReady(false)
         console.error('Kinescope player initialization error')
-    }
+    }, [])
 
-    const handlePlay = () => {
+    const handlePlay = useCallback(() => {
         // Событие воспроизведения
-    }
+    }, [])
 
-    const handlePause = () => {
+    const handlePause = useCallback(() => {
         // Событие паузы
-    }
+    }, [])
 
     if (!videoId) {
         return (
@@ -196,7 +173,7 @@ export function KinescopeVideoPlayer({
                         ref={playerRef}
                         videoId={videoId}
                         controls={false}
-                        preload="auto"
+                        preload="metadata"
                         localStorage={false}
                         onInit={handleInit}
                         onInitError={handleInitError}
