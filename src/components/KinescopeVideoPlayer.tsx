@@ -48,6 +48,7 @@ export function KinescopeVideoPlayer({
     const [hasClickedPlay, setHasClickedPlay] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [isReady, setIsReady] = useState(false)
+    const [isPlaying, setIsPlaying] = useState(false)
 
     // Сбрасываем позицию при монтировании компонента
     useEffect(() => {
@@ -75,8 +76,11 @@ export function KinescopeVideoPlayer({
                 }
                 // Затем запускаем воспроизведение
                 await playerRef.current.play()
+                setIsPlaying(true)
             } catch (error) {
                 console.error('Error playing video:', error)
+                // Если не удалось запустить, сбрасываем состояние
+                setIsPlaying(false)
             }
         }
     }, [])
@@ -99,8 +103,10 @@ export function KinescopeVideoPlayer({
                     console.log('Volume control error:', volumeError)
                 }
                 await playerRef.current.play()
+                setIsPlaying(true)
             } else {
                 await playerRef.current.pause()
+                setIsPlaying(false)
             }
         } catch (error) {
             console.error('Error toggling playback:', error)
@@ -132,35 +138,17 @@ export function KinescopeVideoPlayer({
         setIsLoading(false)
         setIsReady(true)
         
-        // Автоматически запускаем воспроизведение (только если браузер разрешает)
-        if (playerRef.current) {
+        // Сбрасываем позицию если нужно
+        if (playerRef.current && data.currentTime > 0.5) {
             try {
-                // Если видео не на начале, сбрасываем позицию
-                if (data.currentTime > 0.5) {
-                    await playerRef.current.seekTo(0)
-                }
-                // Пробуем включить звук перед автовоспроизведением
-                // (браузеры могут блокировать, но попробуем)
-                try {
-                    if (playerRef.current.unmute) {
-                        await playerRef.current.unmute()
-                    }
-                    if (playerRef.current.setVolume) {
-                        await playerRef.current.setVolume(1)
-                    }
-                } catch (volumeError) {
-                    // Игнорируем ошибки управления звуком при автовоспроизведении
-                    console.log('Volume control not available during autoplay:', volumeError)
-                }
-                // Запускаем воспроизведение
-                await playerRef.current.play()
-                setHasClickedPlay(true)
+                await playerRef.current.seekTo(0)
             } catch (error) {
-                // Если автовоспроизведение заблокировано браузером, показываем кнопку play
-                // Это нормально - пользователь кликнет и звук включится
-                console.log('Autoplay blocked, showing play button:', error)
+                console.log('Error seeking to start:', error)
             }
         }
+        
+        // НЕ запускаем автовоспроизведение - всегда показываем кнопку play
+        // Это гарантирует, что звук будет работать на всех устройствах
     }, [onDuration])
 
     const handleInit = useCallback(() => {
@@ -175,6 +163,7 @@ export function KinescopeVideoPlayer({
     }, [])
 
     const handlePlay = useCallback(async () => {
+        setIsPlaying(true)
         // Когда видео начинает играть, явно включаем звук
         // Это важно для десктопов, где браузеры могут блокировать звук при автовоспроизведении
         if (playerRef.current) {
@@ -198,7 +187,7 @@ export function KinescopeVideoPlayer({
     }, [])
 
     const handlePause = useCallback(() => {
-        // Событие паузы
+        setIsPlaying(false)
     }, [])
 
     if (!videoId) {
@@ -237,7 +226,7 @@ export function KinescopeVideoPlayer({
                         className="w-full h-full"
                         style={{ width: '100%', height: '100%' }}
                         playsInline={true}
-                        autoPlay={true}
+                        autoPlay={false}
                         muted={false}
                     />
                 </div>
@@ -269,8 +258,8 @@ export function KinescopeVideoPlayer({
                     </div>
                 )}
 
-                {/* Custom Play Button */}
-                {!hasClickedPlay && isReady && !isLoading && (
+                {/* Custom Play Button - показываем если видео не играет */}
+                {!isPlaying && isReady && !isLoading && (
                     <div
                         className="absolute inset-0 flex items-center justify-center bg-black/50 z-40 cursor-pointer"
                         onClick={handlePlayClick}
