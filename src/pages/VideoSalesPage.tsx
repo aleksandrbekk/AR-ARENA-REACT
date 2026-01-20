@@ -553,9 +553,13 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
                 url = VIDEO_SOURCE
             }
 
-            // Allow API control
-            if (url && !url.includes('?')) {
-                url += '?controls=false'
+            // Allow API control - CRITICAL: Must enable external API
+            if (url) {
+                const hasParams = url.includes('?')
+                const separator = hasParams ? '&' : '?'
+                // Add external=1 to enable postMessage API
+                // Add controls=false to hide UI
+                url += `${separator}external=1&api=1&controls=false&header=false`
             }
             return { videoUrl: url, isKinescope: true }
         }
@@ -572,7 +576,20 @@ function VideoPlayer({ onProgress, onDuration, videoProgress }: VideoPlayerProps
         setIsPlaying(true)
         if (isKinescope && iframeRef.current) {
             // Send Kinescope API command
-            iframeRef.current.contentWindow?.postMessage(JSON.stringify({ command: 'play' }), '*')
+            // Try MULTIPLE formats to be safe since API version varies
+            const commands = [
+                { command: 'play' },
+                { method: 'play' },
+                { type: 'play' },
+                'play'
+            ]
+            commands.forEach(cmd => {
+                iframeRef.current?.contentWindow?.postMessage(JSON.stringify(cmd), '*')
+                // Also send generic object if stringify isn't expected
+                if (typeof cmd !== 'string') {
+                    iframeRef.current?.contentWindow?.postMessage(cmd, '*')
+                }
+            })
         }
     }
 
