@@ -35,6 +35,11 @@ export function UtmLinksTab() {
   const [toolLinks, setToolLinks] = useState<UtmToolLink[]>([])
   const [loadingToolLinks, setLoadingToolLinks] = useState(true)
 
+  // Детальная статистика для промо-страницы
+  const [showStatsModal, setShowStatsModal] = useState(false)
+  const [promoStats, setPromoStats] = useState<any>(null)
+  const [loadingStats, setLoadingStats] = useState(false)
+
   // Папки и навигация
   const [folders, setFolders] = useState<string[]>([])
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
@@ -313,6 +318,41 @@ export function UtmLinksTab() {
       return `https://ararena.pro/promo?utm_source=${link.slug}`
     }
     return `https://ararena.pro/?utm_source=${link.slug}`
+  }
+
+  const loadPromoStats = async (slug: string) => {
+    try {
+      setLoadingStats(true)
+      
+      // Загружаем все события для этого slug
+      const { data: events, error } = await supabase
+        .from('promo_events')
+        .select('*')
+        .eq('utm_slug', slug)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      // Группируем события по типам
+      const stats = {
+        totalViews: events?.filter(e => e.event_type === 'view_start').length || 0,
+        progress25: events?.filter(e => e.event_type === 'progress_25').length || 0,
+        progress50: events?.filter(e => e.event_type === 'progress_50').length || 0,
+        progress75: events?.filter(e => e.event_type === 'progress_75').length || 0,
+        progress100: events?.filter(e => e.event_type === 'progress_100').length || 0,
+        codeCorrect: events?.filter(e => e.event_type === 'code_correct').length || 0,
+        codeIncorrect: events?.filter(e => e.event_type === 'code_incorrect').length || 0,
+        events: events || []
+      }
+
+      setPromoStats(stats)
+      setShowStatsModal(true)
+    } catch (err: any) {
+      console.error('Error loading promo stats:', err)
+      alert(`Ошибка загрузки статистики: ${err.message}`)
+    } finally {
+      setLoadingStats(false)
+    }
   }
 
   // Ссылки без папки (для раздела "Общие")
@@ -703,6 +743,18 @@ export function UtmLinksTab() {
                       >
                         {copiedId === `t-${link.id}` ? 'Скопировано' : 'Копировать'}
                       </button>
+                      {link.tool_type === 'promo' && (
+                        <button
+                          onClick={() => loadPromoStats(link.slug)}
+                          disabled={loadingStats}
+                          className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+                          title="Детальная статистика"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteLink(link.id, link.name, true)}
                         className="px-4 py-2 text-red-400/60 hover:text-red-400 transition-colors"
@@ -846,6 +898,109 @@ export function UtmLinksTab() {
               >
                 Создать
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модалка детальной статистики промо-страницы */}
+      {showStatsModal && promoStats && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white text-lg font-bold">Детальная статистика</h3>
+              <button
+                onClick={() => {
+                  setShowStatsModal(false)
+                  setPromoStats(null)
+                }}
+                className="text-white/60 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Основная статистика */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                <div className="text-[#FFD700] font-bold text-lg">{promoStats.totalViews}</div>
+                <div className="text-white/40 text-[10px] uppercase">Просмотров</div>
+              </div>
+              <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                <div className="text-blue-400 font-bold text-lg">{promoStats.progress100}</div>
+                <div className="text-white/40 text-[10px] uppercase">Досмотрели</div>
+              </div>
+              <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                <div className="text-green-400 font-bold text-lg">{promoStats.codeCorrect}</div>
+                <div className="text-white/40 text-[10px] uppercase">Правильный код</div>
+              </div>
+              <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                <div className="text-red-400 font-bold text-lg">{promoStats.codeIncorrect}</div>
+                <div className="text-white/40 text-[10px] uppercase">Неправильный</div>
+              </div>
+            </div>
+
+            {/* Прогресс просмотра */}
+            <div className="bg-zinc-800/30 rounded-xl p-4 mb-4">
+              <div className="text-white/60 text-xs uppercase tracking-wider mb-3">Прогресс просмотра</div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 text-sm">25%</span>
+                  <span className="text-white font-bold">{promoStats.progress25}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 text-sm">50%</span>
+                  <span className="text-white font-bold">{promoStats.progress50}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 text-sm">75%</span>
+                  <span className="text-white font-bold">{promoStats.progress75}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 text-sm">100%</span>
+                  <span className="text-[#FFD700] font-bold">{promoStats.progress100}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Список событий */}
+            <div className="bg-zinc-800/30 rounded-xl p-4">
+              <div className="text-white/60 text-xs uppercase tracking-wider mb-3">Последние события</div>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {promoStats.events.slice(0, 20).map((event: any) => (
+                  <div key={event.id} className="flex items-center justify-between text-xs py-2 border-b border-white/5 last:border-0">
+                    <div className="flex-1">
+                      <div className="text-white font-medium">
+                        {event.event_type === 'view_start' && '👁️ Начало просмотра'}
+                        {event.event_type === 'progress_25' && '📊 25% просмотрено'}
+                        {event.event_type === 'progress_50' && '📊 50% просмотрено'}
+                        {event.event_type === 'progress_75' && '📊 75% просмотрено'}
+                        {event.event_type === 'progress_100' && '✅ 100% просмотрено'}
+                        {event.event_type === 'code_correct' && `✅ Правильный код: ${event.code_entered}`}
+                        {event.event_type === 'code_incorrect' && `❌ Неправильный код: ${event.code_entered}`}
+                      </div>
+                      <div className="text-white/40 text-[10px]">
+                        {new Date(event.created_at).toLocaleString('ru-RU', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                    {event.progress_percent !== null && (
+                      <div className="text-white/50 text-xs">
+                        {event.progress_percent}%
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {promoStats.events.length === 0 && (
+                  <div className="text-white/40 text-sm text-center py-4">Нет событий</div>
+                )}
+              </div>
             </div>
           </div>
         </div>

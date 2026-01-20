@@ -565,6 +565,9 @@ export function VideoSalesPage() {
     const [selectedTariff, setSelectedTariff] = useState<Tariff | null>(null)
 
     const pricingRef = useRef<HTMLDivElement>(null)
+    const sessionIdRef = useRef<string>(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+    const trackedProgressRef = useRef<Set<number>>(new Set()) // Отслеживаем уже записанные проценты
+    const utmSlugRef = useRef<string | null>(null)
 
     // Сброс состояния при монтировании компонента (чтобы можно было пересмотреть)
     useEffect(() => {
@@ -572,6 +575,8 @@ export function VideoSalesPage() {
         setVideoDuration(0)
         setIsUnlocked(false)
         setCodeError(false)
+        trackedProgressRef.current.clear()
+        sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     }, []) // Пустой массив зависимостей = выполняется только при монтировании
 
     // Сохранение UTM из URL и запись клика в БД
@@ -579,6 +584,7 @@ export function VideoSalesPage() {
         const params = new URLSearchParams(window.location.search)
         const utmSource = params.get('utm_source')
         if (utmSource) {
+            utmSlugRef.current = utmSource
             localStorage.setItem('promo_utm_source', utmSource)
 
             // Записываем клик в БД
@@ -602,6 +608,19 @@ export function VideoSalesPage() {
                             })
                             .eq('id', link.id)
                     }
+
+                    // Записываем событие начала просмотра
+                    const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+                    await supabase
+                        .from('promo_events')
+                        .insert({
+                            utm_slug: utmSource,
+                            event_type: 'view_start',
+                            progress_percent: 0,
+                            telegram_id: telegramId ? parseInt(telegramId.toString()) : null,
+                            user_agent: navigator.userAgent,
+                            session_id: sessionIdRef.current
+                        })
                 } catch (err) {
                     // Молча игнорируем ошибки трекинга
                     console.error('Track click error:', err)
@@ -615,24 +634,65 @@ export function VideoSalesPage() {
         }
     }, [])
 
+    // Отслеживание прогресса просмотра
+    useEffect(() => {
+        if (!utmSlugRef.current || videoProgress === 0) return
+
+        const progressMilestones = [25, 50, 75, 100]
+        const currentMilestone = progressMilestones.find(m => videoProgress >= m && !trackedProgressRef.current.has(m))
+
+        if (currentMilestone) {
+            trackedProgressRef.current.add(currentMilestone)
+            
+            const trackProgress = async () => {
+                try {
+                    const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+                    await supabase
+                        .from('promo_events')
+                        .insert({
+                            utm_slug: utmSlugRef.current!,
+                            event_type: `progress_${currentMilestone}` as any,
+                            progress_percent: currentMilestone,
+                            telegram_id: telegramId ? parseInt(telegramId.toString()) : null,
+                            user_agent: navigator.userAgent,
+                            session_id: sessionIdRef.current
+                        })
+                } catch (err) {
+                    console.error('Track progress error:', err)
+                }
+            }
+
+            trackProgress()
+        }
+    }, [videoProgress])
+
     // Вычисляем оставшееся время
     const remainingTime = videoDuration > 0
         ? Math.max(0, videoDuration - (videoDuration * videoProgress / 100))
         : 0
 
     const handleCodeComplete = useCallback((code: string) => {
-        if (code === SECRET_CODE) {
-            setIsUnlocked(true)
-            // Haptic feedback
-            // @ts-ignore
-            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
+        const trackCodeEvent = async (isCorrect: boolean) => {
+            try {
+                const utmSource = utmSlugRef.current || localStorage.getItem('promo_utm_source')
+                if (utmSource) {
+                    const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+                    
+                    // Записываем событие ввода кода
+                    await supabase
+                        .from('promo_events')
+                        .insert({
+                            utm_slug: utmSource,
+                            event_type: isCorrect ? 'code_correct' : 'code_incorrect',
+                            progress_percent: Math.round(videoProgress),
+                            code_entered: code,
+                            telegram_id: telegramId ? parseInt(telegramId.toString()) : null,
+                            user_agent: navigator.userAgent,
+                            session_id: sessionIdRef.current
+                        })
 
-            // Отслеживаем конверсию (ввод правильного кода)
-            const trackConversion = async () => {
-                try {
-                    const utmSource = localStorage.getItem('promo_utm_source')
-                    if (utmSource) {
-                        // Находим ссылку по slug
+                    // Если код правильный, увеличиваем конверсию
+                    if (isCorrect) {
                         const { data: link } = await supabase
                             .from('utm_tool_links')
                             .select('id, conversions')
@@ -640,7 +700,6 @@ export function VideoSalesPage() {
                             .single()
 
                         if (link) {
-                            // Увеличиваем счётчик конверсий
                             await supabase
                                 .from('utm_tool_links')
                                 .update({
@@ -650,12 +709,20 @@ export function VideoSalesPage() {
                                 .eq('id', link.id)
                         }
                     }
-                } catch (err) {
-                    console.error('Track conversion error:', err)
                 }
+            } catch (err) {
+                console.error('Track code event error:', err)
             }
+        }
 
-            trackConversion()
+        if (code === SECRET_CODE) {
+            setIsUnlocked(true)
+            // Haptic feedback
+            // @ts-ignore
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
+
+            // Отслеживаем конверсию (ввод правильного кода)
+            trackCodeEvent(true)
 
             // Scroll to pricing after animation
             setTimeout(() => {
@@ -665,10 +732,14 @@ export function VideoSalesPage() {
             setCodeError(true)
             // @ts-ignore
             window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error')
+            
+            // Отслеживаем неправильный код
+            trackCodeEvent(false)
+            
             // Красное мигание - показываем ошибку дольше для лучшей визуальной обратной связи
             setTimeout(() => setCodeError(false), 1000)
         }
-    }, [])
+    }, [videoProgress])
 
     const handleBuyClick = (tariff: Tariff) => {
         setSelectedTariff(tariff)
