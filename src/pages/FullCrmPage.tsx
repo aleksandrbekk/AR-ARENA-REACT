@@ -705,17 +705,17 @@ export function FullCrmPage() {
       // Используем безопасный API endpoint
       const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''
       const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-      const telegramId = telegramUser?.id
+      const authTelegramId = telegramUser?.id
 
       const res = await fetch('/api/admin-send-message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
+          ...(authTelegramId && { 'X-Telegram-Id': String(authTelegramId) }),
           ...(adminPassword && { 'X-Admin-Password': adminPassword })
         },
         body: JSON.stringify({
-          chatId: client.telegram_id,
+          chatId: telegramId,
           text: message
         })
       })
@@ -758,10 +758,6 @@ export function FullCrmPage() {
       const result = await res.json()
       if (!result.success) throw new Error(result.error || 'Failed to send photo')
       return true
-        method: 'POST',
-        body: formData
-      })
-      return (await res.json()).ok
     } catch { return false }
   }
 
