@@ -722,11 +722,7 @@ export function FullCrmPage() {
 
       const result = await res.json()
       if (!result.success) throw new Error(result.error || 'Failed to send message')
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: telegramId, text: message, parse_mode: 'HTML' })
-      })
-      return (await res.json()).ok
+      return true
     } catch { return false }
   }
 
