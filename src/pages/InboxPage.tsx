@@ -204,30 +204,32 @@ export function InboxPage() {
   const loadSystemMessages = useCallback(async () => {
     setSystemMessagesLoading(true)
     try {
-      let query = supabase
-        .from('system_messages')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(500)
+      // Используем API endpoint с проверкой авторизации вместо прямого доступа к БД
+      const adminPassword = ADMIN_PASSWORD
+      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
+      const telegramId = telegramUser?.id
 
-      if (systemMessagesFilter === 'success') {
-        query = query.eq('success', true)
-      } else if (systemMessagesFilter === 'failed') {
-        query = query.eq('success', false)
-      } else if (systemMessagesFilter === 'payment_welcome') {
-        query = query.eq('message_type', 'payment_welcome')
+      const params = new URLSearchParams({
+        filter: systemMessagesFilter,
+        source: systemMessagesSourceFilter
+      })
+
+      const response = await fetch(`/api/system-messages?${params}`, {
+        headers: {
+          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
+          ...(adminPassword && { 'X-Admin-Password': adminPassword })
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to load system messages')
       }
 
-      if (systemMessagesSourceFilter !== 'all') {
-        query = query.eq('source', systemMessagesSourceFilter)
-      }
-
-      const { data, error } = await query
-
-      if (error) throw error
-      setSystemMessages(data || [])
+      const result = await response.json()
+      setSystemMessages(result.data || [])
     } catch (err) {
       console.error('Load system messages error:', err)
+      setSystemMessages([])
     } finally {
       setSystemMessagesLoading(false)
     }
@@ -308,14 +310,23 @@ export function InboxPage() {
 
     setSending(true)
     try {
+      // Получаем данные для авторизации
+      const adminPassword = ADMIN_PASSWORD
+      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
+      const telegramId = telegramUser?.id
+
       const response = await fetch('/api/inbox-send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
+          ...(adminPassword && { 'X-Admin-Password': adminPassword })
+        },
         body: JSON.stringify({
           conversationId: selectedConversation.id,
           telegramId: selectedConversation.telegram_id,
           text: messageText.trim(),
-          sentBy: 'admin'
+          sentBy: telegramId || 'admin'
         })
       })
 

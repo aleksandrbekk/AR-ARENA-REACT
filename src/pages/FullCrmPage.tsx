@@ -74,7 +74,7 @@ type TabType = 'leads' | 'premium' | 'broadcast'
 
 // ============ КОНСТАНТЫ ============
 // SECURITY: Secrets from environment variables
-const BOT_TOKEN = import.meta.env.VITE_BOT_TOKEN || ''
+// BOT_TOKEN больше не используется напрямую - используем /api/admin-send-message
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
 
 // ============ КОМПОНЕНТ ============
@@ -702,7 +702,26 @@ export function FullCrmPage() {
   // ============ СООБЩЕНИЯ ============
   const sendMessage = async (telegramId: number, message: string): Promise<boolean> => {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      // Используем безопасный API endpoint
+      const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''
+      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
+      const telegramId = telegramUser?.id
+
+      const res = await fetch('/api/admin-send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
+          ...(adminPassword && { 'X-Admin-Password': adminPassword })
+        },
+        body: JSON.stringify({
+          chatId: client.telegram_id,
+          text: message
+        })
+      })
+
+      const result = await res.json()
+      if (!result.success) throw new Error(result.error || 'Failed to send message')
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: telegramId, text: message, parse_mode: 'HTML' })
@@ -719,7 +738,27 @@ export function FullCrmPage() {
       if (caption) formData.append('caption', caption)
       formData.append('parse_mode', 'HTML')
 
-      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+      // Используем безопасный API endpoint
+      const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''
+      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
+      const telegramId = telegramUser?.id
+
+      const res = await fetch('/api/admin-send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
+          ...(adminPassword && { 'X-Admin-Password': adminPassword })
+        },
+        body: JSON.stringify({
+          chatId: client.telegram_id,
+          photoUrl: imageUrl,
+          caption: message
+        })
+      })
+
+      const result = await res.json()
+      if (!result.success) throw new Error(result.error || 'Failed to send photo')
         method: 'POST',
         body: formData
       })

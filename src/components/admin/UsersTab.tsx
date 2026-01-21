@@ -67,7 +67,7 @@ interface PremiumStatus {
 type SortField = 'created_at' | 'balance_ar' | 'balance_bul' | 'level' | 'last_seen_at'
 
 // ============ КОНСТАНТЫ ============
-const BOT_TOKEN = import.meta.env.VITE_BOT_TOKEN || ''
+// BOT_TOKEN больше не используется напрямую - используем /api/admin-send-message
 const ITEMS_PER_PAGE = 20
 
 // ============ КОМПОНЕНТ ============
@@ -369,18 +369,26 @@ export function UsersTab() {
     if (!selectedUser || !text.trim()) return
 
     try {
-      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      // Используем безопасный API endpoint вместо прямого доступа к BOT_TOKEN
+      const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''
+      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
+      const telegramId = telegramUser?.id
+
+      const response = await fetch('/api/admin-send-message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
+          ...(adminPassword && { 'X-Admin-Password': adminPassword })
+        },
         body: JSON.stringify({
-          chat_id: selectedUser.telegram_id,
-          text: text,
-          parse_mode: 'HTML'
+          chatId: selectedUser.telegram_id,
+          text: text
         })
       })
 
       const result = await response.json()
-      if (!result.ok) throw new Error(result.description)
+      if (!result.success) throw new Error(result.error || 'Failed to send message')
 
       showToast({ variant: 'success', title: 'Сообщение отправлено' })
     } catch (err: any) {
