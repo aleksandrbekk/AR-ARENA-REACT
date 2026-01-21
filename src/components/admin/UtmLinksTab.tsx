@@ -323,14 +323,6 @@ export function UtmLinksTab() {
     return `https://ararena.pro/?utm_source=${link.slug}`
   }
 
-  const getTelegramWebAppCode = (link: UtmToolLink) => {
-    const url = getToolUrl(link)
-    return JSON.stringify({
-      text: "Открыть промо",
-      web_app: { url }
-    }, null, 2)
-  }
-
   const loadPromoStats = async (slug: string) => {
     try {
       setLoadingStats(true)
@@ -743,51 +735,37 @@ export function UtmLinksTab() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => copyToClipboard(getToolUrl(link), `t-${link.id}`)}
+                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                          copiedId === `t-${link.id}`
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-zinc-700 text-white'
+                        }`}
+                      >
+                        {copiedId === `t-${link.id}` ? 'Скопировано' : 'Копировать'}
+                      </button>
+                      {(link.tool_type === 'promo' || link.tool_type === 'promo-tg') && (
                         <button
-                          onClick={() => copyToClipboard(getToolUrl(link), `t-${link.id}`)}
-                          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                            copiedId === `t-${link.id}`
-                              ? 'bg-green-500/20 text-green-400'
-                              : 'bg-zinc-700 text-white'
-                          }`}
-                        >
-                          {copiedId === `t-${link.id}` ? 'Скопировано' : 'Копировать ссылку'}
-                        </button>
-                        {(link.tool_type === 'promo' || link.tool_type === 'promo-tg') && (
-                          <button
-                            onClick={() => loadPromoStats(link.slug)}
-                            disabled={loadingStats}
-                            className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
-                            title="Детальная статистика"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteLink(link.id, link.name, true)}
-                          className="px-4 py-2 text-red-400/60 hover:text-red-400 transition-colors"
+                          onClick={() => loadPromoStats(link.slug)}
+                          disabled={loadingStats}
+                          className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+                          title="Детальная статистика"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                           </svg>
                         </button>
-                      </div>
-                      {link.tool_type === 'promo-tg' && (
-                        <button
-                          onClick={() => copyToClipboard(getTelegramWebAppCode(link), `tg-${link.id}`)}
-                          className={`w-full py-2 rounded-lg text-sm font-medium transition-all ${
-                            copiedId === `tg-${link.id}`
-                              ? 'bg-green-500/20 text-green-400'
-                              : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                          }`}
-                        >
-                          {copiedId === `tg-${link.id}` ? '✅ Код скопирован' : '📱 Копировать код для Telegram'}
-                        </button>
                       )}
+                      <button
+                        onClick={() => handleDeleteLink(link.id, link.name, true)}
+                        className="px-4 py-2 text-red-400/60 hover:text-red-400 transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>
