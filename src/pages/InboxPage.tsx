@@ -113,29 +113,95 @@ export function InboxPage() {
   // ... (Keep existing AUTH logic) ...
   const isTelegramWebApp = typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initData
 
+  // Проверка авторизации при загрузке
   useEffect(() => {
-    if (isTelegramWebApp) {
-      const tg = window.Telegram?.WebApp
-      const userId = tg?.initDataUnsafe?.user?.id
-      if (userId && ADMIN_IDS.includes(userId)) {
-        setIsAuthenticated(true)
-      }
-    } else {
-      const saved = localStorage.getItem('admin_auth')
-      if (saved === 'true') {
-        setIsAuthenticated(true)
+    const checkAuth = async () => {
+      if (isTelegramWebApp) {
+        const tg = window.Telegram?.WebApp
+        const userId = tg?.initDataUnsafe?.user?.id
+        if (userId && ADMIN_IDS.includes(userId)) {
+          // Проверяем на бэкенде что это действительно админ
+          try {
+            const response = await fetch('/api/verify-admin', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ telegramId: userId })
+            })
+            const result = await response.json()
+            if (result.isAdmin) {
+              setIsAuthenticated(true)
+            }
+          } catch {
+            // Если проверка не удалась, используем локальную проверку
+            setIsAuthenticated(true)
+          }
+        }
+      } else {
+        // В браузере - проверяем localStorage и валидируем на бэкенде
+        const saved = localStorage.getItem('admin_auth')
+        if (saved === 'true') {
+          // Проверяем что пароль все еще валиден
+          const adminPassword = ADMIN_PASSWORD
+          try {
+            const response = await fetch('/api/verify-admin', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password: adminPassword })
+            })
+            const result = await response.json()
+            if (result.isAdmin) {
+              setIsAuthenticated(true)
+            } else {
+              // Пароль невалиден - очищаем localStorage
+              localStorage.removeItem('admin_auth')
+              setIsAuthenticated(false)
+            }
+          } catch {
+            // Если проверка не удалась, используем локальную проверку
+            setIsAuthenticated(true)
+          }
+        }
       }
     }
+    checkAuth()
   }, [isTelegramWebApp])
 
-  const handlePasswordSubmit = () => {
-    if (passwordInput === ADMIN_PASSWORD) {
-      setIsAuthenticated(true)
-      localStorage.setItem('admin_auth', 'true')
-      setPasswordError(false)
-    } else {
-      setPasswordError(true)
+  const handlePasswordSubmit = async () => {
+    try {
+      // Проверяем пароль на бэкенде
+      const response = await fetch('/api/verify-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput })
+      })
+      const result = await response.json()
+      
+      if (result.isAdmin) {
+        setIsAuthenticated(true)
+        localStorage.setItem('admin_auth', 'true')
+        setPasswordError(false)
+      } else {
+        setPasswordError(true)
+      }
+    } catch (err) {
+      // Fallback на локальную проверку если API недоступен
+      if (passwordInput === ADMIN_PASSWORD) {
+        setIsAuthenticated(true)
+        localStorage.setItem('admin_auth', 'true')
+        setPasswordError(false)
+      } else {
+        setPasswordError(true)
+      }
     }
+  }
+
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    localStorage.removeItem('admin_auth')
+    setPasswordInput('')
+    setSelectedConversation(null)
+    setConversations([])
+    setMessages([])
   }
 
   // ... (Keep existing DATA LOADING logic: loadConversations, loadMessages, loadStats) ...
@@ -408,23 +474,45 @@ export function InboxPage() {
 
   // ============ RENDER: AUTH ============
   if (!isAuthenticated) {
-    // ... (Keep existing Auth UI, but maybe clean up classes slightly) ...
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <div className="bg-zinc-900 rounded-2xl p-8 max-w-sm w-full border border-zinc-800">
-          <h1 className="text-2xl font-bold text-white mb-6 text-center">🔐 Inbox Access</h1>
-          <input
-            type="password"
-            value={passwordInput}
-            onChange={(e) => setPasswordInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-            placeholder="Введите пароль"
-            className={`w-full px-4 py-3 bg-zinc-800 border rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 ${passwordError ? 'border-red-500' : 'border-zinc-700'}`}
-          />
-          {passwordError && <p className="text-red-500 text-sm mt-2">Неверный пароль</p>}
-          <button onClick={handlePasswordSubmit} className="w-full mt-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold rounded-xl hover:opacity-90 transition">
-            Войти
-          </button>
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-white mb-2">🔐 Авторизация</h1>
+            <p className="text-sm text-zinc-400">Требуется доступ администратора</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">Пароль администратора</label>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+                placeholder="Введите пароль"
+                autoFocus
+                className={`w-full px-4 py-3 bg-zinc-800 border rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 ${passwordError ? 'border-red-500' : 'border-zinc-700'}`}
+              />
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                  <span>❌</span> Неверный пароль
+                </p>
+              )}
+            </div>
+            
+            <button 
+              onClick={handlePasswordSubmit} 
+              className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold rounded-xl hover:opacity-90 transition active:scale-[0.98]"
+            >
+              Войти
+            </button>
+            
+            <div className="text-center text-xs text-zinc-500 mt-4">
+              <p>Или авторизуйтесь через Telegram</p>
+              <p className="text-zinc-600 mt-1">(только для администраторов)</p>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -442,7 +530,7 @@ export function InboxPage() {
   return (
     <div className="h-screen bg-[#0a0a0a] flex flex-col overflow-hidden">
       {/* Top Bar for Tabs */}
-      <div className="h-14 border-b border-zinc-800 flex items-center px-4 bg-[#0a0a0a] z-10">
+      <div className="h-14 border-b border-zinc-800 flex items-center justify-between px-4 bg-[#0a0a0a] z-10">
         <div className="flex gap-4">
           <button
             onClick={() => setActiveTab('chats')}
@@ -463,6 +551,28 @@ export function InboxPage() {
             Системные сообщения
           </button>
         </div>
+        
+        {/* Индикатор авторизации в шапке */}
+        <div className="flex items-center gap-3">
+          {isTelegramWebApp ? (
+            <div className="flex items-center gap-2 text-xs text-green-400">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span>Telegram авторизация</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-yellow-400">
+              <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+              <span>Пароль</span>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="text-xs text-zinc-400 hover:text-red-400 px-2 py-1 hover:bg-red-400/10 rounded transition"
+            title="Выйти из системы"
+          >
+            Выход
+          </button>
+        </div>
       </div>
 
       {/* Content Area */}
@@ -478,6 +588,25 @@ export function InboxPage() {
                     <MessageCircle className="w-6 h-6 text-yellow-500" />
                     Inbox
                   </h1>
+                  {/* Индикатор авторизации и кнопка выхода */}
+                  <div className="flex items-center gap-2">
+                    {isTelegramWebApp ? (
+                      <span className="text-xs text-green-400 px-2 py-1 bg-green-400/10 rounded">
+                        ✅ Telegram
+                      </span>
+                    ) : (
+                      <span className="text-xs text-yellow-400 px-2 py-1 bg-yellow-400/10 rounded">
+                        🔐 Авторизован
+                      </span>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="text-xs text-red-400 hover:text-red-300 px-2 py-1 hover:bg-red-400/10 rounded transition"
+                      title="Выйти"
+                    >
+                      Выход
+                    </button>
+                  </div>
                 </div>
 
                 {/* Stats */}
