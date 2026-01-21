@@ -728,33 +728,36 @@ export function FullCrmPage() {
 
   const sendPhoto = async (telegramId: number, photo: File, caption: string): Promise<boolean> => {
     try {
-      const formData = new FormData()
-      formData.append('chat_id', telegramId.toString())
-      formData.append('photo', photo)
-      if (caption) formData.append('caption', caption)
-      formData.append('parse_mode', 'HTML')
-
       // Используем безопасный API endpoint
       const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''
       const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-      const telegramId = telegramUser?.id
+      const authTelegramId = telegramUser?.id
+
+      // Читаем файл как data URL
+      const reader = new FileReader()
+      const photoDataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(photo)
+      })
 
       const res = await fetch('/api/admin-send-message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
+          ...(authTelegramId && { 'X-Telegram-Id': String(authTelegramId) }),
           ...(adminPassword && { 'X-Admin-Password': adminPassword })
         },
         body: JSON.stringify({
-          chatId: client.telegram_id,
-          photoUrl: imageUrl,
-          caption: message
+          chatId: telegramId,
+          photoUrl: photoDataUrl,
+          caption: caption
         })
       })
 
       const result = await res.json()
       if (!result.success) throw new Error(result.error || 'Failed to send photo')
+      return true
         method: 'POST',
         body: formData
       })
