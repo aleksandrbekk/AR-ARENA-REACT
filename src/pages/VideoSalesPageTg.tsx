@@ -425,6 +425,33 @@ export function VideoSalesPageTg() {
         sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     }, [])
 
+    // Инициализация Telegram WebApp
+    useEffect(() => {
+        const tg = window.Telegram?.WebApp
+        if (tg) {
+            // Инициализируем WebApp
+            tg.ready()
+            
+            // Расширяем на мобильных устройствах
+            const platform = tg.platform
+            const isMobile = platform === 'android' || platform === 'ios'
+            if (isMobile) {
+                tg.expand()
+                if (typeof tg.requestFullscreen === 'function') {
+                    try { 
+                        tg.requestFullscreen() 
+                    } catch (e) { 
+                        console.warn('requestFullscreen error', e) 
+                    }
+                }
+            }
+            
+            // Настраиваем цвета
+            tg.setHeaderColor('#0a0a0a')
+            tg.setBackgroundColor('#0a0a0a')
+        }
+    }, [])
+
     // Сохранение UTM и telegram_id/username
     useEffect(() => {
         const tg = window.Telegram?.WebApp
