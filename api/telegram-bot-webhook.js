@@ -544,20 +544,56 @@ async function handleCancelSubscriptionYes(chatId, telegramId, callbackQueryId) 
   await answerCallbackQuery(callbackQueryId, '⏳ Отменяем подписку...');
 
   try {
-    // Вызываем API отмены
-    const apiUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}/api/lava-cancel-subscription`
-      : 'https://ar-arena-react.vercel.app/api/lava-cancel-subscription';
+    // Вызываем API отмены - используем production URL
+    // VERCEL_URL может быть не установлен или иметь неправильный формат
+    const apiUrl = 'https://ar-arena-react.vercel.app/api/lava-cancel-subscription';
+
+    log(`[CANCEL] Calling API: ${apiUrl} for telegram_id: ${telegramId}`);
+
+    // Создаем AbortController для таймаута (AbortSignal.timeout может не поддерживаться)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 секунд
 
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_id: telegramId })
+      headers: { 
+        'Content-Type': 'application/json',
+        'User-Agent': 'TelegramBot/1.0'
+      },
+      body: JSON.stringify({ telegram_id: telegramId }),
+      signal: controller.signal
     });
 
-    const result = await response.json();
+    clearTimeout(timeoutId);
 
-    if (response.ok && result.success) {
+    log(`[CANCEL] API response status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log(`[CANCEL] API error response:`, { status: response.status, body: errorText });
+      
+      let errorMessage = 'Попробуйте позже или обратитесь в поддержку.';
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+      } catch (e) {
+        // Если не JSON, используем дефолтное сообщение
+      }
+
+      const text = `❌ <b>Ошибка отмены подписки</b>
+
+${errorMessage}
+
+Если проблема повторяется, обратитесь в поддержку: @Andrey_cryptoinvestor`;
+
+      await sendMessage(chatId, text);
+      return;
+    }
+
+    const result = await response.json();
+    log(`[CANCEL] API response:`, result);
+
+    if (result.success) {
       log(`[CANCEL] Subscription cancelled successfully for ${telegramId}`);
 
       const expiresDate = result.expires_at ? formatDate(result.expires_at) : 'конца оплаченного периода';
@@ -583,11 +619,26 @@ ${errorMessage}
       await sendMessage(chatId, text);
     }
   } catch (error) {
-    log(`[CANCEL] Network error for ${telegramId}:`, { error: error.message });
+    // Обработка разных типов ошибок
+    const errorDetails = {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    };
+    
+    log(`[CANCEL] Network error for ${telegramId}:`, errorDetails);
+
+    let errorText = 'Не удалось связаться с сервером. Попробуйте позже.';
+    
+    if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
+      errorText = 'Превышено время ожидания ответа сервера. Попробуйте позже.';
+    } else if (error.message.includes('fetch')) {
+      errorText = 'Ошибка подключения к серверу. Проверьте интернет-соединение.';
+    }
 
     const text = `❌ <b>Ошибка сети</b>
 
-Не удалось связаться с сервером. Попробуйте позже.
+${errorText}
 
 Если проблема повторяется, обратитесь в поддержку: @Andrey_cryptoinvestor`;
 
