@@ -2398,7 +2398,8 @@ export function FullCrmPage() {
                 // Считаем по валютам (0xprocessing = USDT)
                 let rubTotal = 0, usdTotal = 0, eurTotal = 0, usdtTotal = 0
                 periodPayments.forEach(p => {
-                  const amount = parseFloat(p.amount) || 0
+                  // amount может быть number или string из БД
+                  const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount)) || 0
                   const currency = (p.currency || '').toUpperCase()
                   
                   // 0xProcessing всегда считаем как USDT (крипто)
