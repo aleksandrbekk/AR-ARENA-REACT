@@ -51,6 +51,9 @@ function log(message, data = null) {
 // ============================================
 
 export default async function handler(req, res) {
+  // Логируем сразу при входе в функцию
+  console.log('[LavaCancel] Handler called');
+  
   try {
     log('[CANCEL] Request received', {
       method: req.method,
@@ -62,13 +65,19 @@ export default async function handler(req, res) {
       body: req.body
     });
 
+    console.log('[LavaCancel] After first log');
+
     // CORS
     const origin = req.headers.origin;
+    log('[CANCEL] Setting CORS headers', { origin, allowedOrigins: ALLOWED_ORIGINS });
+    
     if (ALLOWED_ORIGINS.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
     }
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    console.log('[LavaCancel] After CORS setup');
 
     if (req.method === 'OPTIONS') {
       log('[CANCEL] OPTIONS request - returning 200');
@@ -81,9 +90,11 @@ export default async function handler(req, res) {
     }
 
     log('[CANCEL] Method is POST, processing...');
+    console.log('[LavaCancel] Method check passed');
     
     const { telegram_id } = req.body || {};
     log('[CANCEL] Processing request for telegram_id:', telegram_id);
+    console.log('[LavaCancel] Extracted telegram_id:', telegram_id);
 
     if (!telegram_id) {
       log('[CANCEL] Missing telegram_id in request');
