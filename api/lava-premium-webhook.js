@@ -749,6 +749,29 @@ export default async function handler(req, res) {
     }
 
     // ============================================
+    // 2.1. ФИЛЬТР ТЕСТОВЫХ ПЛАТЕЖЕЙ
+    // ============================================
+    // Минимальные суммы для реальных платежей (тестовые по 50 руб игнорируем)
+    const MIN_AMOUNTS = {
+      RUB: 500,   // Минимум 500 руб (CLASSIC = 4000 руб)
+      USD: 10,    // Минимум 10 USD
+      EUR: 10     // Минимум 10 EUR
+    };
+
+    const currencyUpper = (currency || 'RUB').toUpperCase();
+    const minAmount = MIN_AMOUNTS[currencyUpper] || MIN_AMOUNTS['RUB'];
+
+    if (grossAmount < minAmount) {
+      log(`🧪 Test payment detected: ${grossAmount} ${currencyUpper} < ${minAmount} - ignoring`);
+      return res.status(200).json({
+        message: 'Test payment ignored',
+        amount: grossAmount,
+        currency: currencyUpper,
+        minimum: minAmount
+      });
+    }
+
+    // ============================================
     // 3. ИЗВЛЕЧЕНИЕ TELEGRAM_ID
     // ============================================
     const { telegramId, username: extractedUsername } = await extractTelegramIdOrUsername(payload);
