@@ -117,48 +117,56 @@ export default async function handler(req, res) {
     }
 
     // 3. ОТМЕНИТЬ ПОДПИСКУ ЧЕРЕЗ LAVA API
+    // Правильный endpoint: DELETE /api/v1/subscriptions с query params
+    // Документация: https://gate.lava.top/docs
     log('[CANCEL] Calling Lava API:', { contract_id: client.contract_id });
 
     const email = `${telegramIdInt}@premium.ararena.pro`;
 
+    // Формируем URL с query параметрами (согласно Lava API v1)
+    const cancelUrl = new URL('https://gate.lava.top/api/v1/subscriptions');
+    cancelUrl.searchParams.set('contractId', client.contract_id);
+    cancelUrl.searchParams.set('email', email);
+
     try {
-      const lavaResponse = await fetch('https://gate.lava.top/api/v2/subscription/cancel', {
-        method: 'POST',
+      const lavaResponse = await fetch(cancelUrl.toString(), {
+        method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           'X-Api-Key': LAVA_API_KEY
-        },
-        body: JSON.stringify({
-          contractId: client.contract_id,
-          email: email
-        })
+        }
       });
 
-      const responseText = await lavaResponse.text();
-      let lavaResult;
-      
-      try {
-        lavaResult = JSON.parse(responseText);
-      } catch (e) {
-        lavaResult = { message: responseText || 'Unknown response' };
-      }
+      log('[CANCEL] Lava API response status:', lavaResponse.status);
 
-      log('[CANCEL] Lava API response:', { status: lavaResponse.status, result: lavaResult });
+      // Успешная отмена возвращает 204 No Content
+      if (lavaResponse.status === 204) {
+        log('[CANCEL] Subscription successfully cancelled via Lava API');
+      } else if (!lavaResponse.ok) {
+        // Попробуем получить тело ошибки
+        const responseText = await lavaResponse.text();
+        let lavaResult;
 
-      // Если ошибка, но подписка уже отменена - продолжаем
-      if (!lavaResponse.ok) {
-        const errorMessage = String(lavaResult?.message || lavaResult?.error || '').toLowerCase();
+        try {
+          lavaResult = JSON.parse(responseText);
+        } catch (e) {
+          lavaResult = { message: responseText || 'Unknown response' };
+        }
+
+        log('[CANCEL] Lava API error response:', lavaResult);
+
+        const errorMessage = String(lavaResult?.error || lavaResult?.message || '').toLowerCase();
         const alreadyCancelled = errorMessage.includes('already cancelled') ||
           errorMessage.includes('already canceled') ||
           errorMessage.includes('not found') ||
-          errorMessage.includes('subscription not active');
+          errorMessage.includes('subscription not active') ||
+          errorMessage.includes('cancelled');
 
         if (!alreadyCancelled) {
           log('[CANCEL] Lava API error:', { status: lavaResponse.status, error: lavaResult });
           return res.status(500).json({
             error: 'Lava API error',
             message: 'Не удалось отменить подписку через Lava.top. Попробуйте позже или обратитесь в поддержку.',
-            details: lavaResult?.message || lavaResult?.error
+            details: lavaResult?.error || lavaResult?.message
           });
         }
         log('[CANCEL] Subscription already cancelled on Lava side, continuing...');
