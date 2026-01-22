@@ -2382,25 +2382,35 @@ export function FullCrmPage() {
                   }
                 }
 
-                // Фильтруем платежи за период (Lava.top + 0xProcessing)
-                const periodPayments = premiumClients.filter(c => {
-                  if (c.source !== 'lava.top' && c.source !== '0xprocessing') return false
-                  if (!c.last_payment_at) return false
-                  const payDate = new Date(c.last_payment_at)
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем payment_history вместо premium_clients
+                // payment_history содержит РЕАЛЬНЫЕ платежи, а не накопленные суммы
+                const periodPayments = paymentHistory.filter(p => {
+                  // Фильтруем только успешные платежи от lava.top и 0xprocessing
+                  if (p.status !== 'success') return false
+                  if (p.source !== 'lava.top' && p.source !== '0xprocessing') return false
+                  if (!p.created_at) return false
+                  const payDate = new Date(p.created_at)
                   return payDate >= startDate && payDate <= endDate
                 })
 
                 // Считаем по валютам (0xprocessing = USDT)
                 let rubTotal = 0, usdTotal = 0, eurTotal = 0, usdtTotal = 0
-                periodPayments.forEach(c => {
-                  const amount = c.total_paid_usd || 0
+                periodPayments.forEach(p => {
+                  const amount = parseFloat(p.amount) || 0
+                  const currency = (p.currency || '').toUpperCase()
+                  
                   // 0xProcessing всегда считаем как USDT (крипто)
-                  if (c.source === '0xprocessing') {
+                  if (p.source === '0xprocessing') {
                     usdtTotal += amount
-                  } else if (c.currency === 'RUB') rubTotal += amount
-                  else if (c.currency === 'USD') usdTotal += amount
-                  else if (c.currency === 'EUR') eurTotal += amount
-                  else if (c.currency === 'USDT') usdtTotal += amount
+                  } else if (currency === 'RUB') {
+                    rubTotal += amount
+                  } else if (currency === 'USD') {
+                    usdTotal += amount
+                  } else if (currency === 'EUR') {
+                    eurTotal += amount
+                  } else if (currency === 'USDT' || currency.includes('USDT')) {
+                    usdtTotal += amount
+                  }
                 })
 
                 // Конвертация в USDT: RUB/82, EUR*1.13, USD=1, USDT=1
