@@ -156,7 +156,14 @@ export default async function handler(req, res) {
     const email = `${telegramIdInt}@premium.ararena.pro`;
 
     try {
-      const lavaResponse = await fetch('https://gate.lava.top/api/v2/subscription/cancel', {
+      // Пробуем несколько вариантов endpoint'ов и форматов
+      // Вариант 1: POST с contractId и email (текущий)
+      let lavaResponse;
+      let lavaResult;
+      
+      // Сначала пробуем POST с полным телом
+      log('[CANCEL] Trying POST method with contractId and email');
+      lavaResponse = await fetch('https://gate.lava.top/api/v2/subscription/cancel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,10 +175,45 @@ export default async function handler(req, res) {
         })
       });
 
-      const lavaResult = await lavaResponse.json();
+      // Если не сработало, пробуем только contractId
+      if (!lavaResponse.ok && lavaResponse.status !== 200 && lavaResponse.status !== 204) {
+        log('[CANCEL] POST with email failed, trying POST with contractId only');
+        lavaResponse = await fetch('https://gate.lava.top/api/v2/subscription/cancel', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Api-Key': LAVA_API_KEY
+          },
+          body: JSON.stringify({
+            contractId: client.contract_id
+          })
+        });
+      }
+
+      // Если все еще не сработало, пробуем DELETE метод
+      if (!lavaResponse.ok && lavaResponse.status !== 200 && lavaResponse.status !== 204) {
+        log('[CANCEL] POST failed, trying DELETE method');
+        lavaResponse = await fetch(`https://gate.lava.top/api/v2/subscription/${client.contract_id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Api-Key': LAVA_API_KEY
+          }
+        });
+      }
+
+      // Пытаемся распарсить ответ
+      const responseText = await lavaResponse.text();
+      try {
+        lavaResult = JSON.parse(responseText);
+      } catch (e) {
+        log('[CANCEL] Response is not JSON, got text:', responseText);
+        lavaResult = { message: responseText || 'Unknown response' };
+      }
 
       log('[CANCEL] Lava API response:', {
         status: lavaResponse.status,
+        statusText: lavaResponse.statusText,
         result: lavaResult
       });
 
