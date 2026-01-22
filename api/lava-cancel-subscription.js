@@ -13,15 +13,6 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const LAVA_API_KEY = process.env.LAVA_API_KEY;
 
-// Validate required env vars
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('CRITICAL: Missing SUPABASE environment variables');
-}
-
-if (!LAVA_API_KEY) {
-  console.error('CRITICAL: Missing LAVA_API_KEY environment variable');
-}
-
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -51,62 +42,35 @@ function log(message, data = null) {
 // ============================================
 
 export default async function handler(req, res) {
-  // Логируем сразу при входе в функцию
-  console.log('[LavaCancel] Handler called');
-  
   try {
-    log('[CANCEL] Request received', {
-      method: req.method,
-      headers: {
-        'content-type': req.headers['content-type'],
-        'user-agent': req.headers['user-agent'],
-        origin: req.headers.origin
-      },
-      body: req.body
-    });
-
-    console.log('[LavaCancel] After first log');
+    log('[CANCEL] Request received', { method: req.method, body: req.body });
 
     // CORS
     const origin = req.headers.origin;
-    log('[CANCEL] Setting CORS headers', { origin, allowedOrigins: ALLOWED_ORIGINS });
-    
     if (ALLOWED_ORIGINS.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
     }
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    console.log('[LavaCancel] After CORS setup');
-
     if (req.method === 'OPTIONS') {
-      log('[CANCEL] OPTIONS request - returning 200');
       return res.status(200).end();
     }
 
     if (req.method !== 'POST') {
-      log('[CANCEL] Invalid method:', req.method);
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    log('[CANCEL] Method is POST, processing...');
-    console.log('[LavaCancel] Method check passed');
-    
     const { telegram_id } = req.body || {};
-    log('[CANCEL] Processing request for telegram_id:', telegram_id);
-    console.log('[LavaCancel] Extracted telegram_id:', telegram_id);
 
     if (!telegram_id) {
-      log('[CANCEL] Missing telegram_id in request');
       return res.status(400).json({ error: 'Missing telegram_id' });
     }
 
     const telegramIdInt = parseInt(telegram_id);
-    log(`[CANCEL] Request received for telegram_id: ${telegramIdInt}`);
+    log('[CANCEL] Processing for telegram_id:', telegramIdInt);
 
-    // ============================================
     // 1. НАЙТИ КЛИЕНТА В БД
-    // ============================================
     const { data: client, error: clientError } = await supabase
       .from('premium_clients')
       .select('id, telegram_id, username, source, contract_id, tags, expires_at')
@@ -118,165 +82,77 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Client not found' });
     }
 
-    log('[CANCEL] Found client:', {
-      id: client.id,
-      source: client.source,
-      contract_id: client.contract_id,
-      tags: client.tags
-    });
+    log('[CANCEL] Found client:', { source: client.source, contract_id: client.contract_id });
 
-    // ============================================
-    // 2. ПРОВЕРИТЬ УСЛОВИЯ ДЛЯ ОТМЕНЫ
-    // ============================================
-
-    // Проверить источник подписки
+    // 2. ПРОВЕРИТЬ УСЛОВИЯ
     if (client.source !== 'lava.top') {
-      log('[CANCEL] Not a Lavatop subscription:', { source: client.source });
       return res.status(400).json({
         error: 'Not a Lavatop subscription',
         message: 'Подписка не оформлена через Lava.top. Для отмены обратитесь в поддержку.'
       });
     }
 
-    // Проверить наличие contract_id
     if (!client.contract_id) {
-      log('[CANCEL] No contract_id found:', { telegram_id: telegramIdInt });
       return res.status(400).json({
         error: 'No contract_id',
         message: 'ID подписки не найден. Возможно, подписка была оформлена до обновления системы. Обратитесь в поддержку.'
       });
     }
 
-    // Проверить, не отменена ли уже подписка
     const tags = client.tags || [];
     if (tags.includes('subscription_cancelled')) {
-      log('[CANCEL] Subscription already cancelled:', { telegram_id: telegramIdInt });
       return res.status(400).json({
         error: 'Already cancelled',
         message: 'Подписка уже отменена. Доступ сохранится до окончания оплаченного периода.'
       });
     }
 
-    // ============================================
     // 3. ОТМЕНИТЬ ПОДПИСКУ ЧЕРЕЗ LAVA API
-    // ============================================
-    log('[CANCEL] Calling Lava API to cancel subscription:', {
-      contract_id: client.contract_id,
-      telegram_id: telegramIdInt
-    });
+    log('[CANCEL] Calling Lava API:', { contract_id: client.contract_id });
 
-    // Email для Lava API (формат: telegram_id@premium.ararena.pro)
     const email = `${telegramIdInt}@premium.ararena.pro`;
 
     try {
-      // Пробуем несколько вариантов endpoint'ов и форматов
-      // Вариант 1: POST с contractId и email (текущий)
-      let lavaResponse;
+      const lavaResponse = await fetch('https://gate.lava.top/api/v2/subscription/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': LAVA_API_KEY
+        },
+        body: JSON.stringify({
+          contractId: client.contract_id,
+          email: email
+        })
+      });
+
+      const responseText = await lavaResponse.text();
       let lavaResult;
       
-      // Сначала пробуем POST с полным телом
-      const requestBody = {
-        contractId: client.contract_id,
-        email: email
-      };
-      
-      log('[CANCEL] Trying POST method with contractId and email', {
-        url: 'https://gate.lava.top/api/v2/subscription/cancel',
-        body: requestBody,
-        hasApiKey: !!LAVA_API_KEY
-      });
-      
-      try {
-        lavaResponse = await fetch('https://gate.lava.top/api/v2/subscription/cancel', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': LAVA_API_KEY
-          },
-          body: JSON.stringify(requestBody)
-        });
-        
-        log('[CANCEL] Fetch completed', {
-          status: lavaResponse.status,
-          statusText: lavaResponse.statusText,
-          ok: lavaResponse.ok,
-          headers: Object.fromEntries(lavaResponse.headers.entries())
-        });
-      } catch (fetchError) {
-        log('[CANCEL] Fetch error:', {
-          error: fetchError.message,
-          stack: fetchError.stack,
-          name: fetchError.name
-        });
-        throw fetchError;
-      }
-
-      // Если не сработало, пробуем только contractId
-      if (!lavaResponse.ok && lavaResponse.status !== 200 && lavaResponse.status !== 204) {
-        log('[CANCEL] POST with email failed, trying POST with contractId only');
-        lavaResponse = await fetch('https://gate.lava.top/api/v2/subscription/cancel', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': LAVA_API_KEY
-          },
-          body: JSON.stringify({
-            contractId: client.contract_id
-          })
-        });
-      }
-
-      // Если все еще не сработало, пробуем DELETE метод
-      if (!lavaResponse.ok && lavaResponse.status !== 200 && lavaResponse.status !== 204) {
-        log('[CANCEL] POST failed, trying DELETE method');
-        lavaResponse = await fetch(`https://gate.lava.top/api/v2/subscription/${client.contract_id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': LAVA_API_KEY
-          }
-        });
-      }
-
-      // Пытаемся распарсить ответ
-      const responseText = await lavaResponse.text();
       try {
         lavaResult = JSON.parse(responseText);
       } catch (e) {
-        log('[CANCEL] Response is not JSON, got text:', responseText);
         lavaResult = { message: responseText || 'Unknown response' };
       }
 
-      log('[CANCEL] Lava API response:', {
-        status: lavaResponse.status,
-        statusText: lavaResponse.statusText,
-        result: lavaResult
-      });
+      log('[CANCEL] Lava API response:', { status: lavaResponse.status, result: lavaResult });
 
-      // Проверяем ответ Lava API
-      // Успешные коды: 200, 204
-      // Также считаем успехом если подписка уже отменена (идемпотентность)
+      // Если ошибка, но подписка уже отменена - продолжаем
       if (!lavaResponse.ok) {
-        // Если ошибка от Lava - логируем и возвращаем ошибку
-        // НО: если подписка уже отменена на стороне Lava - это ОК
-        const errorMessage = lavaResult?.message || lavaResult?.error || 'Unknown error';
+        const errorMessage = String(lavaResult?.message || lavaResult?.error || '').toLowerCase();
+        const alreadyCancelled = errorMessage.includes('already cancelled') ||
+          errorMessage.includes('already canceled') ||
+          errorMessage.includes('not found') ||
+          errorMessage.includes('subscription not active');
 
-        // Проверяем типичные сообщения об уже отменённой подписке
-        const alreadyCancelled = errorMessage.toLowerCase().includes('already cancelled') ||
-          errorMessage.toLowerCase().includes('already canceled') ||
-          errorMessage.toLowerCase().includes('not found') ||
-          errorMessage.toLowerCase().includes('subscription not active');
-
-        if (alreadyCancelled) {
-          log('[CANCEL] Subscription already cancelled on Lava side, continuing...');
-        } else {
+        if (!alreadyCancelled) {
           log('[CANCEL] Lava API error:', { status: lavaResponse.status, error: lavaResult });
           return res.status(500).json({
             error: 'Lava API error',
             message: 'Не удалось отменить подписку через Lava.top. Попробуйте позже или обратитесь в поддержку.',
-            details: errorMessage
+            details: lavaResult?.message || lavaResult?.error
           });
         }
+        log('[CANCEL] Subscription already cancelled on Lava side, continuing...');
       }
 
     } catch (lavaError) {
@@ -287,9 +163,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ============================================
-    // 4. ОБНОВИТЬ БД - ДОБАВИТЬ ТЕГ
-    // ============================================
+    // 4. ОБНОВИТЬ БД
     log('[CANCEL] Updating premium_clients with cancellation tag...');
 
     const updatedTags = [...tags, 'subscription_cancelled'];
@@ -304,20 +178,12 @@ export default async function handler(req, res) {
 
     if (updateError) {
       log('[CANCEL] Failed to update tags:', updateError);
-      // Не возвращаем ошибку пользователю - подписка уже отменена в Lava
-      // Просто логируем
     } else {
       log('[CANCEL] Tags updated successfully');
     }
 
-    // ============================================
     // 5. ВЕРНУТЬ УСПЕХ
-    // ============================================
-    log('[CANCEL] Subscription cancelled successfully:', {
-      telegram_id: telegramIdInt,
-      contract_id: client.contract_id,
-      expires_at: client.expires_at
-    });
+    log('[CANCEL] Subscription cancelled successfully');
 
     return res.status(200).json({
       success: true,
@@ -328,12 +194,9 @@ export default async function handler(req, res) {
   } catch (error) {
     log('[CANCEL] Unexpected error:', { 
       error: error.message, 
-      stack: error.stack,
-      name: error.name,
-      cause: error.cause
+      stack: error.stack
     });
     
-    // Убеждаемся, что ответ отправлен
     if (!res.headersSent) {
       return res.status(500).json({
         error: 'Internal server error',
