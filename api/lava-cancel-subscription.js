@@ -47,35 +47,44 @@ export default async function handler(req, res) {
 
     // CORS
     const origin = req.headers.origin;
+    log('[CANCEL] Step 1: CORS setup');
     if (ALLOWED_ORIGINS.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
     }
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    log('[CANCEL] Step 2: CORS headers set');
 
     if (req.method === 'OPTIONS') {
+      log('[CANCEL] OPTIONS request');
       return res.status(200).end();
     }
 
     if (req.method !== 'POST') {
+      log('[CANCEL] Invalid method:', req.method);
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    log('[CANCEL] Step 3: Method is POST');
     const { telegram_id } = req.body || {};
+    log('[CANCEL] Step 4: Extracted telegram_id:', telegram_id);
 
     if (!telegram_id) {
+      log('[CANCEL] Missing telegram_id');
       return res.status(400).json({ error: 'Missing telegram_id' });
     }
 
     const telegramIdInt = parseInt(telegram_id);
-    log('[CANCEL] Processing for telegram_id:', telegramIdInt);
+    log('[CANCEL] Step 5: Processing for telegram_id:', telegramIdInt);
 
     // 1. НАЙТИ КЛИЕНТА В БД
+    log('[CANCEL] Step 6: Querying database...');
     const { data: client, error: clientError } = await supabase
       .from('premium_clients')
       .select('id, telegram_id, username, source, contract_id, tags, expires_at')
       .eq('telegram_id', telegramIdInt)
       .single();
+    log('[CANCEL] Step 7: Database query completed');
 
     if (clientError || !client) {
       log('[CANCEL] Client not found:', { telegram_id: telegramIdInt, error: clientError });
