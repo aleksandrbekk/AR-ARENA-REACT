@@ -1681,10 +1681,10 @@ export function FullCrmPage() {
             <div className="space-y-4">
               {/* Статистика */}
               {(() => {
-                // === СТАТИСТИКА: используем payment_history если есть, иначе premium_clients ===
-                // TEMP: payment_history table is incomplete (only has recent records)
-                // Use premium_clients which has ALL historical payment data
-                const hasPaymentHistory = false // paymentHistory.length > 0
+                // === СТАТИСТИКА: используем payment_history как основной источник ===
+                // payment_history содержит реальные платежи с датами
+                // Если платежей мало - дополняем из premium_clients
+                const hasPaymentHistory = paymentHistory.length > 0
 
                 // Хелперы для валют
                 // Крипто (0xprocessing и крипто-валюты)
@@ -1707,90 +1707,72 @@ export function FullCrmPage() {
 
                 let totalRub = 0, totalUsd = 0, totalUsdt = 0, totalEur = 0, paidCountThisMonth = 0
 
-                if (hasPaymentHistory) {
-                  // Используем payment_history для точной статистики
-                  console.log(`📊 Вычисляем статистику из payment_history за период: ${statsMonth}`)
-
-                  const paymentsFiltered = statsMonth === 'all'
-                    ? paymentHistory
-                    : paymentHistory.filter(p => {
-                      if (!p.created_at) return false
-                      const paymentDate = new Date(p.created_at)
-                      const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
-                      return paymentMonth === statsMonth
-                    })
-
-                  console.log(`Найдено ${paymentsFiltered.length} платежей для периода ${statsMonth}`)
-
-                  paymentsFiltered.forEach(p => {
-                    const amount = p.amount || 0
-                    // Суммы в БД уже чистые (Lava показывает после комиссии)
-
-                    if (isRubCurrency(p.currency, p.source)) {
-                      totalRub += amount
-                    } else if (isEurCurrency(p.currency)) {
-                      totalEur += amount
-                    } else if (isCryptoCurrency(p.currency, p.source)) {
-                      totalUsdt += amount
-                    } else if (isUsdCurrency(p.currency, p.source)) {
-                      totalUsd += amount
-                    } else {
-                      console.warn(`Неизвестная валюта: ${p.currency} от источника ${p.source}`)
-                    }
+                // ГИБРИДНЫЙ ПОДХОД: payment_history + premium_clients
+                // 1. Сначала берем из payment_history (реальные платежи)
+                const paymentsFromHistory = statsMonth === 'all'
+                  ? paymentHistory.filter(p => !p.status || p.status === 'success')
+                  : paymentHistory.filter(p => {
+                    if (p.status && p.status !== 'success') return false
+                    if (!p.created_at) return false
+                    const paymentDate = new Date(p.created_at)
+                    const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+                    return paymentMonth === statsMonth
                   })
-                  paidCountThisMonth = paymentsFiltered.length
 
-                  console.log(`💵 Статистика за ${statsMonth}:`, { totalRub, totalUsd, totalUsdt, totalEur, count: paidCountThisMonth })
-                } else {
-                  // Fallback: используем premium_clients (менее точно)
-                  const allPaidClients = premiumClients.filter(c =>
-                    c.source !== 'migration' && (c.total_paid_usd > 0 || (c.original_amount ?? 0) > 0)
-                  )
-                  const clientsFiltered = statsMonth === 'all'
-                    ? allPaidClients
-                    : allPaidClients.filter(c => {
-                      if (!c.last_payment_at) return false
-                      const paymentDate = new Date(c.last_payment_at)
-                      const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
-                      return paymentMonth === statsMonth
-                    })
+                // Получаем telegram_id платежей из payment_history (чтобы не дублировать)
+                const historyTelegramIds = new Set(
+                  paymentsFromHistory.map(p => p.telegram_id).filter(Boolean)
+                )
 
-                  // DEBUG: найти не-Lava RUB платежи
-                  const nonLavaRub: { id: string; telegram_id: number; amount: number; source: string | null }[] = []
-
-                  clientsFiltered.forEach(c => {
-                    // Для "Все время" — total_paid_usd (накопленная сумма)
-                    // Для конкретного месяца — original_amount (последний платёж)
-                    const amount = statsMonth === 'all'
-                      ? (c.total_paid_usd || 0)
-                      : (c.original_amount || 0)
-                    // Суммы в БД уже чистые (Lava показывает после комиссии)
-
-                    if (isRubCurrency(c.currency || '', c.source || '')) {
-                      totalRub += amount
-                      // Собираем не-Lava RUB платежи
-                      if (c.source !== 'lava.top') {
-                        nonLavaRub.push({ id: c.id, telegram_id: c.telegram_id, amount, source: c.source })
-                      }
-                    }
-                    else if (isEurCurrency(c.currency || '')) totalEur += amount
-                    else if (isCryptoCurrency(c.currency || '', c.source || '')) {
-                      // SECURITY FIX: Removed console.log with telegram_id
-                      totalUsdt += amount
-                    }
-                    else if (isUsdCurrency(c.currency || '', c.source || '')) totalUsd += amount
-                  })
-                  console.log('[USDT TOTAL FOR MONTH]', statsMonth, totalUsdt)
-                  paidCountThisMonth = clientsFiltered.length
-
-                  // DEBUG: вывести в консоль
-                  if (nonLavaRub.length > 0) {
-                    console.log('=== НЕ-LAVA RUB ПЛАТЕЖИ ===')
-                    console.log('Количество:', nonLavaRub.length)
-                    console.log('Сумма:', nonLavaRub.reduce((s, p) => s + p.amount, 0))
-                    console.table(nonLavaRub)
+                // Считаем суммы из payment_history
+                paymentsFromHistory.forEach(p => {
+                  const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount)) || 0
+                  
+                  if (isRubCurrency(p.currency || '', p.source || '')) {
+                    totalRub += amount
+                  } else if (isEurCurrency(p.currency || '')) {
+                    totalEur += amount
+                  } else if (isCryptoCurrency(p.currency || '', p.source || '')) {
+                    totalUsdt += amount
+                  } else if (isUsdCurrency(p.currency || '', p.source || '')) {
+                    totalUsd += amount
                   }
-                }
+                })
+
+                // 2. Дополняем из premium_clients (для платежей которых нет в payment_history)
+                const allPaidClients = premiumClients.filter(c =>
+                  c.source !== 'migration' && c.source !== 'manual' && (c.total_paid_usd > 0 || (c.original_amount ?? 0) > 0)
+                )
+                
+                const clientsFiltered = statsMonth === 'all'
+                  ? allPaidClients.filter(c => !c.telegram_id || !historyTelegramIds.has(String(c.telegram_id)) || paymentHistory.length === 0)
+                  : allPaidClients.filter(c => {
+                    if (!c.last_payment_at) return false
+                    // Пропускаем если уже есть в payment_history
+                    if (c.telegram_id && historyTelegramIds.has(String(c.telegram_id))) return false
+                    const paymentDate = new Date(c.last_payment_at)
+                    const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+                    return paymentMonth === statsMonth
+                  })
+
+                clientsFiltered.forEach(c => {
+                  // Для "Все время" — total_paid_usd (накопленная сумма всех платежей клиента)
+                  // Для конкретного месяца — original_amount (сумма последнего платежа клиента в этом месяце)
+                  const amount = statsMonth === 'all'
+                    ? (c.total_paid_usd || 0)
+                    : (c.original_amount || 0)
+
+                  if (isRubCurrency(c.currency || '', c.source || '')) {
+                    totalRub += amount
+                  }
+                  else if (isEurCurrency(c.currency || '')) totalEur += amount
+                  else if (isCryptoCurrency(c.currency || '', c.source || '')) {
+                    totalUsdt += amount
+                  }
+                  else if (isUsdCurrency(c.currency || '', c.source || '')) totalUsd += amount
+                })
+                
+                paidCountThisMonth = paymentsFromHistory.length + clientsFiltered.length
 
                 // Активные подписчики (expires > now)
                 const now = new Date()
@@ -2382,22 +2364,45 @@ export function FullCrmPage() {
                   }
                 }
 
-                // ИСПОЛЬЗУЕМ premium_clients как ОСНОВНОЙ источник
-                // payment_history неполная (только 12 записей), старые платежи не записывались
-                // Каждый клиент с last_payment_at в периоде = один платеж
-                const periodPayments = premiumClients
+                // ГИБРИДНЫЙ ПОДХОД: payment_history + premium_clients
+                // 1. Сначала берем из payment_history (реальные платежи)
+                const paymentsFromHistory = paymentHistory
+                  .filter(p => {
+                    if (p.status && p.status !== 'success') return false
+                    if (!p.created_at) return false
+                    const payDate = new Date(p.created_at)
+                    return payDate >= startDate && payDate <= endDate
+                  })
+                  .map(p => ({
+                    source: p.source || '',
+                    currency: p.currency || 'USD',
+                    amount: typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount)) || 0,
+                    telegram_id: p.telegram_id
+                  }))
+
+                // Получаем telegram_id платежей из payment_history (чтобы не дублировать)
+                const historyTelegramIds = new Set(
+                  paymentsFromHistory.map(p => p.telegram_id).filter(Boolean).map(String)
+                )
+
+                // 2. Дополняем из premium_clients (для платежей которых нет в payment_history)
+                const paymentsFromClients = premiumClients
                   .filter(c => {
                     if (c.source !== 'lava.top' && c.source !== '0xprocessing') return false
                     if (!c.last_payment_at) return false
+                    // Пропускаем если уже есть в payment_history
+                    if (c.telegram_id && historyTelegramIds.has(String(c.telegram_id))) return false
                     const payDate = new Date(c.last_payment_at)
                     return payDate >= startDate && payDate <= endDate
                   })
                   .map(c => ({
-                    source: c.source,
+                    source: c.source || '',
                     currency: c.currency || 'USD',
-                    // Используем original_amount (сумма последнего платежа), а не total_paid_usd (накопленная)
                     amount: c.original_amount || 0
                   }))
+
+                // Объединяем оба источника
+                const periodPayments = [...paymentsFromHistory, ...paymentsFromClients]
 
                 // Считаем по валютам (0xprocessing = USDT)
                 let rubTotal = 0, usdTotal = 0, eurTotal = 0, usdtTotal = 0
