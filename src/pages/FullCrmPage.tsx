@@ -68,6 +68,7 @@ interface PaymentRecord {
   currency: string
   source: string
   created_at: string
+  status?: string  // 'success' для успешных платежей
 }
 
 type TabType = 'leads' | 'premium' | 'broadcast'
@@ -2386,7 +2387,8 @@ export function FullCrmPage() {
                 // payment_history содержит РЕАЛЬНЫЕ платежи, а не накопленные суммы
                 const periodPayments = paymentHistory.filter(p => {
                   // Фильтруем только успешные платежи от lava.top и 0xprocessing
-                  if (p.status !== 'success') return false
+                  // Если status есть - проверяем, иначе считаем успешным (старые записи)
+                  if (p.status && p.status !== 'success') return false
                   if (p.source !== 'lava.top' && p.source !== '0xprocessing') return false
                   if (!p.created_at) return false
                   const payDate = new Date(p.created_at)
