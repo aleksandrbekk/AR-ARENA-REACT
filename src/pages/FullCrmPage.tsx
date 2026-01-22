@@ -2382,50 +2382,22 @@ export function FullCrmPage() {
                   }
                 }
 
-                // ИСПОЛЬЗУЕМ ГИБРИДНЫЙ ПОДХОД:
-                // 1. payment_history - для новых платежей (если есть)
-                // 2. premium_clients - для старых платежей (если их нет в payment_history)
-                
-                // Сначала берем из payment_history (реальные платежи)
-                const paymentsFromHistory = paymentHistory.filter(p => {
-                  // Если status есть - проверяем, иначе считаем успешным (старые записи)
-                  if (p.status && p.status !== 'success') return false
-                  if (p.source !== 'lava.top' && p.source !== '0xprocessing') return false
-                  if (!p.created_at) return false
-                  const payDate = new Date(p.created_at)
-                  return payDate >= startDate && payDate <= endDate
-                })
-
-                // Получаем telegram_id платежей из payment_history (чтобы не дублировать)
-                const historyTelegramIds = new Set(
-                  paymentsFromHistory.map(p => p.telegram_id).filter(Boolean)
-                )
-
-                // Дополняем из premium_clients (для платежей которых нет в payment_history)
-                const paymentsFromClients = premiumClients.filter(c => {
-                  if (c.source !== 'lava.top' && c.source !== '0xprocessing') return false
-                  if (!c.last_payment_at) return false
-                  // Пропускаем если уже есть в payment_history
-                  if (c.telegram_id && historyTelegramIds.has(String(c.telegram_id))) return false
-                  const payDate = new Date(c.last_payment_at)
-                  return payDate >= startDate && payDate <= endDate
-                })
-
-                // Объединяем: из payment_history берем amount, из premium_clients берем original_amount
-                const periodPayments = [
-                  ...paymentsFromHistory.map(p => ({
-                    source: p.source,
-                    currency: p.currency,
-                    amount: typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount)) || 0,
-                    from: 'payment_history'
-                  })),
-                  ...paymentsFromClients.map(c => ({
+                // ИСПОЛЬЗУЕМ premium_clients как ОСНОВНОЙ источник
+                // payment_history неполная (только 12 записей), старые платежи не записывались
+                // Каждый клиент с last_payment_at в периоде = один платеж
+                const periodPayments = premiumClients
+                  .filter(c => {
+                    if (c.source !== 'lava.top' && c.source !== '0xprocessing') return false
+                    if (!c.last_payment_at) return false
+                    const payDate = new Date(c.last_payment_at)
+                    return payDate >= startDate && payDate <= endDate
+                  })
+                  .map(c => ({
                     source: c.source,
-                    currency: c.currency,
-                    amount: c.original_amount || 0,
-                    from: 'premium_clients'
+                    currency: c.currency || 'USD',
+                    // Используем original_amount (сумма последнего платежа), а не total_paid_usd (накопленная)
+                    amount: c.original_amount || 0
                   }))
-                ]
 
                 // Считаем по валютам (0xprocessing = USDT)
                 let rubTotal = 0, usdTotal = 0, eurTotal = 0, usdtTotal = 0
