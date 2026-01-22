@@ -51,6 +51,16 @@ function log(message, data = null) {
 // ============================================
 
 export default async function handler(req, res) {
+  log('[CANCEL] Request received', {
+    method: req.method,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent'],
+      origin: req.headers.origin
+    },
+    body: req.body
+  });
+
   // CORS
   const origin = req.headers.origin;
   if (ALLOWED_ORIGINS.includes(origin)) {
@@ -60,15 +70,18 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
+    log('[CANCEL] OPTIONS request - returning 200');
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
+    log('[CANCEL] Invalid method:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { telegram_id } = req.body;
+    log('[CANCEL] Processing request for telegram_id:', telegram_id);
 
     if (!telegram_id) {
       log('[CANCEL] Missing telegram_id in request');
