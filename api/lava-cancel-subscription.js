@@ -51,36 +51,38 @@ function log(message, data = null) {
 // ============================================
 
 export default async function handler(req, res) {
-  log('[CANCEL] Request received', {
-    method: req.method,
-    headers: {
-      'content-type': req.headers['content-type'],
-      'user-agent': req.headers['user-agent'],
-      origin: req.headers.origin
-    },
-    body: req.body
-  });
-
-  // CORS
-  const origin = req.headers.origin;
-  if (ALLOWED_ORIGINS.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    log('[CANCEL] OPTIONS request - returning 200');
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    log('[CANCEL] Invalid method:', req.method);
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    const { telegram_id } = req.body;
+    log('[CANCEL] Request received', {
+      method: req.method,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'user-agent': req.headers['user-agent'],
+        origin: req.headers.origin
+      },
+      body: req.body
+    });
+
+    // CORS
+    const origin = req.headers.origin;
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+      log('[CANCEL] OPTIONS request - returning 200');
+      return res.status(200).end();
+    }
+
+    if (req.method !== 'POST') {
+      log('[CANCEL] Invalid method:', req.method);
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    log('[CANCEL] Method is POST, processing...');
+    
+    const { telegram_id } = req.body || {};
     log('[CANCEL] Processing request for telegram_id:', telegram_id);
 
     if (!telegram_id) {
@@ -313,10 +315,19 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    log('[CANCEL] Unexpected error:', { error: error.message, stack: error.stack });
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: 'Произошла непредвиденная ошибка. Попробуйте позже.'
+    log('[CANCEL] Unexpected error:', { 
+      error: error.message, 
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
     });
+    
+    // Убеждаемся, что ответ отправлен
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: 'Произошла непредвиденная ошибка. Попробуйте позже.'
+      });
+    }
   }
 }
