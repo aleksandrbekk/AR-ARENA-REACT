@@ -973,6 +973,11 @@ export default async function handler(req, res) {
       const usdRate = CURRENCY_TO_USD[currencyUpper] || CURRENCY_TO_USD['RUB'];
       const netAmountInUsd = netAmount * usdRate;
 
+      // Сохраняем contract_id для возможности отмены подписки
+      if (contractId) {
+        log(`💾 [CANCEL] Saving contract_id for existing client: ${contractId}`);
+      }
+
       const { error: updateError } = await supabase
         .from('premium_clients')
         .update({
@@ -987,6 +992,8 @@ export default async function handler(req, res) {
           last_payment_at: now.toISOString(),
           last_payment_method: 'lava.top',
           source: 'lava.top',
+          // Сохраняем contract_id для отмены подписки (если есть)
+          ...(contractId && { contract_id: contractId }),
           updated_at: now.toISOString()
         })
         .eq('id', existingClient.id);
@@ -1021,6 +1028,11 @@ export default async function handler(req, res) {
       const usdRateNew = CURRENCY_TO_USD[currencyUpperNew] || CURRENCY_TO_USD['RUB'];
       const netAmountInUsdNew = netAmount * usdRateNew;
 
+      // Сохраняем contract_id для возможности отмены подписки
+      if (contractId) {
+        log(`💾 [CANCEL] Saving contract_id for new client: ${contractId}`);
+      }
+
       const { data: newClient, error: insertError } = await supabase
         .from('premium_clients')
         .insert({
@@ -1039,6 +1051,8 @@ export default async function handler(req, res) {
           payments_count: 1,
           last_payment_at: now.toISOString(),
           last_payment_method: 'lava.top',
+          // Сохраняем contract_id для отмены подписки
+          contract_id: contractId || null,
           created_at: now.toISOString(),
           updated_at: now.toISOString()
         })

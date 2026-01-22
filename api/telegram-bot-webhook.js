@@ -230,7 +230,7 @@ async function checkSubscription(telegramId) {
   try {
     const { data, error } = await supabase
       .from('premium_clients')
-      .select('plan, expires_at')
+      .select('plan, expires_at, source, contract_id, tags')
       .eq('telegram_id', telegramId)
       .gt('expires_at', new Date().toISOString())
       .single();
@@ -431,16 +431,37 @@ async function handleStatus(chatId, telegramId, conversationId) {
       'private': '🍷'
     };
 
+    // Проверяем, отменена ли уже подписка
+    const tags = subscription.tags || [];
+    const isAlreadyCancelled = tags.includes('subscription_cancelled');
+
+    let cancelledText = '';
+    if (isAlreadyCancelled) {
+      cancelledText = '\n\n<i>⚠️ Подписка отменена. Доступ сохранится до окончания периода.</i>';
+    }
+
     const text = `${statusEmoji} <b>Твоя подписка Premium AR Club</b>
 
 ${tariffEmoji[subscription.plan] || '💳'} Тариф: <b>${tariffName}</b>
 📅 Действует до: <b>${expiresDate}</b>
-⏳ Осталось: <b>${daysLeft} ${getDaysWord(daysLeft)}</b>${urgencyText}`;
+⏳ Осталось: <b>${daysLeft} ${getDaysWord(daysLeft)}</b>${urgencyText}${cancelledText}`;
+
+    // Формируем кнопки
+    const buttons = [
+      [{ text: '📋 Продлить / Повысить', web_app: { url: PRICING_URL } }]
+    ];
+
+    // Добавляем кнопку отмены только для lava.top подписок с contract_id, которые ещё не отменены
+    const canCancel = subscription.source === 'lava.top' &&
+      subscription.contract_id &&
+      !isAlreadyCancelled;
+
+    if (canCancel) {
+      buttons.push([{ text: '❌ Отменить подписку', callback_data: 'cancel_subscription_confirm' }]);
+    }
 
     const keyboard = {
-      inline_keyboard: [
-        [{ text: '📋 Продлить / Повысить', web_app: { url: PRICING_URL } }]
-      ]
+      inline_keyboard: buttons
     };
 
     await sendMessage(chatId, text, keyboard);
@@ -479,6 +500,133 @@ function getDaysWord(days) {
     return 'дня';
   }
   return 'дней';
+}
+
+// ============================================
+// SUBSCRIPTION CANCELLATION HANDLERS
+// ============================================
+
+// Показать подтверждение отмены подписки
+async function handleCancelSubscriptionConfirm(chatId, telegramId, callbackQueryId) {
+  log(`[CANCEL] Showing confirmation to ${telegramId}`);
+
+  // Сначала отвечаем на callback query чтобы убрать "часики"
+  await answerCallbackQuery(callbackQueryId);
+
+  const text = `⚠️ <b>Вы уверены, что хотите отменить подписку?</b>
+
+Если вы отмените подписку, то потеряете:
+• Доступ к закрытому каналу Premium
+• Доступ к закрытому чату трейдеров
+• Ежедневную аналитику рынка
+• Фьючерсные сделки с сопровождением
+• Все остальные преимущества Premium AR Club
+
+⚠️ <i>Подписка будет отменена, но доступ останется до конца текущего оплаченного периода.</i>
+
+Вы точно уверены?`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: '✅ Да, отменить', callback_data: `cancel_subscription_yes_${telegramId}` }],
+      [{ text: '❌ Нет, оставить', callback_data: 'cancel_subscription_no' }]
+    ]
+  };
+
+  await sendMessage(chatId, text, keyboard);
+}
+
+// Отменить подписку
+async function handleCancelSubscriptionYes(chatId, telegramId, callbackQueryId) {
+  log(`[CANCEL] User ${telegramId} confirmed cancellation`);
+
+  // Отвечаем на callback query
+  await answerCallbackQuery(callbackQueryId, '⏳ Отменяем подписку...');
+
+  try {
+    // Вызываем API отмены
+    const apiUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}/api/lava-cancel-subscription`
+      : 'https://ar-arena-react.vercel.app/api/lava-cancel-subscription';
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: telegramId })
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      log(`[CANCEL] Subscription cancelled successfully for ${telegramId}`);
+
+      const expiresDate = result.expires_at ? formatDate(result.expires_at) : 'конца оплаченного периода';
+
+      const text = `✅ <b>Подписка отменена</b>
+
+Ваш доступ к Premium AR Club сохранится до <b>${expiresDate}</b>.
+
+Мы будем рады видеть вас снова! 🙏`;
+
+      await sendMessage(chatId, text);
+    } else {
+      log(`[CANCEL] Failed to cancel subscription for ${telegramId}:`, result);
+
+      const errorMessage = result.message || 'Попробуйте позже или обратитесь в поддержку.';
+
+      const text = `❌ <b>Ошибка отмены подписки</b>
+
+${errorMessage}
+
+Если проблема повторяется, обратитесь в поддержку: @Andrey_cryptoinvestor`;
+
+      await sendMessage(chatId, text);
+    }
+  } catch (error) {
+    log(`[CANCEL] Network error for ${telegramId}:`, { error: error.message });
+
+    const text = `❌ <b>Ошибка сети</b>
+
+Не удалось связаться с сервером. Попробуйте позже.
+
+Если проблема повторяется, обратитесь в поддержку: @Andrey_cryptoinvestor`;
+
+    await sendMessage(chatId, text);
+  }
+}
+
+// Пользователь отказался отменять
+async function handleCancelSubscriptionNo(chatId, callbackQueryId) {
+  log(`[CANCEL] User declined cancellation`);
+
+  await answerCallbackQuery(callbackQueryId, '✅ Подписка сохранена');
+
+  const text = `✅ <b>Подписка сохранена</b>
+
+Спасибо, что остаётесь с нами! 🙏
+
+Мы продолжим предоставлять вам лучшую аналитику и сигналы.`;
+
+  await sendMessage(chatId, text);
+}
+
+// Ответить на callback query (убирает "часики" на кнопке)
+async function answerCallbackQuery(callbackQueryId, text = null) {
+  try {
+    const body = { callback_query_id: callbackQueryId };
+    if (text) {
+      body.text = text;
+      body.show_alert = false;
+    }
+
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+  } catch (error) {
+    log('❌ answerCallbackQuery error', { error: error.message });
+  }
 }
 
 // ============================================
@@ -574,6 +722,46 @@ export default async function handler(req, res) {
         log('⚠️ Duplicate update_id, skipping', { update_id: updateId });
         return res.status(200).json({ ok: true, duplicate: true });
       }
+    }
+
+    // ============================================
+    // ОБРАБОТКА CALLBACK QUERY (нажатия на inline кнопки)
+    // ============================================
+    if (update.callback_query) {
+      const callbackQuery = update.callback_query;
+      const callbackData = callbackQuery.data;
+      const callbackChatId = callbackQuery.message?.chat?.id;
+      const callbackTelegramId = callbackQuery.from?.id;
+      const callbackQueryId = callbackQuery.id;
+
+      log(`🔘 Callback received: ${callbackData}`, { telegram_id: callbackTelegramId });
+
+      // Обработка отмены подписки
+      if (callbackData === 'cancel_subscription_confirm') {
+        await handleCancelSubscriptionConfirm(callbackChatId, callbackTelegramId, callbackQueryId);
+        return res.status(200).json({ ok: true });
+      }
+
+      if (callbackData.startsWith('cancel_subscription_yes_')) {
+        const targetTelegramId = parseInt(callbackData.replace('cancel_subscription_yes_', ''));
+        // Проверяем что пользователь отменяет свою подписку
+        if (targetTelegramId === callbackTelegramId) {
+          await handleCancelSubscriptionYes(callbackChatId, callbackTelegramId, callbackQueryId);
+        } else {
+          log(`⚠️ [CANCEL] Telegram ID mismatch: ${targetTelegramId} vs ${callbackTelegramId}`);
+          await answerCallbackQuery(callbackQueryId, '❌ Ошибка авторизации');
+        }
+        return res.status(200).json({ ok: true });
+      }
+
+      if (callbackData === 'cancel_subscription_no') {
+        await handleCancelSubscriptionNo(callbackChatId, callbackQueryId);
+        return res.status(200).json({ ok: true });
+      }
+
+      // Другие callback queries - просто отвечаем
+      await answerCallbackQuery(callbackQueryId);
+      return res.status(200).json({ ok: true });
     }
 
     // Обрабатываем только сообщения
