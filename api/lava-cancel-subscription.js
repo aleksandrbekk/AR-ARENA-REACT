@@ -162,18 +162,41 @@ export default async function handler(req, res) {
       let lavaResult;
       
       // Сначала пробуем POST с полным телом
-      log('[CANCEL] Trying POST method with contractId and email');
-      lavaResponse = await fetch('https://gate.lava.top/api/v2/subscription/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Api-Key': LAVA_API_KEY
-        },
-        body: JSON.stringify({
-          contractId: client.contract_id,
-          email: email
-        })
+      const requestBody = {
+        contractId: client.contract_id,
+        email: email
+      };
+      
+      log('[CANCEL] Trying POST method with contractId and email', {
+        url: 'https://gate.lava.top/api/v2/subscription/cancel',
+        body: requestBody,
+        hasApiKey: !!LAVA_API_KEY
       });
+      
+      try {
+        lavaResponse = await fetch('https://gate.lava.top/api/v2/subscription/cancel', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Api-Key': LAVA_API_KEY
+          },
+          body: JSON.stringify(requestBody)
+        });
+        
+        log('[CANCEL] Fetch completed', {
+          status: lavaResponse.status,
+          statusText: lavaResponse.statusText,
+          ok: lavaResponse.ok,
+          headers: Object.fromEntries(lavaResponse.headers.entries())
+        });
+      } catch (fetchError) {
+        log('[CANCEL] Fetch error:', {
+          error: fetchError.message,
+          stack: fetchError.stack,
+          name: fetchError.name
+        });
+        throw fetchError;
+      }
 
       // Если не сработало, пробуем только contractId
       if (!lavaResponse.ok && lavaResponse.status !== 200 && lavaResponse.status !== 204) {
