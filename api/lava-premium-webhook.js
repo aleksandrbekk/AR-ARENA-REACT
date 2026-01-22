@@ -236,8 +236,9 @@ async function trackStreamConversion(payload) {
 }
 
 // Извлечь telegram_id или username из clientUtm (объект от Lava.top)
+// УЛУЧШЕННАЯ ВЕРСИЯ: ищет в users И в premium_clients
 async function extractTelegramIdOrUsername(payload) {
-  log('🔍 Extracting telegram info from payload');
+  log('🔍 [EXTRACT] Starting telegram info extraction from payload');
 
   // clientUtm от Lava.top - это объект с полями utm_source, utm_medium, utm_campaign, utm_term, utm_content
   const clientUtm = payload.clientUtm || {};
@@ -251,21 +252,47 @@ async function extractTelegramIdOrUsername(payload) {
     clientUtm.utm_content
   ].filter(Boolean);
 
-  log('📊 UTM values:', utmValues);
+  log('📊 [EXTRACT] UTM values:', utmValues);
 
   for (const value of utmValues) {
     // Формат: "telegram_id=123456789"
     const idMatch = value.match(/telegram_id[=:](\d+)/i);
     if (idMatch) {
-      log(`✅ Found telegram_id in UTM: ${idMatch[1]}`);
-      return { telegramId: idMatch[1], username: null };
+      const telegramId = idMatch[1];
+      log(`✅ [EXTRACT] Found telegram_id in UTM: ${telegramId}`);
+
+      // Попробуем найти username для этого telegram_id
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('telegram_id', parseInt(telegramId))
+        .single();
+
+      if (userData?.username) {
+        log(`✅ [EXTRACT] Found username ${userData.username} for telegram_id ${telegramId}`);
+        return { telegramId, username: userData.username };
+      }
+
+      // Пробуем в premium_clients
+      const { data: clientData } = await supabase
+        .from('premium_clients')
+        .select('username')
+        .eq('telegram_id', parseInt(telegramId))
+        .single();
+
+      if (clientData?.username) {
+        log(`✅ [EXTRACT] Found username ${clientData.username} for telegram_id ${telegramId} in premium_clients`);
+        return { telegramId, username: clientData.username };
+      }
+
+      return { telegramId, username: null };
     }
 
     // Формат: "telegram_username=aleksandrbekk"
     const usernameMatch = value.match(/telegram_username[=:](\w+)/i);
     if (usernameMatch) {
       const username = usernameMatch[1];
-      log(`📛 Found username in UTM: ${username}`);
+      log(`📛 [EXTRACT] Found username in UTM: ${username}`);
 
       // Пробуем найти telegram_id по username в БД (case-insensitive)
       const { data: userData } = await supabase
@@ -275,11 +302,24 @@ async function extractTelegramIdOrUsername(payload) {
         .single();
 
       if (userData?.telegram_id) {
-        log(`✅ Found telegram_id ${userData.telegram_id} for username ${userData.username}`);
+        log(`✅ [EXTRACT] Found telegram_id ${userData.telegram_id} for username ${userData.username} in users`);
         return { telegramId: String(userData.telegram_id), username: userData.username };
       }
 
-      log(`⚠️ Username ${username} not found in users table`);
+      // Пробуем найти в premium_clients
+      log(`⚠️ [EXTRACT] Username ${username} not found in users, searching in premium_clients...`);
+      const { data: clientData } = await supabase
+        .from('premium_clients')
+        .select('telegram_id, username')
+        .ilike('username', username)
+        .single();
+
+      if (clientData?.telegram_id) {
+        log(`✅ [EXTRACT] Found telegram_id ${clientData.telegram_id} for username ${username} in premium_clients`);
+        return { telegramId: String(clientData.telegram_id), username: clientData.username };
+      }
+
+      log(`⚠️ [EXTRACT] Username ${username} not found in users or premium_clients, returning username only`);
       return { telegramId: null, username };
     }
   }
@@ -295,21 +335,41 @@ async function extractTelegramIdOrUsername(payload) {
     payload.buyerEmail
   ].filter(Boolean);
 
-  log(`📧 Checking ${possibleEmails.length} possible email fields:`, possibleEmails);
+  log(`📧 [EXTRACT] Checking ${possibleEmails.length} possible email fields:`, possibleEmails);
 
   for (const email of possibleEmails) {
     // Формат: 123456789@premium.ararena.pro (telegram_id)
     const idMatch = email.match(/^(\d{6,})@/);
     if (idMatch) {
-      log(`📧 Found telegram_id in email: ${idMatch[1]}`);
-      return { telegramId: idMatch[1], username: null };
+      const telegramId = idMatch[1];
+      log(`📧 [EXTRACT] Found telegram_id in email: ${telegramId}`);
+
+      // Попробуем найти username
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('telegram_id', parseInt(telegramId))
+        .single();
+
+      if (userData?.username) {
+        return { telegramId, username: userData.username };
+      }
+
+      // Пробуем в premium_clients
+      const { data: clientData } = await supabase
+        .from('premium_clients')
+        .select('username')
+        .eq('telegram_id', parseInt(telegramId))
+        .single();
+
+      return { telegramId, username: clientData?.username || null };
     }
 
     // Формат: username@premium.ararena.pro (username)
     const usernameMatch = email.match(/^([a-zA-Z][a-zA-Z0-9_]+)@/);
     if (usernameMatch) {
       const username = usernameMatch[1];
-      log(`📧 Found username in email: ${username}`);
+      log(`📧 [EXTRACT] Found username in email: ${username}`);
 
       // Пробуем найти telegram_id по username в БД
       const { data: userData } = await supabase
@@ -319,16 +379,29 @@ async function extractTelegramIdOrUsername(payload) {
         .single();
 
       if (userData?.telegram_id) {
-        log(`✅ Found telegram_id ${userData.telegram_id} for email username ${userData.username}`);
+        log(`✅ [EXTRACT] Found telegram_id ${userData.telegram_id} for email username ${userData.username} in users`);
         return { telegramId: String(userData.telegram_id), username: userData.username };
       }
 
-      log(`⚠️ Username ${username} from email not found in users table`);
+      // Пробуем найти в premium_clients
+      log(`⚠️ [EXTRACT] Username ${username} from email not found in users, searching in premium_clients...`);
+      const { data: clientData } = await supabase
+        .from('premium_clients')
+        .select('telegram_id, username')
+        .ilike('username', username)
+        .single();
+
+      if (clientData?.telegram_id) {
+        log(`✅ [EXTRACT] Found telegram_id ${clientData.telegram_id} for username ${username} in premium_clients`);
+        return { telegramId: String(clientData.telegram_id), username: clientData.username };
+      }
+
+      log(`⚠️ [EXTRACT] Username ${username} from email not found anywhere, returning username only`);
       return { telegramId: null, username };
     }
   }
 
-  log('⚠️ No telegram info found in payload');
+  log('⚠️ [EXTRACT] No telegram info found in payload');
   return { telegramId: null, username: null };
 }
 
@@ -341,64 +414,109 @@ const TARIFF_CARD_IMAGES = {
   'private': 'https://ararena.pro/cards/PRIVATE.png'
 };
 
-async function sendTelegramPhoto(telegramId, photoUrl, caption, replyMarkup = null) {
-  try {
-    const body = {
-      chat_id: telegramId,
-      photo: photoUrl,
-      caption,
-      parse_mode: 'HTML'
-    };
-
-    if (replyMarkup) {
-      body.reply_markup = replyMarkup;
-    }
-
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const result = await response.json();
-    if (!result.ok) {
-      log('❌ Telegram sendPhoto failed', result);
-    }
-    return result;
-  } catch (error) {
-    log('❌ Telegram sendPhoto error', { error: error.message });
-    return null;
-  }
+// Утилита для задержки (используется в retry)
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Отправить текстовое сообщение в Telegram (fallback)
-async function sendTelegramMessage(telegramId, text, replyMarkup = null) {
-  try {
-    const body = {
-      chat_id: telegramId,
-      text,
-      parse_mode: 'HTML'
-    };
+async function sendTelegramPhoto(telegramId, photoUrl, caption, replyMarkup = null, maxRetries = 3) {
+  const body = {
+    chat_id: telegramId,
+    photo: photoUrl,
+    caption,
+    parse_mode: 'HTML'
+  };
 
-    if (replyMarkup) {
-      body.reply_markup = replyMarkup;
-    }
-
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const result = await response.json();
-    if (!result.ok) {
-      log('❌ Telegram sendMessage failed', result);
-    }
-    return result;
-  } catch (error) {
-    log('❌ Telegram sendMessage error', { error: error.message });
-    return null;
+  if (replyMarkup) {
+    body.reply_markup = replyMarkup;
   }
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      log(`📤 [TELEGRAM] Sending photo to ${telegramId}, attempt ${attempt}/${maxRetries}`);
+
+      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const result = await response.json();
+      if (result.ok) {
+        log(`✅ [TELEGRAM] Photo sent successfully to ${telegramId}`);
+        return result;
+      }
+
+      log(`❌ [TELEGRAM] sendPhoto failed (attempt ${attempt}/${maxRetries}):`, result);
+
+      if (attempt < maxRetries) {
+        const delayMs = 2000 * attempt;
+        log(`⏳ [TELEGRAM] Retrying in ${delayMs}ms...`);
+        await delay(delayMs);
+      }
+    } catch (error) {
+      log(`❌ [TELEGRAM] sendPhoto error (attempt ${attempt}/${maxRetries}):`, { error: error.message });
+
+      if (attempt < maxRetries) {
+        const delayMs = 2000 * attempt;
+        log(`⏳ [TELEGRAM] Retrying in ${delayMs}ms...`);
+        await delay(delayMs);
+      }
+    }
+  }
+
+  log(`❌ [TELEGRAM] Failed to send photo after ${maxRetries} attempts`);
+  return null;
+}
+
+// Отправить текстовое сообщение в Telegram (с retry)
+async function sendTelegramMessage(telegramId, text, replyMarkup = null, maxRetries = 3) {
+  const body = {
+    chat_id: telegramId,
+    text,
+    parse_mode: 'HTML'
+  };
+
+  if (replyMarkup) {
+    body.reply_markup = replyMarkup;
+  }
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      log(`📤 [TELEGRAM] Sending message to ${telegramId}, attempt ${attempt}/${maxRetries}`);
+
+      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const result = await response.json();
+      if (result.ok) {
+        log(`✅ [TELEGRAM] Message sent successfully to ${telegramId}`);
+        return result;
+      }
+
+      log(`❌ [TELEGRAM] sendMessage failed (attempt ${attempt}/${maxRetries}):`, result);
+
+      if (attempt < maxRetries) {
+        const delayMs = 2000 * attempt;
+        log(`⏳ [TELEGRAM] Retrying in ${delayMs}ms...`);
+        await delay(delayMs);
+      }
+    } catch (error) {
+      log(`❌ [TELEGRAM] sendMessage error (attempt ${attempt}/${maxRetries}):`, { error: error.message });
+
+      if (attempt < maxRetries) {
+        const delayMs = 2000 * attempt;
+        log(`⏳ [TELEGRAM] Retrying in ${delayMs}ms...`);
+        await delay(delayMs);
+      }
+    }
+  }
+
+  log(`❌ [TELEGRAM] Failed to send message after ${maxRetries} attempts`);
+  return null;
 }
 
 // Бот KIKER для управления каналом/чатом
@@ -702,21 +820,24 @@ export default async function handler(req, res) {
     log(`📅 Period determined: ${period.days} days (${period.name})`);
 
     // ============================================
-    // 4.2. АВТОМАТИЧЕСКОЕ СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ (если не существует)
+    // 4.2. АВТОМАТИЧЕСКОЕ СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ (УЛУЧШЕННАЯ ЛОГИКА)
     // ============================================
     // FK constraint на payment_history требует существующего telegram_id в users
     // Создаём пользователя если его нет, чтобы платёж не отклонялся
     const telegramIdForUser = telegramId ? parseInt(telegramId, 10) : null;
 
+    log(`🔍 [STEP 4.2] Checking if user exists in users table...`);
+    log(`🔍 [STEP 4.2] telegramIdForUser: ${telegramIdForUser}, extractedUsername: ${extractedUsername}`);
+
     if (telegramIdForUser) {
       const { data: existingUser } = await supabase
         .from('users')
-        .select('telegram_id')
+        .select('telegram_id, username')
         .eq('telegram_id', telegramIdForUser)
         .single();
 
       if (!existingUser) {
-        log(`👤 User ${telegramIdForUser} not found in users table, creating...`);
+        log(`👤 [STEP 4.2.1] User ${telegramIdForUser} not found in users table, creating...`);
 
         const { error: createUserError } = await supabase
           .from('users')
@@ -729,19 +850,53 @@ export default async function handler(req, res) {
           });
 
         if (createUserError) {
-          // Если ошибка UNIQUE constraint - пользователь уже есть, это ОК
+          // Если ошибка UNIQUE constraint - пользователь уже есть (race condition), это ОК
           if (createUserError.code === '23505') {
-            log(`👤 User ${telegramIdForUser} already exists (race condition), continuing...`);
+            log(`👤 [STEP 4.2.2] User ${telegramIdForUser} already exists (race condition), continuing...`);
           } else {
-            log(`⚠️ Warning: Could not create user record:`, createUserError);
+            log(`⚠️ [STEP 4.2.2] Warning: Could not create user record:`, createUserError);
             // Не прерываем — попробуем записать платёж, может FK отключён
           }
         } else {
-          log(`✅ User ${telegramIdForUser} created successfully`);
+          log(`✅ [STEP 4.2.2] User ${telegramIdForUser} created successfully in users table`);
         }
       } else {
-        log(`👤 User ${telegramIdForUser} already exists in users table`);
+        log(`👤 [STEP 4.2.1] User ${telegramIdForUser} already exists in users table (username: ${existingUser.username})`);
+        // Обновляем username если у нас есть новый, а у него нет
+        if (extractedUsername && !existingUser.username) {
+          const { error: updateUsernameError } = await supabase
+            .from('users')
+            .update({ username: extractedUsername, updated_at: new Date().toISOString() })
+            .eq('telegram_id', telegramIdForUser);
+
+          if (!updateUsernameError) {
+            log(`✅ [STEP 4.2.2] Updated username to ${extractedUsername} for user ${telegramIdForUser}`);
+          }
+        }
       }
+    } else if (extractedUsername) {
+      // Если есть только username без telegram_id
+      log(`⚠️ [STEP 4.2.1] No telegram_id, only username: ${extractedUsername}. Checking if exists in users...`);
+
+      const { data: existingUserByUsername } = await supabase
+        .from('users')
+        .select('telegram_id, username')
+        .ilike('username', extractedUsername)
+        .single();
+
+      if (!existingUserByUsername) {
+        log(`👤 [STEP 4.2.2] User with username ${extractedUsername} not found in users table`);
+        log(`⚠️ [STEP 4.2.2] Cannot create user without telegram_id (FK constraint)`);
+      } else {
+        log(`👤 [STEP 4.2.2] User with username ${extractedUsername} exists (telegram_id: ${existingUserByUsername.telegram_id})`);
+        // Обновляем telegramIdInt если нашли
+        if (existingUserByUsername.telegram_id && !telegramIdInt) {
+          telegramIdInt = existingUserByUsername.telegram_id;
+          log(`✅ [STEP 4.2.3] Updated telegramIdInt from users table: ${telegramIdInt}`);
+        }
+      }
+    } else {
+      log(`⚠️ [STEP 4.2.1] CRITICAL: No telegram_id and no username! Payment may fail.`);
     }
 
     // ============================================
