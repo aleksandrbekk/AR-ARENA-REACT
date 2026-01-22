@@ -795,6 +795,20 @@ export default async function handler(req, res) {
     let isNewClient = false;
 
     if (existingClient) {
+      // КРИТИЧЕСКАЯ ПРОВЕРКА: Убеждаемся что этот платеж еще не был обработан
+      // Защита от race condition - если два webhook'а пришли одновременно
+      // paymentContractId уже определен выше (строка 720), используем его
+      const { data: existingPaymentCheck } = await supabase
+        .from('payment_history')
+        .select('id, created_at')
+        .eq('contract_id', paymentContractId)
+        .maybeSingle();
+
+      if (existingPaymentCheck) {
+        log(`DUPLICATE: Payment ${paymentContractId} already exists in payment_history (created at ${existingPaymentCheck.created_at}) - skipping premium_clients update`);
+        return res.status(200).json({ message: 'Payment already processed (duplicate detected before update)' });
+      }
+
       // Продлеваем подписку
       const currentExpires = new Date(existingClient.expires_at);
       const newExpires = currentExpires > now
