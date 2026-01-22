@@ -68,6 +68,7 @@ interface PaymentRecord {
   currency: string
   source: string
   created_at: string
+  status?: string
 }
 
 type TabType = 'leads' | 'premium' | 'broadcast'
