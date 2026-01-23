@@ -1,1 +1,0 @@
-✅ Ошибка фермы исправлена (SQL function updated)

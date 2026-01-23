@@ -36,3 +36,23 @@ dist-ssr
 *.bak
 .env.vercel
 .env*.local
+
+# Test outputs and screenshots
+test-results/
+playwright-report/
+.playwright-mcp/*.png
+
+# Debug and temporary files
+*.tar.gz
+*.mov
+*.mp4
+grep_output.txt
+state_update_msg.txt
+
+# Screenshots (debug artifacts)
+sql-error.png
+supabase-*.png
+
+# Large data files (keep out of git)
+*.csv
+*.docx
