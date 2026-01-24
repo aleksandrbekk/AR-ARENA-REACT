@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logSystemMessage } from './utils/log-system-message.js';
+import { ADMIN_TELEGRAM_ID } from './utils/config.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -19,8 +20,8 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
   console.error('CRITICAL: Missing required environment variables');
 }
 
-// Админ для уведомлений и тестов
-const ADMIN_ID = '190202791';
+// Админ из конфига
+const ADMIN_ID = ADMIN_TELEGRAM_ID;
 
 // ТЕСТОВЫЙ РЕЖИМ - отправлять только админу
 const TEST_MODE = false;

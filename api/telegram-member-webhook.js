@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { PREMIUM_CHANNEL_ID, PREMIUM_CHAT_ID, ADMIN_TELEGRAM_ID } from './utils/config.js';
 
 // SECURITY: All secrets from environment variables (set in Vercel)
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -12,12 +13,10 @@ if (!supabaseUrl || !supabaseKey || !BOT_TOKEN) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// IDs каналов и чатов
-const CHANNEL_ID = '-1001634734020';
-const CHAT_ID = '-1001828659569';
-
-// Админ для уведомлений
-const ADMIN_ID = '190202791';
+// IDs из конфига (с fallback для обратной совместимости)
+const CHANNEL_ID = PREMIUM_CHANNEL_ID;
+const CHAT_ID = PREMIUM_CHAT_ID;
+const ADMIN_ID = ADMIN_TELEGRAM_ID;
 
 async function notifyAdmin(message) {
   try {
