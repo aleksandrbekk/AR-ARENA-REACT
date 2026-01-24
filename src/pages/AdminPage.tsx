@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useAdminAuth } from '../providers/AdminAuthProvider'
 import { UsersTab } from '../components/admin/UsersTab'
 import { GiveawaysTab } from '../components/admin/GiveawaysTab'
 import { UtmLinksTab } from '../components/admin/UtmLinksTab'
@@ -17,64 +18,70 @@ interface DashboardStats {
   botUsersCount: number
 }
 
-// SECURITY: Password from env variable (set in Vercel)
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
-
 export function AdminPage() {
   const { telegramUser, isLoading } = useAuth()
+  const { isAdminAuthenticated, verifyAdmin, verifyTelegramAdmin } = useAdminAuth()
   const navigate = useNavigate()
   const [activeSection, setActiveSection] = useState<AdminSection>('dashboard')
   const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0, utmLinksCount: 0, botUsersCount: 0 })
   const [loadingStats, setLoadingStats] = useState(true)
 
-  // Защита паролем для браузера
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // UI state for password form
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordError, setPasswordError] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
 
   // Проверка admin-only
   const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
   const isTelegramWebApp = !!window.Telegram?.WebApp?.initData
   const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
-  
+
   // DEV MODE check
   const urlParams = new URLSearchParams(window.location.search)
-  const isDevMode = urlParams.get('dev') === 'true' || 
+  const isDevMode = urlParams.get('dev') === 'true' ||
                     window.location.hostname === 'localhost' ||
                     window.location.hostname === '127.0.0.1'
 
-  // Проверка авторизации при загрузке
+  // Проверка авторизации при загрузке (через Telegram)
   useEffect(() => {
-    // DEV MODE: автоматическая авторизация если есть telegramUser из AuthProvider
-    if (isDevMode && isAdmin) {
-      setIsAuthenticated(true)
+    if (isAdminAuthenticated) return // Already authenticated via context
+
+    // DEV MODE или Telegram: проверяем через API
+    if ((isDevMode || isTelegramWebApp) && telegramUser?.id) {
+      verifyTelegramAdmin(telegramUser.id)
+    }
+  }, [isTelegramWebApp, isDevMode, telegramUser?.id, isAdminAuthenticated, verifyTelegramAdmin])
+
+  const handlePasswordSubmit = async () => {
+    if (!passwordInput.trim()) {
+      setPasswordError(true)
       return
     }
-    
-    if (isTelegramWebApp) {
-      setIsAuthenticated(isAdmin)
-    } else {
-      const saved = localStorage.getItem('admin_auth')
-      if (saved === 'true') setIsAuthenticated(true)
-    }
-  }, [isTelegramWebApp, isAdmin, isDevMode])
 
-  const handlePasswordSubmit = () => {
-    if (passwordInput === ADMIN_PASSWORD) {
-      setIsAuthenticated(true)
-      localStorage.setItem('admin_auth', 'true')
-      setPasswordError(false)
-    } else {
+    setIsVerifying(true)
+    setPasswordError(false)
+
+    try {
+      const success = await verifyAdmin(passwordInput)
+      if (success) {
+        localStorage.setItem('admin_auth', 'true')
+      } else {
+        setPasswordError(true)
+      }
+    } catch (error) {
+      console.error('Admin verification failed:', error)
       setPasswordError(true)
+    } finally {
+      setIsVerifying(false)
     }
   }
 
   // Загрузка статистики для дашборда
   useEffect(() => {
-    if (activeSection === 'dashboard' && isAuthenticated) {
+    if (activeSection === 'dashboard' && isAdminAuthenticated) {
       loadDashboardStats()
     }
-  }, [activeSection, isAuthenticated])
+  }, [activeSection, isAdminAuthenticated])
 
   const loadDashboardStats = async () => {
     try {
@@ -134,7 +141,7 @@ export function AdminPage() {
   }, []) // Пустой массив - регистрируем только один раз
 
   // Access denied / Password form
-  if (!isLoading && !isAuthenticated) {
+  if (!isLoading && !isAdminAuthenticated) {
     // В Telegram и не админ - запрещаем
     if (isTelegramWebApp && !isAdmin) {
       return (
@@ -177,9 +184,10 @@ export function AdminPage() {
                 )}
                 <button
                   onClick={handlePasswordSubmit}
-                  className="w-full py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl active:scale-[0.98] transition-transform"
+                  disabled={isVerifying}
+                  className="w-full py-3 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black font-bold rounded-xl active:scale-[0.98] transition-transform disabled:opacity-50"
                 >
-                  Войти
+                  {isVerifying ? 'Проверка...' : 'Войти'}
                 </button>
               </div>
             </div>

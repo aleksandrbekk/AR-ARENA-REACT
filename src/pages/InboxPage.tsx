@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import DOMPurify from 'dompurify'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAdminAuth } from '../providers/AdminAuthProvider'
 import { AutomationRules } from '../components/inbox/AutomationRules'
 import {
   Search, Send, ArrowLeft, Star,
@@ -69,12 +70,10 @@ interface SystemMessage {
 }
 
 // ============ КОНСТАНТЫ ============
-// SECURITY: Password from env variable (set in Vercel)
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
-const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
 
 // ============ КОМПОНЕНТ ============
 export function InboxPage() {
+  const { isAdminAuthenticated, verifyAdmin, getAuthHeaders } = useAdminAuth()
   // projectId is optional - only available when rendered under AdminLayout
   let projectId: string | undefined = undefined
   try {
@@ -84,10 +83,10 @@ export function InboxPage() {
     // Running standalone, no context available
   }
 
-  // Auth state
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // Auth state (UI only - actual auth is in AdminAuthProvider)
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordError, setPasswordError] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
 
   // Data state
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -113,95 +112,38 @@ export function InboxPage() {
   // ... (Keep existing AUTH logic) ...
   const isTelegramWebApp = typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initData
 
-  // Проверка авторизации при загрузке
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (isTelegramWebApp) {
-        const tg = window.Telegram?.WebApp
-        const userId = tg?.initDataUnsafe?.user?.id
-        if (userId && ADMIN_IDS.includes(userId)) {
-          // Проверяем на бэкенде что это действительно админ
-          try {
-            const response = await fetch('/api/verify-admin', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ telegramId: userId })
-            })
-            const result = await response.json()
-            if (result.isAdmin) {
-              setIsAuthenticated(true)
-            }
-          } catch {
-            // Если проверка не удалась, используем локальную проверку
-            setIsAuthenticated(true)
-          }
-        }
-      } else {
-        // В браузере - проверяем localStorage и валидируем на бэкенде
-        const saved = localStorage.getItem('admin_auth')
-        if (saved === 'true') {
-          // Проверяем что пароль все еще валиден
-          const adminPassword = ADMIN_PASSWORD
-          try {
-            const response = await fetch('/api/verify-admin', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ password: adminPassword })
-            })
-            const result = await response.json()
-            if (result.isAdmin) {
-              setIsAuthenticated(true)
-            } else {
-              // Пароль невалиден - очищаем localStorage
-              localStorage.removeItem('admin_auth')
-              setIsAuthenticated(false)
-            }
-          } catch {
-            // Если проверка не удалась, используем локальную проверку
-            setIsAuthenticated(true)
-          }
-        }
-      }
-    }
-    checkAuth()
-  }, [isTelegramWebApp])
+  // Auth is handled by AdminAuthProvider - no local auth logic needed
 
   const handlePasswordSubmit = async () => {
+    if (!passwordInput.trim()) {
+      setPasswordError(true)
+      return
+    }
+
+    setIsVerifying(true)
+    setPasswordError(false)
+
     try {
-      // Проверяем пароль на бэкенде
-      const response = await fetch('/api/verify-admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: passwordInput })
-      })
-      const result = await response.json()
-      
-      if (result.isAdmin) {
-        setIsAuthenticated(true)
+      const success = await verifyAdmin(passwordInput)
+      if (success) {
         localStorage.setItem('admin_auth', 'true')
-        setPasswordError(false)
       } else {
         setPasswordError(true)
       }
-    } catch (err) {
-      // Fallback на локальную проверку если API недоступен
-      if (passwordInput === ADMIN_PASSWORD) {
-        setIsAuthenticated(true)
-        localStorage.setItem('admin_auth', 'true')
-        setPasswordError(false)
-      } else {
-        setPasswordError(true)
-      }
+    } catch {
+      setPasswordError(true)
+    } finally {
+      setIsVerifying(false)
     }
   }
 
   const handleLogout = () => {
-    setIsAuthenticated(false)
     localStorage.removeItem('admin_auth')
     setPasswordInput('')
     setSelectedConversation(null)
     setConversations([])
     setMessages([])
+    // Note: actual logout handled by AdminAuthProvider.logout()
   }
 
   // ... (Keep existing DATA LOADING logic: loadConversations, loadMessages, loadStats) ...
@@ -270,21 +212,13 @@ export function InboxPage() {
   const loadSystemMessages = useCallback(async () => {
     setSystemMessagesLoading(true)
     try {
-      // Используем API endpoint с проверкой авторизации вместо прямого доступа к БД
-      const adminPassword = ADMIN_PASSWORD
-      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-      const telegramId = telegramUser?.id
-
       const params = new URLSearchParams({
         filter: systemMessagesFilter,
         source: systemMessagesSourceFilter
       })
 
       const response = await fetch(`/api/system-messages?${params}`, {
-        headers: {
-          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
-          ...(adminPassword && { 'X-Admin-Password': adminPassword })
-        }
+        headers: getAuthHeaders()
       })
 
       if (!response.ok) {
@@ -302,22 +236,22 @@ export function InboxPage() {
   }, [systemMessagesFilter, systemMessagesSourceFilter])
 
   useEffect(() => {
-    if (isAuthenticated && activeTab === 'system') {
+    if (isAdminAuthenticated && activeTab === 'system') {
       loadSystemMessages()
     }
-  }, [isAuthenticated, activeTab, loadSystemMessages])
+  }, [isAdminAuthenticated, activeTab, loadSystemMessages])
 
   // ... (Keep existing useEffects for Auth check and Realtime) ...
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAdminAuthenticated) {
       setLoading(true)
       Promise.all([loadConversations(), loadStats()])
         .finally(() => setLoading(false))
     }
-  }, [isAuthenticated, loadConversations, loadStats])
+  }, [isAdminAuthenticated, loadConversations, loadStats])
 
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!isAdminAuthenticated) return
 
     const channel = supabase
       .channel('inbox-realtime')
@@ -347,7 +281,7 @@ export function InboxPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [isAuthenticated, selectedConversation, loadConversations, loadStats])
+  }, [isAdminAuthenticated, selectedConversation, loadConversations, loadStats])
 
   // ... (Keep existing ACTIONS: selectConversation, sendMessage, toggleStar) ...
   const selectConversation = async (conv: Conversation) => {
@@ -376,8 +310,6 @@ export function InboxPage() {
 
     setSending(true)
     try {
-      // Получаем данные для авторизации
-      const adminPassword = ADMIN_PASSWORD
       const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
       const telegramId = telegramUser?.id
 
@@ -385,8 +317,7 @@ export function InboxPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
-          ...(adminPassword && { 'X-Admin-Password': adminPassword })
+          ...getAuthHeaders()
         },
         body: JSON.stringify({
           conversationId: selectedConversation.id,
@@ -473,7 +404,7 @@ export function InboxPage() {
 
 
   // ============ RENDER: AUTH ============
-  if (!isAuthenticated) {
+  if (!isAdminAuthenticated) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <div className="bg-zinc-900 rounded-2xl p-8 max-w-sm w-full border border-zinc-800">
@@ -501,11 +432,12 @@ export function InboxPage() {
               )}
             </div>
             
-            <button 
-              onClick={handlePasswordSubmit} 
-              className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold rounded-xl hover:opacity-90 transition active:scale-[0.98]"
+            <button
+              onClick={handlePasswordSubmit}
+              disabled={isVerifying}
+              className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold rounded-xl hover:opacity-90 transition active:scale-[0.98] disabled:opacity-50"
             >
-              Войти
+              {isVerifying ? 'Проверка...' : 'Войти'}
             </button>
             
             <div className="text-center text-xs text-zinc-500 mt-4">

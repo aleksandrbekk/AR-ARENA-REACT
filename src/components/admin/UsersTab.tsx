@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../ToastProvider'
+import { useAdminAuth } from '../../providers/AdminAuthProvider'
 
 // ============ ТИПЫ ============
 interface AppUser {
@@ -73,6 +74,7 @@ const ITEMS_PER_PAGE = 20
 // ============ КОМПОНЕНТ ============
 export function UsersTab() {
   const { showToast } = useToast()
+  const { getAuthHeaders } = useAdminAuth()
 
   // Список юзеров
   const [users, setUsers] = useState<AppUser[]>([])
@@ -369,17 +371,11 @@ export function UsersTab() {
     if (!selectedUser || !text.trim()) return
 
     try {
-      // Используем безопасный API endpoint вместо прямого доступа к BOT_TOKEN
-      const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''
-      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-      const telegramId = telegramUser?.id
-
       const response = await fetch('/api/admin-send-message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(telegramId && { 'X-Telegram-Id': String(telegramId) }),
-          ...(adminPassword && { 'X-Admin-Password': adminPassword })
+          ...getAuthHeaders()
         },
         body: JSON.stringify({
           chatId: selectedUser.telegram_id,

@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-rou
 import { ToastProvider } from './components/ToastProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AuthProvider } from './providers/AuthProvider'
+import { AdminAuthProvider } from './providers/AdminAuthProvider'
 import { useTelegramBackButton } from './hooks/useTelegramBackButton'
 
 // Public Pages
@@ -123,7 +124,9 @@ const router = createBrowserRouter([
 function App() {
   return (
     <AuthProvider>
-      <RouterProvider router={router} />
+      <AdminAuthProvider>
+        <RouterProvider router={router} />
+      </AdminAuthProvider>
     </AuthProvider>
   )
 }

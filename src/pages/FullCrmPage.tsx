@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useAdminAuth } from '../providers/AdminAuthProvider'
 import { useToast } from '../components/ToastProvider'
 import { supabase } from '../lib/supabase'
 import { MetallicBorder } from '../components/MetallicBorder'
@@ -73,14 +74,10 @@ interface PaymentRecord {
 
 type TabType = 'leads' | 'premium' | 'broadcast'
 
-// ============ КОНСТАНТЫ ============
-// SECURITY: Secrets from environment variables
-// BOT_TOKEN больше не используется напрямую - используем /api/admin-send-message
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
-
 // ============ КОМПОНЕНТ ============
 export function FullCrmPage() {
   const { telegramUser, isLoading } = useAuth()
+  const { getAuthHeaders } = useAdminAuth()
   const navigate = useNavigate()
   const { showToast } = useToast()
 
@@ -206,43 +203,51 @@ export function FullCrmPage() {
   const [showEditDateModal, setShowEditDateModal] = useState(false)
   const [editingDateValue, setEditingDateValue] = useState('')
 
-  // Защита паролем для браузера
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // Auth UI state (actual auth handled by AdminAuthProvider)
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordError, setPasswordError] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
+
+  const { isAdminAuthenticated, verifyAdmin, verifyTelegramAdmin } = useAdminAuth()
 
   const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
   const isTelegramWebApp = !!window.Telegram?.WebApp?.initData
-  const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
 
-  // Проверка авторизации при загрузке
+  // Проверка авторизации при загрузке через Telegram
   useEffect(() => {
-    if (isTelegramWebApp) {
-      // В Telegram - проверяем по ID
-      setIsAuthenticated(isAdmin)
-    } else {
-      // В браузере - проверяем localStorage
-      const saved = localStorage.getItem('admin_auth')
-      if (saved === 'true') {
-        setIsAuthenticated(true)
-      }
+    if (isAdminAuthenticated) return
+    if (isTelegramWebApp && telegramUser?.id && ADMIN_IDS.includes(telegramUser.id)) {
+      verifyTelegramAdmin(telegramUser.id)
     }
-  }, [isTelegramWebApp, isAdmin])
+  }, [isTelegramWebApp, telegramUser?.id, isAdminAuthenticated, verifyTelegramAdmin])
 
-  const handlePasswordSubmit = () => {
-    if (passwordInput === ADMIN_PASSWORD) {
-      setIsAuthenticated(true)
-      localStorage.setItem('admin_auth', 'true')
-      setPasswordError(false)
-    } else {
+  const handlePasswordSubmit = async () => {
+    if (!passwordInput.trim()) {
       setPasswordError(true)
+      return
+    }
+
+    setIsVerifying(true)
+    setPasswordError(false)
+
+    try {
+      const success = await verifyAdmin(passwordInput)
+      if (success) {
+        localStorage.setItem('admin_auth', 'true')
+      } else {
+        setPasswordError(true)
+      }
+    } catch {
+      setPasswordError(true)
+    } finally {
+      setIsVerifying(false)
     }
   }
 
   // ============ ЗАГРУЗКА ============
   useEffect(() => {
-    if (isAuthenticated) loadData()
-  }, [isAuthenticated])
+    if (isAdminAuthenticated) loadData()
+  }, [isAdminAuthenticated])
 
   const loadData = async () => {
     try {
@@ -703,17 +708,11 @@ export function FullCrmPage() {
   // ============ СООБЩЕНИЯ ============
   const sendMessage = async (telegramId: number, message: string): Promise<boolean> => {
     try {
-      // Используем безопасный API endpoint
-      const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''
-      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-      const authTelegramId = telegramUser?.id
-
       const res = await fetch('/api/admin-send-message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(authTelegramId && { 'X-Telegram-Id': String(authTelegramId) }),
-          ...(adminPassword && { 'X-Admin-Password': adminPassword })
+          ...getAuthHeaders()
         },
         body: JSON.stringify({
           chatId: telegramId,
@@ -729,11 +728,6 @@ export function FullCrmPage() {
 
   const sendPhoto = async (telegramId: number, photo: File, caption: string): Promise<boolean> => {
     try {
-      // Используем безопасный API endpoint
-      const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''
-      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-      const authTelegramId = telegramUser?.id
-
       // Читаем файл как data URL
       const reader = new FileReader()
       const photoDataUrl = await new Promise<string>((resolve, reject) => {
@@ -746,8 +740,7 @@ export function FullCrmPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(authTelegramId && { 'X-Telegram-Id': String(authTelegramId) }),
-          ...(adminPassword && { 'X-Admin-Password': adminPassword })
+          ...getAuthHeaders()
         },
         body: JSON.stringify({
           chatId: telegramId,
@@ -941,10 +934,10 @@ export function FullCrmPage() {
   }, []) // Пустой массив - регистрируем только один раз
 
   // ============ ДОСТУП ============
-  // В Telegram - проверяем ID, в браузере - показываем форму пароля
-  if (!isLoading && !isAuthenticated) {
-    // Если в Telegram и не админ - запрещаем
-    if (isTelegramWebApp && !isAdmin) {
+  // Если не авторизован - показываем форму пароля или запрет
+  if (!isLoading && !isAdminAuthenticated) {
+    // Если в Telegram - запрещаем (авторизация должна была пройти автоматически)
+    if (isTelegramWebApp) {
       return (
         <Layout hideNavbar>
           <div className="flex flex-col items-center justify-center min-h-screen">
@@ -977,9 +970,10 @@ export function FullCrmPage() {
                 )}
                 <button
                   onClick={handlePasswordSubmit}
-                  className="w-full py-3 bg-white text-black font-semibold rounded-xl active:scale-[0.98] transition-transform"
+                  disabled={isVerifying}
+                  className="w-full py-3 bg-white text-black font-semibold rounded-xl active:scale-[0.98] transition-transform disabled:opacity-50"
                 >
-                  Войти
+                  {isVerifying ? 'Проверка...' : 'Войти'}
                 </button>
               </div>
             </div>
