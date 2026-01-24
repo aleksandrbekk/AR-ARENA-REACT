@@ -798,7 +798,6 @@ export function InboxPage() {
                     <option value="all">Все</option>
                     <option value="0xprocessing">0xProcessing</option>
                     <option value="lava.top">Lava.top</option>
-                    <option value="toolsy">Toolsy</option>
                     <option value="subscription-reminder">Напоминания</option>
                     <option value="auto-kick-expired">Автокик</option>
                   </select>
