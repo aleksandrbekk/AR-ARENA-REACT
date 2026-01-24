@@ -10,7 +10,7 @@
 
 import { useState, useMemo } from 'react'
 import { supabase } from '../../lib/supabase'
-import type { PremiumClient, SortByOption, PremiumFilter } from '../../types/crm'
+import type { PremiumClient, PaymentRecord, SortByOption, PremiumFilter } from '../../types/crm'
 
 // Типы для модалок
 interface TicketTarget {
@@ -26,6 +26,7 @@ interface Giveaway {
 
 interface PremiumTabProps {
   premiumClients: PremiumClient[]
+  paymentHistory: PaymentRecord[]
   getAuthHeaders: () => Record<string, string>
   showToast: (opts: { variant: 'success' | 'error'; title: string }) => void
   onDataChange: () => void // Callback для обновления данных в родителе
@@ -59,6 +60,7 @@ const monthNames: Record<string, string> = {
 
 export function PremiumTab({
   premiumClients,
+  paymentHistory,
   getAuthHeaders,
   showToast,
   onDataChange
@@ -101,6 +103,10 @@ export function PremiumTab({
   // Invite links
   const [_inviteLinks, setInviteLinks] = useState<{ channelLink: string; chatLink: string } | null>(null)
   const [generatingInvite, setGeneratingInvite] = useState(false)
+
+  // Модалка выплат
+  const [showPaymentsModal, setShowPaymentsModal] = useState(false)
+  const [selectedPaymentPeriod, setSelectedPaymentPeriod] = useState<'5-22' | '23-4'>('5-22')
 
   // ============ COMPUTED VALUES ============
   const activePremiumCount = premiumClients.filter(c => getDaysRemaining(c.expires_at) > 0).length
@@ -488,17 +494,25 @@ export function PremiumTab({
       <div className="bg-zinc-900 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm text-white/40 uppercase tracking-wide">Доход</h3>
-          <select
-            value={statsMonth}
-            onChange={e => setStatsMonth(e.target.value)}
-            className="bg-zinc-800 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none"
-          >
-            <option value="all">Всё время</option>
-            <option value={currentMonth}>Этот месяц</option>
-            {availableMonths.filter(m => m !== currentMonth).slice(0, 5).map(m => (
-              <option key={m} value={m}>{formatMonthLabel(m)}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowPaymentsModal(true)}
+              className="px-3 py-1.5 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black text-sm font-semibold rounded-lg"
+            >
+              Выплаты
+            </button>
+            <select
+              value={statsMonth}
+              onChange={e => setStatsMonth(e.target.value)}
+              className="bg-zinc-800 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none"
+            >
+              <option value="all">Всё время</option>
+              <option value={currentMonth}>Этот месяц</option>
+              {availableMonths.filter(m => m !== currentMonth).slice(0, 5).map(m => (
+                <option key={m} value={m}>{formatMonthLabel(m)}</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {stats.totalUsdt > 0 && (
@@ -939,6 +953,166 @@ export function PremiumTab({
           </div>
         </div>
       )}
+
+      {/* Модалка выплат */}
+      {showPaymentsModal && (() => {
+        // Определяем границы периодов
+        const now = new Date()
+        const currentDay = now.getDate()
+        const currentMonth = now.getMonth()
+        const currentYear = now.getFullYear()
+
+        let startDate: Date, endDate: Date
+        if (selectedPaymentPeriod === '5-22') {
+          // С 5 по 22 число (включительно)
+          startDate = new Date(currentYear, currentMonth, 5, 0, 0, 0)
+          endDate = new Date(currentYear, currentMonth, 22, 23, 59, 59)
+        } else {
+          // С 23 прошлого месяца по 4 текущего (включительно)
+          if (currentDay >= 23) {
+            // Мы в периоде 23-4: с 23 текущего по 4 следующего
+            startDate = new Date(currentYear, currentMonth, 23, 0, 0, 0)
+            endDate = new Date(currentYear, currentMonth + 1, 4, 23, 59, 59)
+          } else {
+            // Мы в периоде 5-22: прошлый период был с 23 прошлого по 4 текущего
+            startDate = new Date(currentYear, currentMonth - 1, 23, 0, 0, 0)
+            endDate = new Date(currentYear, currentMonth, 4, 23, 59, 59)
+          }
+        }
+
+        // Фильтруем платежи из payment_history по периоду
+        const periodPayments = paymentHistory.filter(p => {
+          if (!p.created_at) return false
+          const payDate = new Date(p.created_at)
+          return payDate >= startDate && payDate <= endDate
+        })
+
+        // Считаем по валютам
+        let rubTotal = 0, usdTotal = 0, eurTotal = 0, usdtTotal = 0
+        periodPayments.forEach(p => {
+          const amount = typeof p.amount === 'number' ? p.amount : parseFloat(String(p.amount)) || 0
+          const currency = (p.currency || '').toUpperCase()
+          const source = (p.source || '').toLowerCase()
+
+          // 0xprocessing = крипто (USDT)
+          if (source === '0xprocessing' || currency.includes('USDT') || currency.includes('USDC')) {
+            usdtTotal += amount
+          } else if (currency === 'RUB') {
+            rubTotal += amount
+          } else if (currency === 'USD') {
+            usdTotal += amount
+          } else if (currency === 'EUR') {
+            eurTotal += amount
+          }
+        })
+
+        // Конвертация в USD: RUB/82, EUR*1.13, USD=1, USDT=1
+        const USD_RATE = 82
+        const EUR_RATE = 1.13
+        const rubInUsd = rubTotal / USD_RATE
+        const eurInUsd = eurTotal * EUR_RATE
+        const totalUsd = rubInUsd + usdTotal + usdtTotal + eurInUsd
+
+        const formatDateShort = (d: Date) => d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+
+        return (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-zinc-900 rounded-3xl w-full max-w-md p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">Отчёт по выплатам</h3>
+                <button
+                  onClick={() => setShowPaymentsModal(false)}
+                  className="w-8 h-8 flex items-center justify-center text-white/60 text-2xl hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Выбор периода */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setSelectedPaymentPeriod('5-22')}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all ${
+                    selectedPaymentPeriod === '5-22'
+                      ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
+                      : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
+                  }`}
+                >
+                  5–22
+                </button>
+                <button
+                  onClick={() => setSelectedPaymentPeriod('23-4')}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all ${
+                    selectedPaymentPeriod === '23-4'
+                      ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
+                      : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
+                  }`}
+                >
+                  23–4
+                </button>
+              </div>
+
+              {/* Даты периода */}
+              <div className="text-center text-white/50 text-sm mb-4">
+                {formatDateShort(startDate)} — {formatDateShort(endDate)}
+              </div>
+
+              {/* Предупреждение если мало данных */}
+              {paymentHistory.length === 0 && (
+                <div className="mb-4 p-3 bg-orange-500/20 border border-orange-500/30 rounded-xl text-orange-400 text-sm">
+                  ⚠️ История платежей пуста. Данные могут быть неполными.
+                </div>
+              )}
+
+              {/* Суммы по валютам */}
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between items-center p-4 bg-zinc-800 rounded-xl">
+                  <span className="text-white/60">RUB</span>
+                  <div className="text-right">
+                    <div className="text-white font-bold">{Math.round(rubTotal).toLocaleString('ru-RU')} ₽</div>
+                    <div className="text-white/40 text-sm">≈ ${Math.round(rubInUsd).toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-zinc-800 rounded-xl">
+                  <span className="text-white/60">USD (фиат)</span>
+                  <div className="text-right">
+                    <div className="text-[#FFD700] font-bold">${Math.round(usdTotal).toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-zinc-800 rounded-xl">
+                  <span className="text-white/60">EUR</span>
+                  <div className="text-right">
+                    <div className="text-blue-400 font-bold">€{Math.round(eurTotal).toLocaleString()}</div>
+                    <div className="text-white/40 text-sm">≈ ${Math.round(eurInUsd).toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-zinc-800 rounded-xl">
+                  <span className="text-white/60">USDT (крипто)</span>
+                  <div className="text-right">
+                    <div className="text-emerald-400 font-bold">${Math.round(usdtTotal).toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Итого */}
+              <div className="p-4 bg-gradient-to-b from-emerald-500/20 to-emerald-600/20 border border-emerald-500/30 rounded-xl">
+                <div className="flex justify-between items-center">
+                  <span className="text-emerald-400 font-medium">Итого USD</span>
+                  <span className="text-2xl font-bold text-emerald-400">${Math.round(totalUsd).toLocaleString()}</span>
+                </div>
+                <div className="text-white/40 text-xs mt-1">
+                  Курс: $1 = 82₽, €1 = $1.13
+                </div>
+              </div>
+
+              {/* Количество платежей */}
+              <div className="text-center text-white/40 text-sm mt-4">
+                Платежей за период: {periodPayments.length}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Модалка выдачи билета */}
       {showTicketModal && ticketTarget && (

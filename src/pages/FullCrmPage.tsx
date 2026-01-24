@@ -22,7 +22,7 @@ export function FullCrmPage() {
   const [users, setUsers] = useState<User[]>([])
   const [premiumClients, setPremiumClients] = useState<PremiumClient[]>([])
   const [botUsers, setBotUsers] = useState<BotUser[]>([])
-  const [_paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([])
+  const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
@@ -509,6 +509,7 @@ export function FullCrmPage() {
           {activeTab === 'premium' && (
             <PremiumTab
               premiumClients={premiumClients}
+              paymentHistory={paymentHistory}
               getAuthHeaders={getAuthHeaders}
               showToast={showToast}
               onDataChange={loadData}
