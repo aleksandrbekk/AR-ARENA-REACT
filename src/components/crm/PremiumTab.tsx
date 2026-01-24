@@ -609,48 +609,90 @@ export function PremiumTab({
         Показано: <span className="text-white">{filteredClients.length}</span> из {activePremiumCount} активных
       </div>
 
-      {/* Список клиентов */}
-      <div className="bg-zinc-900 rounded-2xl overflow-hidden">
-        {filteredClients.slice(0, 100).map((client, i) => {
+      {/* Список клиентов - гибридные карточки */}
+      <div className="space-y-3">
+        {filteredClients.slice(0, 100).map((client) => {
           const days = getDaysRemaining(client.expires_at)
+          const isExpired = days <= 0
+
+          // Цвет дней
+          const getDaysColor = (d: number) => {
+            if (d <= 0) return 'text-red-400'
+            if (d <= 3) return 'text-red-400'
+            if (d <= 7) return 'text-orange-400'
+            return 'text-emerald-400'
+          }
+
+          // Цвет плана
+          const getPlanStyle = (plan: string) => {
+            switch (plan?.toLowerCase()) {
+              case 'private': return 'bg-purple-500/20 text-purple-400'
+              case 'platinum': return 'bg-cyan-500/20 text-cyan-400'
+              case 'gold': return 'bg-[#FFD700]/20 text-[#FFD700]'
+              default: return 'bg-zinc-700/50 text-white/70'
+            }
+          }
 
           return (
             <div
               key={client.id}
               onClick={() => { setSelectedClient(client); setShowClientModal(true) }}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-zinc-800/50 transition-colors ${i !== 0 ? 'border-t border-white/5' : ''}`}
+              className={`bg-zinc-900 rounded-2xl p-4 cursor-pointer active:scale-[0.99] transition-transform ${isExpired ? 'opacity-60' : ''}`}
             >
-              {client.avatar_url ? (
-                <img src={client.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white/60 font-medium">
-                  {getPremiumInitial(client)}
+              {/* Шапка: аватар + имя + план + дни */}
+              <div className="flex items-center gap-3 mb-3">
+                {client.avatar_url ? (
+                  <img src={client.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white/60 font-medium">
+                    {getPremiumInitial(client)}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">
+                    {client.username ? `@${client.username}` : client.first_name || client.telegram_id}
+                  </div>
+                  <div className="text-xs text-white/40 font-mono">{client.telegram_id}</div>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">
-                  {client.username ? `@${client.username}` : client.first_name || client.telegram_id}
+                <div className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${getPlanStyle(client.plan)}`}>
+                  {client.plan || 'N/A'}
                 </div>
-                <div className="text-sm text-white/40 truncate">
-                  {client.plan} • {formatAmount(client)}
+                <div className="text-right ml-1">
+                  <div className={`text-lg font-bold ${getDaysColor(days)}`}>
+                    {isExpired ? 'Истёк' : `${days}д`}
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className={`text-sm font-medium ${days <= 7 ? 'text-orange-400' : 'text-emerald-400'}`}>
-                  {days} дн.
+
+              {/* Инфо: сумма + дата + статусы */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-white/60">{formatAmount(client)}</span>
+                  <span className="text-white/30">до {formatDate(client.expires_at)}</span>
                 </div>
-                <div className="text-xs text-white/30">
-                  до {formatDate(client.expires_at)}
+                <div className="flex gap-1.5">
+                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                    client.in_channel ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-800 text-white/30'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${client.in_channel ? 'bg-emerald-400' : 'bg-white/30'}`} />
+                    К
+                  </div>
+                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                    client.in_chat ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-800 text-white/30'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${client.in_chat ? 'bg-emerald-400' : 'bg-white/30'}`} />
+                    Ч
+                  </div>
                 </div>
               </div>
             </div>
           )
         })}
         {filteredClients.length === 0 && (
-          <div className="py-12 text-center text-white/30">Ничего не найдено</div>
+          <div className="bg-zinc-900 rounded-2xl py-12 text-center text-white/30">Ничего не найдено</div>
         )}
         {filteredClients.length > 100 && (
-          <div className="py-3 text-center text-white/30 text-sm border-t border-white/5">
+          <div className="text-center text-white/30 text-sm py-2">
             Показаны первые 100 из {filteredClients.length}
           </div>
         )}
