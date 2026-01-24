@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-
-const STORAGE_KEY = 'onboarding_seen'
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../hooks/useLocalStorage'
 
 const slides = [
   {
@@ -26,7 +25,7 @@ export function OnboardingModal() {
   const [currentSlide, setCurrentSlide] = useState(0)
 
   useEffect(() => {
-    const seen = localStorage.getItem(STORAGE_KEY)
+    const seen = getStorageItem(STORAGE_KEYS.ONBOARDING_SEEN)
     if (!seen) {
       // Small delay for better UX
       const timer = setTimeout(() => setIsOpen(true), 500)
@@ -35,7 +34,7 @@ export function OnboardingModal() {
   }, [])
 
   const handleClose = () => {
-    localStorage.setItem(STORAGE_KEY, 'true')
+    setStorageItem(STORAGE_KEYS.ONBOARDING_SEEN, 'true')
     setIsOpen(false)
   }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../hooks/useLocalStorage'
 
 interface Message {
   id: number
@@ -27,7 +28,7 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
 
   // Загрузка имени гостя из localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('stream_guest_name')
+    const saved = getStorageItem<string>(STORAGE_KEYS.STREAM_GUEST_NAME)
     if (saved) {
       setGuestName(saved)
       setIsNameSet(true)
@@ -362,7 +363,7 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
                 onChange={(e) => setGuestName(e.target.value)}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && guestName.trim()) {
-                    localStorage.setItem('stream_guest_name', guestName.trim())
+                    setStorageItem(STORAGE_KEYS.STREAM_GUEST_NAME, guestName.trim())
                     setIsNameSet(true)
                   }
                 }}
@@ -373,7 +374,7 @@ export function StreamChat({ forceAdmin = false }: StreamChatProps) {
               <button
                 onClick={() => {
                   if (guestName.trim()) {
-                    localStorage.setItem('stream_guest_name', guestName.trim())
+                    setStorageItem(STORAGE_KEYS.STREAM_GUEST_NAME, guestName.trim())
                     setIsNameSet(true)
                   }
                 }}
