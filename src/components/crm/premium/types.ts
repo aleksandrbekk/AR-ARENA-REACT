@@ -1,17 +1,11 @@
 // ============ ТИПЫ ДЛЯ PREMIUM ============
 
-import type { PremiumClient, PaymentRecord, SortByOption, PremiumFilter } from '../../../types/crm'
+import type { PremiumClient, PaymentRecord, SortByOption, PremiumFilter, Giveaway } from '../../../types/crm'
 
 // Типы для модалок
 export interface TicketTarget {
   id: number
   name: string
-}
-
-export interface Giveaway {
-  id: string
-  title: string
-  price: number
 }
 
 export interface PremiumTabProps {
@@ -31,4 +25,4 @@ export interface PremiumStats {
 }
 
 // Re-export типы из crm для удобства
-export type { PremiumClient, PaymentRecord, SortByOption, PremiumFilter }
+export type { PremiumClient, PaymentRecord, SortByOption, PremiumFilter, Giveaway }

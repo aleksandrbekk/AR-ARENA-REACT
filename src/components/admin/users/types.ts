@@ -1,5 +1,7 @@
 // ============ ТИПЫ ДЛЯ УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ ============
 
+import type { UserSkin as BaseUserSkin } from '../../../types'
+
 export interface AppUser {
   id: string  // UUID в Supabase
   telegram_id: string
@@ -30,11 +32,9 @@ export interface Transaction {
   created_at: string
 }
 
-export interface UserSkin {
-  skin_id: number
-  is_equipped: boolean
+// Расширенный UserSkin для админки с дополнительными полями
+export interface UserSkin extends BaseUserSkin {
   is_active: boolean
-  purchased_at: string
   skin_name?: string
   skin_rarity?: string
 }
