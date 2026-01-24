@@ -318,7 +318,7 @@ export default async function handler(req, res) {
     const paymentHistoryId = contractId || `lava_${Date.now()}_${telegramId || extractedUsername}`;
     const paymentData = {
       telegram_id: telegramIdInt || null,
-      amount: grossAmount,
+      amount: netAmount,  // NET amount (after 8% Lava commission) for accurate payout reports
       currency,
       source: 'lava.top',
       contract_id: paymentHistoryId,
