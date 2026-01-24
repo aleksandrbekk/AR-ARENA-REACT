@@ -65,13 +65,12 @@ export interface PaymentRecord {
   source: string
   created_at: string
   status?: string
+  contract_id?: string
+  tx_hash?: string | null
+  plan?: string
 }
 
-export interface Giveaway {
-  id: string
-  title: string
-  price: number
-}
+// Note: Giveaway тип используется из types/index.ts (полная версия)
 
 export type CrmTabType = 'leads' | 'premium' | 'broadcast'
 export type LeadsStatusFilter = 'all' | 'app_opened' | 'not_opened' | 'purchased'

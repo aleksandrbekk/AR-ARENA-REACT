@@ -2,70 +2,15 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../ToastProvider'
 import { useAdminAuth } from '../../providers/AdminAuthProvider'
-
-// ============ ТИПЫ ============
-interface AppUser {
-  id: string  // UUID в Supabase
-  telegram_id: string
-  username: string | null
-  first_name: string | null
-  last_name: string | null
-  photo_url: string | null
-  balance_ar: number
-  balance_bul: number
-  level: number
-  xp: number
-  energy: number
-  energy_max: number
-  active_skin: string | null
-  created_at: string
-  last_seen_at: string | null
-  referrer_id: string | null
-  // Computed
-  tickets_count?: number
-}
-
-interface Transaction {
-  id: string  // UUID
-  currency: string
-  amount: number
-  type: string
-  description: string | null
-  created_at: string
-}
-
-interface UserSkin {
-  skin_id: number
-  is_equipped: boolean
-  is_active: boolean
-  purchased_at: string
-  skin_name?: string
-  skin_rarity?: string
-}
-
-interface UserEquipment {
-  equipment_slug: string
-  quantity: number
-  equipment_name?: string
-  income_per_hour?: number
-}
-
-interface GiveawayTicket {
-  giveaway_id: string
-  ticket_number: number
-  giveaway_name?: string
-  giveaway_status?: string
-}
-
-interface PremiumStatus {
-  plan: string
-  expires_at: string
-  in_channel: boolean
-  in_chat: boolean
-  total_paid_usd: number
-}
-
-type SortField = 'created_at' | 'balance_ar' | 'balance_bul' | 'level' | 'last_seen_at'
+import type {
+  AppUser,
+  Transaction,
+  UserSkinAdmin as UserSkin,
+  UserEquipment,
+  GiveawayTicket,
+  PremiumStatus,
+  UserSortField as SortField
+} from '../../types/admin'
 
 // ============ КОНСТАНТЫ ============
 // BOT_TOKEN больше не используется напрямую - используем /api/admin-send-message

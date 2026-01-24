@@ -1,28 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-
-interface UtmLink {
-  id: number
-  name: string
-  slug: string
-  folder: string | null
-  clicks: number
-  conversions: number
-  created_at: string
-}
-
-interface UtmToolLink {
-  id: number
-  name: string
-  slug: string
-  tool_type: string
-  clicks: number
-  conversions: number
-  created_at: string
-  last_click_at: string | null
-}
-
-type TabType = 'payment' | 'tools'
+import type { UtmLink, UtmToolLink, UtmTabType as TabType } from '../../types/admin'
 
 export function UtmLinksTab() {
   const [activeTab, setActiveTab] = useState<TabType>('payment')
