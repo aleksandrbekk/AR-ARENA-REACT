@@ -95,6 +95,20 @@ export default async function handler(req, res) {
 
     const payload = req.body;
 
+    // Save webhook payload for debugging
+    try {
+      await supabase.from('webhook_logs').insert({
+        source: '0xprocessing',
+        event_type: payload.Status || 'unknown',
+        payload: JSON.stringify(payload),
+        status: 'received',
+        created_at: new Date().toISOString()
+      });
+      log('Webhook payload saved to webhook_logs');
+    } catch (logError) {
+      log('Could not save webhook log:', logError.message);
+    }
+
     // ============================================
     // 1. SECURITY: HMAC VERIFICATION
     // ============================================
@@ -190,6 +204,32 @@ export default async function handler(req, res) {
     // ============================================
     if (telegramIdInt) {
       await ensureUserExists(telegramIdInt, username, '0xprocessing_payment');
+    }
+
+    // ============================================
+    // 6.1 CRITICAL: telegram_id REQUIRED for payment recording
+    // ============================================
+    if (!telegramIdInt) {
+      log('CRITICAL: No valid telegram_id! Cannot record payment.');
+      log(`ClientId: ${ClientId}, username: ${username}`);
+      
+      // Log for debugging
+      try {
+        await supabase.from('webhook_logs').insert({
+          source: '0xprocessing',
+          event_type: 'ERROR_NO_TELEGRAM_ID',
+          payload: JSON.stringify({ payload, error: 'No telegram_id resolved', client_id: ClientId, username }),
+          status: 'error',
+          error_message: 'No telegram_id resolved - user must start bot first',
+          created_at: new Date().toISOString()
+        });
+      } catch (e) {}
+      
+      return res.status(400).json({ 
+        error: 'Missing telegram_id', 
+        client_id: ClientId,
+        message: 'Cannot activate subscription without telegram_id. User must start bot first.'
+      });
     }
 
     // ============================================
