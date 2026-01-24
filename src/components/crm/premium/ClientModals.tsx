@@ -330,23 +330,23 @@ export function PaymentsModal({
   onPeriodChange,
   onClose
 }: PaymentsModalProps) {
-  // Определяем границы периодов
+  // Определяем границы периодов (используем UTC для корректного сравнения с БД)
   const now = new Date()
-  const currentDay = now.getDate()
-  const currentMonthIdx = now.getMonth()
-  const currentYear = now.getFullYear()
+  const currentDay = now.getUTCDate()
+  const currentMonthIdx = now.getUTCMonth()
+  const currentYear = now.getUTCFullYear()
 
   let startDate: Date, endDate: Date
   if (selectedPeriod === '5-22') {
-    startDate = new Date(currentYear, currentMonthIdx, 5, 0, 0, 0)
-    endDate = new Date(currentYear, currentMonthIdx, 22, 23, 59, 59)
+    startDate = new Date(Date.UTC(currentYear, currentMonthIdx, 5, 0, 0, 0))
+    endDate = new Date(Date.UTC(currentYear, currentMonthIdx, 22, 23, 59, 59))
   } else {
     if (currentDay >= 23) {
-      startDate = new Date(currentYear, currentMonthIdx, 23, 0, 0, 0)
-      endDate = new Date(currentYear, currentMonthIdx + 1, 4, 23, 59, 59)
+      startDate = new Date(Date.UTC(currentYear, currentMonthIdx, 23, 0, 0, 0))
+      endDate = new Date(Date.UTC(currentYear, currentMonthIdx + 1, 4, 23, 59, 59))
     } else {
-      startDate = new Date(currentYear, currentMonthIdx - 1, 23, 0, 0, 0)
-      endDate = new Date(currentYear, currentMonthIdx, 4, 23, 59, 59)
+      startDate = new Date(Date.UTC(currentYear, currentMonthIdx - 1, 23, 0, 0, 0))
+      endDate = new Date(Date.UTC(currentYear, currentMonthIdx, 4, 23, 59, 59))
     }
   }
 
