@@ -7,73 +7,9 @@ import { useToast } from '../components/ToastProvider'
 import { supabase } from '../lib/supabase'
 import { MetallicBorder } from '../components/MetallicBorder'
 import { setStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
-
-// ============ ТИПЫ ============
-interface User {
-  id: string
-  telegram_id: number
-  username: string | null
-  first_name: string | null
-  last_name: string | null
-  avatar_url: string | null
-  created_at: string
-  status: 'new' | 'active' | 'premium' | 'expired'
-  premium_expires?: string | null
-}
-
-interface PremiumClient {
-  id: string
-  telegram_id: number
-  username: string | null
-  first_name: string | null
-  avatar_url: string | null
-  plan: string
-  started_at: string
-  expires_at: string
-  in_channel: boolean
-  in_chat: boolean
-  total_paid_usd: number
-  currency: string | null
-  original_amount: number | null
-  payments_count: number
-  last_payment_at: string | null
-  last_payment_method: string | null
-  source: string | null
-  tags: string[]
-}
-
-interface BotUser {
-  id: number
-  telegram_id: number
-  username: string | null
-  first_name: string | null
-  source: string | null
-  created_at: string
-  last_seen_at: string
-}
-
-interface BroadcastRecord {
-  id: string
-  message: string | null
-  image_url: string | null
-  recipients_count: number
-  filter_type: string | null
-  status: 'completed' | 'failed'
-  sent_by: string | null
-  created_at: string
-}
-
-interface PaymentRecord {
-  id: string
-  telegram_id: string
-  amount: number
-  currency: string
-  source: string
-  created_at: string
-  status?: string
-}
-
-type TabType = 'leads' | 'premium' | 'broadcast'
+import { LeadsTab } from '../components/crm/LeadsTab'
+import { BroadcastTab } from '../components/crm/BroadcastTab'
+import type { User, PremiumClient, BotUser, BroadcastRecord, PaymentRecord, CrmTabType } from '../types/crm'
 
 // ============ КОМПОНЕНТ ============
 export function FullCrmPage() {
@@ -82,24 +18,16 @@ export function FullCrmPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
 
-  const [activeTab, setActiveTab] = useState<TabType>('leads')
+  const [activeTab, setActiveTab] = useState<CrmTabType>('leads')
   const [users, setUsers] = useState<User[]>([])
   const [premiumClients, setPremiumClients] = useState<PremiumClient[]>([])
   const [botUsers, setBotUsers] = useState<BotUser[]>([])
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedUsers, setSelectedUsers] = useState<number[]>([])
-  const [broadcastMessage, setBroadcastMessage] = useState('')
-  const [broadcastSearch, setBroadcastSearch] = useState('')
-  const [broadcastImage, setBroadcastImage] = useState<File | null>(null)
-  const [broadcastImagePreview, setBroadcastImagePreview] = useState<string | null>(null)
-  const [sendingBroadcast, setSendingBroadcast] = useState(false)
-  const [broadcastProgress, setBroadcastProgress] = useState({ sent: 0, total: 0 })
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
-  // История рассылок
+  // История рассылок (передаётся в BroadcastTab)
   const [broadcastHistory, setBroadcastHistory] = useState<BroadcastRecord[]>([])
-  const [broadcastTab, setBroadcastTab] = useState<'new' | 'history'>('new')
 
   // Модалка для отправки сообщения
   const [showMessageModal, setShowMessageModal] = useState(false)
@@ -122,10 +50,6 @@ export function FullCrmPage() {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteLinks, setInviteLinks] = useState<{ channelLink: string; chatLink: string } | null>(null)
   const [generatingInvite, setGeneratingInvite] = useState(false)
-
-  // База пользователей (leads) фильтры
-  const [leadsSearch, setLeadsSearch] = useState('')
-  const [leadsStatusFilter, setLeadsStatusFilter] = useState<'all' | 'app_opened' | 'not_opened' | 'purchased'>('all')
 
   // Модалка добавления клиента
   const [showAddClientModal, setShowAddClientModal] = useState(false)
@@ -727,35 +651,6 @@ export function FullCrmPage() {
     } catch { return false }
   }
 
-  const sendPhoto = async (telegramId: number, photo: File, caption: string): Promise<boolean> => {
-    try {
-      // Читаем файл как data URL
-      const reader = new FileReader()
-      const photoDataUrl = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = reject
-        reader.readAsDataURL(photo)
-      })
-
-      const res = await fetch('/api/admin-send-message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({
-          chatId: telegramId,
-          photoUrl: photoDataUrl,
-          caption: caption
-        })
-      })
-
-      const result = await res.json()
-      if (!result.success) throw new Error(result.error || 'Failed to send photo')
-      return true
-    } catch { return false }
-  }
-
   // Генерация и отправка invite-ссылок через API
   const generateInviteLinks = async (telegramId: number, sendToUser: boolean = false) => {
     try {
@@ -787,66 +682,7 @@ export function FullCrmPage() {
     }
   }
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setBroadcastImage(file)
-      const reader = new FileReader()
-      reader.onloadend = () => setBroadcastImagePreview(reader.result as string)
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const clearBroadcastImage = () => {
-    setBroadcastImage(null)
-    setBroadcastImagePreview(null)
-  }
-
-  const handleBroadcast = async () => {
-    if (!broadcastMessage.trim() && !broadcastImage) return showToast({ variant: 'error', title: 'Введите сообщение или добавьте картинку' })
-    if (selectedUsers.length === 0) return showToast({ variant: 'error', title: 'Выберите получателей' })
-
-    const messageType = broadcastImage ? 'картинку' : 'сообщение'
-    if (!confirm(`Отправить ${messageType} ${selectedUsers.length} пользователям?`)) return
-
-    setSendingBroadcast(true)
-    setBroadcastProgress({ sent: 0, total: selectedUsers.length })
-
-    let sent = 0
-    for (const telegramId of selectedUsers) {
-      let success = false
-      if (broadcastImage) {
-        success = await sendPhoto(telegramId, broadcastImage, broadcastMessage)
-      } else {
-        success = await sendMessage(telegramId, broadcastMessage)
-      }
-      if (success) sent++
-      setBroadcastProgress({ sent, total: selectedUsers.length })
-      await new Promise(r => setTimeout(r, 50)) // Задержка чтобы не забанили
-    }
-
-    setSendingBroadcast(false)
-    setBroadcastMessage('')
-    clearBroadcastImage()
-    setSelectedUsers([])
-    showToast({ variant: 'success', title: `Отправлено: ${sent}/${selectedUsers.length}` })
-
-    // Сохранить в историю
-    try {
-      // Пытаемся сохранить, но не блокируем если таблица не создана
-      await supabase.from('crm_broadcasts').insert({
-        message: broadcastMessage || (broadcastImage ? 'Картинка' : 'Без текста'),
-        recipients_count: sent,
-        filter_type: selectedUsers.length === 1 ? 'single' : 'mass', // упрощенно
-        status: 'completed',
-        sent_by: telegramUser?.id?.toString() || 'admin'
-      })
-      loadBroadcastHistory()
-    } catch (e) {
-      console.error('Failed to save broadcast history', e)
-    }
-  }
-
+  // Загрузка истории рассылок
   const loadBroadcastHistory = async () => {
     try {
       const { data, error } = await supabase
@@ -863,10 +699,10 @@ export function FullCrmPage() {
   }
 
   useEffect(() => {
-    if (activeTab === 'broadcast' && broadcastTab === 'history') {
+    if (activeTab === 'broadcast') {
       loadBroadcastHistory()
     }
-  }, [activeTab, broadcastTab])
+  }, [activeTab])
 
   // ============ ФОРМАТЫ ============
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '-'
@@ -1456,7 +1292,7 @@ export function FullCrmPage() {
 
           {/* Табы */}
           <div className="flex gap-1 p-1 bg-zinc-900 rounded-xl mb-6">
-            {(['leads', 'premium', 'broadcast'] as TabType[]).map(tab => (
+            {(['leads', 'premium', 'broadcast'] as CrmTabType[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1472,204 +1308,7 @@ export function FullCrmPage() {
 
           {/* ============ БАЗА ПОЛЬЗОВАТЕЛЕЙ (LEADS) ============ */}
           {activeTab === 'leads' && (
-            <div className="space-y-4">
-              {/* Воронка конверсий */}
-              {(() => {
-                const totalBot = botUsers.length
-                const appOpenedSet = new Set(users.map(u => u.telegram_id))
-                const appOpenedFromBot = botUsers.filter(bu => appOpenedSet.has(bu.telegram_id)).length
-                const purchasedSet = new Set(premiumClients.map(p => p.telegram_id))
-                const purchasedFromBot = botUsers.filter(bu => purchasedSet.has(bu.telegram_id)).length
-
-                const appRate = totalBot > 0 ? ((appOpenedFromBot / totalBot) * 100).toFixed(1) : '0'
-                const purchaseRate = appOpenedFromBot > 0 ? ((purchasedFromBot / appOpenedFromBot) * 100).toFixed(1) : '0'
-                const totalRate = totalBot > 0 ? ((purchasedFromBot / totalBot) * 100).toFixed(1) : '0'
-
-                return (
-                  <div className="bg-zinc-900 rounded-2xl p-4">
-                    <h3 className="text-sm text-white/40 uppercase tracking-wide mb-4">Воронка (из бота)</h3>
-                    <div className="space-y-3">
-                      {/* Шаг 1: Бот */}
-                      <div className="relative">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-white font-medium">Нажали /start</span>
-                          <span className="text-white font-bold">{totalBot}</span>
-                        </div>
-                        <div className="h-3 bg-blue-500/30 rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: '100%' }} />
-                        </div>
-                      </div>
-
-                      {/* Стрелка */}
-                      <div className="flex items-center gap-2 text-white/30 text-xs pl-4">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                        <span>{appRate}%</span>
-                      </div>
-
-                      {/* Шаг 2: Открыли приложение */}
-                      <div className="relative">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-white font-medium">Открыли App</span>
-                          <span className="text-emerald-400 font-bold">{appOpenedFromBot}</span>
-                        </div>
-                        <div className="h-3 bg-emerald-500/20 rounded-full overflow-hidden backdrop-blur-sm">
-                          <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{ width: `${appRate}%` }} />
-                        </div>
-                      </div>
-
-                      {/* Стрелка */}
-                      <div className="flex items-center gap-2 text-white/30 text-xs pl-4">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                        <span>{purchaseRate}%</span>
-                      </div>
-
-                      {/* Шаг 3: Купили */}
-                      <div className="relative">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-white font-medium">Купили Premium</span>
-                          <span className="text-[#FFD700] font-bold">{purchasedFromBot}</span>
-                        </div>
-                        <div className="h-3 bg-[#FFD700]/30 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#FFD700] rounded-full" style={{ width: `${totalRate}%` }} />
-                        </div>
-                      </div>
-
-                      {/* Итоговая конверсия */}
-                      <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                        <span className="text-white/50">Конверсия /start → Premium</span>
-                        <span className="text-[#FFD700] font-bold text-lg">{totalRate}%</span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* Фильтры */}
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {[
-                  { key: 'all', label: 'Все' },
-                  { key: 'app_opened', label: 'Открыли App' },
-                  { key: 'not_opened', label: 'Не открыли' },
-                  { key: 'purchased', label: 'Купили' }
-                ].map(f => (
-                  <button
-                    key={f.key}
-                    onClick={() => setLeadsStatusFilter(f.key as typeof leadsStatusFilter)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${leadsStatusFilter === f.key ? 'bg-white text-black' : 'bg-zinc-800 text-white/60'
-                      }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Поиск */}
-              <div className="relative">
-                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={leadsSearch}
-                  onChange={e => setLeadsSearch(e.target.value)}
-                  placeholder="Поиск по имени или ID..."
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-900 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-                />
-              </div>
-
-              {/* Список пользователей */}
-              {(() => {
-                const appOpenedSet = new Set(users.map(u => u.telegram_id))
-                const purchasedSet = new Set(premiumClients.map(p => p.telegram_id))
-
-                const filtered = botUsers.filter(bu => {
-                  // Поиск
-                  if (leadsSearch) {
-                    const q = leadsSearch.toLowerCase()
-                    const match = bu.username?.toLowerCase().includes(q) ||
-                      bu.first_name?.toLowerCase().includes(q) ||
-                      bu.telegram_id.toString().includes(q)
-                    if (!match) return false
-                  }
-
-                  // Фильтр по статусу
-                  const opened = appOpenedSet.has(bu.telegram_id)
-                  const purchased = purchasedSet.has(bu.telegram_id)
-
-                  if (leadsStatusFilter === 'app_opened' && !opened) return false
-                  if (leadsStatusFilter === 'not_opened' && opened) return false
-                  if (leadsStatusFilter === 'purchased' && !purchased) return false
-
-                  return true
-                })
-
-                return (
-                  <>
-                    <div className="text-sm text-white/40 mb-2">
-                      Показано: <span className="text-white">{filtered.length}</span> из {botUsers.length}
-                    </div>
-                    <div className="bg-zinc-900 rounded-2xl overflow-hidden">
-                      {filtered.slice(0, 100).map((bu, i) => {
-                        const opened = appOpenedSet.has(bu.telegram_id)
-                        const purchased = purchasedSet.has(bu.telegram_id)
-
-                        return (
-                          <div
-                            key={bu.id}
-                            className={`flex items-center gap-3 px-4 py-3 ${i !== 0 ? 'border-t border-white/5' : ''}`}
-                          >
-                            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white/60 font-medium">
-                              {(bu.first_name || bu.username || '?')[0]?.toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">
-                                {bu.username ? `@${bu.username}` : bu.first_name || bu.telegram_id}
-                              </div>
-                              <div className="text-sm text-white/40 truncate flex items-center gap-2">
-                                <span>{bu.source || 'direct'}</span>
-                                <span className="text-white/20">•</span>
-                                <span>{new Date(bu.created_at).toLocaleDateString('ru-RU')}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {opened && (
-                                <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center backdrop-blur-sm" title="Открыл приложение">
-                                  <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                              )}
-                              {purchased && (
-                                <div className="w-6 h-6 rounded-full bg-[#FFD700]/20 flex items-center justify-center" title="Купил подписку">
-                                  <span className="text-[#FFD700] text-xs">$</span>
-                                </div>
-                              )}
-                              {!opened && !purchased && (
-                                <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center" title="Не открыл приложение">
-                                  <span className="text-white/30 text-xs">—</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                      {filtered.length === 0 && (
-                        <div className="py-12 text-center text-white/30">Ничего не найдено</div>
-                      )}
-                      {filtered.length > 100 && (
-                        <div className="py-3 text-center text-white/30 text-sm border-t border-white/5">
-                          Показаны первые 100 из {filtered.length}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )
-              })()}
-            </div>
+            <LeadsTab botUsers={botUsers} users={users} premiumClients={premiumClients} />
           )}
 
           {/* ============ PREMIUM ============ */}
@@ -2522,277 +2161,16 @@ export function FullCrmPage() {
 
           {/* ============ РАССЫЛКА ============ */}
           {activeTab === 'broadcast' && (
-            <div className="space-y-3">
-              <div className="flex p-1 bg-zinc-900 rounded-xl mb-4">
-                <button
-                  onClick={() => setBroadcastTab('new')}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${broadcastTab === 'new' ? 'bg-zinc-800 text-white' : 'text-white/40 hover:text-white'
-                    }`}
-                >
-                  Новая рассылка
-                </button>
-                <button
-                  onClick={() => setBroadcastTab('history')}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${broadcastTab === 'history' ? 'bg-zinc-800 text-white' : 'text-white/40 hover:text-white'
-                    }`}
-                >
-                  История
-                </button>
-              </div>
-
-              {broadcastTab === 'history' ? (
-                <div className="space-y-3">
-                  {broadcastHistory.length === 0 ? (
-                    <div className="text-center py-12 text-white/30">История пуста</div>
-                  ) : (
-                    broadcastHistory.map(record => (
-                      <div key={record.id} className="bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="text-sm font-medium text-white/50">
-                            {new Date(record.created_at).toLocaleString('ru-RU')}
-                          </div>
-                          <div className={`px-2 py-0.5 rounded textxs font-medium bg-emerald-500/10 text-emerald-400 capitalize`}>
-                            {record.status}
-                          </div>
-                        </div>
-                        <div className="text-white mb-3 line-clamp-3 font-mono text-sm bg-zinc-950/50 p-2 rounded-lg">
-                          {record.message}
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <div className="text-white/40">Получателей: <span className="text-white">{record.recipients_count}</span></div>
-                          <div className="text-white/40">Тип: <span className="text-white">{record.filter_type || 'Manual'}</span></div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              ) : (
-                <>
-                  {/* Поиск конкретного пользователя */}
-                  <div className="bg-zinc-900 rounded-2xl p-4">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        inputMode="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck={false}
-                        placeholder="Поиск по ID, @username или имени..."
-                        value={broadcastSearch}
-                        onChange={e => setBroadcastSearch(e.target.value)}
-                        className="w-full bg-zinc-800 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20"
-                      />
-                      {broadcastSearch && (
-                        <button
-                          onClick={() => { setBroadcastSearch(''); setSelectedUsers([]) }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Результаты поиска */}
-                    {broadcastSearch.trim() && (() => {
-                      const q = broadcastSearch.toLowerCase()
-                      const allUsers = [
-                        ...premiumClients.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, avatar_url: u.avatar_url, isPremium: true })),
-                        ...botUsers.map(u => ({ telegram_id: u.telegram_id, username: u.username, first_name: u.first_name, avatar_url: null, isPremium: false }))
-                      ]
-                      const unique = Array.from(new Map(allUsers.map(u => [u.telegram_id, u])).values())
-                      const results = unique.filter(u =>
-                        String(u.telegram_id).includes(q) ||
-                        (u.username && u.username.toLowerCase().includes(q)) ||
-                        (u.first_name && u.first_name.toLowerCase().includes(q))
-                      ).slice(0, 10)
-
-                      if (results.length === 0) {
-                        return <p className="text-white/40 text-sm mt-3">Ничего не найдено</p>
-                      }
-
-                      return (
-                        <div className="mt-3 space-y-1 max-h-64 overflow-y-auto">
-                          {results.map(user => (
-                            <button
-                              key={user.telegram_id}
-                              onClick={() => {
-                                setSelectedUsers([user.telegram_id])
-                                setBroadcastSearch('')
-                              }}
-                              className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${selectedUsers.includes(user.telegram_id) ? 'bg-white/10' : 'hover:bg-zinc-800'
-                                }`}
-                            >
-                              {user.avatar_url ? (
-                                <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white/60 text-sm font-medium">
-                                  {(user.first_name || user.username || '?')[0]?.toUpperCase()}
-                                </div>
-                              )}
-                              <div className="flex-1 text-left">
-                                <div className="text-white text-sm font-medium flex items-center gap-2">
-                                  {user.first_name || user.username || 'Без имени'}
-                                  {user.isPremium && <span className="text-[10px] bg-[#FFD700]/20 text-[#FFD700] px-1.5 py-0.5 rounded">Premium</span>}
-                                </div>
-                                <div className="text-white/40 text-xs">
-                                  {user.username ? `@${user.username}` : ''} · {user.telegram_id}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )
-                    })()}
-
-                    {selectedUsers.length === 1 && !broadcastSearch && (() => {
-                      const userId = selectedUsers[0]
-                      const user = premiumClients.find(u => u.telegram_id === userId) || botUsers.find(u => u.telegram_id === userId)
-                      if (!user) return null
-                      return (
-                        <div className="mt-3 flex items-center gap-3 bg-zinc-800 rounded-xl p-3">
-                          {(user as typeof premiumClients[0]).avatar_url ? (
-                            <img src={(user as typeof premiumClients[0]).avatar_url!} alt="" className="w-10 h-10 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-white/60 text-sm font-medium">
-                              {(user.first_name || user.username || '?')[0]?.toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="text-white text-sm font-medium">{user.first_name || user.username || 'Без имени'}</div>
-                            <div className="text-white/40 text-xs">{user.username ? `@${user.username}` : ''} · {user.telegram_id}</div>
-                          </div>
-                          <button onClick={() => setSelectedUsers([])} className="text-white/40 hover:text-white p-1">✕</button>
-                        </div>
-                      )
-                    })()}
-                  </div>
-
-                  {/* Или выбрать аудиторию */}
-                  {!broadcastSearch && selectedUsers.length !== 1 && (
-                    <div className="bg-zinc-900 rounded-2xl p-4">
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          onChange={e => {
-                            const v = e.target.value
-                            if (v === 'bot') setSelectedUsers(botUsers.map(u => u.telegram_id))
-                            else if (v === 'app') setSelectedUsers(users.map(u => u.telegram_id))
-                            else if (v === 'premium-active') {
-                              const activeIds = premiumClients.filter(p => new Date(p.expires_at) > new Date()).map(p => p.telegram_id)
-                              setSelectedUsers(activeIds)
-                            }
-                            else if (v === 'premium-expired') {
-                              const expiredIds = premiumClients.filter(p => new Date(p.expires_at) <= new Date()).map(p => p.telegram_id)
-                              setSelectedUsers(expiredIds)
-                            }
-                            else if (v === 'no-premium') {
-                              const premiumIds = new Set(premiumClients.map(p => p.telegram_id))
-                              setSelectedUsers(botUsers.filter(u => !premiumIds.has(u.telegram_id)).map(u => u.telegram_id))
-                            }
-                            else setSelectedUsers([])
-                          }}
-                          className="bg-zinc-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none cursor-pointer"
-                        >
-                          <option value="">Аудитория</option>
-                          <option value="bot">Все из бота ({botUsers.length})</option>
-                          <option value="premium-active">Активные Premium ({premiumClients.filter(p => new Date(p.expires_at) > new Date()).length})</option>
-                          <option value="premium-expired">Были в Premium ({premiumClients.filter(p => new Date(p.expires_at) <= new Date()).length})</option>
-                          <option value="no-premium">Без Premium ({botUsers.length - premiumClients.length})</option>
-                        </select>
-
-                        <select
-                          onChange={e => {
-                            const v = e.target.value
-                            if (!v) return
-                            const filtered = premiumClients.filter(p => {
-                              const plan = p.plan?.toLowerCase()
-                              if (v === 'classic') return plan === 'classic' || p.plan === '1month'
-                              if (v === 'gold') return plan === 'gold'
-                              if (v === 'platinum') return plan === 'platinum'
-                              if (v === 'private') return plan === 'private' || p.plan === '2months'
-                              if (v === 'from3m') return ['gold', 'platinum', 'private'].includes(plan || '') || p.plan === '2months'
-                              return false
-                            })
-                            setSelectedUsers(filtered.map(p => p.telegram_id))
-                          }}
-                          className="bg-zinc-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none cursor-pointer"
-                        >
-                          <option value="">По тарифу</option>
-                          <option value="classic">CLASSIC ({premiumClients.filter(p => p.plan?.toLowerCase() === 'classic' || p.plan === '1month').length})</option>
-                          <option value="gold">GOLD ({premiumClients.filter(p => p.plan?.toLowerCase() === 'gold').length})</option>
-                          <option value="platinum">PLATINUM ({premiumClients.filter(p => p.plan?.toLowerCase() === 'platinum').length})</option>
-                          <option value="private">PRIVATE ({premiumClients.filter(p => p.plan?.toLowerCase() === 'private' || p.plan === '2months').length})</option>
-                          <option value="from3m">От 3 мес ({premiumClients.filter(p => ['gold', 'platinum', 'private'].includes(p.plan?.toLowerCase() || '') || p.plan === '2months').length})</option>
-                        </select>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-800">
-                        <span className="text-white/40 text-sm">Выбрано получателей</span>
-                        <span className="text-white font-medium">{selectedUsers.length}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Контент */}
-                  <div className="bg-zinc-900 rounded-2xl p-4 space-y-4">
-                    {/* Картинка */}
-                    {broadcastImagePreview ? (
-                      <div className="relative">
-                        <img src={broadcastImagePreview} alt="Preview" className="w-full max-h-40 object-contain rounded-xl" />
-                        <button
-                          onClick={clearBroadcastImage}
-                          className="absolute top-2 right-2 w-7 h-7 bg-black/70 rounded-full flex items-center justify-center text-white/80 hover:text-white text-sm"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex items-center justify-center h-16 border border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-zinc-500 transition-colors">
-                        <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-                        <span className="text-white/30 text-sm">+ Добавить картинку</span>
-                      </label>
-                    )}
-
-                    {/* Текст */}
-                    <textarea
-                      value={broadcastMessage}
-                      onChange={e => setBroadcastMessage(e.target.value)}
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck={false}
-                      placeholder={broadcastImage ? "Подпись к картинке..." : "Текст сообщения..."}
-                      className="w-full h-28 bg-zinc-800 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-white/20 resize-none"
-                    />
-                  </div>
-
-                  {/* Прогресс */}
-                  {sendingBroadcast && (
-                    <div className="bg-zinc-900 rounded-2xl p-4">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-white/40">Отправка</span>
-                        <span className="text-white">{broadcastProgress.sent}/{broadcastProgress.total}</span>
-                      </div>
-                      <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-white transition-all"
-                          style={{ width: `${(broadcastProgress.sent / broadcastProgress.total) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Кнопка */}
-                  <button
-                    onClick={handleBroadcast}
-                    disabled={sendingBroadcast || (!broadcastMessage.trim() && !broadcastImage)}
-                    className="w-full py-4 bg-white text-black font-semibold rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
-                  >
-                    {sendingBroadcast ? 'Отправка...' : broadcastImage ? 'Отправить картинку' : 'Отправить'}
-                  </button>
-                </>
-              )}
-            </div>
+            <BroadcastTab
+              botUsers={botUsers}
+              users={users}
+              premiumClients={premiumClients}
+              broadcastHistory={broadcastHistory}
+              getAuthHeaders={getAuthHeaders}
+              showToast={showToast}
+              telegramUserId={telegramUser?.id}
+              onBroadcastComplete={loadBroadcastHistory}
+            />
           )}
 
         </div>
