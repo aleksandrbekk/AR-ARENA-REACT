@@ -1,92 +1,30 @@
 // 0xProcessing Webhook для Premium AR Club (крипто-оплата)
 // Vercel Serverless Function
-// 2025-12-23
-// Updated: 2026-01-20 - Added HMAC signature verification & improved duplicate protection
-// Updated: 2026-01-XX - Fixed race condition: payment_history insert moved BEFORE subscription update to prevent duplicate payments
+// Refactored: 2026-01-24
 
-import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { supabase } from './utils/supabase.js';
+import { sendTelegramPhoto, sendTelegramMessage, createInviteLinks } from './utils/telegram.js';
+import { TARIFF_CARD_IMAGES } from './utils/tariffs.js';
+import {
+  getPeriodByAmountUSD,
+  normalizeCryptoCurrency,
+  trackUtmConversion,
+  trackStreamConversionFromBillingId,
+  findUsernameByTelegramId,
+  findTelegramIdByUsername,
+  ensureUserExists
+} from './utils/payment-helpers.js';
 import { logSystemMessage } from './utils/log-system-message.js';
 
 // ============================================
-// КОНФИГУРАЦИЯ
+// CONFIGURATION
 // ============================================
 
-// SECURITY: All secrets from environment variables (set in Vercel)
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-
-// Validate required env vars
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
-  console.error('CRITICAL: Missing required environment variables');
-}
-
-// MerchantId для верификации
 const MERCHANT_ID = '0xMR3389551';
-
-// Webhook secret для HMAC верификации (set in Vercel environment)
 const WEBHOOK_SECRET = process.env.OXPROCESSING_WEBHOOK_SECRET;
+const ADMIN_ID = '190202791';
 
-// ============================================
-// SECURITY: HMAC Signature Verification
-// ============================================
-
-/**
- * Verify HMAC-SHA256 signature from 0xProcessing webhook
- * Uses timing-safe comparison to prevent timing attacks
- *
- * @param {object|string} payload - Request body (object or string)
- * @param {string} signature - Signature from header
- * @param {string} secret - Webhook secret key
- * @returns {boolean} - true if signature is valid
- */
-function verifyWebhookSignature(payload, signature, secret) {
-  if (!signature || !secret) {
-    return false;
-  }
-
-  try {
-    // Normalize payload to string
-    const payloadString = typeof payload === 'string'
-      ? payload
-      : JSON.stringify(payload);
-
-    const hmac = crypto.createHmac('sha256', secret);
-    hmac.update(payloadString);
-    const expectedSignature = hmac.digest('hex');
-
-    // Use timing-safe comparison to prevent timing attacks
-    const signatureBuffer = Buffer.from(signature, 'utf8');
-    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
-
-    // Ensure buffers are same length before comparison
-    if (signatureBuffer.length !== expectedBuffer.length) {
-      return false;
-    }
-
-    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
-  } catch (error) {
-    console.error('[0xProcessing] Signature verification error:', error.message);
-    return false;
-  }
-}
-
-// Маппинг суммы USD на период подписки
-// ПРОДАКШН ЦЕНЫ (крипто) - курс 80₽/$
-// Широкие диапазоны чтобы учитывать комиссии сети (могут быть $5-25)
-const AMOUNT_TO_PERIOD = [
-  { min: 45, max: 80, days: 30, tariff: 'classic', name: 'CLASSIC' },       // $50 (±комиссии)
-  { min: 120, max: 180, days: 90, tariff: 'gold', name: 'GOLD' },           // $136 (±комиссии)
-  { min: 200, max: 300, days: 180, tariff: 'platinum', name: 'PLATINUM' },  // $249 (±комиссии)
-  { min: 400, max: 550, days: 365, tariff: 'private', name: 'PRIVATE' }     // $474 (±комиссии)
-];
-
-// Supabase клиент
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-// Allowed origins for CORS
 const ALLOWED_ORIGINS = [
   'https://ar-arena.games',
   'https://www.ar-arena.games',
@@ -95,7 +33,7 @@ const ALLOWED_ORIGINS = [
 ].filter(Boolean);
 
 // ============================================
-// HELPER FUNCTIONS
+// LOGGING
 // ============================================
 
 function log(message, data = null) {
@@ -107,267 +45,27 @@ function log(message, data = null) {
   }
 }
 
-function getPeriodByAmount(amountUSD) {
-  const amount = parseFloat(amountUSD);
-  for (const period of AMOUNT_TO_PERIOD) {
-    if (amount >= period.min && amount <= period.max) {
-      return period;
-    }
-  }
-  // Fallback: 30 дней
-  log(`⚠️ Unknown amount ${amountUSD} USD, defaulting to 30 days`);
-  return { days: 30, tariff: 'unknown', name: 'UNKNOWN' };
-}
+// ============================================
+// HMAC SIGNATURE VERIFICATION (0xProcessing-specific)
+// ============================================
 
-// Нормализация валюты для крипто-платежей
-// Все крипто-валюты (USDT, USDC, BTC, ETH, TON и т.д.) считаются как USD
-function normalizeCurrency(currency) {
-  if (!currency) return 'USD';
-  const upper = currency.toUpperCase();
-  // Все криптовалюты и стейблкоины → USD
-  if (upper.includes('USDT') || upper.includes('USDC') || upper.includes('USD') ||
-    upper.includes('BTC') || upper.includes('ETH') || upper.includes('TON') ||
-    upper.includes('TRX') || upper.includes('BNB') || upper.includes('SOL') ||
-    upper.includes('CRYPTO')) {
-    return 'USD';
-  }
-  return 'USD'; // Для 0xprocessing всегда USD
-}
-
-// Маппинг тарифа на URL картинки
-const TARIFF_CARD_IMAGES = {
-  'classic': 'https://ararena.pro/cards/classic.png',
-  'gold': 'https://ararena.pro/cards/gold.png',
-  'platinum': 'https://ararena.pro/cards/platinum.png',
-  'private': 'https://ararena.pro/cards/PRIVATE.png'
-};
-
-// Утилита для задержки (используется в retry)
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Отправить фото с подписью в Telegram (с retry)
-async function sendTelegramPhoto(telegramId, photoUrl, caption, replyMarkup = null, maxRetries = 3) {
-  const body = {
-    chat_id: telegramId,
-    photo: photoUrl,
-    caption,
-    parse_mode: 'HTML'
-  };
-
-  if (replyMarkup) {
-    body.reply_markup = replyMarkup;
-  }
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      log(`📤 [TELEGRAM] Sending photo to ${telegramId}, attempt ${attempt}/${maxRetries}`);
-
-      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      const result = await response.json();
-      if (result.ok) {
-        log(`✅ [TELEGRAM] Photo sent successfully to ${telegramId}`);
-        return result;
-      }
-
-      log(`❌ [TELEGRAM] sendPhoto failed (attempt ${attempt}/${maxRetries}):`, result);
-
-      // Если это не последняя попытка, ждём перед ретраем
-      if (attempt < maxRetries) {
-        const delayMs = 2000 * attempt; // 2s, 4s, 6s
-        log(`⏳ [TELEGRAM] Retrying in ${delayMs}ms...`);
-        await delay(delayMs);
-      }
-    } catch (error) {
-      log(`❌ [TELEGRAM] sendPhoto error (attempt ${attempt}/${maxRetries}):`, { error: error.message });
-
-      if (attempt < maxRetries) {
-        const delayMs = 2000 * attempt;
-        log(`⏳ [TELEGRAM] Retrying in ${delayMs}ms...`);
-        await delay(delayMs);
-      }
-    }
-  }
-
-  log(`❌ [TELEGRAM] Failed to send photo after ${maxRetries} attempts`);
-  return null;
-}
-
-// Отправить сообщение в Telegram (с retry)
-async function sendTelegramMessage(telegramId, text, replyMarkup = null, maxRetries = 3) {
-  const body = {
-    chat_id: telegramId,
-    text,
-    parse_mode: 'HTML'
-  };
-
-  if (replyMarkup) {
-    body.reply_markup = replyMarkup;
-  }
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      log(`📤 [TELEGRAM] Sending message to ${telegramId}, attempt ${attempt}/${maxRetries}`);
-
-      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      const result = await response.json();
-      if (result.ok) {
-        log(`✅ [TELEGRAM] Message sent successfully to ${telegramId}`);
-        return result;
-      }
-
-      log(`❌ [TELEGRAM] sendMessage failed (attempt ${attempt}/${maxRetries}):`, result);
-
-      if (attempt < maxRetries) {
-        const delayMs = 2000 * attempt;
-        log(`⏳ [TELEGRAM] Retrying in ${delayMs}ms...`);
-        await delay(delayMs);
-      }
-    } catch (error) {
-      log(`❌ [TELEGRAM] sendMessage error (attempt ${attempt}/${maxRetries}):`, { error: error.message });
-
-      if (attempt < maxRetries) {
-        const delayMs = 2000 * attempt;
-        log(`⏳ [TELEGRAM] Retrying in ${delayMs}ms...`);
-        await delay(delayMs);
-      }
-    }
-  }
-
-  log(`❌ [TELEGRAM] Failed to send message after ${maxRetries} attempts`);
-  return null;
-}
-
-// Бот KIKER для управления каналом/чатом
-// SECURITY: Token from environment variable
-const KIKER_BOT_TOKEN = process.env.KIKER_BOT_TOKEN;
-const CHANNEL_ID = '-1001634734020';
-const CHAT_ID = '-1001828659569';
-
-// Трекинг UTM конверсии
-async function trackUtmConversion(telegramId) {
-  if (!telegramId) return;
+function verifyWebhookSignature(payload, signature, secret) {
+  if (!signature || !secret) return false;
 
   try {
-    // Ищем источник пользователя
-    const { data: userSource } = await supabase
-      .from('user_sources')
-      .select('source')
-      .eq('telegram_id', telegramId)
-      .single();
+    const payloadString = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(payloadString);
+    const expectedSignature = hmac.digest('hex');
 
-    if (userSource?.source) {
-      // Инкрементируем конверсию
-      await supabase.rpc('increment_utm_conversion', { p_slug: userSource.source });
-      log(`📊 UTM conversion tracked: ${userSource.source} for user ${telegramId}`);
-    }
-  } catch (err) {
-    log('⚠️ trackUtmConversion error (non-critical)', { error: err.message });
-  }
-}
+    const signatureBuffer = Buffer.from(signature, 'utf8');
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
 
-// Трекинг конверсии для stream UTM ссылок (извлекает из BillingId)
-async function trackStreamConversion(billingId) {
-  if (!billingId) return;
-
-  try {
-    // BillingId формат: premium_tariff_clientId_timestamp_stream_SLUG
-    const streamMatch = billingId.match(/_stream_([a-zA-Z0-9_-]+)$/);
-    if (!streamMatch) {
-      log('ℹ️ No stream_utm in BillingId');
-      return;
-    }
-
-    const streamUtmSlug = streamMatch[1];
-    log(`📊 Found stream_utm in BillingId: ${streamUtmSlug}`);
-
-    // Увеличиваем conversions в utm_tool_links
-    const { data: link } = await supabase
-      .from('utm_tool_links')
-      .select('id, conversions')
-      .eq('slug', streamUtmSlug)
-      .single();
-
-    if (link) {
-      await supabase
-        .from('utm_tool_links')
-        .update({
-          conversions: (link.conversions || 0) + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', link.id);
-
-      log(`✅ Stream conversion tracked for slug: ${streamUtmSlug}`);
-    } else {
-      log(`⚠️ Stream UTM link not found: ${streamUtmSlug}`);
-    }
-  } catch (err) {
-    log('⚠️ trackStreamConversion error (non-critical)', { error: err.message });
-  }
-}
-
-// Создать invite-ссылку напрямую через Telegram API
-// Ссылка бессрочная, но одноразовая (member_limit=1)
-async function createDirectInviteLink(chatId) {
-  try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${KIKER_BOT_TOKEN}/createChatInviteLink?chat_id=${chatId}&member_limit=1`
-    );
-    const result = await response.json();
-    return result.ok ? result.result.invite_link : null;
+    if (signatureBuffer.length !== expectedBuffer.length) return false;
+    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
   } catch (error) {
-    log('❌ Direct invite link error', { error: error.message });
-    return null;
-  }
-}
-
-// Создать invite-ссылки (канал + чат)
-async function createInviteLinks(telegramId) {
-  try {
-    // Пробуем через Edge Function
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-channel`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-      },
-      body: JSON.stringify({ action: 'invite', telegram_id: parseInt(telegramId) })
-    });
-
-    const result = await response.json();
-    log('📨 Invite response', result);
-
-    let channelLink = result.results?.channel?.result?.invite_link || null;
-    let chatLink = result.results?.chat?.result?.invite_link || null;
-
-    // Fallback: если Edge Function не вернула ссылки, создаём напрямую
-    if (!channelLink) {
-      log('⚠️ Channel link missing, creating directly');
-      channelLink = await createDirectInviteLink(CHANNEL_ID);
-    }
-    if (!chatLink) {
-      log('⚠️ Chat link missing, creating directly');
-      chatLink = await createDirectInviteLink(CHAT_ID);
-    }
-
-    return { channelLink, chatLink };
-  } catch (error) {
-    log('❌ Create invite error, trying direct', { error: error.message });
-    // Полный fallback
-    const channelLink = await createDirectInviteLink(CHANNEL_ID);
-    const chatLink = await createDirectInviteLink(CHAT_ID);
-    return { channelLink, chatLink };
+    log('Signature verification error:', error.message);
+    return false;
   }
 }
 
@@ -376,7 +74,7 @@ async function createInviteLinks(telegramId) {
 // ============================================
 
 export default async function handler(req, res) {
-  // CORS headers
+  // CORS
   const origin = req.headers.origin;
   const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   res.setHeader('Access-Control-Allow-Origin', corsOrigin);
@@ -384,116 +82,66 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Signature, X-Webhook-Signature, X-0x-Signature, Signature');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method === 'GET') {
-    return res.status(200).json({
-      status: 'ok',
-      service: '0xProcessing Webhook for Premium AR Club',
-      method: 'POST only'
-    });
+    return res.status(200).json({ status: 'ok', service: '0xProcessing Webhook', method: 'POST only' });
   }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    // ============================================
-    // ЛОГИРОВАНИЕ ВХОДЯЩЕГО ЗАПРОСА
-    // ============================================
-    console.log('=== 0xPROCESSING WEBHOOK RECEIVED ===');
+    log('=== WEBHOOK RECEIVED ===');
     console.log('Headers:', JSON.stringify(req.headers, null, 2));
     console.log('Body:', JSON.stringify(req.body, null, 2));
 
     const payload = req.body;
 
     // ============================================
-    // 0. SECURITY: HMAC SIGNATURE VERIFICATION
+    // 1. SECURITY: HMAC VERIFICATION
     // ============================================
-    // Check for signature in common header names
     const signature = req.headers['x-signature']
       || req.headers['x-webhook-signature']
       || req.headers['x-0x-signature']
       || req.headers['signature'];
 
     if (WEBHOOK_SECRET) {
-      // Webhook secret is configured - verify signature
       if (signature) {
-        const isValidSignature = verifyWebhookSignature(payload, signature, WEBHOOK_SECRET);
-        if (!isValidSignature) {
-          log('SECURITY: Invalid webhook signature - rejecting request');
+        if (!verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)) {
+          log('SECURITY: Invalid webhook signature');
           return res.status(401).json({ error: 'Invalid signature' });
         }
-        log('SECURITY: Webhook signature verified successfully');
+        log('SECURITY: Signature verified');
       } else {
-        // Signature header missing but secret is configured
-        // Log warning but continue for backward compatibility during transition
-        log('SECURITY WARNING: WEBHOOK_SECRET is set but no signature header received. Consider requiring signatures.');
+        log('SECURITY WARNING: No signature header received');
       }
-    } else {
-      // No webhook secret configured
-      log('SECURITY WARNING: OXPROCESSING_WEBHOOK_SECRET not configured. Signature verification disabled. Set this env var for production security.');
     }
 
     // ============================================
-    // 1. ВАЛИДАЦИЯ PAYLOAD
+    // 2. VALIDATE PAYLOAD
     // ============================================
-    // 0xProcessing webhook payload содержит:
-    // - Status (Success, Cancelled, etc.)
-    // - ClientId (наш telegram_id или username)
-    // - AmountUSD или Amount
-    // - Currency
-    // - BillingId
-    // - TransactionHash
+    const { Status, ClientId, AmountUSD, Amount, Currency, BillingId, TransactionHash, MerchantId, PaymentId } = payload;
 
-    const {
-      Status,
-      ClientId,
-      AmountUSD,
-      Amount,
-      Currency,
-      BillingId,
-      TransactionHash,
-      WalletAddress,
-      MerchantId,
-      PaymentId,
-      Signature: PayloadSignature
-    } = payload;
+    log(`Payment status: ${Status}, ClientId: ${ClientId}, Amount: ${AmountUSD || Amount} ${Currency}`);
 
-    log(`📨 Payment status: ${Status}, ClientId: ${ClientId}, Amount: ${AmountUSD || Amount} ${Currency}`);
-    log(`🏪 MerchantId: ${MerchantId}, PaymentId: ${PaymentId}`);
-
-    // Проверяем MerchantId
     if (MerchantId && MerchantId !== MERCHANT_ID) {
-      log(`SECURITY: Invalid MerchantId: ${MerchantId}, expected: ${MERCHANT_ID}`);
+      log(`Invalid MerchantId: ${MerchantId}`);
       return res.status(200).json({ message: 'Invalid merchant' });
     }
 
-    // Проверяем статус платежа
     if (Status !== 'Success' && Status !== 'Completed') {
       log(`Payment status: ${Status} - ignoring`);
-      return res.status(200).json({ message: 'Payment not successful, ignoring' });
+      return res.status(200).json({ message: 'Payment not successful' });
     }
 
     if (!ClientId) {
-      log('Missing ClientId in payload');
       return res.status(200).json({ message: 'No ClientId found' });
     }
 
     // ============================================
-    // ПРОВЕРКА НА ДУБЛИКАТ (УЛУЧШЕННАЯ)
+    // 3. DUPLICATE CHECK
     // ============================================
-    // 1. Проверяем по PaymentId/TransactionHash в payment_history (надёжная проверка)
-    // 2. Fallback: проверка по времени последнего платежа (защита от retry)
-
-    // Уникальный идентификатор платежа для проверки дубликатов
-    const uniquePaymentId = PaymentId || TransactionHash || null;
+    const uniquePaymentId = PaymentId || TransactionHash;
 
     if (uniquePaymentId) {
-      // Проверяем по contract_id в payment_history (надёжная проверка)
       const { data: existingPayment } = await supabase
         .from('payment_history')
         .select('id, created_at')
@@ -501,240 +149,68 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (existingPayment) {
-        log(`DUPLICATE: Payment ${uniquePaymentId} already processed at ${existingPayment.created_at} - ignoring`);
-        return res.status(200).json({ message: 'Payment already processed (duplicate by PaymentId)' });
-      }
-    }
-
-    // Fallback: проверка по времени (защита от retry без PaymentId)
-    const clientIdentifier = /^\d+$/.test(ClientId) ? parseInt(ClientId) : null;
-    if (clientIdentifier) {
-      const { data: recentClient } = await supabase
-        .from('premium_clients')
-        .select('last_payment_at')
-        .eq('telegram_id', clientIdentifier)
-        .single();
-
-      if (recentClient?.last_payment_at) {
-        const lastPayment = new Date(recentClient.last_payment_at);
-        const now = new Date();
-        const minutesSinceLastPayment = (now - lastPayment) / 1000 / 60;
-
-        // Если нет PaymentId и последний платёж был <5 минут назад - считаем дубликатом
-        if (!uniquePaymentId && minutesSinceLastPayment < 5) {
-          log(`DUPLICATE: No PaymentId and last payment was ${minutesSinceLastPayment.toFixed(1)} min ago - ignoring`);
-          return res.status(200).json({ message: 'Payment already processed (duplicate by time)' });
-        }
+        log(`DUPLICATE: Payment ${uniquePaymentId} already processed`);
+        return res.status(200).json({ message: 'Payment already processed' });
       }
     }
 
     // ============================================
-    // 2. ОПРЕДЕЛЕНИЕ TELEGRAM ID (УЛУЧШЕННАЯ ЛОГИКА)
+    // 4. EXTRACT TELEGRAM ID
     // ============================================
     let telegramId = null;
     let username = null;
 
-    log(`🔍 [STEP 2.1] Starting telegram_id extraction, ClientId: ${ClientId}`);
-
-    // ClientId может быть telegram_id (число) или username (строка)
     if (/^\d+$/.test(ClientId)) {
       telegramId = ClientId;
-      log(`🔍 [STEP 2.2] ClientId is numeric, using as telegram_id: ${telegramId}`);
-
-      // Пробуем найти username для этого telegram_id в users
-      const { data: userData } = await supabase
-        .from('users')
-        .select('username')
-        .eq('telegram_id', parseInt(telegramId))
-        .single();
-
-      if (userData?.username) {
-        username = userData.username;
-        log(`✅ [STEP 2.3] Found username ${username} for telegram_id ${telegramId} in users`);
-      } else {
-        // Пробуем найти в premium_clients
-        const { data: clientData } = await supabase
-          .from('premium_clients')
-          .select('username')
-          .eq('telegram_id', parseInt(telegramId))
-          .single();
-
-        if (clientData?.username) {
-          username = clientData.username;
-          log(`✅ [STEP 2.3] Found username ${username} for telegram_id ${telegramId} in premium_clients`);
-        } else {
-          log(`⚠️ [STEP 2.3] No username found for telegram_id ${telegramId}`);
-        }
-      }
+      username = await findUsernameByTelegramId(telegramId);
     } else {
       username = ClientId;
-      log(`🔍 [STEP 2.2] ClientId is string (username): ${username}`);
-
-      // Пробуем найти telegram_id по username в users
-      const { data: userData } = await supabase
-        .from('users')
-        .select('telegram_id, username')
-        .ilike('username', username)
-        .single();
-
-      if (userData?.telegram_id) {
-        telegramId = String(userData.telegram_id);
-        username = userData.username;
-        log(`✅ [STEP 2.3] Found telegram_id ${telegramId} for username ${username} in users`);
-      } else {
-        // Пробуем найти в premium_clients
-        log(`⚠️ [STEP 2.3] Username ${username} not found in users, searching in premium_clients...`);
-        const { data: clientData } = await supabase
-          .from('premium_clients')
-          .select('telegram_id, username')
-          .ilike('username', username)
-          .single();
-
-        if (clientData?.telegram_id) {
-          telegramId = String(clientData.telegram_id);
-          username = clientData.username;
-          log(`✅ [STEP 2.4] Found telegram_id ${telegramId} for username ${username} in premium_clients`);
-        } else {
-          log(`⚠️ [STEP 2.4] Username ${username} not found in premium_clients either`);
-        }
+      const found = await findTelegramIdByUsername(username);
+      if (found) {
+        telegramId = String(found.telegramId);
+        username = found.username;
       }
     }
 
-    log(`👤 [STEP 2.5] Final result - Telegram ID: ${telegramId || 'N/A'}, Username: ${username || 'N/A'}`);
-
-
-    // ============================================
-    // 3. ОПРЕДЕЛЕНИЕ ПЕРИОДА ПОДПИСКИ
-    // ============================================
-    // Согласно документации 0xProcessing webhook содержит:
-    // - AmountUSD: Payment amount in USD equivalent (Double)
-    // - TotalAmountUSD: Full amount received in USD equivalent without fee (Double)
-    // - Amount: Payment amount in CRYPTOCURRENCY (NOT USD!)
-    // ВАЖНО: Используем !== undefined/null, т.к. || не работает если значение = 0
-
-    let amountUSD = null;
-
-    // Приоритет: TotalAmountUSD > AmountUSD (оба в USD)
-    if (payload.TotalAmountUSD !== undefined && payload.TotalAmountUSD !== null) {
-      amountUSD = parseFloat(payload.TotalAmountUSD);
-      log(`💰 Using TotalAmountUSD: ${amountUSD}`);
-    } else if (payload.AmountUSD !== undefined && payload.AmountUSD !== null) {
-      amountUSD = parseFloat(payload.AmountUSD);
-      log(`💰 Using AmountUSD: ${amountUSD}`);
-    } else {
-      // Fallback - это НЕ должно происходить!
-      log(`⚠️ WARNING: No USD amount found in payload!`);
-      log(`⚠️ Available keys: ${Object.keys(payload).join(', ')}`);
-      log(`⚠️ Payload: ${JSON.stringify(payload)}`);
-      // Попробуем Amount, но это криптовалюта, не USD!
-      amountUSD = parseFloat(payload.Amount || 0);
-    }
-
-    log(`💰 FINAL amountUSD: ${amountUSD} | TotalAmountUSD=${payload.TotalAmountUSD}, AmountUSD=${payload.AmountUSD}, Amount=${payload.Amount}`);
-
-    const period = getPeriodByAmount(amountUSD);
-    log(`📅 Period determined: ${period.days} days (${period.name})`);
-
-    // Определяем telegramIdInt для использования ниже
+    log(`Telegram ID: ${telegramId || 'N/A'}, Username: ${username || 'N/A'}`);
     const telegramIdInt = telegramId ? parseInt(telegramId) : null;
 
     // ============================================
-    // 3.1. АВТОМАТИЧЕСКОЕ СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ В USERS (если не существует)
+    // 5. DETERMINE PERIOD
     // ============================================
-    // FK constraint на payment_history требует существующего telegram_id в users
-    // Создаём пользователя если его нет, чтобы платёж не отклонялся
-    log(`🔍 [STEP 3.1] Checking if user exists in users table...`);
+    let amountUSD = payload.TotalAmountUSD ?? payload.AmountUSD ?? parseFloat(Amount || 0);
+    amountUSD = parseFloat(amountUSD);
+    log(`Amount USD: ${amountUSD}`);
 
+    const period = getPeriodByAmountUSD(amountUSD);
+    log(`Period: ${period.days} days (${period.name})`);
+
+    // ============================================
+    // 6. ENSURE USER EXISTS
+    // ============================================
     if (telegramIdInt) {
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('telegram_id, username')
-        .eq('telegram_id', telegramIdInt)
-        .single();
-
-      if (!existingUser) {
-        log(`👤 [STEP 3.1.1] User ${telegramIdInt} not found in users table, creating...`);
-
-        const { error: createUserError } = await supabase
-          .from('users')
-          .insert({
-            telegram_id: telegramIdInt,
-            username: username || null,
-            first_name: null,
-            created_at: new Date().toISOString(),
-            source: '0xprocessing_payment'
-          });
-
-        if (createUserError) {
-          // Если ошибка UNIQUE constraint - пользователь уже есть (race condition), это ОК
-          if (createUserError.code === '23505') {
-            log(`👤 [STEP 3.1.2] User ${telegramIdInt} already exists (race condition), continuing...`);
-          } else {
-            log(`⚠️ [STEP 3.1.2] Warning: Could not create user record:`, createUserError);
-            // Не прерываем — попробуем записать платёж, может FK отключён
-          }
-        } else {
-          log(`✅ [STEP 3.1.2] User ${telegramIdInt} created successfully in users table`);
-        }
-      } else {
-        log(`👤 [STEP 3.1.1] User ${telegramIdInt} already exists in users table (username: ${existingUser.username})`);
-        // Обновляем username если у нас есть новый, а у него нет
-        if (username && !existingUser.username) {
-          const { error: updateUsernameError } = await supabase
-            .from('users')
-            .update({ username: username, updated_at: new Date().toISOString() })
-            .eq('telegram_id', telegramIdInt);
-
-          if (!updateUsernameError) {
-            log(`✅ [STEP 3.1.2] Updated username to ${username} for user ${telegramIdInt}`);
-          }
-        }
-      }
-    } else if (username) {
-      // Если есть только username без telegram_id - создаём пользователя с telegram_id = null
-      // Это позволит сохранить платёж и привязать к premium_clients
-      log(`⚠️ [STEP 3.1.1] No telegram_id, only username: ${username}. Checking if exists in users...`);
-
-      const { data: existingUserByUsername } = await supabase
-        .from('users')
-        .select('telegram_id, username')
-        .ilike('username', username)
-        .single();
-
-      if (!existingUserByUsername) {
-        log(`👤 [STEP 3.1.2] User with username ${username} not found, but NOT creating without telegram_id`);
-        // НЕ создаём пользователя без telegram_id - это нарушит FK constraint
-        // Вместо этого просто логируем и продолжаем
-      } else {
-        log(`👤 [STEP 3.1.2] User with username ${username} exists (telegram_id: ${existingUserByUsername.telegram_id})`);
-      }
-    } else {
-      log(`⚠️ [STEP 3.1.1] CRITICAL: No telegram_id and no username! Payment may fail.`);
+      await ensureUserExists(telegramIdInt, username, '0xprocessing_payment');
     }
 
     // ============================================
-    // 3.2. ЗАПИСЬ В PAYMENT_HISTORY (ДО ОБНОВЛЕНИЯ ПОДПИСКИ!)
+    // 7. RECORD PAYMENT HISTORY (BEFORE premium_clients!)
     // ============================================
-    // ВАЖНО: Записываем ДО обновления подписки для защиты от дубликатов
-    // Это предотвращает race condition при одновременных webhook запросах
     const paymentContractId = PaymentId || TransactionHash || `0x_${Date.now()}_${telegramIdInt || username}`;
 
-    // Дополнительная проверка дубликата по contract_id (на случай если uniquePaymentId был null)
-    const { data: existingPaymentByContract } = await supabase
+    const { data: existingByContract } = await supabase
       .from('payment_history')
-      .select('id, created_at')
+      .select('id')
       .eq('contract_id', paymentContractId)
       .maybeSingle();
 
-    if (existingPaymentByContract) {
-      log(`DUPLICATE: Payment ${paymentContractId} already processed at ${existingPaymentByContract.created_at} - ignoring`);
-      return res.status(200).json({ message: 'Payment already processed (duplicate by contract_id)' });
+    if (existingByContract) {
+      log(`DUPLICATE: Payment ${paymentContractId} exists`);
+      return res.status(200).json({ message: 'Payment already processed' });
     }
 
-    // Пытаемся записать в payment_history ДО обновления подписки
     const paymentData = {
       telegram_id: telegramIdInt ? String(telegramIdInt) : username,
-      amount: parseFloat(amountUSD),
+      amount: amountUSD,
       currency: 'USD',
       source: '0xprocessing',
       contract_id: paymentContractId,
@@ -744,50 +220,31 @@ export default async function handler(req, res) {
       created_at: new Date().toISOString()
     };
 
-    log('📝 Recording payment_history BEFORE premium_clients update:', paymentData);
+    const { error: paymentError } = await supabase.from('payment_history').insert(paymentData);
 
-    const { error: paymentHistoryError } = await supabase
-      .from('payment_history')
-      .insert(paymentData);
-
-    if (paymentHistoryError) {
-      // Если ошибка уникальности - это дубликат, игнорируем
-      if (paymentHistoryError.code === '23505' || 
-          paymentHistoryError.message?.includes('duplicate') || 
-          paymentHistoryError.message?.includes('unique') ||
-          paymentHistoryError.message?.includes('violates unique constraint')) {
-        log(`DUPLICATE: Payment ${paymentContractId} already exists in payment_history (unique constraint) - ignoring`);
-        return res.status(200).json({ message: 'Payment already processed (duplicate by contract_id constraint)' });
+    if (paymentError) {
+      if (paymentError.code === '23505') {
+        log(`DUPLICATE: Unique constraint violation`);
+        return res.status(200).json({ message: 'Payment already processed' });
       }
-      // Другая ошибка - критическая, возвращаем 500
-      log('❌ CRITICAL: Failed to record payment_history, aborting:', paymentHistoryError);
-      return res.status(500).json({ error: 'Failed to record payment', details: paymentHistoryError.message });
+      log('CRITICAL: Failed to record payment:', paymentError);
+      return res.status(500).json({ error: 'Failed to record payment' });
     }
 
-    log('✅ Payment history recorded, proceeding to update premium_clients');
+    log('Payment history recorded');
 
     // ============================================
-    // 4. UPSERT В PREMIUM_CLIENTS
+    // 8. UPSERT PREMIUM_CLIENTS
     // ============================================
     const now = new Date();
     const expiresAt = new Date(now.getTime() + period.days * 24 * 60 * 60 * 1000);
 
-    // Проверяем существующего клиента
     let existingClient = null;
-
     if (telegramIdInt) {
-      const { data } = await supabase
-        .from('premium_clients')
-        .select('*')
-        .eq('telegram_id', telegramIdInt)
-        .single();
+      const { data } = await supabase.from('premium_clients').select('*').eq('telegram_id', telegramIdInt).single();
       existingClient = data;
     } else if (username) {
-      const { data } = await supabase
-        .from('premium_clients')
-        .select('*')
-        .eq('username', username)
-        .single();
+      const { data } = await supabase.from('premium_clients').select('*').eq('username', username).single();
       existingClient = data;
     }
 
@@ -795,242 +252,123 @@ export default async function handler(req, res) {
     let isNewClient = false;
 
     if (existingClient) {
-      // КРИТИЧЕСКАЯ ПРОВЕРКА: Убеждаемся что этот платеж еще не был обработан
-      // Защита от race condition - если два webhook'а пришли одновременно
-      // paymentContractId уже определен выше (строка 720), используем его
-      const { data: existingPaymentCheck } = await supabase
-        .from('payment_history')
-        .select('id, created_at')
-        .eq('contract_id', paymentContractId)
-        .maybeSingle();
-
-      if (existingPaymentCheck) {
-        log(`DUPLICATE: Payment ${paymentContractId} already exists in payment_history (created at ${existingPaymentCheck.created_at}) - skipping premium_clients update`);
-        return res.status(200).json({ message: 'Payment already processed (duplicate detected before update)' });
-      }
-
-      // Продлеваем подписку
       const currentExpires = new Date(existingClient.expires_at);
       const newExpires = currentExpires > now
         ? new Date(currentExpires.getTime() + period.days * 24 * 60 * 60 * 1000)
         : expiresAt;
 
-      const { error: updateError } = await supabase
-        .from('premium_clients')
-        .update({
-          plan: period.tariff,
-          expires_at: newExpires.toISOString(),
-          total_paid_usd: (existingClient.total_paid_usd || 0) + Math.round(parseFloat(amountUSD)),
-          payments_count: (existingClient.payments_count || 0) + 1,
-          last_payment_at: now.toISOString(),
-          last_payment_method: '0xprocessing',
-          source: '0xprocessing',
-          currency: normalizeCurrency(Currency),
-          original_amount: Math.round(parseFloat(amountUSD)),
-          updated_at: now.toISOString()
-        })
-        .eq('id', existingClient.id);
-
-      if (updateError) {
-        log('❌ Error updating client', updateError);
-        throw new Error('Failed to update client');
-      }
+      await supabase.from('premium_clients').update({
+        plan: period.tariff,
+        expires_at: newExpires.toISOString(),
+        total_paid_usd: (existingClient.total_paid_usd || 0) + Math.round(amountUSD),
+        payments_count: (existingClient.payments_count || 0) + 1,
+        last_payment_at: now.toISOString(),
+        last_payment_method: '0xprocessing',
+        source: '0xprocessing',
+        currency: normalizeCryptoCurrency(Currency),
+        original_amount: Math.round(amountUSD),
+        updated_at: now.toISOString()
+      }).eq('id', existingClient.id);
 
       clientId = existingClient.id;
-      log(`✅ Client updated: ${telegramId || username}, expires: ${newExpires.toISOString()}`);
+      log(`Client updated, expires: ${newExpires.toISOString()}`);
     } else {
-      // Создаём нового клиента
       isNewClient = true;
 
-      const { data: newClient, error: insertError } = await supabase
-        .from('premium_clients')
-        .insert({
-          telegram_id: telegramIdInt,
-          username,
-          plan: period.tariff,
-          started_at: now.toISOString(),
-          expires_at: expiresAt.toISOString(),
-          in_channel: false,
-          in_chat: false,
-          tags: [],
-          source: '0xprocessing',
-          total_paid_usd: Math.round(parseFloat(amountUSD)),
-          payments_count: 1,
-          last_payment_at: now.toISOString(),
-          last_payment_method: '0xprocessing',
-          currency: normalizeCurrency(Currency),
-          original_amount: Math.round(parseFloat(amountUSD)),
-          created_at: now.toISOString(),
-          updated_at: now.toISOString()
-        })
-        .select()
-        .single();
+      const { data: newClient, error: insertError } = await supabase.from('premium_clients').insert({
+        telegram_id: telegramIdInt,
+        username,
+        plan: period.tariff,
+        started_at: now.toISOString(),
+        expires_at: expiresAt.toISOString(),
+        in_channel: false,
+        in_chat: false,
+        tags: [],
+        source: '0xprocessing',
+        total_paid_usd: Math.round(amountUSD),
+        payments_count: 1,
+        last_payment_at: now.toISOString(),
+        last_payment_method: '0xprocessing',
+        currency: normalizeCryptoCurrency(Currency),
+        original_amount: Math.round(amountUSD),
+        created_at: now.toISOString(),
+        updated_at: now.toISOString()
+      }).select().single();
 
-      if (insertError) {
-        log('❌ Error inserting client', insertError);
-        throw new Error('Failed to insert client');
-      }
-
+      if (insertError) throw new Error('Failed to insert client');
       clientId = newClient.id;
-      log(`✅ New client created: ${telegramId || username}, expires: ${expiresAt.toISOString()}`);
+      log(`New client created, expires: ${expiresAt.toISOString()}`);
     }
 
     // ============================================
-    // 5. ОТПРАВКА СООБЩЕНИЯ В TELEGRAM
+    // 9. SEND TELEGRAM MESSAGE
     // ============================================
-    let finalTelegramId = telegramIdInt;
-    if (!finalTelegramId && existingClient?.telegram_id) {
-      finalTelegramId = existingClient.telegram_id;
-    }
+    let finalTelegramId = telegramIdInt || existingClient?.telegram_id;
 
     if (finalTelegramId) {
-      // Создаём invite links (канал + чат)
       const { channelLink, chatLink } = await createInviteLinks(finalTelegramId);
-      log(`🔗 Invite links: channel=${channelLink}, chat=${chatLink}`);
 
-      // НЕ обновляем in_channel/in_chat здесь!
-      // Статус обновится через telegram-member-webhook когда юзер РЕАЛЬНО вступит
-
-      // Формируем ОДНО сообщение с приветствием и кнопками
       const welcomeText = isNewClient
-        ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\n` +
-        `Ваша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n` +
-        `👇 Нажмите кнопки ниже для доступа:\n\n` +
-        `📞 Служба заботы: @Andrey_cryptoinvestor`
-        : `✅ <b>Подписка продлена!</b>\n\n` +
-        `Добавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n` +
-        `👇 Нажмите кнопки ниже для доступа:\n\n` +
-        `📞 Служба заботы: @Andrey_cryptoinvestor`;
+        ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\nВаша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n👇 Нажмите кнопки ниже для доступа:\n\n📞 Служба заботы: @Andrey_cryptoinvestor`
+        : `✅ <b>Подписка продлена!</b>\n\nДобавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n👇 Нажмите кнопки ниже для доступа:\n\n📞 Служба заботы: @Andrey_cryptoinvestor`;
 
-      // Формируем кнопки
       const buttons = [];
-      if (channelLink) {
-        buttons.push([{ text: '📢 Канал Premium', url: channelLink }]);
-      }
-      if (chatLink) {
-        buttons.push([{ text: '💬 Чат Premium', url: chatLink }]);
-      }
-
+      if (channelLink) buttons.push([{ text: '📢 Канал Premium', url: channelLink }]);
+      if (chatLink) buttons.push([{ text: '💬 Чат Premium', url: chatLink }]);
       const replyMarkup = { inline_keyboard: buttons };
 
-      // Получаем картинку карты для тарифа
       const cardImageUrl = TARIFF_CARD_IMAGES[period.tariff] || TARIFF_CARD_IMAGES['classic'];
-
-      // Отправляем сообщение с картинкой карты
       const photoResult = await sendTelegramPhoto(finalTelegramId, cardImageUrl, welcomeText, replyMarkup);
 
       if (photoResult?.ok) {
-        log('✅ Welcome message with card image sent');
-        // Логируем успешную отправку
+        log('Welcome message sent');
         await logSystemMessage({
           telegram_id: finalTelegramId,
           message_type: 'payment_welcome',
           text: welcomeText,
           source: '0xprocessing',
           success: true,
-          metadata: {
-            is_new_client: isNewClient,
-            tariff: period.name,
-            days: period.days,
-            amount_usd: amountUSD,
-            payment_id: PaymentId || TransactionHash
-          }
+          metadata: { is_new_client: isNewClient, tariff: period.name, days: period.days, amount_usd: amountUSD }
         });
       } else {
-        // Fallback на текстовое сообщение если фото не отправилось
-        log('⚠️ Photo failed, sending text message');
         const textResult = await sendTelegramMessage(finalTelegramId, welcomeText, replyMarkup);
-        if (textResult?.ok) {
-          log('✅ Welcome text message sent');
-          await logSystemMessage({
-            telegram_id: finalTelegramId,
-            message_type: 'payment_welcome',
-            text: welcomeText,
-            source: '0xprocessing',
-            success: true,
-            metadata: {
-              is_new_client: isNewClient,
-              tariff: period.name,
-              days: period.days,
-              amount_usd: amountUSD,
-              payment_id: PaymentId || TransactionHash,
-              fallback_to_text: true
-            }
-          });
-        } else {
-          // Логируем ошибку
-          await logSystemMessage({
-            telegram_id: finalTelegramId,
-            message_type: 'payment_welcome',
-            text: welcomeText,
-            source: '0xprocessing',
-            success: false,
-            error: textResult?.description || textResult?.error || 'Failed to send message',
-            metadata: {
-              is_new_client: isNewClient,
-              tariff: period.name,
-              days: period.days,
-              amount_usd: amountUSD,
-              payment_id: PaymentId || TransactionHash
-            }
-          });
-        }
+        await logSystemMessage({
+          telegram_id: finalTelegramId,
+          message_type: 'payment_welcome',
+          text: welcomeText,
+          source: '0xprocessing',
+          success: textResult?.ok || false,
+          metadata: { fallback_to_text: true, tariff: period.name, days: period.days }
+        });
       }
     }
 
     // ============================================
-    // 6. ТРЕКИНГ UTM КОНВЕРСИИ
+    // 10. UTM TRACKING
     // ============================================
-    if (finalTelegramId) {
-      await trackUtmConversion(finalTelegramId);
-    }
-
-    // Трекинг конверсии для stream UTM ссылок
-    await trackStreamConversion(BillingId);
+    if (finalTelegramId) await trackUtmConversion(finalTelegramId);
+    await trackStreamConversionFromBillingId(BillingId);
 
     // ============================================
-    // 7. УВЕДОМЛЕНИЕ АДМИНУ
+    // 11. ADMIN NOTIFICATION
     // ============================================
-    const ADMIN_ID = '190202791';
-    const adminMessage = `💰 <b>Новый платёж 0xProcessing (крипта)!</b>\n\n` +
-      `👤 ID: <code>${finalTelegramId || 'N/A'}</code>\n` +
-      `📋 Тариф: <b>${period.name}</b>\n` +
-      `💵 Сумма: <b>$${amountUSD}</b>\n` +
-      `🪙 Валюта: ${Currency || 'CRYPTO'}\n` +
-      `📅 Дней: ${period.days}\n` +
-      `🆕 Новый: ${isNewClient ? 'Да' : 'Нет (продление)'}`;
+    const adminMessage = `💰 <b>Новый платёж 0xProcessing (крипта)!</b>\n\n👤 ID: <code>${finalTelegramId || 'N/A'}</code>\n📋 Тариф: <b>${period.name}</b>\n💵 Сумма: <b>$${amountUSD}</b>\n🪙 Валюта: ${Currency || 'CRYPTO'}\n📅 Дней: ${period.days}\n🆕 Новый: ${isNewClient ? 'Да' : 'Нет (продление)'}`;
 
     await sendTelegramMessage(ADMIN_ID, adminMessage);
-    log('📨 Admin notification sent');
-    
-    // Логируем админское уведомление
     await logSystemMessage({
       telegram_id: ADMIN_ID,
       message_type: 'admin_notification',
       text: adminMessage,
       source: '0xprocessing',
       success: true,
-      metadata: {
-        user_telegram_id: finalTelegramId,
-        tariff: period.name,
-        days: period.days,
-        amount_usd: amountUSD,
-        is_new_client: isNewClient
-      }
+      metadata: { user_telegram_id: finalTelegramId, tariff: period.name, amount_usd: amountUSD, is_new_client: isNewClient }
     });
 
-    // ============================================
-    // 8. УСПЕШНЫЙ ОТВЕТ (200 OK без body для 0xProcessing)
-    // ============================================
-    log('✅ 0xProcessing webhook processed successfully');
-
+    log('Webhook processed successfully');
     return res.status(200).end();
 
   } catch (error) {
-    log('❌ 0xProcessing Webhook error', { error: error.message, stack: error.stack });
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
-    });
+    log('Webhook error', { error: error.message, stack: error.stack });
+    return res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 }
