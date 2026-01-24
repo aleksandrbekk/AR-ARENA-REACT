@@ -26,6 +26,7 @@ dist-ssr
 
 # Environment files - NEVER commit secrets!
 .env
+.mcp.json
 .env.local
 .env.*.local
 .env.production
