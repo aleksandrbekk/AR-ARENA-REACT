@@ -4,6 +4,7 @@
 // 2025-12-29
 
 import { createClient } from '@supabase/supabase-js';
+import { PREMIUM_CHANNEL_ID, PREMIUM_CHAT_ID, ADMIN_TELEGRAM_ID } from './utils/config.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -20,12 +21,10 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN || !KIKER_BOT_TOKEN) {
   console.error('CRITICAL: Missing required environment variables');
 }
 
-// ID канала и чата
-const CHANNEL_ID = '-1001634734020';
-const CHAT_ID = '-1001828659569';
-
-// Админ для уведомлений
-const ADMIN_ID = '190202791';
+// IDs из конфига
+const CHANNEL_ID = PREMIUM_CHANNEL_ID;
+const CHAT_ID = PREMIUM_CHAT_ID;
+const ADMIN_ID = ADMIN_TELEGRAM_ID;
 
 // ТЕСТОВЫЙ РЕЖИМ - только логировать, не кикать
 const TEST_MODE = false;

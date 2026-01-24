@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logSystemMessage } from './utils/log-system-message.js';
+import { ADMIN_TELEGRAM_ID, ALLOWED_ORIGINS, setCorsHeaders } from './utils/config.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -12,24 +13,16 @@ import { logSystemMessage } from './utils/log-system-message.js';
 // SECURITY: All secrets from environment variables (set in Vercel)
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const ADMIN_TELEGRAM_ID = 190202791;
 
 // Validate required env vars
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !SUPABASE_ANON_KEY || !BOT_TOKEN) {
   console.error('CRITICAL: Missing required environment variables');
 }
 
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-// Allowed origins for CORS
-const ALLOWED_ORIGINS = [
-  'https://ar-arena.games',
-  'https://www.ar-arena.games',
-  'https://ar-arena-react.vercel.app',
-  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
-].filter(Boolean);
 
 // ============================================
 // HELPER FUNCTIONS
@@ -90,12 +83,7 @@ async function sendTelegramMessage(telegramId, text) {
 
 export default async function handler(req, res) {
   // CORS headers
-  const origin = req.headers.origin;
-  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  setCorsHeaders(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
