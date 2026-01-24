@@ -12,7 +12,8 @@
       "mcp__playwright__browser_handle_dialog",
       "mcp__playwright__browser_click",
       "mcp__playwright__browser_snapshot",
-      "WebSearch"
+      "WebSearch",
+      "mcp__supabase__*"
     ],
     "deny": [],
     "ask": []
