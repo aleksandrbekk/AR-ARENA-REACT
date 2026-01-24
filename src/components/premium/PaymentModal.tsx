@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getStorageItem, STORAGE_KEYS } from '../../hooks/useLocalStorage'
 
 // Define Tariff interface locally to match PricingPage
 interface Tariff {
@@ -46,8 +47,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     // @ts-ignore
     const tg = window.Telegram?.WebApp
     const telegramIdFromWebApp = tg?.initDataUnsafe?.user?.id
-    const telegramIdFromStorage = localStorage.getItem('promo_telegram_id')
-    const telegramUsernameFromStorage = localStorage.getItem('promo_telegram_username')
+    const telegramIdFromStorage = getStorageItem<string>(STORAGE_KEYS.PROMO_TELEGRAM_ID)
+    const telegramUsernameFromStorage = getStorageItem<string>(STORAGE_KEYS.PROMO_TELEGRAM_USERNAME)
     const hasTelegramId = telegramIdFromWebApp || telegramIdFromStorage
     const [showUsernameInput] = useState(!hasTelegramId)
     
@@ -86,9 +87,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         // @ts-ignore
         const tg = window.Telegram?.WebApp
         // Приоритет: WebApp > localStorage (с промо-страницы) > введенный username
-        const telegramId = tg?.initDataUnsafe?.user?.id || localStorage.getItem('promo_telegram_id') || null
-        const tgUsername = username.trim().replace('@', '') || localStorage.getItem('promo_telegram_username')?.replace('@', '') || ''
-        const streamUtmSource = localStorage.getItem('stream_utm_source') || localStorage.getItem('promo_utm_source') || ''
+        const telegramId = tg?.initDataUnsafe?.user?.id || getStorageItem<string>(STORAGE_KEYS.PROMO_TELEGRAM_ID) || null
+        const tgUsername = username.trim().replace('@', '') || getStorageItem<string>(STORAGE_KEYS.PROMO_TELEGRAM_USERNAME)?.replace('@', '') || ''
+        const streamUtmSource = getStorageItem<string>(STORAGE_KEYS.STREAM_UTM_SOURCE) || getStorageItem<string>(STORAGE_KEYS.PROMO_UTM_SOURCE) || ''
 
         // Проверяем наличие идентификатора
         if (!telegramId && !tgUsername) {
@@ -156,9 +157,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         // @ts-ignore
         const tg = window.Telegram?.WebApp
         // Приоритет: WebApp > localStorage (с промо-страницы) > введенный username
-        const telegramId = tg?.initDataUnsafe?.user?.id || localStorage.getItem('promo_telegram_id') || null
-        const tgUsername = username.trim().replace('@', '') || localStorage.getItem('promo_telegram_username')?.replace('@', '') || ''
-        const streamUtmSource = localStorage.getItem('stream_utm_source') || localStorage.getItem('promo_utm_source') || ''
+        const telegramId = tg?.initDataUnsafe?.user?.id || getStorageItem<string>(STORAGE_KEYS.PROMO_TELEGRAM_ID) || null
+        const tgUsername = username.trim().replace('@', '') || getStorageItem<string>(STORAGE_KEYS.PROMO_TELEGRAM_USERNAME)?.replace('@', '') || ''
+        const streamUtmSource = getStorageItem<string>(STORAGE_KEYS.STREAM_UTM_SOURCE) || getStorageItem<string>(STORAGE_KEYS.PROMO_UTM_SOURCE) || ''
 
         if (!telegramId && !tgUsername) {
             alert('Пожалуйста, введите ваш Telegram username')

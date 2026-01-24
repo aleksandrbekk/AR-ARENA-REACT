@@ -4,6 +4,7 @@ import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAdminAuth } from '../providers/AdminAuthProvider'
 import { AutomationRules } from '../components/inbox/AutomationRules'
+import { setStorageItem, removeStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 import {
   Search, Send, ArrowLeft, Star,
   MoreVertical, Check, CheckCheck, Crown,
@@ -126,7 +127,7 @@ export function InboxPage() {
     try {
       const success = await verifyAdmin(passwordInput)
       if (success) {
-        localStorage.setItem('admin_auth', 'true')
+        setStorageItem(STORAGE_KEYS.ADMIN_AUTH, 'true')
       } else {
         setPasswordError(true)
       }
@@ -138,7 +139,7 @@ export function InboxPage() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_auth')
+    removeStorageItem(STORAGE_KEYS.ADMIN_AUTH)
     setPasswordInput('')
     setSelectedConversation(null)
     setConversations([])

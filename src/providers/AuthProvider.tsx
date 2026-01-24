@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import type { TelegramUser, GameState } from '../types'
+import { getStorageItem, removeStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 
 interface AuthContextType {
     telegramUser: TelegramUser | null
@@ -98,10 +99,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const hasTelegramUser = tg?.initDataUnsafe?.user?.id
 
                 // BROWSER AUTH: проверяем localStorage на наличие авторизации через Telegram Login Widget
-                const browserAuthData = localStorage.getItem('telegram_browser_auth')
-                if (browserAuthData && !hasTelegramUser) {
+                const savedUser = getStorageItem<{
+                    id: number
+                    first_name: string
+                    last_name?: string
+                    username?: string
+                    photo_url?: string
+                    auth_date: number
+                }>(STORAGE_KEYS.TELEGRAM_BROWSER_AUTH)
+                if (savedUser && !hasTelegramUser) {
                     try {
-                        const savedUser = JSON.parse(browserAuthData)
                         // Проверяем что auth_date не старше 7 дней
                         const authAge = Date.now() / 1000 - savedUser.auth_date
                         if (authAge < 604800) { // 7 дней в секундах
@@ -119,11 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             return
                         } else {
                             // Авторизация устарела, удаляем
-                            localStorage.removeItem('telegram_browser_auth')
+                            removeStorageItem(STORAGE_KEYS.TELEGRAM_BROWSER_AUTH)
                         }
                     } catch (e) {
                         console.error('AuthProvider: Error parsing browser auth:', e)
-                        localStorage.removeItem('telegram_browser_auth')
+                        removeStorageItem(STORAGE_KEYS.TELEGRAM_BROWSER_AUTH)
                     }
                 }
 

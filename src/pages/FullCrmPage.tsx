@@ -6,6 +6,7 @@ import { useAdminAuth } from '../providers/AdminAuthProvider'
 import { useToast } from '../components/ToastProvider'
 import { supabase } from '../lib/supabase'
 import { MetallicBorder } from '../components/MetallicBorder'
+import { setStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 
 // ============ ТИПЫ ============
 interface User {
@@ -233,7 +234,7 @@ export function FullCrmPage() {
     try {
       const success = await verifyAdmin(passwordInput)
       if (success) {
-        localStorage.setItem('admin_auth', 'true')
+        setStorageItem(STORAGE_KEYS.ADMIN_AUTH, 'true')
       } else {
         setPasswordError(true)
       }

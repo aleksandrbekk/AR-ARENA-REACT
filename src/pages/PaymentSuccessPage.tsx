@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage';
 
 export default function PaymentSuccessPage() {
   const navigate = useNavigate();
@@ -13,9 +14,9 @@ export default function PaymentSuccessPage() {
     // @ts-ignore
     const tg = window.Telegram?.WebApp;
     const telegramIdFromWebApp = tg?.initDataUnsafe?.user?.id;
-    const telegramIdFromStorage = localStorage.getItem('promo_telegram_id');
-    const usernameFromStorage = localStorage.getItem('promo_telegram_username');
-    
+    const telegramIdFromStorage = getStorageItem<string>(STORAGE_KEYS.PROMO_TELEGRAM_ID);
+    const usernameFromStorage = getStorageItem<string>(STORAGE_KEYS.PROMO_TELEGRAM_USERNAME);
+
     setHasTelegramId(!!(telegramIdFromWebApp || telegramIdFromStorage));
     setTelegramUsername(usernameFromStorage);
   }, []);

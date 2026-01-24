@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import KinescopePlayer from '@kinescope/react-kinescope-player'
+import { removeStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 
 interface KinescopeVideoPlayerProps {
     videoSource: string
@@ -54,11 +55,7 @@ export function KinescopeVideoPlayer({
     useEffect(() => {
         // Очищаем сохранённую позицию из localStorage для этого видео
         if (videoId) {
-            try {
-                localStorage.removeItem(`kinescope_${videoId}_time`)
-            } catch (e) {
-                // Игнорируем ошибки localStorage
-            }
+            removeStorageItem(`${STORAGE_KEYS.KINESCOPE_TIME_PREFIX}${videoId}_time`)
         }
     }, [videoId])
 

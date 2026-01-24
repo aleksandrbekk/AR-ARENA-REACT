@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { PaymentModal } from '../components/premium/PaymentModal'
 import { KinescopeVideoPlayer } from '../components/KinescopeVideoPlayer'
 import { supabase } from '../lib/supabase'
+import { setStorageItem, getStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 
 // ReactPlayer is now handled by KinescopeVideoPlayer component
 
@@ -585,9 +586,9 @@ export function VideoSalesPage() {
         const tg = window.Telegram?.WebApp
         const user = tg?.initDataUnsafe?.user
         if (user?.id) {
-            localStorage.setItem('promo_telegram_id', user.id.toString())
+            setStorageItem(STORAGE_KEYS.PROMO_TELEGRAM_ID, user.id.toString())
             if (user.username) {
-                localStorage.setItem('promo_telegram_username', user.username)
+                setStorageItem(STORAGE_KEYS.PROMO_TELEGRAM_USERNAME, user.username)
             }
         }
 
@@ -595,7 +596,7 @@ export function VideoSalesPage() {
         const utmSource = params.get('utm_source')
         if (utmSource) {
             utmSlugRef.current = utmSource
-            localStorage.setItem('promo_utm_source', utmSource)
+            setStorageItem(STORAGE_KEYS.PROMO_UTM_SOURCE, utmSource)
 
             // Записываем клик в БД
             const trackClick = async () => {
@@ -684,7 +685,7 @@ export function VideoSalesPage() {
     const handleCodeComplete = useCallback((code: string) => {
         const trackCodeEvent = async (isCorrect: boolean) => {
             try {
-                const utmSource = utmSlugRef.current || localStorage.getItem('promo_utm_source')
+                const utmSource = utmSlugRef.current || getStorageItem<string>(STORAGE_KEYS.PROMO_UTM_SOURCE)
                 if (utmSource) {
                     const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
                     

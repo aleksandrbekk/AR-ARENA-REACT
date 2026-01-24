@@ -61,33 +61,42 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || ''
 
 ---
 
-### 1.2 Централизовать localStorage
+### 1.2 Централизовать localStorage ✅
 
-**Файлы с localStorage (11 мест):**
-- `src/components/BrowserFallback.tsx`
-- `src/components/KinescopeVideoPlayer.tsx`
-- `src/components/OnboardingModal.tsx`
-- `src/components/StreamChat.tsx`
-- `src/components/premium/PaymentModal.tsx`
-- И другие...
+**Файлы с localStorage (мигрированы):**
+- `src/providers/AuthProvider.tsx` - telegram_browser_auth
+- `src/providers/AdminAuthProvider.tsx` - admin_auth
+- `src/components/BrowserFallback.tsx` - telegram_browser_auth
+- `src/components/KinescopeVideoPlayer.tsx` - kinescope_${videoId}_time
+- `src/components/OnboardingModal.tsx` - onboarding_seen_v1
+- `src/components/StreamChat.tsx` - stream_guest_name
+- `src/components/premium/PaymentModal.tsx` - promo_*, stream_*
+- `src/pages/StreamPage.tsx` - stream_visitor_id, stream_utm_source, stream_guest_name
+- `src/pages/VideoSalesPage.tsx` - promo_telegram_id, promo_telegram_username, promo_utm_source
+- `src/pages/VideoSalesPageTg.tsx` - promo_*
+- `src/pages/PaymentSuccessPage.tsx` - promo_*
+- `src/pages/AdminPage.tsx` - admin_auth
+- `src/pages/FullCrmPage.tsx` - admin_auth
+- `src/pages/InboxPage.tsx` - admin_auth
 
 **Целевое состояние:**
-- Создать `src/hooks/useLocalStorage.ts`
-- Заменить все прямые вызовы на хук
+- ✅ Создан `src/hooks/useLocalStorage.ts` с типизированными ключами
+- ✅ Все компоненты используют функции из хука
+- ✅ Определён централизованный объект `STORAGE_KEYS`
 
 **Критерии успеха:**
-- [ ] Создан `useLocalStorage.ts` с типизацией
-- [ ] Все компоненты используют хук
-- [ ] Нет прямых вызовов `localStorage.getItem/setItem`
-- [ ] Данные сохраняются корректно
+- [x] Создан `useLocalStorage.ts` с типизацией
+- [x] Все компоненты используют хук
+- [x] Нет прямых вызовов `localStorage.getItem/setItem` вне хука
+- [ ] Данные сохраняются корректно (требует ручной проверки)
 
 **Чекпоинты:**
-- [ ] 1.2.1 Создан хук `useLocalStorage.ts`
-- [ ] 1.2.2 Обновлён `BrowserFallback.tsx`
-- [ ] 1.2.3 Обновлён `KinescopeVideoPlayer.tsx`
-- [ ] 1.2.4 Обновлён `OnboardingModal.tsx`
-- [ ] 1.2.5 Обновлены остальные компоненты
-- [ ] 1.2.6 Тест: данные сохраняются между сессиями
+- [x] 1.2.1 Создан хук `useLocalStorage.ts` с STORAGE_KEYS
+- [x] 1.2.2 Обновлён `BrowserFallback.tsx`
+- [x] 1.2.3 Обновлён `KinescopeVideoPlayer.tsx`
+- [x] 1.2.4 Обновлён `OnboardingModal.tsx` + `StreamChat.tsx`
+- [x] 1.2.5 Обновлены все остальные компоненты (14 файлов)
+- [ ] 1.2.6 Тест: данные сохраняются между сессиями (ручная проверка)
 
 ---
 

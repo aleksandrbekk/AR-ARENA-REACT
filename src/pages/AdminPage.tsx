@@ -7,6 +7,7 @@ import { UsersTab } from '../components/admin/UsersTab'
 import { GiveawaysTab } from '../components/admin/GiveawaysTab'
 import { UtmLinksTab } from '../components/admin/UtmLinksTab'
 import { supabase } from '../lib/supabase'
+import { setStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 
 type AdminSection = 'dashboard' | 'users' | 'giveaways' | 'utm'
 
@@ -64,7 +65,7 @@ export function AdminPage() {
     try {
       const success = await verifyAdmin(passwordInput)
       if (success) {
-        localStorage.setItem('admin_auth', 'true')
+        setStorageItem(STORAGE_KEYS.ADMIN_AUTH, 'true')
       } else {
         setPasswordError(true)
       }

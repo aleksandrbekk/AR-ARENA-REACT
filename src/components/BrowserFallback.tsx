@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { TelegramLoginButton } from './TelegramLoginButton'
 import type { TelegramAuthData } from '../types'
+import { setStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 
 interface BrowserFallbackProps {
   onAuth?: (user: TelegramAuthData) => void
@@ -32,10 +33,10 @@ export function BrowserFallback({ onAuth }: BrowserFallbackProps) {
 
       if (data.success && data.user) {
         // Сохраняем в localStorage для persistence
-        localStorage.setItem('telegram_browser_auth', JSON.stringify({
+        setStorageItem(STORAGE_KEYS.TELEGRAM_BROWSER_AUTH, {
           ...data.user,
           auth_date: user.auth_date
-        }))
+        })
         
         // Вызываем callback если есть
         if (onAuth) {

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { removeStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 
 interface AdminAuthContextType {
   isAdminAuthenticated: boolean
@@ -73,7 +74,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     setIsAdminAuthenticated(false)
     setAdminPassword(null)
     setTelegramAdminId(null)
-    localStorage.removeItem('admin_auth')
+    removeStorageItem(STORAGE_KEYS.ADMIN_AUTH)
   }, [])
 
   const getAuthHeaders = useCallback((): Record<string, string> => {

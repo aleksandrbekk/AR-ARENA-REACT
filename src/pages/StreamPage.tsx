@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { StreamChat } from '../components/StreamChat'
 import { TapGame } from '../components/TapGame'
 import { supabase } from '../lib/supabase'
+import { getStorageItem, setStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 
 interface StreamSettings {
   show_premium_button: boolean
@@ -21,10 +22,10 @@ export function StreamPage() {
   // Трекинг просмотров, уников + Presence для онлайн счётчика
   useEffect(() => {
     // Получаем или создаём visitor_id
-    let visitorId = localStorage.getItem('stream_visitor_id')
+    let visitorId = getStorageItem<string>(STORAGE_KEYS.STREAM_VISITOR_ID)
     if (!visitorId) {
       visitorId = Math.random().toString(36).substring(2) + Date.now().toString(36)
-      localStorage.setItem('stream_visitor_id', visitorId)
+      setStorageItem(STORAGE_KEYS.STREAM_VISITOR_ID, visitorId)
     }
 
     // Трекаем просмотры и уников
@@ -105,7 +106,7 @@ export function StreamPage() {
     const params = new URLSearchParams(window.location.search)
     const utmSource = params.get('utm_source')
     if (utmSource) {
-      localStorage.setItem('stream_utm_source', utmSource)
+      setStorageItem(STORAGE_KEYS.STREAM_UTM_SOURCE, utmSource)
 
       // Записываем клик в БД
       const trackClick = async () => {
@@ -197,19 +198,19 @@ export function StreamPage() {
 
   // Загрузка имени из localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('stream_guest_name')
+    const saved = getStorageItem<string>(STORAGE_KEYS.STREAM_GUEST_NAME)
     if (saved) setGuestName(saved)
 
     // Слушаем изменения localStorage
     const handleStorage = () => {
-      const name = localStorage.getItem('stream_guest_name')
+      const name = getStorageItem<string>(STORAGE_KEYS.STREAM_GUEST_NAME)
       if (name) setGuestName(name)
     }
     window.addEventListener('storage', handleStorage)
 
     // Проверяем каждую секунду (для той же вкладки)
     const interval = setInterval(() => {
-      const name = localStorage.getItem('stream_guest_name')
+      const name = getStorageItem<string>(STORAGE_KEYS.STREAM_GUEST_NAME)
       if (name && name !== guestName) setGuestName(name)
     }, 1000)
 
