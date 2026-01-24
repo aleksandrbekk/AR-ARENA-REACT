@@ -429,3 +429,112 @@ Vercel автоматически → https://ararena.pro
 5. Проверяешь в Telegram
 
 Какая задача?"
+
+---
+
+## 🔧 API GUIDELINES (Backend Code)
+
+### Структура API файлов:
+```
+api/
+├── utils/              # Общие утилиты (ИСПОЛЬЗОВАТЬ!)
+│   ├── config.js       # IDs, CORS, константы
+│   ├── supabase.js     # Supabase client
+│   ├── telegram.js     # Telegram helpers
+│   ├── tariffs.js      # Тарифы Premium
+│   └── payment-helpers.js
+├── _archived/          # Старый код (НЕ ТРОГАТЬ)
+└── *.js                # API endpoints
+```
+
+### ✅ ОБЯЗАТЕЛЬНО:
+
+1. **IDs из конфига** (НЕ hardcode!):
+```javascript
+import { ADMIN_TELEGRAM_ID, PREMIUM_CHANNEL_ID } from './utils/config.js';
+```
+
+2. **Проверка env vars**:
+```javascript
+if (!SUPABASE_URL || !BOT_TOKEN) {
+  console.error('CRITICAL: Missing required environment variables');
+}
+```
+
+3. **Логирование через утилиту**:
+```javascript
+import { logSystemMessage } from './utils/log-system-message.js';
+await logSystemMessage({ telegram_id, message_type, text, source, success });
+```
+
+4. **CORS через хелпер**:
+```javascript
+import { setCorsHeaders } from './utils/config.js';
+setCorsHeaders(req, res);
+```
+
+5. **Error handling с логом**:
+```javascript
+} catch (error) {
+  log('❌ Error:', { error: error.message });
+  return res.status(500).json({ error: 'Internal error', message: error.message });
+}
+```
+
+### ❌ ЗАПРЕЩЕНО:
+
+| Нельзя | Почему | Правильно |
+|--------|--------|-----------|
+| `const ADMIN_ID = '190202791'` | Hardcode | `import { ADMIN_TELEGRAM_ID }` |
+| `catch (e) {}` | Проглатывает ошибки | `catch (e) { log(e); throw e; }` |
+| `console.log(req.body)` | Sensitive data в логах | Логировать только нужные поля |
+| `createClient(url, key)` | Дублирование | Импортировать из utils |
+| Новый файл без config импорта | Будет hardcode | Всегда импортировать config |
+
+### Шаблон нового API endpoint:
+```javascript
+import { createClient } from '@supabase/supabase-js';
+import { ADMIN_TELEGRAM_ID, setCorsHeaders } from './utils/config.js';
+import { logSystemMessage } from './utils/log-system-message.js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('CRITICAL: Missing env vars');
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+export default async function handler(req, res) {
+  setCorsHeaders(req, res);
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    // ... логика ...
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+}
+```
+
+---
+
+## 🎨 FRONTEND GUIDELINES
+
+### Компоненты:
+- Использовать `React.memo()` для list items
+- `loading="lazy"` на все изображения
+- Не создавать inline functions в JSX (выносить)
+
+### Типы:
+- Никаких `any` — использовать правильные типы
+- Типы в `/src/types/` или рядом с компонентом
+
+### Стили:
+- Tailwind классы, не inline styles
+- Цвета из дизайн-системы (см. выше)
