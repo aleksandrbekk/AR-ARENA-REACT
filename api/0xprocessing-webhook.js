@@ -259,6 +259,7 @@ export default async function handler(req, res) {
       contract_id: paymentContractId,
       tx_hash: TransactionHash || null,
       plan: period.tariff,
+      days_added: period.days,  // REQUIRED field!
       status: 'success',
       created_at: new Date().toISOString()
     };
