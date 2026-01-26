@@ -88,6 +88,8 @@ export default async function handler(req, res) {
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  let webhookLogId = null;  // Track webhook log for error reporting
+  
   try {
     log('=== WEBHOOK RECEIVED ===');
     console.log('Headers:', JSON.stringify(req.headers, null, 2));
@@ -95,16 +97,17 @@ export default async function handler(req, res) {
 
     const payload = req.body;
 
-    // Save webhook payload for debugging
+    // Save webhook payload for debugging (with ID for error tracking)
     try {
-      await supabase.from('webhook_logs').insert({
+      const { data: logData } = await supabase.from('webhook_logs').insert({
         source: '0xprocessing',
         event_type: payload.Status || 'unknown',
         payload: JSON.stringify(payload),
         status: 'received',
         created_at: new Date().toISOString()
-      });
-      log('Webhook payload saved to webhook_logs');
+      }).select('id').single();
+      webhookLogId = logData?.id;
+      log('Webhook payload saved to webhook_logs, id:', webhookLogId);
     } catch (logError) {
       log('Could not save webhook log:', logError.message);
     }
@@ -409,6 +412,20 @@ export default async function handler(req, res) {
 
   } catch (error) {
     log('Webhook error', { error: error.message, stack: error.stack });
+    
+    // Update webhook_logs with error details
+    if (webhookLogId) {
+      try {
+        await supabase.from('webhook_logs').update({
+          status: 'error',
+          error_message: `${error.message}\n${error.stack?.substring(0, 500)}`
+        }).eq('id', webhookLogId);
+        log('Webhook error logged to webhook_logs');
+      } catch (e) {
+        log('Could not update webhook log with error:', e.message);
+      }
+    }
+    
     return res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 }
