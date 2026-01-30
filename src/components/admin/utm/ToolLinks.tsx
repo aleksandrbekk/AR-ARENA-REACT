@@ -108,7 +108,7 @@ export function ToolLinks({
                   </div>
                   <div className="text-center">
                     <div className="text-green-400 font-bold">{link.conversions}</div>
-                    <div className="text-white/30 text-[10px]">конв.</div>
+                    <div className="text-white/30 text-[10px]">оплат</div>
                   </div>
                   <div className="text-center">
                     <div className="text-white font-bold">{getConversionRate(link.clicks, link.conversions)}</div>

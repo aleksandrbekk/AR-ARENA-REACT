@@ -273,6 +273,7 @@ export function UtmLinksTab() {
     try {
       setLoadingStats(true)
 
+      // Загружаем события промо-страницы
       const { data: events, error } = await supabase
         .from('promo_events')
         .select('*')
@@ -280,6 +281,13 @@ export function UtmLinksTab() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
+
+      // Загружаем количество оплат из utm_tool_links
+      const { data: toolLink } = await supabase
+        .from('utm_tool_links')
+        .select('conversions')
+        .eq('slug', slug)
+        .single()
 
       const stats: PromoStats = {
         totalViews: events?.filter(e => e.event_type === 'view_start').length || 0,
@@ -289,6 +297,7 @@ export function UtmLinksTab() {
         progress100: events?.filter(e => e.event_type === 'progress_100').length || 0,
         codeCorrect: events?.filter(e => e.event_type === 'code_correct').length || 0,
         codeIncorrect: events?.filter(e => e.event_type === 'code_incorrect').length || 0,
+        payments: toolLink?.conversions || 0,
         events: events || []
       }
 
@@ -568,45 +577,98 @@ export function UtmLinksTab() {
               </button>
             </div>
 
-            {/* Основная статистика */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {/* Основная статистика - 5 метрик */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
               <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
                 <div className="text-[#FFD700] font-bold text-lg">{promoStats.totalViews}</div>
-                <div className="text-white/40 text-[10px] uppercase">Просмотров</div>
+                <div className="text-white/40 text-[10px] uppercase">Открыли видео</div>
               </div>
               <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
                 <div className="text-blue-400 font-bold text-lg">{promoStats.progress100}</div>
-                <div className="text-white/40 text-[10px] uppercase">Досмотрели</div>
+                <div className="text-white/40 text-[10px] uppercase">100% досмотр.</div>
               </div>
               <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
                 <div className="text-green-400 font-bold text-lg">{promoStats.codeCorrect}</div>
-                <div className="text-white/40 text-[10px] uppercase">Правильный код</div>
+                <div className="text-white/40 text-[10px] uppercase">Код верно</div>
               </div>
               <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
                 <div className="text-red-400 font-bold text-lg">{promoStats.codeIncorrect}</div>
-                <div className="text-white/40 text-[10px] uppercase">Неправильный</div>
+                <div className="text-white/40 text-[10px] uppercase">Код ошибка</div>
+              </div>
+              <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                <div className="text-purple-400 font-bold text-lg">{promoStats.payments}</div>
+                <div className="text-white/40 text-[10px] uppercase">💳 Оплат</div>
               </div>
             </div>
 
-            {/* Прогресс просмотра */}
+            {/* Воронка просмотра с прогресс-барами */}
             <div className="bg-zinc-800/30 rounded-xl p-4 mb-4">
-              <div className="text-white/60 text-xs uppercase tracking-wider mb-3">Прогресс просмотра</div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-white/70 text-sm">25%</span>
-                  <span className="text-white font-bold">{promoStats.progress25}</span>
+              <div className="text-white/60 text-xs uppercase tracking-wider mb-3">📈 Воронка просмотра</div>
+              <div className="space-y-3">
+                {/* Открыли видео - 100% база */}
+                <div className="flex items-center gap-3">
+                  <span className="text-white/70 text-sm w-24 shrink-0">Открыли</span>
+                  <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-yellow-500 rounded-full" style={{width: '100%'}} />
+                  </div>
+                  <span className="text-white font-bold w-10 text-right">{promoStats.totalViews}</span>
+                  <span className="text-white/40 text-xs w-10 text-right">100%</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/70 text-sm">50%</span>
-                  <span className="text-white font-bold">{promoStats.progress50}</span>
+                {/* 25% */}
+                <div className="flex items-center gap-3">
+                  <span className="text-white/70 text-sm w-24 shrink-0">Дошли до 25%</span>
+                  <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 rounded-full transition-all"
+                      style={{width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress25 / promoStats.totalViews * 100)}%` : '0%'}}
+                    />
+                  </div>
+                  <span className="text-white font-bold w-10 text-right">{promoStats.progress25}</span>
+                  <span className="text-white/40 text-xs w-10 text-right">
+                    {promoStats.totalViews > 0 ? Math.round(promoStats.progress25 / promoStats.totalViews * 100) : 0}%
+                  </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/70 text-sm">75%</span>
-                  <span className="text-white font-bold">{promoStats.progress75}</span>
+                {/* 50% */}
+                <div className="flex items-center gap-3">
+                  <span className="text-white/70 text-sm w-24 shrink-0">Дошли до 50%</span>
+                  <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-cyan-500 rounded-full transition-all"
+                      style={{width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress50 / promoStats.totalViews * 100)}%` : '0%'}}
+                    />
+                  </div>
+                  <span className="text-white font-bold w-10 text-right">{promoStats.progress50}</span>
+                  <span className="text-white/40 text-xs w-10 text-right">
+                    {promoStats.totalViews > 0 ? Math.round(promoStats.progress50 / promoStats.totalViews * 100) : 0}%
+                  </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/70 text-sm">100%</span>
-                  <span className="text-[#FFD700] font-bold">{promoStats.progress100}</span>
+                {/* 75% */}
+                <div className="flex items-center gap-3">
+                  <span className="text-white/70 text-sm w-24 shrink-0">Дошли до 75%</span>
+                  <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-500 rounded-full transition-all"
+                      style={{width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress75 / promoStats.totalViews * 100)}%` : '0%'}}
+                    />
+                  </div>
+                  <span className="text-white font-bold w-10 text-right">{promoStats.progress75}</span>
+                  <span className="text-white/40 text-xs w-10 text-right">
+                    {promoStats.totalViews > 0 ? Math.round(promoStats.progress75 / promoStats.totalViews * 100) : 0}%
+                  </span>
+                </div>
+                {/* 100% */}
+                <div className="flex items-center gap-3">
+                  <span className="text-white/70 text-sm w-24 shrink-0">Досмотрели</span>
+                  <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500 rounded-full transition-all"
+                      style={{width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress100 / promoStats.totalViews * 100)}%` : '0%'}}
+                    />
+                  </div>
+                  <span className="text-[#FFD700] font-bold w-10 text-right">{promoStats.progress100}</span>
+                  <span className="text-white/40 text-xs w-10 text-right">
+                    {promoStats.totalViews > 0 ? Math.round(promoStats.progress100 / promoStats.totalViews * 100) : 0}%
+                  </span>
                 </div>
               </div>
             </div>

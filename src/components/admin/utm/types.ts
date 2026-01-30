@@ -38,6 +38,7 @@ export interface PromoStats {
   progress100: number
   codeCorrect: number
   codeIncorrect: number
+  payments: number
   events: PromoEvent[]
 }
 
