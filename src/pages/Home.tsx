@@ -101,23 +101,19 @@ export function Home() {
           balanceAr={gameState.balance_ar}
         />
 
-        {/* AR ARENA Premium Title */}
-        <div className="flex justify-center py-3">
-          <div className="relative px-8 py-2">
-            {/* Glow behind */}
+        {/* Logo */}
+        <div className="flex justify-center py-4">
+          <div className="relative w-full max-w-[280px]">
+            {/* Glow */}
             <div
-              className="absolute inset-0 rounded-2xl blur-xl opacity-30"
-              style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)' }}
+              className="absolute inset-0 rounded-full blur-2xl opacity-40"
+              style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.3) 0%, transparent 70%)' }}
             />
-            {/* Glass plaque */}
-            <div className="relative flex items-center gap-2 px-6 py-2 rounded-2xl bg-black/40 backdrop-blur-md border border-yellow-500/20 shadow-[0_0_30px_rgba(255,215,0,0.1)]">
-              <span
-                className="text-xl font-black tracking-[0.25em] uppercase bg-gradient-to-r from-[#FFD700] via-[#FFC84D] to-[#FFA500] bg-clip-text text-transparent drop-shadow-sm"
-                style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
-              >
-                AR ARENA
-              </span>
-            </div>
+            <img
+              src="/logo2.jpeg"
+              alt="AR ARENA"
+              className="relative z-10 w-full h-auto object-contain drop-shadow-[0_0_15px_rgba(255,215,0,0.3)] rounded-xl"
+            />
           </div>
         </div>
 
