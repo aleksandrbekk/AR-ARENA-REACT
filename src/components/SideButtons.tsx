@@ -10,7 +10,6 @@ interface SideButtonsProps {
   onFriendsClick?: () => void
   onTasksClick?: () => void
   onSkinsClick?: () => void
-  onFarmClick?: () => void
   onGiveawaysClick?: () => void
 }
 
@@ -18,7 +17,6 @@ export function SideButtons({
   onFriendsClick,
   onTasksClick,
   onSkinsClick,
-  onFarmClick,
   onGiveawaysClick,
 }: SideButtonsProps) {
   // Левая колонка
@@ -46,11 +44,6 @@ export function SideButtons({
       icon: '/icons/SKIN2.png',
       label: 'Скины',
       onClick: onSkinsClick || (() => console.log('Skins clicked')),
-    },
-    {
-      icon: '/icons/FERMA.png',
-      label: 'Ферма',
-      onClick: onFarmClick || (() => console.log('Farm clicked')),
     },
   ]
 

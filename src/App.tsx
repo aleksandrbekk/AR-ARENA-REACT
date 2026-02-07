@@ -28,6 +28,7 @@ import { LiveArenaTestPage } from './pages/LiveArenaTestPage'
 import { PartnersPage } from './pages/PartnersPage'
 import { VideoSalesPage } from './pages/VideoSalesPage'
 import { VideoSalesPageTg } from './pages/VideoSalesPageTg'
+import { TasksPage } from './pages/TasksPage'
 
 // Lazy Loaded Admin Modules for Unified Workspace
 const AdminLayoutLazy = lazy(() => import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout })))
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
       { path: "partners", element: <PartnersPage /> },
       { path: "promo", element: <VideoSalesPage /> },
       { path: "promo-tg", element: <VideoSalesPageTg /> },
+      { path: "tasks", element: <TasksPage /> },
 
       // --- LEGACY / STANDALONE ADMIN ROUTES ---
       // (Leaving them for backward compatibility until fully migrated)

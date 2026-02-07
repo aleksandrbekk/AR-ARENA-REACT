@@ -6,10 +6,11 @@ import { useAdminAuth } from '../providers/AdminAuthProvider'
 import { UsersTab } from '../components/admin/UsersTab'
 import { GiveawaysTab } from '../components/admin/GiveawaysTab'
 import { UtmLinksTab } from '../components/admin/UtmLinksTab'
+import { TasksTab } from '../components/admin/TasksTab'
 import { supabase } from '../lib/supabase'
 import { setStorageItem, STORAGE_KEYS } from '../hooks/useLocalStorage'
 
-type AdminSection = 'dashboard' | 'users' | 'giveaways' | 'utm'
+type AdminSection = 'dashboard' | 'users' | 'giveaways' | 'utm' | 'tasks'
 
 interface DashboardStats {
   usersCount: number
@@ -17,6 +18,7 @@ interface DashboardStats {
   activePremiumClientsCount: number
   utmLinksCount: number
   botUsersCount: number
+  tasksCount: number
 }
 
 export function AdminPage() {
@@ -24,7 +26,7 @@ export function AdminPage() {
   const { isAdminAuthenticated, verifyAdmin, verifyTelegramAdmin } = useAdminAuth()
   const navigate = useNavigate()
   const [activeSection, setActiveSection] = useState<AdminSection>('dashboard')
-  const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0, utmLinksCount: 0, botUsersCount: 0 })
+  const [stats, setStats] = useState<DashboardStats>({ usersCount: 0, activeGiveawaysCount: 0, activePremiumClientsCount: 0, utmLinksCount: 0, botUsersCount: 0, tasksCount: 0 })
   const [loadingStats, setLoadingStats] = useState(true)
 
   // UI state for password form
@@ -40,8 +42,8 @@ export function AdminPage() {
   // DEV MODE check
   const urlParams = new URLSearchParams(window.location.search)
   const isDevMode = urlParams.get('dev') === 'true' ||
-                    window.location.hostname === 'localhost' ||
-                    window.location.hostname === '127.0.0.1'
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
 
   // Проверка авторизации при загрузке (через Telegram)
   useEffect(() => {
@@ -87,12 +89,13 @@ export function AdminPage() {
   const loadDashboardStats = async () => {
     try {
       setLoadingStats(true)
-      const [usersRes, giveawaysRes, premiumClientsRes, utmLinksRes, botUsersRes] = await Promise.all([
+      const [usersRes, giveawaysRes, premiumClientsRes, utmLinksRes, botUsersRes, tasksRes] = await Promise.all([
         supabase.from('users').select('*', { count: 'exact', head: true }),
         supabase.from('giveaways').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('premium_clients').select('*', { count: 'exact', head: true }), // Все записи, не только активные
+        supabase.from('premium_clients').select('*', { count: 'exact', head: true }),
         supabase.from('utm_links').select('*', { count: 'exact', head: true }),
-        supabase.from('bot_users').select('*', { count: 'exact', head: true })
+        supabase.from('bot_users').select('*', { count: 'exact', head: true }),
+        supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('is_active', true)
       ])
 
       setStats({
@@ -100,7 +103,8 @@ export function AdminPage() {
         activeGiveawaysCount: giveawaysRes.count || 0,
         activePremiumClientsCount: premiumClientsRes.count || 0,
         utmLinksCount: utmLinksRes.count || 0,
-        botUsersCount: botUsersRes.count || 0
+        botUsersCount: botUsersRes.count || 0,
+        tasksCount: tasksRes.count || 0
       })
     } catch (err) {
       console.error('Error loading dashboard stats:', err)
@@ -282,6 +286,32 @@ export function AdminPage() {
                   </div>
                 </div>
               </button>
+
+              {/* 5. TASKS */}
+              <button
+                onClick={() => setActiveSection('tasks')}
+                className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
+              >
+                <svg
+                  className="w-8 h-8 text-[#FFD700]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
+                  />
+                </svg>
+                <div className="text-center">
+                  <div className="text-white font-medium">Задания</div>
+                  <div className="text-white/60 text-sm">
+                    {loadingStats ? '...' : `${stats.tasksCount} активных`}
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -304,6 +334,7 @@ export function AdminPage() {
               {activeSection === 'users' && <UsersTab />}
               {activeSection === 'giveaways' && <GiveawaysTab />}
               {activeSection === 'utm' && <UtmLinksTab />}
+              {activeSection === 'tasks' && <TasksTab />}
             </div>
           )}
         </div>

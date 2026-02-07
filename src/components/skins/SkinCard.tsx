@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { RARITY_CONFIG, type RarityType } from '../../config/rarityConfig';
 import type { Skin } from '../../types';
 import { CurrencyIcon } from '../CurrencyIcon';
-import { Check, Lock, Zap, Pickaxe, Battery } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
 
 interface SkinCardProps {
   skin: Skin;
@@ -71,38 +71,13 @@ export function SkinCard({ skin, isActive, isOwned, isEquipped, onClick }: SkinC
             {skin.name}
           </span>
 
-          {/* Stats Row (Centered & Clean) */}
-          {isOwned ? (
-            <div className="flex items-center justify-center gap-1.5 opacity-90">
-              {skin.tap_bonus > 0 && (
-                <div className="flex items-center gap-0.5">
-                  <Zap className="w-2.5 h-2.5 text-yellow-400" fill="currentColor" />
-                  <span className="text-[9px] font-bold text-white">+{skin.tap_bonus}</span>
-                </div>
-              )}
-              {skin.farm_bonus > 0 && (
-                <div className="flex items-center gap-0.5">
-                  <Pickaxe className="w-2.5 h-2.5 text-green-400" />
-                  <span className="text-[9px] font-bold text-white">+{skin.farm_bonus}</span>
-                </div>
-              )}
-               {skin.regen_bonus > 0 && (
-                <div className="flex items-center gap-0.5">
-                  <Battery className="w-2.5 h-2.5 text-blue-400" />
-                  <span className="text-[9px] font-bold text-white">+{skin.regen_bonus}</span>
-                </div>
-              )}
-              {skin.tap_bonus === 0 && skin.farm_bonus === 0 && skin.regen_bonus === 0 && (
-                 <span className="text-[8px] text-white/30">Cosmetic</span>
-              )}
-            </div>
-          ) : (
-            /* Price for unowned */
+          {/* Price / owned status */}
+          {!isOwned && (
             <div className="flex items-center justify-center gap-1 bg-black/40 px-2 py-0.5 rounded-full">
-               <CurrencyIcon type={skin.skin_type === 'ar' ? 'AR' : 'BUL'} className="w-2.5 h-2.5" />
-               <span className="text-[9px] font-bold text-white">
-                 {skin.skin_type === 'ar' ? skin.price_ar : skin.price_bul}
-               </span>
+              <CurrencyIcon type={skin.skin_type === 'ar' ? 'AR' : 'BUL'} className="w-2.5 h-2.5" />
+              <span className="text-[9px] font-bold text-white">
+                {skin.skin_type === 'ar' ? skin.price_ar : skin.price_bul}
+              </span>
             </div>
           )}
         </div>

@@ -1,7 +1,5 @@
 import { Layout } from '../components/layout/Layout'
 import { Header } from '../components/Header'
-import { BalanceDisplay } from '../components/BalanceDisplay'
-import { StatusBar } from '../components/StatusBar'
 import { TapBull } from '../components/TapBull'
 import { SideButtons } from '../components/SideButtons'
 import { FloatingNumber } from '../components/FloatingNumber'
@@ -9,8 +7,6 @@ import { Particles } from '../components/Particles'
 import { BrowserFallback } from '../components/BrowserFallback'
 import { useAuth } from '../hooks/useAuth'
 import { useTap } from '../hooks/useTap'
-import { useEnergy } from '../hooks/useEnergy'
-import { useSkins } from '../hooks/useSkins'
 import { useCallback, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -20,7 +16,6 @@ const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
 export function Home() {
   const { telegramUser, gameState, isLoading, error, updateGameState } = useAuth()
   const { tap, isProcessing } = useTap(telegramUser?.id?.toString() || '')
-  const { activeSkin, loading: skinsLoading } = useSkins()
   const navigate = useNavigate()
 
   // Редирект не-админов на страницу тарифов (приложение в разработке)
@@ -43,13 +38,7 @@ export function Home() {
     setFloatingNumbers(prev => prev.filter(n => n.id !== id))
   }, [])
 
-  // Callback для обновления энергии
-  const handleEnergyUpdate = useCallback((energy: number, energyMax: number) => {
-    updateGameState({ energy, energy_max: energyMax })
-  }, [updateGameState])
 
-  // Автоматическое восстановление энергии каждые 5 секунд
-  useEnergy(telegramUser?.id?.toString() || '', handleEnergyUpdate)
 
   // Обработчик тапа на быка
   const handleTap = async () => {
@@ -67,8 +56,7 @@ export function Home() {
 
     // 🚀 ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ (сразу показываем результат)
     const tapPower = 1
-    const skinBonus = activeSkin?.tap_bonus || 0
-    const bulEarned = tapPower + skinBonus // Формула: 1 + бонус от скина
+    const bulEarned = tapPower
 
     // Мгновенно обновляем UI
     const optimisticBalance = gameState.balance_bul + bulEarned
@@ -188,9 +176,24 @@ export function Home() {
           balanceAr={gameState.balance_ar}
         />
 
-        {/* BalanceDisplay */}
-        <div className="flex justify-center py-2">
-          <BalanceDisplay balance={gameState.balance_bul} />
+        {/* AR ARENA Premium Title */}
+        <div className="flex justify-center py-3">
+          <div className="relative px-8 py-2">
+            {/* Glow behind */}
+            <div
+              className="absolute inset-0 rounded-2xl blur-xl opacity-30"
+              style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)' }}
+            />
+            {/* Glass plaque */}
+            <div className="relative flex items-center gap-2 px-6 py-2 rounded-2xl bg-black/40 backdrop-blur-md border border-yellow-500/20 shadow-[0_0_30px_rgba(255,215,0,0.1)]">
+              <span
+                className="text-xl font-black tracking-[0.25em] uppercase bg-gradient-to-r from-[#FFD700] via-[#FFC84D] to-[#FFA500] bg-clip-text text-transparent drop-shadow-sm"
+                style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+              >
+                AR ARENA
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* TapBull - основной компонент тапа */}
@@ -201,18 +204,9 @@ export function Home() {
           <SideButtons
             onFriendsClick={() => navigate('/partners')}
             onSkinsClick={() => navigate('/skins')}
-            onFarmClick={() => navigate('/farm')}
             onGiveawaysClick={() => navigate('/giveaways')}
           />
         </TapBull>
-
-        {/* StatusBar внизу - Энергия + Статы */}
-        <StatusBar
-          energy={gameState.energy}
-          energyMax={gameState.energy_max}
-          activeSkin={activeSkin}
-          isLoading={skinsLoading}
-        />
       </div>
 
       {/* Плавающие числа */}

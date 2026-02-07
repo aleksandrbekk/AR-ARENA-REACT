@@ -6,8 +6,8 @@ import { SkinCard } from '../components/skins/SkinCard';
 import { RARITY_CONFIG, type RarityType } from '../config/rarityConfig';
 import { CurrencyIcon } from '../components/CurrencyIcon';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Pickaxe, Battery, Check } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Check } from 'lucide-react';
 import { useToast } from '../components/ToastProvider';
 
 const RARITY_GRADIENTS = {
@@ -172,7 +172,7 @@ export default function SkinsPage() {
   });
 
   const getParticleColor = (rarity: string) => {
-    switch(rarity) {
+    switch (rarity) {
       case 'legendary': return '#fbbf24';
       case 'epic': return '#a855f7';
       case 'rare': return '#3b82f6';
@@ -181,9 +181,7 @@ export default function SkinsPage() {
     }
   };
 
-  // Calculate total tap power: 1 + skin bonus (без tap_power)
-  const tapPower = 1
-  const totalTap = tapPower + (selectedSkin?.tap_bonus || 0)
+
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col overflow-hidden">
@@ -243,48 +241,8 @@ export default function SkinsPage() {
           )}
         </div>
 
-        {/* 3. СТАТЫ (Внизу подиума - PREMIUM MINIMALIST) */}
-        <div className="w-full flex justify-center z-20 mb-8">
-          <AnimatePresence mode="wait">
-            {selectedSkin && (
-              <motion.div
-                key={selectedSkin.id}
-                className="flex items-center gap-6 px-6 py-3 rounded-full bg-black/20 backdrop-blur-sm border border-white/5"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                {/* Tap (total power) */}
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                  <span className="text-sm font-bold text-white">
-                    +{totalTap}
-                  </span>
-                </div>
-
-                <div className="w-px h-4 bg-white/10" />
-
-                {/* Farm */}
-                <div className="flex items-center gap-2">
-                  <Pickaxe className={`w-4 h-4 ${selectedSkin.farm_bonus > 0 ? "text-green-400" : "text-white/20"}`} />
-                  <span className={`text-sm font-bold ${selectedSkin.farm_bonus > 0 ? "text-white" : "text-white/30"}`}>
-                    +{selectedSkin.farm_bonus}
-                  </span>
-                </div>
-
-                <div className="w-px h-4 bg-white/10" />
-
-                {/* Regen */}
-                <div className="flex items-center gap-2">
-                  <Battery className={`w-4 h-4 ${selectedSkin.regen_bonus > 0 ? "text-blue-400" : "text-white/20"}`} />
-                  <span className={`text-sm font-bold ${selectedSkin.regen_bonus > 0 ? "text-white" : "text-white/30"}`}>
-                    +{selectedSkin.regen_bonus}
-                  </span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* Отступ вместо статов */}
+        <div className="mb-8" />
       </motion.div>
 
       {/* ГРИД СКИНОВ */}
@@ -306,7 +264,7 @@ export default function SkinsPage() {
       {/* STICKY ФУТЕР */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/90 backdrop-blur-xl border-t border-white/10 z-30 pb-8">
         <div className="flex items-center justify-between gap-4 max-w-screen-sm mx-auto">
-          
+
           {/* ЦЕНА (только если не куплен) */}
           <div className="flex-1">
             {!owned ? (
@@ -342,10 +300,10 @@ export default function SkinsPage() {
                 )}
               </motion.div>
             ) : (
-               <div className="flex items-center gap-2 text-white/50">
-                 <Check className="w-5 h-5 text-green-500" />
-                 <span className="text-sm font-medium">Приобретено</span>
-               </div>
+              <div className="flex items-center gap-2 text-white/50">
+                <Check className="w-5 h-5 text-green-500" />
+                <span className="text-sm font-medium">Приобретено</span>
+              </div>
             )}
             <span className="text-[10px] font-bold text-white bg-green-500 px-1 rounded absolute -bottom-4 left-0 z-50">v1.4</span>
           </div>
