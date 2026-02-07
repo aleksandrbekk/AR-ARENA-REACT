@@ -103,7 +103,7 @@ export function Home() {
 
         {/* Logo */}
         <div className="flex justify-center py-4">
-          <div className="relative w-full max-w-[280px]">
+          <div className="relative w-full max-w-[200px]">
             {/* Glow */}
             <div
               className="absolute inset-0 rounded-full blur-2xl opacity-40"
@@ -112,7 +112,7 @@ export function Home() {
             <img
               src="/logo2.jpeg"
               alt="AR ARENA"
-              className="relative z-10 w-full h-auto object-contain drop-shadow-[0_0_15px_rgba(255,215,0,0.3)] rounded-xl"
+              className="relative z-10 w-full h-auto object-contain mix-blend-screen opacity-90"
             />
           </div>
         </div>
