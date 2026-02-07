@@ -2,20 +2,17 @@ import { Layout } from '../components/layout/Layout'
 import { Header } from '../components/Header'
 import { TapBull } from '../components/TapBull'
 import { SideButtons } from '../components/SideButtons'
-import { FloatingNumber } from '../components/FloatingNumber'
 import { Particles } from '../components/Particles'
 import { BrowserFallback } from '../components/BrowserFallback'
 import { useAuth } from '../hooks/useAuth'
-import { useTap } from '../hooks/useTap'
-import { useCallback, useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // Админы которые видят полное приложение
 const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
 
 export function Home() {
-  const { telegramUser, gameState, isLoading, error, updateGameState } = useAuth()
-  const { tap, isProcessing } = useTap(telegramUser?.id?.toString() || '')
+  const { telegramUser, gameState, isLoading, error } = useAuth()
   const navigate = useNavigate()
 
   // Редирект не-админов на страницу тарифов (приложение в разработке)
@@ -26,78 +23,6 @@ export function Home() {
       navigate('/pricing', { replace: true })
     }
   }, [isLoading, telegramUser, isAdmin, navigate])
-
-  // Состояние для плавающих чисел
-  const [floatingNumbers, setFloatingNumbers] = useState<Array<{
-    id: number
-    value: number
-  }>>([])
-
-  // Функция удаления плавающего числа
-  const removeFloatingNumber = useCallback((id: number) => {
-    setFloatingNumbers(prev => prev.filter(n => n.id !== id))
-  }, [])
-
-
-
-  // Обработчик тапа на быка
-  const handleTap = async () => {
-    // Проверяем условия для тапа
-    if (!telegramUser || !gameState || gameState.energy <= 0 || isProcessing || isLoading) {
-      console.log('Tap blocked:', {
-        hasUser: !!telegramUser,
-        hasState: !!gameState,
-        energy: gameState?.energy,
-        isProcessing,
-        isLoading
-      })
-      return
-    }
-
-    // 🚀 ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ (сразу показываем результат)
-    const tapPower = 1
-    const bulEarned = tapPower
-
-    // Мгновенно обновляем UI
-    const optimisticBalance = gameState.balance_bul + bulEarned
-    const optimisticEnergy = Math.max(gameState.energy - 1, 0)
-
-    updateGameState({
-      balance_bul: optimisticBalance,
-      energy: optimisticEnergy
-    })
-
-    // Добавить плавающее число сразу
-    setFloatingNumbers(prev => [...prev, { id: Date.now(), value: bulEarned }])
-
-    console.log('Processing tap...')
-    const result = await tap(1)
-
-    if (result?.success) {
-      console.log(`✅ Tap successful! +${result.bul_earned} BUL`)
-
-      if (result.leveled_up) {
-        console.log('🎉 LEVEL UP!')
-      }
-
-      // Синхронизируем с сервером ТОЛЬКО энергию, level, xp
-      // НЕ трогаем balance_bul - оптимистичное значение уже правильное
-      // Это предотвращает race condition когда сервер возвращает старый баланс
-      updateGameState({
-        energy: result.energy,
-        level: result.level,
-        xp: result.xp,
-        xp_to_next: result.xp_to_next
-      })
-    } else {
-      console.log('❌ Tap failed - откатываем оптимистичное обновление')
-      // Откатываем если запрос упал
-      updateGameState({
-        balance_bul: gameState.balance_bul,
-        energy: gameState.energy
-      })
-    }
-  }
 
   // SECURITY FIX: Removed debug console.log statements with user data
 
@@ -196,29 +121,18 @@ export function Home() {
           </div>
         </div>
 
-        {/* TapBull - основной компонент тапа */}
+        {/* TapBull - бык без тапа */}
         <TapBull
           skinFile={gameState.active_skin || 'Bull1.png'}
-          onTap={handleTap}
         >
           <SideButtons
             onFriendsClick={() => navigate('/partners')}
+            onTasksClick={() => navigate('/tasks')}
             onSkinsClick={() => navigate('/skins')}
             onGiveawaysClick={() => navigate('/giveaways')}
           />
         </TapBull>
       </div>
-
-      {/* Плавающие числа */}
-      {floatingNumbers.map(num => (
-        <FloatingNumber
-          key={num.id}
-          id={num.id}
-          value={num.value}
-          onComplete={removeFloatingNumber}
-        />
-      ))}
     </Layout>
   )
 }
-

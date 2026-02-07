@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 
 interface TapBullProps {
   skinFile: string // например "Bull1.png" или "bull_boss.png"
-  onTap: () => void
+  onTap?: () => void
   children?: React.ReactNode
 }
 
@@ -32,6 +32,9 @@ export function TapBull({ skinFile, onTap, children }: TapBullProps) {
   }, [])
 
   const handleTapAnimation = useCallback(() => {
+    // Если нет обработчика тапа — не реагируем
+    if (!onTap) return
+
     const now = Date.now()
 
     // Debounce: игнорируем тапы чаще чем 50ms
