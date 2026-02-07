@@ -11,7 +11,7 @@ export function Particles() {
   })))
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-20">
       {particles.map(p => (
         <div
           key={p.id}

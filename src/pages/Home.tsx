@@ -103,7 +103,7 @@ export function Home() {
 
         {/* Logo */}
         <div className="flex justify-center py-3">
-          <div className="relative w-full max-w-[200px] bg-black rounded-lg overflow-hidden">
+          <div className="relative w-full max-w-[200px]">
             <img
               src="/logo2.jpeg"
               alt="AR ARENA"

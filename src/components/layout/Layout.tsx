@@ -8,7 +8,7 @@ interface LayoutProps {
 
 export function Layout({ children, hideNavbar = false }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-ar-black flex flex-col" style={{ height: '100vh' }}>
+    <div className="min-h-screen bg-black flex flex-col" style={{ height: '100vh' }}>
       <main className="flex-1 overflow-y-auto" style={{ paddingTop: 'var(--safe-area-top)' }}>
         {children}
       </main>
