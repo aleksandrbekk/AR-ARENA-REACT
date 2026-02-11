@@ -12,7 +12,8 @@ import {
   Calendar,
   Sparkles,
   Trophy,
-  Zap
+  Zap,
+  Key
 } from 'lucide-react'
 import type { GiveawayHistory } from '../types'
 
@@ -29,6 +30,13 @@ interface PartnerSummary {
   referral_code: string
 }
 
+interface VaultInfo {
+  lockpick_available: boolean
+  streak: number
+  total_opened: number
+  total_earned: number
+}
+
 export function ProfilePage() {
   const navigate = useNavigate()
   const { telegramUser, gameState } = useAuth()
@@ -38,13 +46,17 @@ export function ProfilePage() {
   const [premium, setPremium] = useState<PremiumInfo | null>(null)
   const [partners, setPartners] = useState<PartnerSummary | null>(null)
   const [giveawayHistory, setGiveawayHistory] = useState<GiveawayHistory[]>([])
+  const [vault, setVault] = useState<VaultInfo | null>(null)
+  const [activeTickets, setActiveTickets] = useState(0)
   const [loading, setLoading] = useState(true)
 
   // Telegram BackButton
   useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp
-      const handleBack = () => navigate('/')
+    const tg = window.Telegram?.WebApp
+    if (tg?.BackButton) {
+      const handleBack = () => {
+        navigate(-1)
+      }
       tg.BackButton.show()
       tg.BackButton.onClick(handleBack)
       return () => {
@@ -61,7 +73,7 @@ export function ProfilePage() {
     try {
       const tid = telegramUser.id.toString()
 
-      const [userRes, premiumRes, partnerRes, giveawayRes] = await Promise.all([
+      const [userRes, premiumRes, partnerRes, giveawayRes, vaultRes, ticketsRes] = await Promise.all([
         // Дата регистрации
         supabase
           .from('users')
@@ -80,7 +92,16 @@ export function ProfilePage() {
         supabase.rpc('get_partner_stats', { p_telegram_id: tid }),
 
         // История розыгрышей
-        getMyGiveawayHistory()
+        getMyGiveawayHistory(),
+
+        // Vault state (отмычки)
+        supabase.rpc('get_vault_state', { p_user_id: tid }),
+
+        // Активные билеты (из активных розыгрышей)
+        supabase
+          .from('giveaway_tickets')
+          .select('ticket_count, giveaway_id', { count: 'exact' })
+          .eq('telegram_id', tid)
       ])
 
       if (userRes.data) {
@@ -99,6 +120,22 @@ export function ProfilePage() {
           total_earned_ar: p.total_earned_ar || 0,
           referral_code: p.referral_code || ''
         })
+      }
+
+      if (vaultRes.data) {
+        const v = vaultRes.data as any
+        setVault({
+          lockpick_available: v.lockpick_available || false,
+          streak: v.streak || 0,
+          total_opened: v.total_opened || 0,
+          total_earned: v.total_earned || 0
+        })
+      }
+
+      // Считаем общее количество билетов
+      if (ticketsRes.data) {
+        const total = ticketsRes.data.reduce((sum: number, t: any) => sum + (t.ticket_count || 1), 0)
+        setActiveTickets(total)
       }
 
       setGiveawayHistory(giveawayRes as GiveawayHistory[])
@@ -329,6 +366,52 @@ export function ProfilePage() {
                   </div>
                 </div>
               )}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* === МОИ БИЛЕТЫ + ОТМЫЧКИ (2 в ряд) === */}
+        <div className="px-4 mb-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.22 }}
+            className="grid grid-cols-2 gap-3"
+          >
+            {/* Билеты */}
+            <div
+              onClick={() => navigate('/giveaways')}
+              className="relative rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-transform"
+            >
+              <div className="absolute inset-0 bg-white/[0.03]" />
+              <div className="absolute inset-[1px] rounded-2xl border border-white/10" />
+              <div className="relative p-4 flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-xl bg-[#FFD700]/10 flex items-center justify-center">
+                  <Ticket className="w-5 h-5 text-[#FFD700]" />
+                </div>
+                <span className="text-2xl font-black text-white">
+                  {loading ? '—' : activeTickets}
+                </span>
+                <span className="text-white/40 text-xs">Мои билеты</span>
+              </div>
+            </div>
+
+            {/* Отмычки */}
+            <div
+              onClick={() => navigate('/vault')}
+              className="relative rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-transform"
+            >
+              <div className="absolute inset-0 bg-white/[0.03]" />
+              <div className="absolute inset-[1px] rounded-2xl border border-white/10" />
+              <div className="relative p-4 flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-xl bg-[#FFA500]/10 flex items-center justify-center">
+                  <Key className="w-5 h-5 text-[#FFA500]" />
+                </div>
+                <span className="text-2xl font-black text-white">
+                  {loading ? '—' : (vault?.lockpick_available ? 1 : 0)}
+                </span>
+                <span className="text-white/40 text-xs">Мои отмычки</span>
+              </div>
             </div>
           </motion.div>
         </div>
