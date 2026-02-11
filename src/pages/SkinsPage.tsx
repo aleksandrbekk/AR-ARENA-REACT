@@ -101,7 +101,7 @@ export default function SkinsPage() {
       if (error) throw error;
 
       if (!data.success) {
-        if (data.error === 'INSUFFICIENT_BUL' || data.error === 'INSUFFICIENT_AR') {
+        if (data.error === 'INSUFFICIENT_AR') {
           showToast({ variant: 'error', title: 'Недостаточно AR' });
         } else if (data.error === 'ALREADY_OWNED') {
           showToast({ variant: 'info', title: 'Скин уже куплен' });

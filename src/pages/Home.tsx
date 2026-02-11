@@ -107,11 +107,7 @@ export function Home() {
             <img
               src="/logo2.jpeg"
               alt="AR ARENA"
-              className="w-full h-auto object-contain"
-              style={{
-                WebkitMaskImage: 'radial-gradient(ellipse 85% 75% at center, black 50%, transparent 100%)',
-                maskImage: 'radial-gradient(ellipse 85% 75% at center, black 50%, transparent 100%)',
-              }}
+              className="w-full h-auto object-contain mix-blend-lighten"
             />
           </div>
         </div>

@@ -154,8 +154,7 @@ export interface Skin {
   name: string
   file: string
   rarity: SkinRarity
-  skin_type: 'bul' | 'ar'
-  price_bul: number
+  skin_type: 'ar'
   price_ar: number
   level_req: number
   refs_req: number
