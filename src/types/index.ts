@@ -105,7 +105,6 @@ export interface TelegramWebApp {
 
 // Состояние игры (ответ от get_bull_game_state)
 export interface GameState {
-  balance_bul: number;
   balance_ar: number;
   energy: number;
   energy_max: number;
@@ -120,12 +119,12 @@ export interface GameState {
 export interface TapResult {
   success: boolean;
   message: string;
-  balance_bul: number;
+  balance_ar: number;
   energy: number;
   level: number;
   xp: number;
   xp_to_next: number;
-  bul_earned: number;
+  ar_earned: number;
   xp_earned: number;
   leveled_up: boolean;
 }
@@ -162,7 +161,6 @@ export interface Skin {
   refs_req: number
   tap_bonus: number
   regen_bonus: number
-  farm_bonus: number
   description: string | null
 }
 
@@ -270,9 +268,9 @@ export interface Giveaway {
   title?: string  // fallback
   subtitle: string | null
   description: string | null
-  prices?: { ar?: number; bul?: number }
+  prices?: { ar?: number }
   price?: number  // deprecated
-  currency?: 'ar' | 'bul'  // deprecated
+  currency?: 'ar'  // deprecated
   jackpot_current_amount?: number
   end_date: string
   start_date?: string

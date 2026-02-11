@@ -8,7 +8,6 @@ import type {
   AppUser,
   Transaction,
   UserSkin,
-  UserEquipment,
   GiveawayTicket,
   PremiumStatus,
   ActiveGiveaway,
@@ -29,7 +28,6 @@ export function UsersTab() {
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null)
   const [userTransactions, setUserTransactions] = useState<Transaction[]>([])
   const [userSkins, setUserSkins] = useState<UserSkin[]>([])
-  const [userEquipment, setUserEquipment] = useState<UserEquipment[]>([])
   const [userTickets, setUserTickets] = useState<GiveawayTicket[]>([])
   const [userPremium, setUserPremium] = useState<PremiumStatus | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
@@ -104,7 +102,7 @@ export function UsersTab() {
 
     try {
       // Параллельно загружаем все данные профиля
-      const [transRes, skinsRes, equipRes, ticketsRes, premiumRes] = await Promise.all([
+      const [transRes, skinsRes, ticketsRes, premiumRes] = await Promise.all([
         // Транзакции (user_id = users.id UUID)
         supabase
           .from('transactions')
@@ -118,12 +116,6 @@ export function UsersTab() {
           .from('user_skins')
           .select('skin_id, is_equipped, is_active, purchased_at')
           .eq('user_id', user.id),
-
-        // Оборудование фермы (user_id = telegram_id BIGINT)
-        supabase
-          .from('user_equipment')
-          .select('equipment_slug, quantity')
-          .eq('user_id', user.telegram_id),
 
         // Билеты (user_id = telegram_id BIGINT)
         supabase
@@ -141,7 +133,6 @@ export function UsersTab() {
 
       setUserTransactions(transRes.data || [])
       setUserSkins(skinsRes.data || [])
-      setUserEquipment(equipRes.data || [])
       setUserTickets(ticketsRes.data || [])
       setUserPremium(premiumRes.data || null)
 
@@ -154,7 +145,7 @@ export function UsersTab() {
   }
 
   // ============ ОПЕРАЦИИ ============
-  const handleAdjustBalance = async (currency: 'AR' | 'BUL', amount: number) => {
+  const handleAdjustBalance = async (currency: 'AR', amount: number) => {
     if (!selectedUser) return
 
     try {
@@ -177,17 +168,13 @@ export function UsersTab() {
         const newBalance = data.new_balance
         setUsers(prev => prev.map(u => {
           if (u.telegram_id === selectedUser.telegram_id) {
-            return {
-              ...u,
-              [currency === 'AR' ? 'balance_ar' : 'balance_bul']: newBalance
-            }
+            return { ...u, balance_ar: newBalance }
           }
           return u
         }))
 
         setSelectedUser(prev => prev ? {
-          ...prev,
-          [currency === 'AR' ? 'balance_ar' : 'balance_bul']: newBalance
+          ...prev, balance_ar: newBalance
         } : null)
 
         // Обновляем транзакции
@@ -325,7 +312,6 @@ export function UsersTab() {
   const stats: UsersStats = {
     total: users.length,
     totalAR: users.reduce((sum, u) => sum + (u.balance_ar || 0), 0),
-    totalBUL: users.reduce((sum, u) => sum + (u.balance_bul || 0), 0),
     active24h: users.filter(u => {
       if (!u.last_seen_at) return false
       const diff = Date.now() - new Date(u.last_seen_at).getTime()
@@ -340,7 +326,6 @@ export function UsersTab() {
         user={selectedUser}
         transactions={userTransactions}
         skins={userSkins}
-        equipment={userEquipment}
         tickets={userTickets}
         premium={userPremium}
         activeGiveaways={activeGiveaways}

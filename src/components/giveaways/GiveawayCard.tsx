@@ -69,9 +69,9 @@ export function GiveawayCard({ giveaway }: GiveawayCardProps) {
           <span className="text-xs text-white/50">Призовой фонд</span>
         </div>
         <div className="flex items-center gap-1">
-          <img 
-            src={giveaway.currency === 'ar' ? '/icons/arcoin.png' : '/icons/BUL.png'} 
-            alt="" 
+          <img
+            src="/icons/arcoin.png"
+            alt="AR"
             className="w-4 h-4"
           />
           <span className="font-bold text-[#FFD700]">
@@ -94,7 +94,7 @@ export function GiveawayCard({ giveaway }: GiveawayCardProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <img src="/icons/tiket.png" alt="" className="w-3.5 h-3.5 object-contain" />
-          <span className="text-white/70">{giveaway.prices?.ar ?? giveaway.prices?.bul ?? giveaway.price ?? 0} {giveaway.prices?.ar !== undefined ? 'AR' : giveaway.prices?.bul !== undefined ? 'BUL' : (giveaway.currency || 'AR').toUpperCase()}</span>
+          <span className="text-white/70">{giveaway.prices?.ar ?? giveaway.price ?? 0} AR</span>
         </div>
       </div>
     </motion.div>

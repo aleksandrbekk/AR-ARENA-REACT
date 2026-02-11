@@ -74,9 +74,9 @@ export function SkinCard({ skin, isActive, isOwned, isEquipped, onClick }: SkinC
           {/* Price / owned status */}
           {!isOwned && (
             <div className="flex items-center justify-center gap-1 bg-black/40 px-2 py-0.5 rounded-full">
-              <CurrencyIcon type={skin.skin_type === 'ar' ? 'AR' : 'BUL'} className="w-2.5 h-2.5" />
+              <CurrencyIcon type="AR" className="w-2.5 h-2.5" />
               <span className="text-[9px] font-bold text-white">
-                {skin.skin_type === 'ar' ? skin.price_ar : skin.price_bul}
+                {skin.price_ar}
               </span>
             </div>
           )}

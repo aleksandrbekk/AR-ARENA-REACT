@@ -11,8 +11,6 @@ import { Home } from './pages/Home'
 import SkinsPage from './pages/SkinsPage'
 import { ShopPage } from './pages/ShopPage'
 import { ProfilePage } from './pages/ProfilePage'
-import { FarmPage } from './pages/FarmPage'
-import { FarmPageGemini } from './pages/FarmPageGemini'
 import { GiveawaysPage } from './pages/GiveawaysPage'
 import { GiveawayPageNew } from './pages/GiveawayPageNew'
 import { GiveawayResultsPage } from './pages/GiveawayResultsPage'
@@ -62,7 +60,6 @@ const router = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: "skins", element: <SkinsPage /> },
       { path: "shop", element: <ShopPage /> },
-      { path: "farm", element: <FarmPage /> },
       { path: "profile", element: <ProfilePage /> },
       { path: "giveaways", element: <GiveawaysPage /> },
       { path: "giveaway/:id", element: <GiveawayPageNew /> },
@@ -85,7 +82,6 @@ const router = createBrowserRouter([
       // (Leaving them for backward compatibility until fully migrated)
       { path: "admin", element: <AdminPage /> },
       { path: "stream-admin", element: <StreamAdminPage /> },
-      { path: "farm-alt", element: <FarmPageGemini /> },
 
       // --- NEW UNIFIED ADMIN WORKSPACE ---
       {

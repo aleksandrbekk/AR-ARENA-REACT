@@ -4,12 +4,12 @@ import { supabase } from '../lib/supabase'
 interface TapResult {
   success: boolean
   message: string
-  balance_bul: number
+  balance_ar: number
   energy: number
   level: number
   xp: number
   xp_to_next: number
-  bul_earned: number
+  ar_earned: number
   xp_earned: number
   leveled_up: boolean
 }

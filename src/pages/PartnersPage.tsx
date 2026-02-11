@@ -35,7 +35,7 @@ interface TeamMember {
 interface EarningRecord {
   id: number
   level: number
-  currency: 'AR' | 'BUL'
+  currency: 'AR'
   purchase_amount: number
   bonus_percent: number
   bonus_amount: number
@@ -49,7 +49,6 @@ interface PartnerStats {
   success: boolean
   referral_code: string
   total_earned_ar: number
-  total_earned_bul: number
   l1_count: number
   l2_count: number
   team: TeamMember[]
@@ -100,7 +99,6 @@ export function PartnersPage() {
         success: true,
         referral_code: 'LOADING',
         total_earned_ar: 0,
-        total_earned_bul: 0,
         l1_count: 0,
         l2_count: 0,
         team: [],
@@ -400,30 +398,6 @@ export function PartnersPage() {
               </div>
             </motion.div>
 
-            {/* BUL Earned - 2x1 */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="col-span-2 relative rounded-2xl overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-white/[0.03] backdrop-blur-sm" />
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent" />
-              <div className="absolute inset-[1px] rounded-2xl border border-white/10" />
-
-              <div className="relative p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CurrencyIcon type="BUL" className="w-10 h-10" />
-                  <div>
-                    <div className="text-white/40 text-xs mb-0.5">Заработано BUL</div>
-                    <div className="text-2xl font-black text-purple-400">
-                      {stats?.total_earned_bul?.toLocaleString() || 0}
-                    </div>
-                  </div>
-                </div>
-                <Zap className="w-6 h-6 text-purple-500/30" />
-              </div>
-            </motion.div>
           </div>
         </div>
 

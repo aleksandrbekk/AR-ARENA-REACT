@@ -224,7 +224,7 @@ export function GiveawayManager() {
   }
 
   const handleDistributePrizes = async (giveawayId: string) => {
-    if (!confirm('Выплатить призы победителям?\n\nЭто действие начислит AR/BUL на балансы победителей.')) {
+    if (!confirm('Выплатить призы победителям?\n\nЭто действие начислит AR на балансы победителей.')) {
       return
     }
 
@@ -408,7 +408,7 @@ export function GiveawayManager() {
                           {g.subtitle && <p className="text-[11px] text-white/40 truncate">{g.subtitle}</p>}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0 bg-black/30 rounded-lg px-2 py-1">
-                          <img src={`/icons/${g.currency === 'ar' ? 'arcoin' : 'BUL'}.png`} alt="" className="w-4 h-4" />
+                          <img src="/icons/arcoin.png" alt="AR" className="w-4 h-4" />
                           <span className="text-sm font-black text-[#FFD700]">
                             {(g.jackpot_current_amount || 0).toLocaleString()}
                           </span>
@@ -420,7 +420,7 @@ export function GiveawayManager() {
                         {[
                           {
                             label: 'Билет',
-                            value: g.prices?.ar ? `${g.prices.ar} AR` : g.prices?.bul ? `${g.prices.bul} BUL` : `${g.price || 10} ${(g.currency || 'ar').toUpperCase()}`
+                            value: `${g.prices?.ar ?? g.price ?? 10} AR`
                           },
                           { label: 'Призов', value: g.prizes?.length || 0 },
                           { label: 'Конец', value: g.end_date ? new Date(g.end_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—' }
@@ -489,8 +489,7 @@ export function GiveawayManager() {
   }
 
   // ==================== EDIT VIEW ====================
-  const currentCurrency = formData.prices?.bul !== undefined ? 'bul' : 'ar'
-  const currentPrice = currentCurrency === 'bul' ? (formData.prices?.bul || 0) : (formData.prices?.ar || 0)
+  const currentPrice = formData.prices?.ar || 0
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pt-[100px] pb-32 px-4">
@@ -537,34 +536,14 @@ export function GiveawayManager() {
                 value={currentPrice || ''}
                 onChange={e => {
                   const val = Number(e.target.value)
-                  setFormData({ ...formData, prices: currentCurrency === 'bul' ? { bul: val } : { ar: val } })
+                  setFormData({ ...formData, prices: { ar: val } })
                 }}
                 placeholder="10"
                 className="w-24 bg-black/40 rounded-xl px-4 py-3 text-white text-lg font-bold text-center focus:outline-none border border-white/10"
               />
-              <div className="flex-1 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, prices: { ar: currentPrice } })}
-                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${currentCurrency === 'ar'
-                    ? 'bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 text-[#FFD700] border-2 border-[#FFD700]'
-                    : 'bg-black/30 text-white/40 border border-white/10'
-                    }`}
-                >
-                  <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
-                  AR
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, prices: { bul: currentPrice } })}
-                  className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${currentCurrency === 'bul'
-                    ? 'bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 text-[#FFD700] border-2 border-[#FFD700]'
-                    : 'bg-black/30 text-white/40 border border-white/10'
-                    }`}
-                >
-                  <img src="/icons/BUL.png" alt="" className="w-5 h-5" />
-                  BUL
-                </button>
+              <div className="flex-1 flex items-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 border-2 border-[#FFD700]">
+                <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
+                <span className="text-[#FFD700] font-bold text-sm">AR</span>
               </div>
             </div>
           </div>

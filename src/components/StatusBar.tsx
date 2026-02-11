@@ -1,4 +1,4 @@
-import { Zap, Pickaxe, Battery } from 'lucide-react'
+import { Zap, Battery } from 'lucide-react'
 import type { Skin } from '../types'
 
 interface StatusBarProps {
@@ -43,19 +43,6 @@ export function StatusBar({ energy, energyMax, activeSkin, isLoading = false }: 
             </span>
           </div>
           <span className="text-[8px] text-white/40 uppercase tracking-wider">Тап</span>
-        </div>
-
-        <div className="w-px h-8 bg-white/10" />
-
-        {/* Farm Bonus */}
-        <div className="flex flex-col items-center gap-0.5">
-          <div className="flex items-center gap-1.5">
-            <Pickaxe className={`w-3.5 h-3.5 ${!isLoading && activeSkin?.farm_bonus ? "text-green-400" : "text-white/20"}`} />
-            <span className={`text-xs font-bold ${!isLoading && activeSkin?.farm_bonus ? "text-white" : "text-white/30"}`}>
-              {isLoading ? <SkeletonValue /> : `+${activeSkin?.farm_bonus || 0}`}
-            </span>
-          </div>
-          <span className="text-[8px] text-white/40 uppercase tracking-wider">Ферма</span>
         </div>
 
         <div className="w-px h-8 bg-white/10" />

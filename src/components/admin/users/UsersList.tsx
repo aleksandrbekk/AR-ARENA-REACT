@@ -166,10 +166,6 @@ export function UsersList({
           <div className="text-white/40 text-xs">Всего AR</div>
         </div>
         <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-3 text-center">
-          <div className="text-blue-400 text-xl font-bold">{stats.totalBUL.toLocaleString()}</div>
-          <div className="text-white/40 text-xs">Всего BUL</div>
-        </div>
-        <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-3 text-center">
           <div className="text-green-400 text-xl font-bold">{stats.active24h}</div>
           <div className="text-white/40 text-xs">Активных за 24ч</div>
         </div>
@@ -227,12 +223,6 @@ export function UsersList({
                 >
                   AR <SortIcon field="balance_ar" />
                 </th>
-                <th
-                  className="px-3 py-3 text-right text-xs font-semibold text-white/50 uppercase tracking-wide cursor-pointer hover:text-white/70"
-                  onClick={() => handleSort('balance_bul')}
-                >
-                  BUL <SortIcon field="balance_bul" />
-                </th>
                 <th className="px-3 py-3 text-center text-xs font-semibold text-white/50 uppercase tracking-wide">
                   Билеты
                 </th>
@@ -247,7 +237,7 @@ export function UsersList({
             <tbody>
               {paginatedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-white/40">
+                  <td colSpan={5} className="px-4 py-8 text-center text-white/40">
                     {search ? 'Ничего не найдено' : 'Нет игроков'}
                   </td>
                 </tr>
@@ -286,9 +276,6 @@ export function UsersList({
                     </td>
                     <td className="px-3 py-3 text-right text-sm font-semibold text-[#FFD700] cursor-pointer" onClick={() => onSelectUser(user)}>
                       {user.balance_ar.toLocaleString()}
-                    </td>
-                    <td className="px-3 py-3 text-right text-sm font-semibold text-blue-400 cursor-pointer" onClick={() => onSelectUser(user)}>
-                      {user.balance_bul.toLocaleString()}
                     </td>
                     <td className="px-3 py-3 text-center text-sm text-white/60 cursor-pointer" onClick={() => onSelectUser(user)}>
                       {user.tickets_count || 0}

@@ -1,18 +1,17 @@
 import { useState } from 'react'
-import type { AppUser, Transaction, UserSkin, UserEquipment, GiveawayTicket, PremiumStatus, ActiveGiveaway } from './types'
+import type { AppUser, Transaction, UserSkin, GiveawayTicket, PremiumStatus, ActiveGiveaway } from './types'
 
 // ============ PROPS ============
 interface UserProfileProps {
   user: AppUser
   transactions: Transaction[]
   skins: UserSkin[]
-  equipment: UserEquipment[]
   tickets: GiveawayTicket[]
   premium: PremiumStatus | null
   activeGiveaways: ActiveGiveaway[]
   loading: boolean
   onBack: () => void
-  onAdjustBalance: (currency: 'AR' | 'BUL', amount: number) => Promise<void>
+  onAdjustBalance: (currency: 'AR', amount: number) => Promise<void>
   onAddTickets: (giveawayId: string, count: number) => Promise<void>
   onSendMessage: (text: string) => Promise<void>
   onDelete: () => Promise<void>
@@ -50,7 +49,6 @@ export function UserProfile({
   user,
   transactions,
   skins,
-  equipment,
   tickets,
   premium,
   activeGiveaways,
@@ -64,7 +62,7 @@ export function UserProfile({
   // Модалка начисления баланса
   const [showAdjustModal, setShowAdjustModal] = useState(false)
   const [adjustAmount, setAdjustAmount] = useState('')
-  const [adjustCurrency, setAdjustCurrency] = useState<'AR' | 'BUL'>('AR')
+  const [adjustCurrency] = useState<'AR'>('AR')
   const [adjusting, setAdjusting] = useState(false)
 
   // Модалка добавления билетов
@@ -186,32 +184,18 @@ export function UserProfile({
       {/* Балансы */}
       <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-4">
         <div className="text-white/50 text-xs uppercase tracking-wide mb-3">Балансы</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-[#FFD700] text-2xl font-bold">
-              {user.balance_ar.toLocaleString()}
-            </div>
-            <div className="text-white/40 text-sm">AR</div>
+        <div>
+          <div className="text-[#FFD700] text-2xl font-bold">
+            {user.balance_ar.toLocaleString()}
           </div>
-          <div>
-            <div className="text-blue-400 text-2xl font-bold">
-              {user.balance_bul.toLocaleString()}
-            </div>
-            <div className="text-white/40 text-sm">BUL</div>
-          </div>
+          <div className="text-white/40 text-sm">AR</div>
         </div>
-        <div className="flex gap-2 mt-4">
+        <div className="mt-4">
           <button
-            onClick={() => { setAdjustCurrency('AR'); setShowAdjustModal(true) }}
-            className="flex-1 px-3 py-2 bg-[#FFD700]/20 text-[#FFD700] rounded-lg text-sm font-semibold hover:bg-[#FFD700]/30 transition-colors"
+            onClick={() => setShowAdjustModal(true)}
+            className="px-4 py-2 bg-[#FFD700]/20 text-[#FFD700] rounded-lg text-sm font-semibold hover:bg-[#FFD700]/30 transition-colors"
           >
             ± AR
-          </button>
-          <button
-            onClick={() => { setAdjustCurrency('BUL'); setShowAdjustModal(true) }}
-            className="flex-1 px-3 py-2 bg-blue-500/20 text-blue-400 rounded-lg text-sm font-semibold hover:bg-blue-500/30 transition-colors"
-          >
-            ± BUL
           </button>
         </div>
       </div>
@@ -328,25 +312,6 @@ export function UserProfile({
         )}
       </div>
 
-      {/* Ферма */}
-      <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-4">
-        <div className="text-white/50 text-xs uppercase tracking-wide mb-3">
-          Ферма ({equipment.length} оборудования)
-        </div>
-        {equipment.length === 0 ? (
-          <div className="text-white/40 text-sm">Нет оборудования</div>
-        ) : (
-          <div className="space-y-2">
-            {equipment.map(eq => (
-              <div key={eq.equipment_slug} className="flex items-center justify-between">
-                <div className="text-white">{eq.equipment_slug}</div>
-                <div className="text-white/60">{eq.quantity} шт</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Действия */}
       <div className="bg-zinc-900/50 backdrop-blur-md rounded-xl border border-white/10 p-4">
         <div className="text-white/50 text-xs uppercase tracking-wide mb-3">Действия</div>
@@ -374,13 +339,13 @@ export function UserProfile({
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
           <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-sm border border-white/10">
             <h3 className="text-white text-lg font-bold mb-4">
-              {adjustCurrency === 'AR' ? 'Изменить AR' : 'Изменить BUL'}
+              Изменить AR
             </h3>
 
             <div className="mb-4">
               <div className="text-white/60 text-sm mb-1">Текущий баланс:</div>
-              <div className={`text-xl font-bold ${adjustCurrency === 'AR' ? 'text-[#FFD700]' : 'text-blue-400'}`}>
-                {(adjustCurrency === 'AR' ? user.balance_ar : user.balance_bul).toLocaleString()}
+              <div className="text-xl font-bold text-[#FFD700]">
+                {user.balance_ar.toLocaleString()}
               </div>
             </div>
 

@@ -230,8 +230,6 @@ export function GiveawayResultsPage() {
 
   const drawResults = giveaway.draw_results as DrawResults | undefined
   const giveawayTitle = giveaway.main_title || giveaway.title || giveaway.name || 'Розыгрыш'
-  const currency = giveaway.currency || (giveaway.prices?.ar ? 'ar' : 'bul')
-
   return (
     <Layout hideNavbar>
       <div className="min-h-screen bg-[#0a0a0a] pb-8">
@@ -337,7 +335,7 @@ export function GiveawayResultsPage() {
                   <div className="text-right">
                     <div className="flex items-center gap-1.5 justify-end">
                       <img
-                        src={currency === 'ar' ? '/icons/arcoin.png' : '/icons/BUL.png'}
+                        src="/icons/arcoin.png"
                         alt=""
                         className="w-5 h-5"
                       />

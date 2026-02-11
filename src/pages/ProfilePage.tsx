@@ -189,13 +189,13 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {/* Заработано BUL */}
+          {/* Баланс AR */}
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-            <div className="text-white/60 text-xs mb-1">Заработано BUL</div>
+            <div className="text-white/60 text-xs mb-1">Баланс AR</div>
             <div className="flex items-center gap-1">
-              <img src="/icons/BUL.png" className="w-6 h-6" alt="BUL" />
+              <img src="/icons/arcoin.png" className="w-6 h-6" alt="AR" />
               <span className="text-white text-2xl font-bold">
-                {gameState ? gameState.balance_bul.toLocaleString() : '0'}
+                {gameState ? gameState.balance_ar.toLocaleString() : '0'}
               </span>
             </div>
           </div>
@@ -235,7 +235,6 @@ export function ProfilePage() {
                 <div className="text-white/60 text-sm space-y-1">
                   <div>Тап бонус: +{activeSkin.tap_bonus}%</div>
                   <div>Реген бонус: +{activeSkin.regen_bonus}%</div>
-                  <div>Ферма бонус: +{activeSkin.farm_bonus}%</div>
                 </div>
               </div>
             </div>

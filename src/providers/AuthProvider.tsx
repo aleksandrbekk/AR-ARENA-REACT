@@ -40,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (row) {
                 const state: GameState = {
-                    balance_bul: Number(row.balance_bul ?? 0),
                     balance_ar: Number(row.balance_ar ?? 0),
                     energy: Number(row.energy ?? 100),
                     energy_max: Number(row.energy_max ?? 100),
@@ -58,7 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Используем mock-данные при ошибке только если это сетевая ошибка
             // Но для продакшена лучше показывать ошибку
             const mockState: GameState = {
-                balance_bul: 1000,
                 balance_ar: 50,
                 energy: 100,
                 energy_max: 100,

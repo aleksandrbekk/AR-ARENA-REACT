@@ -10,7 +10,6 @@ export interface AppUser {
   last_name: string | null
   photo_url: string | null
   balance_ar: number
-  balance_bul: number
   level: number
   xp: number
   energy: number
@@ -39,13 +38,6 @@ export interface UserSkin extends BaseUserSkin {
   skin_rarity?: string
 }
 
-export interface UserEquipment {
-  equipment_slug: string
-  quantity: number
-  equipment_name?: string
-  income_per_hour?: number
-}
-
 export interface GiveawayTicket {
   giveaway_id: string
   ticket_number: number
@@ -66,12 +58,11 @@ export interface ActiveGiveaway {
   name: string
 }
 
-export type SortField = 'created_at' | 'balance_ar' | 'balance_bul' | 'level' | 'last_seen_at'
+export type SortField = 'created_at' | 'balance_ar' | 'level' | 'last_seen_at'
 
 // Статистика для списка пользователей
 export interface UsersStats {
   total: number
   totalAR: number
-  totalBUL: number
   active24h: number
 }

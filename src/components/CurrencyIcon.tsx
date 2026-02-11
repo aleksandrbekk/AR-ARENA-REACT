@@ -1,24 +1,19 @@
 /**
- * CurrencyIcon - Надежный компонент для отображения иконок валют
- * ПРОМТ 2 (Аня - Logic): Решает проблему пустых квадратов []
+ * CurrencyIcon - Компонент для отображения иконки AR валюты
  */
 
 interface CurrencyIconProps {
-  type: 'AR' | 'BUL';
+  type?: 'AR';
   className?: string;
 }
 
-export function CurrencyIcon({ type, className = 'w-4 h-4' }: CurrencyIconProps) {
-  const iconPath = type === 'AR' ? '/icons/arcoin.png' : '/icons/BUL.png';
-  const altText = type === 'AR' ? 'AR Coin' : 'BUL Coin';
-
+export function CurrencyIcon({ className = 'w-4 h-4' }: CurrencyIconProps) {
   return (
     <img
-      src={iconPath}
-      alt={altText}
+      src="/icons/arcoin.png"
+      alt="AR Coin"
       className={`object-contain ${className}`}
       onError={(e) => {
-        // Fallback: если картинка не загрузилась, показываем серый круг
         const target = e.target as HTMLImageElement;
         target.style.display = 'none';
         const fallback = document.createElement('div');

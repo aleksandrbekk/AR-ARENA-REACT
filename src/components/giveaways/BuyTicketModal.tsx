@@ -38,14 +38,11 @@ export function BuyTicketModal({ isOpen, onClose, giveaway, onSuccess }: BuyTick
     }
   }, [isOpen, hasRequirements])
 
-  // Определяем цену и валюту из нового формата prices, с fallback на старый
-  const ticketPrice = giveaway.prices?.ar ?? giveaway.prices?.bul ?? giveaway.price ?? 0
-  const ticketCurrency = giveaway.prices?.ar !== undefined ? 'ar' : giveaway.prices?.bul !== undefined ? 'bul' : (giveaway.currency || 'ar')
+  // Определяем цену (только AR)
+  const ticketPrice = giveaway.prices?.ar ?? giveaway.price ?? 0
 
   const totalCost = count * ticketPrice
-  const userBalance = ticketCurrency === 'ar'
-    ? (gameState?.balance_ar || 0)
-    : (gameState?.balance_bul || 0)
+  const userBalance = gameState?.balance_ar || 0
   const canAfford = userBalance >= totalCost
   const canBuy = canAfford && requirementsMet
 
@@ -110,7 +107,7 @@ export function BuyTicketModal({ isOpen, onClose, giveaway, onSuccess }: BuyTick
               {/* Giveaway Info */}
               <div className="bg-black/30 rounded-xl p-3 mb-4">
                 <p className="text-sm text-white/70">{giveaway.title}</p>
-                <p className="text-xs text-white/40">Цена билета: {ticketPrice} {ticketCurrency.toUpperCase()}</p>
+                <p className="text-xs text-white/40">Цена билета: {ticketPrice} AR</p>
               </div>
 
               {/* Requirements Check */}
@@ -165,9 +162,9 @@ export function BuyTicketModal({ isOpen, onClose, giveaway, onSuccess }: BuyTick
               <div className="flex justify-between items-center py-3 border-t border-white/10 mb-4">
                 <span className="text-white/50">Итого:</span>
                 <div className="flex items-center gap-2">
-                  <img 
-                    src={giveaway.currency === 'ar' ? '/icons/arcoin.png' : '/icons/BUL.png'} 
-                    alt="" 
+                  <img
+                    src="/icons/arcoin.png"
+                    alt="AR"
                     className="w-5 h-5"
                   />
                   <span className="text-xl font-bold text-white">{totalCost.toLocaleString()}</span>

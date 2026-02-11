@@ -101,9 +101,7 @@ export default function SkinsPage() {
       if (error) throw error;
 
       if (!data.success) {
-        if (data.error === 'INSUFFICIENT_BUL') {
-          showToast({ variant: 'error', title: 'Недостаточно BUL' });
-        } else if (data.error === 'INSUFFICIENT_AR') {
+        if (data.error === 'INSUFFICIENT_BUL' || data.error === 'INSUFFICIENT_AR') {
           showToast({ variant: 'error', title: 'Недостаточно AR' });
         } else if (data.error === 'ALREADY_OWNED') {
           showToast({ variant: 'info', title: 'Скин уже куплен' });
@@ -273,31 +271,15 @@ export default function SkinsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center gap-3"
               >
-                {selectedSkin?.skin_type === 'ar' ? (
-                  <>
-                    <div className="w-11 h-11 rounded-full bg-[#1a1a1a] flex items-center justify-center border border-white/10 shadow-inner">
-                      <CurrencyIcon type="AR" className="w-6 h-6" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Стоимость</span>
-                      <span className="text-2xl font-black text-white tracking-tight">
-                        {selectedSkin?.price_ar?.toLocaleString() || 0}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-11 h-11 rounded-full bg-[#1a1a1a] flex items-center justify-center border border-white/10 shadow-inner">
-                      <CurrencyIcon type="BUL" className="w-6 h-6" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Стоимость</span>
-                      <span className="text-2xl font-black text-white tracking-tight">
-                        {selectedSkin?.price_bul?.toLocaleString() || 0}
-                      </span>
-                    </div>
-                  </>
-                )}
+                <div className="w-11 h-11 rounded-full bg-[#1a1a1a] flex items-center justify-center border border-white/10 shadow-inner">
+                  <CurrencyIcon type="AR" className="w-6 h-6" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Стоимость</span>
+                  <span className="text-2xl font-black text-white tracking-tight">
+                    {selectedSkin?.price_ar?.toLocaleString() || 0}
+                  </span>
+                </div>
               </motion.div>
             ) : (
               <div className="flex items-center gap-2 text-white/50">
@@ -330,9 +312,7 @@ export default function SkinsPage() {
                 whileTap={{ scale: 0.95 }}
                 onClick={handleBuy}
                 disabled={buying || (gameState ? (
-                  selectedSkin?.skin_type === 'ar'
-                    ? gameState.balance_ar < (selectedSkin?.price_ar || 0)
-                    : gameState.balance_bul < (selectedSkin?.price_bul || 0)
+                  gameState.balance_ar < (selectedSkin?.price_ar || 0)
                 ) : false)}
                 className={`
                   w-full py-3.5 rounded-xl font-bold text-sm transition-all relative overflow-hidden
