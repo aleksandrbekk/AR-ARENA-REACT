@@ -110,6 +110,15 @@ export function InboxPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
+  // Slash commands
+  const [showSlashMenu, setShowSlashMenu] = useState(false)
+  const SLASH_COMMANDS = [
+    { cmd: '/cancel', label: 'Отменить подписку', icon: '❌', desc: 'Ставит expires_at = now' },
+    { cmd: '/bonus7', label: '+7 дней', icon: '🎁', desc: 'Добавляет 7 дней к подписке' },
+    { cmd: '/bonus30', label: '+30 дней', icon: '🎁', desc: 'Добавляет 30 дней к подписке' },
+    { cmd: '/info', label: 'Инфо о клиенте', icon: 'ℹ️', desc: 'Показывает статус подписки' },
+  ]
+
   // ... (Keep existing AUTH logic) ...
   const isTelegramWebApp = typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initData
 
@@ -306,8 +315,100 @@ export function InboxPage() {
     }
   }
 
+  const handleSlashCommand = async (command: string): Promise<boolean> => {
+    if (!selectedConversation) return false
+    const telegramId = selectedConversation.telegram_id
+
+    if (command === '/cancel') {
+      const { data: client } = await supabase
+        .from('premium_clients')
+        .select('id, expires_at')
+        .eq('telegram_id', telegramId)
+        .single()
+
+      if (!client) {
+        alert('Клиент не найден в premium_clients')
+        return true
+      }
+
+      if (!confirm(`Отменить подписку ${selectedConversation.username || telegramId}?`)) return true
+
+      const { error } = await supabase
+        .from('premium_clients')
+        .update({ expires_at: new Date().toISOString() })
+        .eq('id', client.id)
+
+      if (error) {
+        alert('Ошибка: ' + error.message)
+      } else {
+        alert('✅ Подписка отменена')
+      }
+      return true
+    }
+
+    if (command === '/bonus7' || command === '/bonus30') {
+      const days = command === '/bonus7' ? 7 : 30
+      const { data: client } = await supabase
+        .from('premium_clients')
+        .select('id, expires_at')
+        .eq('telegram_id', telegramId)
+        .single()
+
+      if (!client) {
+        alert('Клиент не найден в premium_clients')
+        return true
+      }
+
+      const currentExpires = new Date(client.expires_at)
+      const now = new Date()
+      const baseDate = currentExpires > now ? currentExpires : now
+      const newExpires = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000)
+
+      const { error } = await supabase
+        .from('premium_clients')
+        .update({ expires_at: newExpires.toISOString() })
+        .eq('id', client.id)
+
+      if (error) {
+        alert('Ошибка: ' + error.message)
+      } else {
+        alert(`✅ +${days} дней добавлено. Новая дата: ${newExpires.toLocaleDateString('ru-RU')}`)
+      }
+      return true
+    }
+
+    if (command === '/info') {
+      const { data: client } = await supabase
+        .from('premium_clients')
+        .select('plan, expires_at, total_paid_usd, payments_count, source')
+        .eq('telegram_id', telegramId)
+        .single()
+
+      if (!client) {
+        alert('Не найден в premium_clients')
+      } else {
+        const daysLeft = Math.ceil((new Date(client.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        alert(`👑 Инфо о клиенте:\n\nТариф: ${client.plan}\nИстекает: ${new Date(client.expires_at).toLocaleDateString('ru-RU')}\nОсталось: ${daysLeft} дней\nОплачено: $${client.total_paid_usd || 0}\nПлатежей: ${client.payments_count || 0}\nИсточник: ${client.source || '-'}`)
+      }
+      return true
+    }
+
+    return false
+  }
+
   const sendMessage = async () => {
     if (!messageText.trim() || !selectedConversation || sending) return
+
+    // Handle slash commands
+    const trimmed = messageText.trim()
+    if (trimmed.startsWith('/')) {
+      const handled = await handleSlashCommand(trimmed)
+      if (handled) {
+        setMessageText('')
+        setShowSlashMenu(false)
+        return
+      }
+    }
 
     setSending(true)
     try {
@@ -323,7 +424,7 @@ export function InboxPage() {
         body: JSON.stringify({
           conversationId: selectedConversation.id,
           telegramId: selectedConversation.telegram_id,
-          text: messageText.trim(),
+          text: trimmed,
           sentBy: telegramId || 'admin'
         })
       })
@@ -413,7 +514,7 @@ export function InboxPage() {
             <h1 className="text-2xl font-bold text-white mb-2">🔐 Авторизация</h1>
             <p className="text-sm text-zinc-400">Требуется доступ администратора</p>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm text-zinc-400 mb-2">Пароль администратора</label>
@@ -432,7 +533,7 @@ export function InboxPage() {
                 </p>
               )}
             </div>
-            
+
             <button
               onClick={handlePasswordSubmit}
               disabled={isVerifying}
@@ -440,7 +541,7 @@ export function InboxPage() {
             >
               {isVerifying ? 'Проверка...' : 'Войти'}
             </button>
-            
+
             <div className="text-center text-xs text-zinc-500 mt-4">
               <p>Или авторизуйтесь через Telegram</p>
               <p className="text-zinc-600 mt-1">(только для администраторов)</p>
@@ -484,7 +585,7 @@ export function InboxPage() {
             Системные сообщения
           </button>
         </div>
-        
+
         {/* Индикатор авторизации в шапке */}
         <div className="flex items-center gap-3">
           {isTelegramWebApp ? (
@@ -722,28 +823,61 @@ export function InboxPage() {
 
                   {/* Input */}
                   <div className="p-4 border-t border-zinc-800">
-                    <div className="flex gap-2">
-                      <textarea
-                        ref={inputRef}
-                        value={messageText}
-                        onChange={(e) => setMessageText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault()
-                            sendMessage()
-                          }
-                        }}
-                        placeholder="Напишите сообщение..."
-                        rows={1}
-                        className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 resize-none focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                      />
-                      <button
-                        onClick={sendMessage}
-                        disabled={!messageText.trim() || sending}
-                        className="px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {sending ? <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
-                      </button>
+                    <div className="relative">
+                      {/* Slash command autocomplete */}
+                      {showSlashMenu && (
+                        <div className="absolute bottom-full left-0 right-0 mb-2 bg-zinc-800 border border-zinc-700 rounded-xl overflow-hidden shadow-xl z-20">
+                          {SLASH_COMMANDS
+                            .filter(c => !messageText || c.cmd.startsWith(messageText.trim()))
+                            .map(({ cmd, label, icon, desc }) => (
+                              <button
+                                key={cmd}
+                                onClick={() => {
+                                  setMessageText(cmd)
+                                  setShowSlashMenu(false)
+                                  inputRef.current?.focus()
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 transition text-left"
+                              >
+                                <span className="text-lg">{icon}</span>
+                                <div>
+                                  <div className="text-white font-medium text-sm">{cmd} <span className="text-zinc-400 font-normal">— {label}</span></div>
+                                  <div className="text-zinc-500 text-xs">{desc}</div>
+                                </div>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <textarea
+                          ref={inputRef}
+                          value={messageText}
+                          onChange={(e) => {
+                            setMessageText(e.target.value)
+                            setShowSlashMenu(e.target.value === '/' || (e.target.value.startsWith('/') && !e.target.value.includes(' ')))
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault()
+                              setShowSlashMenu(false)
+                              sendMessage()
+                            }
+                            if (e.key === 'Escape') {
+                              setShowSlashMenu(false)
+                            }
+                          }}
+                          placeholder="Напишите сообщение или / для команд..."
+                          rows={1}
+                          className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 resize-none focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                        />
+                        <button
+                          onClick={() => { setShowSlashMenu(false); sendMessage() }}
+                          disabled={!messageText.trim() || sending}
+                          className="px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {sending ? <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </>
@@ -765,7 +899,7 @@ export function InboxPage() {
             {/* System Messages Header */}
             <div className="p-4 border-b border-zinc-800">
               <h2 className="text-xl font-bold text-white mb-4">Системные сообщения</h2>
-              
+
               {/* Filters */}
               <div className="flex gap-4 flex-wrap">
                 <div className="flex gap-2">
@@ -774,11 +908,10 @@ export function InboxPage() {
                     <button
                       key={f}
                       onClick={() => setSystemMessagesFilter(f)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                        systemMessagesFilter === f
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${systemMessagesFilter === f
                           ? 'bg-yellow-500 text-black'
                           : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                      }`}
+                        }`}
                     >
                       {f === 'all' && 'Все'}
                       {f === 'success' && '✅ Успешно'}
@@ -787,7 +920,7 @@ export function InboxPage() {
                     </button>
                   ))}
                 </div>
-                
+
                 <div className="flex gap-2">
                   <span className="text-zinc-400 text-sm py-2">Источник:</span>
                   <select
@@ -820,17 +953,15 @@ export function InboxPage() {
                   {systemMessages.map((msg) => (
                     <div
                       key={msg.id}
-                      className={`p-4 rounded-lg border ${
-                        msg.success
+                      className={`p-4 rounded-lg border ${msg.success
                           ? 'bg-zinc-900/50 border-zinc-800'
                           : 'bg-red-900/20 border-red-800/50'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            msg.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                          }`}>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${msg.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                            }`}>
                             {msg.success ? '✅' : '❌'}
                           </span>
                           <span className="text-xs text-zinc-400">{msg.source}</span>
@@ -840,21 +971,21 @@ export function InboxPage() {
                           {new Date(msg.created_at).toLocaleString('ru-RU')}
                         </span>
                       </div>
-                      
+
                       <div className="mb-2">
                         <span className="text-xs text-zinc-400">ID: {msg.telegram_id}</span>
                       </div>
-                      
+
                       <div className="text-sm text-white mb-2 whitespace-pre-wrap break-words">
                         {msg.text.substring(0, 300)}{msg.text.length > 300 ? '...' : ''}
                       </div>
-                      
+
                       {msg.error && (
                         <div className="text-xs text-red-400 mb-2">
                           Ошибка: {msg.error}
                         </div>
                       )}
-                      
+
                       {msg.metadata && Object.keys(msg.metadata).length > 0 && (
                         <details className="text-xs text-zinc-400">
                           <summary className="cursor-pointer hover:text-zinc-300">Метаданные</summary>
