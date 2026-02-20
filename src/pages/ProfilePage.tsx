@@ -158,6 +158,55 @@ export function ProfilePage() {
     })
   }
 
+  const [cancelling, setCancelling] = useState(false)
+
+  const cancelSubscription = async () => {
+    if (!telegramUser || !premium) return
+
+    const tg = window.Telegram?.WebApp as any
+    if (tg?.showConfirm) {
+      tg.showConfirm('Отменить подписку? Доступ к Premium будет прекращён.', async (confirmed: boolean) => {
+        if (!confirmed) return
+        await doCancelSubscription()
+      })
+    } else {
+      if (!confirm('Отменить подписку? Доступ к Premium будет прекращён.')) return
+      await doCancelSubscription()
+    }
+  }
+
+  const doCancelSubscription = async () => {
+    if (!telegramUser) return
+    setCancelling(true)
+    try {
+      const { error } = await supabase
+        .from('premium_clients')
+        .update({ expires_at: new Date().toISOString() })
+        .eq('telegram_id', telegramUser.id.toString())
+
+      if (error) throw error
+
+      setPremium(null)
+      const tg = window.Telegram?.WebApp as any
+      if (tg?.showAlert) {
+        tg.showAlert('Подписка отменена')
+      } else {
+        alert('Подписка отменена')
+      }
+      loadData()
+    } catch (err) {
+      console.error('Cancel subscription error:', err)
+      const tg = window.Telegram?.WebApp as any
+      if (tg?.showAlert) {
+        tg.showAlert('Ошибка отмены подписки')
+      } else {
+        alert('Ошибка отмены подписки')
+      }
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   const isPremiumActive = premium
     ? new Date(premium.expires_at) > new Date()
     : false
@@ -287,6 +336,15 @@ export function ProfilePage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Кнопка отмены подписки */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); cancelSubscription() }}
+                    disabled={cancelling}
+                    className="mt-3 w-full py-2 text-xs text-white/30 hover:text-red-400 transition-colors rounded-lg border border-white/5 hover:border-red-500/20 disabled:opacity-50"
+                  >
+                    {cancelling ? 'Отмена...' : 'Отменить подписку'}
+                  </button>
                 </div>
               </>
             ) : (
@@ -476,13 +534,12 @@ export function ProfilePage() {
                       onClick={() => navigate(`/giveaway/${g.id}`)}
                       className="flex items-center gap-3 p-3 bg-black/20 rounded-xl cursor-pointer active:bg-black/40 transition-colors"
                     >
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        g.is_winner
-                          ? 'bg-[#FFD700]/20'
-                          : g.status === 'active'
-                            ? 'bg-green-500/20'
-                            : 'bg-white/5'
-                      }`}>
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${g.is_winner
+                        ? 'bg-[#FFD700]/20'
+                        : g.status === 'active'
+                          ? 'bg-green-500/20'
+                          : 'bg-white/5'
+                        }`}>
                         {g.is_winner ? (
                           <Trophy className="w-4 h-4 text-[#FFD700]" />
                         ) : g.status === 'active' ? (
