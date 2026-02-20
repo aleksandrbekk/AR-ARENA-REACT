@@ -10,6 +10,7 @@ interface ClientModalProps {
   onAddDays: (days: number) => void
   onEditDate: () => void
   onGrantTicket: () => void
+  onCancelSubscription: () => void
   onDelete: () => void
 }
 
@@ -21,6 +22,7 @@ export function ClientModal({
   onAddDays,
   onEditDate,
   onGrantTicket,
+  onCancelSubscription,
   onDelete
 }: ClientModalProps) {
   return (
@@ -103,6 +105,13 @@ export function ClientModal({
             className="w-full py-3 bg-[#FFD700] text-black font-medium rounded-xl"
           >
             Выдать билет
+          </button>
+
+          <button
+            onClick={onCancelSubscription}
+            className="w-full py-3 bg-orange-600/20 text-orange-400 font-medium rounded-xl"
+          >
+            Отменить подписку
           </button>
 
           <button
@@ -401,21 +410,19 @@ export function PaymentsModal({
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => onPeriodChange('5-22')}
-            className={`flex-1 py-3 rounded-xl font-medium transition-all ${
-              selectedPeriod === '5-22'
+            className={`flex-1 py-3 rounded-xl font-medium transition-all ${selectedPeriod === '5-22'
                 ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
                 : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
-            }`}
+              }`}
           >
             5–22
           </button>
           <button
             onClick={() => onPeriodChange('23-4')}
-            className={`flex-1 py-3 rounded-xl font-medium transition-all ${
-              selectedPeriod === '23-4'
+            className={`flex-1 py-3 rounded-xl font-medium transition-all ${selectedPeriod === '23-4'
                 ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
                 : 'bg-zinc-800 text-white/60 hover:bg-zinc-700'
-            }`}
+              }`}
           >
             23–4
           </button>
@@ -527,11 +534,10 @@ export function TicketModal({
                 {giveaways.map(g => (
                   <label
                     key={g.id}
-                    className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
-                      selectedGiveawayId === g.id
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${selectedGiveawayId === g.id
                         ? 'bg-[#FFD700]/10 border-[#FFD700] text-white'
                         : 'bg-zinc-800 border-transparent text-white/60 hover:bg-zinc-700'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <input

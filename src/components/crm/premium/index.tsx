@@ -145,8 +145,8 @@ export function PremiumTab({
     const isCryptoCurrency = (cur: string, source: string) => {
       const c = (cur || '').toUpperCase()
       return c.includes('USDT') || c.includes('USDC') || c.includes('BTC') ||
-             c.includes('ETH') || c.includes('TON') || c.includes('CRYPTO') ||
-             source === '0xprocessing'
+        c.includes('ETH') || c.includes('TON') || c.includes('CRYPTO') ||
+        source === '0xprocessing'
     }
     const isUsdCurrency = (cur: string, source: string) => {
       const c = (cur || '').toUpperCase()
@@ -163,11 +163,11 @@ export function PremiumTab({
     const clientsFiltered = statsMonth === 'all'
       ? premiumClients
       : premiumClients.filter(c => {
-          if (!c.last_payment_at) return false
-          const d = new Date(c.last_payment_at)
-          const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-          return m === statsMonth
-        })
+        if (!c.last_payment_at) return false
+        const d = new Date(c.last_payment_at)
+        const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        return m === statsMonth
+      })
 
     clientsFiltered.forEach(c => {
       const amount = statsMonth === 'all' ? (c.total_paid_usd || 0) : (c.original_amount || 0)
@@ -226,6 +226,28 @@ export function PremiumTab({
   }
 
   // ============ CLIENT OPERATIONS ============
+  const cancelSubscription = async (clientId: string, telegramId: number) => {
+    if (!confirm(`Отменить подписку клиента ${telegramId}? Подписка станет неактивной.`)) return
+
+    try {
+      const { error } = await supabase
+        .from('premium_clients')
+        .update({ expires_at: new Date().toISOString() })
+        .eq('id', clientId)
+
+      if (error) throw error
+      setSelectedClient(null)
+      setShowClientModal(false)
+      showToast({ variant: 'success', title: 'Подписка отменена' })
+      onDataChange()
+
+      await sendMessage(telegramId, '❌ Ваша подписка Premium AR Club была отменена.\n\nЕсли у вас есть вопросы — @Andrey_cryptoinvestor')
+    } catch (err) {
+      console.error('Error cancelling subscription:', err)
+      showToast({ variant: 'error', title: 'Ошибка отмены подписки' })
+    }
+  }
+
   const deleteClient = async (clientId: string, telegramId: number) => {
     if (!confirm(`Удалить клиента ${telegramId} из Premium?`)) return
 
@@ -487,6 +509,7 @@ export function PremiumTab({
             setShowEditDateModal(true)
           }}
           onGrantTicket={() => openTicketModal(selectedClient.telegram_id, selectedClient.first_name || selectedClient.username || 'Клиент')}
+          onCancelSubscription={() => cancelSubscription(selectedClient.id, selectedClient.telegram_id)}
           onDelete={() => deleteClient(selectedClient.id, selectedClient.telegram_id)}
         />
       )}
