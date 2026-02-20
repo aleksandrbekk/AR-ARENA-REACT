@@ -218,7 +218,7 @@ export function AdminPage() {
                 onClick={() => setActiveSection('users')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
               >
-                <img src="/icons/PARTNERS.png" alt="Users" className="w-8 h-8 object-contain" />
+                <img src="/icons/peaple.png" alt="Users" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
                 <div className="text-center">
                   <div className="text-white font-medium">Юзеры</div>
                   <div className="text-white/60 text-sm">
@@ -232,7 +232,7 @@ export function AdminPage() {
                 onClick={() => setActiveSection('giveaways')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
               >
-                <img src="/icons/GIVEAWAY.png" alt="Giveaways" className="w-8 h-8 object-contain" />
+                <img src="/icons/GIVEAWAY.png" alt="Giveaways" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
                 <div className="text-center">
                   <div className="text-white font-medium">Розыгрыши</div>
                   <div className="text-white/60 text-sm">
@@ -246,13 +246,7 @@ export function AdminPage() {
                 onClick={() => navigate('/full-crm')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
               >
-                <svg
-                  className="w-8 h-8 text-[#FFD700]"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" />
-                </svg>
+                <img src="/icons/dashboard.png" alt="CRM" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
                 <div className="text-center">
                   <div className="text-white font-medium">CRM</div>
                   <div className="text-white/60 text-sm">
@@ -266,19 +260,7 @@ export function AdminPage() {
                 onClick={() => setActiveSection('utm')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
               >
-                <svg
-                  className="w-8 h-8 text-[#FFD700]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                  />
-                </svg>
+                <img src="/icons/ref.png" alt="UTM Links" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
                 <div className="text-center">
                   <div className="text-white font-medium">UTM-ссылки</div>
                   <div className="text-white/60 text-sm">
@@ -292,19 +274,7 @@ export function AdminPage() {
                 onClick={() => setActiveSection('tasks')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
               >
-                <svg
-                  className="w-8 h-8 text-[#FFD700]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
-                  />
-                </svg>
+                <img src="/icons/tasks.png" alt="Tasks" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
                 <div className="text-center">
                   <div className="text-white font-medium">Задания</div>
                   <div className="text-white/60 text-sm">

@@ -330,21 +330,19 @@ export function UtmLinksTab() {
       <div className="flex gap-2 p-1 bg-zinc-900/50 rounded-xl border border-white/10">
         <button
           onClick={() => { setActiveTab('payment'); setActiveFolder(null) }}
-          className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-            activeTab === 'payment'
+          className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${activeTab === 'payment'
               ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
               : 'text-white/60'
-          }`}
+            }`}
         >
           Оплата
         </button>
         <button
           onClick={() => setActiveTab('tools')}
-          className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-            activeTab === 'tools'
+          className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${activeTab === 'tools'
               ? 'bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-black'
               : 'text-white/60'
-          }`}
+            }`}
         >
           Инструменты
         </button>
@@ -597,7 +595,7 @@ export function UtmLinksTab() {
               </div>
               <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
                 <div className="text-purple-400 font-bold text-lg">{promoStats.payments}</div>
-                <div className="text-white/40 text-[10px] uppercase">💳 Оплат</div>
+                <div className="text-white/40 text-[10px] uppercase">🔑 Усп. кодов</div>
               </div>
             </div>
 
@@ -609,7 +607,7 @@ export function UtmLinksTab() {
                 <div className="flex items-center gap-3">
                   <span className="text-white/70 text-sm w-24 shrink-0">Открыли</span>
                   <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-yellow-500 rounded-full" style={{width: '100%'}} />
+                    <div className="h-full bg-yellow-500 rounded-full" style={{ width: '100%' }} />
                   </div>
                   <span className="text-white font-bold w-10 text-right">{promoStats.totalViews}</span>
                   <span className="text-white/40 text-xs w-10 text-right">100%</span>
@@ -620,7 +618,7 @@ export function UtmLinksTab() {
                   <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500 rounded-full transition-all"
-                      style={{width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress25 / promoStats.totalViews * 100)}%` : '0%'}}
+                      style={{ width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress25 / promoStats.totalViews * 100)}%` : '0%' }}
                     />
                   </div>
                   <span className="text-white font-bold w-10 text-right">{promoStats.progress25}</span>
@@ -634,7 +632,7 @@ export function UtmLinksTab() {
                   <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-cyan-500 rounded-full transition-all"
-                      style={{width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress50 / promoStats.totalViews * 100)}%` : '0%'}}
+                      style={{ width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress50 / promoStats.totalViews * 100)}%` : '0%' }}
                     />
                   </div>
                   <span className="text-white font-bold w-10 text-right">{promoStats.progress50}</span>
@@ -648,7 +646,7 @@ export function UtmLinksTab() {
                   <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-purple-500 rounded-full transition-all"
-                      style={{width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress75 / promoStats.totalViews * 100)}%` : '0%'}}
+                      style={{ width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress75 / promoStats.totalViews * 100)}%` : '0%' }}
                     />
                   </div>
                   <span className="text-white font-bold w-10 text-right">{promoStats.progress75}</span>
@@ -662,7 +660,7 @@ export function UtmLinksTab() {
                   <div className="flex-1 h-3 bg-zinc-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-500 rounded-full transition-all"
-                      style={{width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress100 / promoStats.totalViews * 100)}%` : '0%'}}
+                      style={{ width: promoStats.totalViews > 0 ? `${Math.round(promoStats.progress100 / promoStats.totalViews * 100)}%` : '0%' }}
                     />
                   </div>
                   <span className="text-[#FFD700] font-bold w-10 text-right">{promoStats.progress100}</span>
