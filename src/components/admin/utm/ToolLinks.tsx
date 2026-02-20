@@ -101,17 +101,21 @@ export function ToolLinks({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 mb-3">
+                <div className="grid grid-cols-5 gap-2 mb-3">
                   <div className="text-center">
                     <div className="text-[#FFD700] font-bold">{link.clicks}</div>
                     <div className="text-white/30 text-[10px]">клики</div>
                   </div>
                   <div className="text-center">
                     <div className="text-green-400 font-bold">{link.conversions}</div>
-                    <div className="text-white/30 text-[10px]">усп. кодов</div>
+                    <div className="text-white/30 text-[10px]">коды</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-white font-bold">{getConversionRate(link.clicks, link.conversions)}</div>
+                    <div className="text-purple-400 font-bold">{link.payments || 0}</div>
+                    <div className="text-white/30 text-[10px]">оплат</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-white font-bold">{getConversionRate(link.clicks, link.payments || 0)}</div>
                     <div className="text-white/30 text-[10px]">CR</div>
                   </div>
                   <div className="text-center">

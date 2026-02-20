@@ -232,7 +232,7 @@ export function AdminPage() {
                 onClick={() => setActiveSection('giveaways')}
                 className="p-4 bg-zinc-900/50 backdrop-blur-md border border-yellow-500/20 rounded-xl active:bg-zinc-800 transition-all flex flex-col items-center gap-3"
               >
-                <img src="/icons/GIVEAWAY.png" alt="Giveaways" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
+                <img src="/icons/podarok.png" alt="Giveaways" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
                 <div className="text-center">
                   <div className="text-white font-medium">Розыгрыши</div>
                   <div className="text-white/60 text-sm">

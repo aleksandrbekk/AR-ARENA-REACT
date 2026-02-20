@@ -17,6 +17,7 @@ export interface UtmToolLink {
   tool_type: string
   clicks: number
   conversions: number
+  payments: number
   created_at: string
   last_click_at: string | null
 }

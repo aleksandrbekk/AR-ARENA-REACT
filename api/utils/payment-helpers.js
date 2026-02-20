@@ -125,7 +125,7 @@ export async function trackUtmConversion(telegramId) {
 }
 
 /**
- * Track stream UTM conversion from BillingId (0xProcessing format)
+ * Track stream UTM payment from BillingId (0xProcessing format)
  */
 export async function trackStreamConversionFromBillingId(billingId) {
   if (!billingId) return;
@@ -141,32 +141,16 @@ export async function trackStreamConversionFromBillingId(billingId) {
     const streamUtmSlug = streamMatch[1];
     log(`Found stream_utm in BillingId: ${streamUtmSlug}`);
 
-    const { data: link } = await supabase
-      .from('utm_tool_links')
-      .select('id, conversions')
-      .eq('slug', streamUtmSlug)
-      .single();
-
-    if (link) {
-      await supabase
-        .from('utm_tool_links')
-        .update({
-          conversions: (link.conversions || 0) + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', link.id);
-
-      log(`Stream conversion tracked for slug: ${streamUtmSlug}`);
-    } else {
-      log(`Stream UTM link not found: ${streamUtmSlug}`);
-    }
+    // Use atomic RPC to increment payments (not conversions!)
+    await supabase.rpc('increment_utm_link_payments', { p_slug: streamUtmSlug });
+    log(`Stream payment tracked for slug: ${streamUtmSlug}`);
   } catch (err) {
     log('trackStreamConversion error (non-critical)', { error: err.message });
   }
 }
 
 /**
- * Track stream UTM conversion from Lava payload (clientUtm format)
+ * Track stream UTM payment from Lava payload (clientUtm format)
  */
 export async function trackStreamConversionFromPayload(payload) {
   const clientUtm = payload.clientUtm || {};
@@ -185,25 +169,9 @@ export async function trackStreamConversionFromPayload(payload) {
       const streamUtmSlug = streamUtmMatch[1];
       log(`Found stream_utm: ${streamUtmSlug}`);
 
-      const { data: link } = await supabase
-        .from('utm_tool_links')
-        .select('id, conversions')
-        .eq('slug', streamUtmSlug)
-        .single();
-
-      if (link) {
-        await supabase
-          .from('utm_tool_links')
-          .update({
-            conversions: (link.conversions || 0) + 1,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', link.id);
-
-        log(`Stream conversion tracked for slug: ${streamUtmSlug}`);
-      } else {
-        log(`Stream UTM link not found: ${streamUtmSlug}`);
-      }
+      // Use atomic RPC to increment payments (not conversions!)
+      await supabase.rpc('increment_utm_link_payments', { p_slug: streamUtmSlug });
+      log(`Stream payment tracked for slug: ${streamUtmSlug}`);
       return;
     }
   }
