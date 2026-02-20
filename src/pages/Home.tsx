@@ -105,9 +105,9 @@ export function Home() {
         <div className="flex justify-center py-3">
           <div className="relative w-full max-w-[200px]">
             <img
-              src="/logo3.png?v=6"
+              src="/logo3.png?v=7"
               alt="AR ARENA"
-              className="w-full h-auto object-contain"
+              className="w-full h-auto object-contain mix-blend-screen"
             />
           </div>
         </div>
