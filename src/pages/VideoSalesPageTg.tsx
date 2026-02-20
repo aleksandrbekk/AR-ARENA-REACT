@@ -321,10 +321,10 @@ function CodeInput({ onComplete, error, progress }: CodeInputProps) {
                                 strokeDashoffset={280 - (fieldProgress / 100) * 280}
                                 style={{
                                     transition: 'stroke-dashoffset 0.3s ease, stroke 0.3s ease',
-                                    filter: error 
-                                        ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.8))' 
-                                        : fieldProgress > 0 
-                                            ? 'drop-shadow(0 0 6px rgba(255, 215, 0, 0.6))' 
+                                    filter: error
+                                        ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.8))'
+                                        : fieldProgress > 0
+                                            ? 'drop-shadow(0 0 6px rgba(255, 215, 0, 0.6))'
                                             : 'none'
                                 }}
                             />
@@ -350,11 +350,11 @@ function CodeInput({ onComplete, error, progress }: CodeInputProps) {
                                 focus:bg-white/10
                                 ${error ? 'animate-shake border-red-500' : 'border-transparent'}
                             `}
-                            style={{ 
+                            style={{
                                 color: error ? '#EF4444' : '#FFD700',
                                 backgroundColor: error ? 'rgba(239, 68, 68, 0.1)' : undefined
                             }}
-                            animate={error ? { 
+                            animate={error ? {
                                 x: [0, -10, 10, -10, 10, 0],
                                 scale: [1, 1.05, 1, 1.05, 1],
                                 boxShadow: [
@@ -432,21 +432,21 @@ export function VideoSalesPageTg() {
         if (tg) {
             // Инициализируем WebApp
             tg.ready()
-            
+
             // Расширяем на мобильных устройствах
             const platform = tg.platform
             const isMobile = platform === 'android' || platform === 'ios'
             if (isMobile) {
                 tg.expand()
                 if (typeof tg.requestFullscreen === 'function') {
-                    try { 
-                        tg.requestFullscreen() 
-                    } catch (e) { 
-                        console.warn('requestFullscreen error', e) 
+                    try {
+                        tg.requestFullscreen()
+                    } catch (e) {
+                        console.warn('requestFullscreen error', e)
                     }
                 }
             }
-            
+
             // Настраиваем цвета
             tg.setHeaderColor('#0a0a0a')
             tg.setBackgroundColor('#0a0a0a')
@@ -465,29 +465,23 @@ export function VideoSalesPageTg() {
         }
 
         const params = new URLSearchParams(window.location.search)
-        const utmSource = params.get('utm_source')
+        let utmSource = params.get('utm_source')
+
+        if (!utmSource) {
+            utmSource = getStorageItem<string>(STORAGE_KEYS.PROMO_UTM_SOURCE)
+        }
+
         if (utmSource) {
             utmSlugRef.current = utmSource
             setStorageItem(STORAGE_KEYS.PROMO_UTM_SOURCE, utmSource)
 
             const trackClick = async () => {
-                try {
-                    const { data: link } = await supabase
-                        .from('utm_tool_links')
-                        .select('id, clicks')
-                        .eq('slug', utmSource)
-                        .single()
+                const sessionKey = `tracked_view_${utmSource}`
+                if (sessionStorage.getItem(sessionKey)) return
+                sessionStorage.setItem(sessionKey, 'true')
 
-                    if (link) {
-                        await supabase
-                            .from('utm_tool_links')
-                            .update({
-                                clicks: link.clicks + 1,
-                                last_click_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString()
-                            })
-                            .eq('id', link.id)
-                    }
+                try {
+                    await supabase.rpc('increment_utm_link_clicks', { p_slug: utmSource })
 
                     const telegramId = user?.id
                     await supabase
@@ -506,7 +500,9 @@ export function VideoSalesPageTg() {
             }
 
             trackClick()
-            window.history.replaceState({}, '', '/promo-tg')
+            if (params.get('utm_source')) {
+                window.history.replaceState({}, '', '/promo-tg')
+            }
         }
     }, [])
 
@@ -519,7 +515,7 @@ export function VideoSalesPageTg() {
 
         if (currentMilestone) {
             trackedProgressRef.current.add(currentMilestone)
-            
+
             const trackProgress = async () => {
                 try {
                     const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
@@ -552,7 +548,7 @@ export function VideoSalesPageTg() {
                 const utmSource = utmSlugRef.current || getStorageItem<string>(STORAGE_KEYS.PROMO_UTM_SOURCE)
                 if (utmSource) {
                     const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
-                    
+
                     await supabase
                         .from('promo_events')
                         .insert({
@@ -566,20 +562,14 @@ export function VideoSalesPageTg() {
                         })
 
                     if (isCorrect) {
-                        const { data: link } = await supabase
-                            .from('utm_tool_links')
-                            .select('id, conversions')
-                            .eq('slug', utmSource)
-                            .single()
-
-                        if (link) {
-                            await supabase
-                                .from('utm_tool_links')
-                                .update({
-                                    conversions: (link.conversions || 0) + 1,
-                                    updated_at: new Date().toISOString()
-                                })
-                                .eq('id', link.id)
+                        try {
+                            const codeEventKey = `tracked_code_correct_${utmSource}`
+                            if (!sessionStorage.getItem(codeEventKey)) {
+                                sessionStorage.setItem(codeEventKey, 'true')
+                                await supabase.rpc('increment_utm_link_conversions', { p_slug: utmSource })
+                            }
+                        } catch (err) {
+                            console.error('Track conversion error:', err)
                         }
                     }
                 }

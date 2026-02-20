@@ -104,31 +104,23 @@ export function StreamPage() {
   // Сохранение UTM из URL и запись клика в БД
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const utmSource = params.get('utm_source')
+    let utmSource = params.get('utm_source')
+
+    if (!utmSource) {
+      utmSource = getStorageItem<string>(STORAGE_KEYS.STREAM_UTM_SOURCE)
+    }
+
     if (utmSource) {
       setStorageItem(STORAGE_KEYS.STREAM_UTM_SOURCE, utmSource)
 
       // Записываем клик в БД
       const trackClick = async () => {
-        try {
-          // Находим ссылку по slug
-          const { data: link } = await supabase
-            .from('utm_tool_links')
-            .select('id, clicks')
-            .eq('slug', utmSource)
-            .single()
+        const sessionKey = `tracked_stream_click_${utmSource}`
+        if (sessionStorage.getItem(sessionKey)) return
+        sessionStorage.setItem(sessionKey, 'true')
 
-          if (link) {
-            // Увеличиваем счётчик кликов и записываем время последнего перехода
-            await supabase
-              .from('utm_tool_links')
-              .update({
-                clicks: link.clicks + 1,
-                last_click_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', link.id)
-          }
+        try {
+          await supabase.rpc('increment_utm_link_clicks', { p_slug: utmSource })
         } catch (err) {
           // Молча игнорируем ошибки трекинга
           console.error('Track click error:', err)
@@ -138,7 +130,9 @@ export function StreamPage() {
       trackClick()
 
       // Убираем UTM из URL без перезагрузки
-      window.history.replaceState({}, '', '/stream')
+      if (params.get('utm_source')) {
+        window.history.replaceState({}, '', '/stream')
+      }
     }
   }, [])
 
@@ -156,8 +150,8 @@ export function StreamPage() {
         // Обновляем только если данные изменились
         setSettings(prev => {
           if (prev.show_premium_button !== data.show_premium_button ||
-              prev.button_text !== data.button_text ||
-              prev.button_url !== data.button_url) {
+            prev.button_text !== data.button_text ||
+            prev.button_url !== data.button_url) {
             return data
           }
           return prev

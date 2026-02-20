@@ -108,7 +108,7 @@ export function ToolLinks({
                   </div>
                   <div className="text-center">
                     <div className="text-green-400 font-bold">{link.conversions}</div>
-                    <div className="text-white/30 text-[10px]">оплат</div>
+                    <div className="text-white/30 text-[10px]">усп. кодов</div>
                   </div>
                   <div className="text-center">
                     <div className="text-white font-bold">{getConversionRate(link.clicks, link.conversions)}</div>
@@ -123,11 +123,10 @@ export function ToolLinks({
                 <div className="flex gap-2">
                   <button
                     onClick={() => onCopyLink(getToolUrl(link), `t-${link.id}`)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                      copiedId === `t-${link.id}`
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-zinc-700 text-white'
-                    }`}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${copiedId === `t-${link.id}`
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-zinc-700 text-white'
+                      }`}
                   >
                     {copiedId === `t-${link.id}` ? 'Скопировано' : 'Копировать'}
                   </button>
