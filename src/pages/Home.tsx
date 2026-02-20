@@ -107,7 +107,7 @@ export function Home() {
             <img
               src="/logo3.png?v=2"
               alt="AR ARENA"
-              className="w-full h-auto object-contain mix-blend-lighten"
+              className="w-full h-auto object-contain"
             />
           </div>
         </div>
