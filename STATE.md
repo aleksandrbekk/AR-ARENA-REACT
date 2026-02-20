@@ -1,5 +1,17 @@
 # Current State
 
+## ✅ Исправление UTM трекинга и гонок кликов — ВЫПОЛНЕНО (20.02.2026)
+
+### Что сделано:
+- Добавлены RPC функции в Supabase (`increment_utm_link_clicks`, `increment_utm_link_conversions`) для атомарного обновления.
+- Обновлены `VideoSalesPage.tsx`, `VideoSalesPageTg.tsx` и `StreamPage.tsx` для использования RPC функций.
+- Добавлена защита от дублирования `view_start` и `code_correct` сессий через `sessionStorage`.
+- Внедрен fall-back на чтение UTM меток из `localStorage` при потере `utm_source` из URL при навигации.
+- Переименована метка в админ-панели на "усп. кодов".
+- Изменения покрыты сборкой и отправлены в продакшен.
+
+---
+
 ## ✅ ProfilePage — Полная переделка — ВЫПОЛНЕНО (11.02.2026)
 
 ### Что сделано:
