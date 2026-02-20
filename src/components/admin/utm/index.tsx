@@ -285,7 +285,7 @@ export function UtmLinksTab() {
       // Загружаем количество оплат из utm_tool_links
       const { data: toolLink } = await supabase
         .from('utm_tool_links')
-        .select('conversions')
+        .select('conversions, payments')
         .eq('slug', slug)
         .single()
 
@@ -297,7 +297,7 @@ export function UtmLinksTab() {
         progress100: events?.filter(e => e.event_type === 'progress_100').length || 0,
         codeCorrect: events?.filter(e => e.event_type === 'code_correct').length || 0,
         codeIncorrect: events?.filter(e => e.event_type === 'code_incorrect').length || 0,
-        payments: toolLink?.conversions || 0,
+        payments: toolLink?.payments || 0,
         events: events || []
       }
 
@@ -559,11 +559,12 @@ export function UtmLinksTab() {
       {/* Модалка детальной статистики промо-страницы */}
       {showStatsModal && promoStats && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+          style={{ overflow: 'auto', WebkitOverflowScrolling: 'touch' }}
           onClick={(e) => { if (e.target === e.currentTarget) { setShowStatsModal(false); setPromoStats(null); } }}
         >
-          <div className="min-h-full flex items-start justify-center p-4 pt-8 pb-8">
-            <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-2xl border border-white/10" style={{ WebkitOverflowScrolling: 'touch' as never }}>
+          <div className="p-4 py-6">
+            <div className="bg-zinc-900 rounded-2xl p-5 w-full max-w-2xl mx-auto border border-white/10">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white text-lg font-bold">Детальная статистика</h3>
                 <button
