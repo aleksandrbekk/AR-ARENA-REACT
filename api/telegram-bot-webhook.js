@@ -556,7 +556,7 @@ async function handleCancelSubscriptionYes(chatId, telegramId, callbackQueryId) 
 
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'TelegramBot/1.0'
       },
@@ -571,7 +571,7 @@ async function handleCancelSubscriptionYes(chatId, telegramId, callbackQueryId) 
     if (!response.ok) {
       const errorText = await response.text();
       log(`[CANCEL] API error response:`, { status: response.status, body: errorText });
-      
+
       let errorMessage = 'Попробуйте позже или обратитесь в поддержку.';
       try {
         const errorJson = JSON.parse(errorText);
@@ -625,11 +625,11 @@ ${errorMessage}
       message: error.message,
       stack: error.stack
     };
-    
+
     log(`[CANCEL] Network error for ${telegramId}:`, errorDetails);
 
     let errorText = 'Не удалось связаться с сервером. Попробуйте позже.';
-    
+
     if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
       errorText = 'Превышено время ожидания ответа сервера. Попробуйте позже.';
     } else if (error.message.includes('fetch')) {
@@ -760,6 +760,12 @@ export default async function handler(req, res) {
     const updateId = update.update_id;
 
     log('📨 Received update', { update_id: updateId, message_id: update.message?.message_id });
+
+    // Автоочистка старых записей (fire-and-forget, не блокирует)
+    Promise.all([
+      supabase.from('command_locks').delete().lt('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString()),
+      supabase.from('processed_updates').delete().lt('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+    ]).catch(() => { });
 
     // Защита от дублей - атомарная вставка update_id
     // Если уже есть - получим ошибку unique constraint и выйдем
