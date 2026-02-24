@@ -44,20 +44,9 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                         className="relative w-full max-w-sm sm:max-w-md h-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Иконка (анимация левитации) */}
-                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-30">
-                            <motion.div
-                                animate={{ y: [0, -8, 0] }}
-                                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                                className="w-24 h-24 bg-zinc-900 border border-yellow-500/30 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(245,166,35,0.4)] overflow-hidden"
-                            >
-                                <img src="/icons/skins/bitcoin.png" alt="Gold" className="w-[120%] h-[120%] object-contain" onError={(e) => { e.currentTarget.src = '/cards/gold.png' }} />
-                            </motion.div>
-                        </div>
-
                         {/* Aurora glow container identical to PricingCard */}
                         <div
-                            className="relative rounded-[20px] overflow-hidden shadow-2xl mt-8"
+                            className="relative rounded-[20px] overflow-hidden shadow-2xl mt-4"
                             style={{ background: '#08080a' }}
                         >
                             <div
@@ -76,7 +65,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                             />
 
                             {/* Content Layer */}
-                            <div className="relative z-[2] px-5 sm:px-6 pt-12 pb-6 text-center h-full flex flex-col">
+                            <div className="relative z-[2] px-5 sm:px-6 pt-10 pb-6 text-center h-full flex flex-col">
                                 <h3
                                     className="text-2xl font-bold tracking-wider uppercase mb-2"
                                     style={{
@@ -108,7 +97,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                                                 ХИТ (-18%)
                                             </div>
                                             <div className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest mb-1 mt-1">3 Месяца</div>
-                                            <div className="text-white font-bold text-xl sm:text-2xl drop-shadow-[0_0_10px_rgba(245,166,35,0.4)]">9,810 ₽</div>
+                                            <div className="text-white font-bold text-xl sm:text-2xl drop-shadow-[0_0_10px_rgba(245,166,35,0.4)]">9,900 ₽</div>
                                         </div>
                                     </div>
                                 </div>
@@ -119,7 +108,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                                         'Время погрузиться в стратегию без спешки',
                                         'Доступ ко всем онлайн трансляциям',
                                         'Ончейн-аналитика китов в реальном времени',
-                                        <span key="save">Экономия <strong className="text-green-400">2,190 ₽</strong> на подписке</span>,
+                                        <span key="save">Экономия <strong className="text-green-400">2,100 ₽</strong> на подписке</span>,
                                     ].map((feat, i) => (
                                         <div key={i} className="flex items-start gap-3">
                                             <div className="mt-[3px] flex-shrink-0 w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-[0_0_10px_rgba(245,166,35,0.3)]">

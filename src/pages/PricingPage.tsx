@@ -429,7 +429,7 @@ export function PricingPage() {
         ...baseGold,
         id: 'gold_promo',
         name: 'GOLD PROMO',
-        price: 9810,
+        price: 9900,
         oldPrice: 12000,
         duration: '3 месяца (SALE)',
       }
