@@ -32,7 +32,6 @@ interface PartnerSummary {
 
 interface VaultInfo {
   lockpick_available: boolean
-  streak: number
   total_opened: number
   total_earned: number
 }
@@ -125,10 +124,9 @@ export function ProfilePage() {
       if (vaultRes.data) {
         const v = vaultRes.data as any
         setVault({
-          lockpick_available: v.lockpick_available || false,
-          streak: v.streak || 0,
-          total_opened: v.total_opened || 0,
-          total_earned: v.total_earned || 0
+          lockpick_available: v.state?.lockpick_available || v.lockpick_available || false,
+          total_opened: v.state?.total_opened || v.total_opened || 0,
+          total_earned: v.state?.total_earned || v.total_earned || 0
         })
       }
 

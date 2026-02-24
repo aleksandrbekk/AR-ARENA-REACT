@@ -16,7 +16,6 @@ export function VaultPage() {
         claimLockpick,
         openChest,
         clearReward,
-        getStreakMultiplier,
         getTimeToNext
     } = useVault()
 
@@ -76,10 +75,10 @@ export function VaultPage() {
         clearReward()
     }
 
-    // Назад
+    // Назад — на главную
     const goBack = useCallback(() => {
         window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')
-        navigate('/shop')
+        navigate('/')
     }, [navigate])
 
     // Telegram Back Button
@@ -95,9 +94,8 @@ export function VaultPage() {
         }
     }, [goBack])
 
-    // Streak info
-    const streakMultiplier = state?.streak ? getStreakMultiplier(state.streak) : 1
-    const nextMultiplier = state?.streak ? getStreakMultiplier(state.streak + 1) : 1.25
+    // Количество отмычек
+    const lockpickCount = state?.lockpick_available ? 1 : 0
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white pb-8">
@@ -105,13 +103,13 @@ export function VaultPage() {
             <div className="pt-[env(safe-area-inset-top)] px-4 py-4">
                 <div className="flex items-center justify-between">
                     <button onClick={goBack} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-                        <img src="/icons/arrow-left.png" alt="Back" className="w-5 h-5" />
+                        <img src="/icons/back.png" alt="Назад" className="w-5 h-5" />
                     </button>
 
                     {/* Счётчик отмычек */}
                     <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl">
                         <img src="/icons/kiy.png" alt="Отмычка" className="w-5 h-5" />
-                        <span className="text-yellow-400 font-bold">{state?.lockpick_available ? 1 : 0}</span>
+                        <span className="text-yellow-400 font-bold">{lockpickCount}</span>
                     </div>
                 </div>
             </div>
@@ -122,19 +120,7 @@ export function VaultPage() {
                     <img src="/icons/keis1.png" alt="AR Bank" className="w-12 h-12" />
                     <h1 className="text-2xl font-bold tracking-wide">AR BANK</h1>
                 </div>
-
-                {/* Streak indicator */}
-                {state && state.streak > 0 && (
-                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-yellow-500/30 px-4 py-2 rounded-xl">
-                        <span className="text-2xl">🔥</span>
-                        <div className="text-left">
-                            <div className="text-sm text-white/70">Серия дней</div>
-                            <div className="text-yellow-400 font-bold">
-                                День {state.streak} • x{streakMultiplier}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <p className="text-white/40 text-sm">Получай отмычку каждый день и открывай кейсы</p>
             </div>
 
             {/* Lockpick Button or Chests */}
@@ -156,14 +142,7 @@ export function VaultPage() {
                             )}
                             <span>Получить отмычку</span>
                         </button>
-                        <p className="text-white/50 text-sm">Доступна раз в день</p>
-
-                        {/* Next streak bonus */}
-                        {nextMultiplier > streakMultiplier && (
-                            <div className="text-center text-sm text-white/40">
-                                Завтра: День {(state?.streak || 0) + 1} → x{nextMultiplier}
-                            </div>
-                        )}
+                        <p className="text-white/50 text-sm">Доступна 1 раз в день</p>
                     </div>
                 ) : state?.can_open ? (
                     // Сундуки для открытия
@@ -204,7 +183,7 @@ export function VaultPage() {
                     // Ожидание следующего дня
                     <div className="flex flex-col items-center gap-4">
                         <div className="text-center">
-                            <div className="text-white/50 mb-2">Следующая попытка через:</div>
+                            <div className="text-white/50 mb-2">Следующая отмычка через:</div>
                             {countdown && (
                                 <div className="flex items-center justify-center gap-1 text-2xl font-mono text-yellow-400">
                                     <img src="/icons/time.png" alt="" className="w-6 h-6 mr-2 opacity-70" />
@@ -248,9 +227,6 @@ export function VaultPage() {
                                         +{item.final_amount} AR
                                     </span>
                                     {item.is_golden && <span className="text-xs">⭐</span>}
-                                    {item.streak_multiplier > 1 && (
-                                        <span className="text-xs text-orange-400">x{item.streak_multiplier}</span>
-                                    )}
                                 </div>
                                 <span className="text-xs text-white/30">
                                     {new Date(item.created_at).toLocaleDateString('ru-RU')}
