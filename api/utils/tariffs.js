@@ -15,7 +15,7 @@ export const PERIODICITY_TO_PERIOD = {
 // Широкие диапазоны чтобы учитывать комиссии сети
 export const AMOUNT_TO_PERIOD_USD = [
   { min: 45, max: 80, days: 30, tariff: 'classic', name: 'CLASSIC' },
-  { min: 120, max: 180, days: 90, tariff: 'gold', name: 'GOLD' },
+  { min: 110, max: 180, days: 90, tariff: 'gold', name: 'GOLD' }, // min: 110 для покрытия цены gold_promo в $112
   { min: 200, max: 300, days: 180, tariff: 'platinum', name: 'PLATINUM' },
   { min: 400, max: 550, days: 365, tariff: 'private', name: 'PRIVATE' }
 ];

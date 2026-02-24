@@ -51,7 +51,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const telegramUsernameFromStorage = getStorageItem<string>(STORAGE_KEYS.PROMO_TELEGRAM_USERNAME)
     const hasTelegramId = telegramIdFromWebApp || telegramIdFromStorage
     const [showUsernameInput] = useState(!hasTelegramId)
-    
+
     // Если есть username из localStorage, используем его как начальное значение
     useEffect(() => {
         if (telegramUsernameFromStorage && !username) {
@@ -66,6 +66,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const TARIFF_PERIODICITY: Record<string, string> = {
         'classic': 'MONTHLY',         // 1 месяц
         'gold': 'PERIOD_90_DAYS',     // 3 месяца
+        'gold_promo': 'PERIOD_90_DAYS', // 3 месяца со скидкой
         'platinum': 'PERIOD_180_DAYS', // 6 месяцев
         'private': 'PERIOD_YEAR'      // 12 месяцев
     }
@@ -74,6 +75,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const TARIFF_USD_PRICES: Record<string, number> = {
         'classic': 50,    // 1 мес
         'gold': 125,      // 3 мес
+        'gold_promo': 112, // 3 мес (скидка ~10%)
         'platinum': 225,  // 6 мес
         'private': 445    // 12 мес
     }
