@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface UpsellModalProps {
@@ -19,6 +19,21 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
     const auroraOpacity = 0.8
     const auroraBlur = 20
     const auroraSpeed = 8
+
+    // 30-min timer
+    const [timeLeft, setTimeLeft] = useState(30 * 60)
+
+    useEffect(() => {
+        if (!isOpen) return
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0))
+        }, 1000)
+        return () => clearInterval(timer)
+    }, [isOpen])
+
+    const minutes = Math.floor(timeLeft / 60)
+    const seconds = timeLeft % 60
+    const timeFormatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 
     return (
         <AnimatePresence>
@@ -67,7 +82,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                             {/* Content Layer */}
                             <div className="relative z-[2] px-5 sm:px-6 pt-10 pb-6 text-center h-full flex flex-col">
                                 <h3
-                                    className="text-2xl font-bold tracking-wider uppercase mb-2"
+                                    className="text-2xl font-bold tracking-wider uppercase mb-1"
                                     style={{
                                         color: auroraColors[0],
                                         textShadow: `0 0 20px ${auroraColors[0]}80, 0 0 40px ${auroraColors[0]}40`
@@ -75,6 +90,11 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                                 >
                                     СПЕЦПРЕДЛОЖЕНИЕ
                                 </h3>
+
+                                <div className="text-yellow-400 font-mono text-lg font-bold tracking-widest mb-4 bg-yellow-500/10 inline-block px-3 py-1 rounded inline-flex items-center gap-2 mx-auto border border-yellow-500/20">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    {timeFormatted}
+                                </div>
 
                                 <p className="text-gray-300 text-sm mb-6 max-w-[95%] mx-auto leading-relaxed">
                                     За месяц качественные знания усвоить сложно. Увеличьте период подписки до <strong className="text-white">3 месяцев</strong> и прокачайте депозит с нами!

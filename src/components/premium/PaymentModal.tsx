@@ -61,6 +61,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
     // Единый offerId для Premium подписки + periodicity для выбора срока
     const PREMIUM_OFFER_ID = '755e7046-e658-43e1-908d-0738766b464d'
+    // Спец оффер для GOLD (создан в Lava, 9900 руб)
+    const PROMO_OFFER_ID = '8f04d206-cc3e-415e-a114-c0f0a65f26b5'
 
     // Маппинг тарифа на periodicity (Lava API)
     const TARIFF_PERIODICITY: Record<string, string> = {
@@ -134,6 +136,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             }
 
             // Создаём invoice через API с выбранной валютой
+            const offerIdToUse = tariff.id === 'gold_promo' ? PROMO_OFFER_ID : PREMIUM_OFFER_ID
+
             const response = await fetch('/api/lava-create-invoice', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -143,7 +147,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
                     currency: currency.id,
                     amount: invoiceAmount,
-                    offerId: PREMIUM_OFFER_ID,
+                    offerId: offerIdToUse,
                     periodicity: periodicity,
                     streamUtmSource: streamUtmSource || undefined
                 })
