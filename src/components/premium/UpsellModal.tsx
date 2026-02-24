@@ -14,13 +14,12 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
     onAccept,
     onDecline
 }) => {
-    // Настройки для GOLD-авроры - берем из PricingPage
     const auroraColors = ['#F5A623', '#E69500']
     const auroraOpacity = 0.8
     const auroraBlur = 20
     const auroraSpeed = 8
 
-    // 30-min timer
+    // 30-min countdown
     const [timeLeft, setTimeLeft] = useState(30 * 60)
 
     useEffect(() => {
@@ -33,37 +32,40 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
 
     const minutes = Math.floor(timeLeft / 60)
     const seconds = timeLeft % 60
-    const timeFormatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    const mm = minutes.toString().padStart(2, '0')
+    const ss = seconds.toString().padStart(2, '0')
+
+    const features = [
+        '90 дней полного доступа к клубу',
+        'Актуальный портфель 2025',
+        'Ончейн-аналитика — движения китов',
+        '900+ обучающих материалов',
+        'Все закрытые стримы',
+        'Живой чат трейдеров',
+        'AMA каждые 2 недели',
+    ]
 
     return (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    key="upsell-modal-container"
+                    key="upsell-overlay"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
                 >
-                    {/* Backdrop */}
-                    <div
-                        className="absolute inset-0 bg-black/80 backdrop-blur-md"
-                        onClick={onClose}
-                    />
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
 
-                    {/* Modal Wrapper - matching PricingCard layout exactly */}
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                        className="relative w-full max-w-sm sm:max-w-md h-auto"
+                        className="relative w-full max-w-[380px]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Aurora glow container identical to PricingCard */}
-                        <div
-                            className="relative rounded-[20px] overflow-hidden shadow-2xl mt-4"
-                            style={{ background: '#08080a' }}
-                        >
+                        {/* Aurora border */}
+                        <div className="relative rounded-[20px] overflow-hidden shadow-2xl" style={{ background: '#08080a' }}>
                             <div
                                 className="absolute inset-[-2px] rounded-[20px]"
                                 style={{
@@ -74,94 +76,92 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                                     zIndex: 0
                                 }}
                             />
-                            <div
-                                className="absolute inset-[1px] rounded-[19px]"
-                                style={{ background: '#08080a', zIndex: 1 }}
-                            />
+                            <div className="absolute inset-[1px] rounded-[19px]" style={{ background: '#08080a', zIndex: 1 }} />
 
-                            {/* Content Layer */}
-                            <div className="relative z-[2] px-5 sm:px-6 pt-10 pb-6 text-center h-full flex flex-col">
-                                <h3
-                                    className="text-2xl font-bold tracking-wider uppercase mb-1"
-                                    style={{
-                                        color: auroraColors[0],
-                                        textShadow: `0 0 20px ${auroraColors[0]}80, 0 0 40px ${auroraColors[0]}40`
-                                    }}
-                                >
-                                    СПЕЦПРЕДЛОЖЕНИЕ
-                                </h3>
+                            {/* ── Content ── */}
+                            <div className="relative z-[2] px-5 pt-7 pb-5 flex flex-col">
 
-                                <div className="text-yellow-400 font-mono text-lg font-bold tracking-widest mb-4 bg-yellow-500/10 inline-block px-3 py-1 rounded inline-flex items-center gap-2 mx-auto border border-yellow-500/20">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    {timeFormatted}
+                                {/* Header row: title + timer */}
+                                <div className="flex items-center justify-between mb-5">
+                                    <h3
+                                        className="text-lg font-bold tracking-wider uppercase"
+                                        style={{
+                                            color: auroraColors[0],
+                                            textShadow: `0 0 16px ${auroraColors[0]}60`
+                                        }}
+                                    >
+                                        Выгодное предложение
+                                    </h3>
+                                    <div className="flex items-center gap-1.5 text-yellow-400 font-mono text-sm font-bold bg-yellow-500/10 px-2.5 py-1 rounded-lg border border-yellow-500/20 flex-shrink-0">
+                                        <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        {mm}:{ss}
+                                    </div>
                                 </div>
 
-                                <p className="text-gray-300 text-sm mb-6 max-w-[95%] mx-auto leading-relaxed">
-                                    Возьмите сразу <strong className="text-yellow-400">3 месяца</strong> и сэкономьте — полный доступ ко всем материалам по лучшей цене.
+                                {/* Subtitle */}
+                                <p className="text-gray-400 text-[13px] leading-relaxed mb-5">
+                                    Получите <strong className="text-white">полный доступ на 3 месяца</strong> по лучшей цене — всё включено.
                                 </p>
 
-                                {/* Блок сравнения */}
-                                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 sm:p-5 mb-6 relative overflow-hidden text-left shadow-inner">
-                                    <div className="absolute top-0 right-0 bg-gradient-to-bl from-yellow-500/20 to-transparent w-full h-full opacity-50 pointer-events-none" />
+                                {/* Price comparison */}
+                                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 mb-5 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 bg-gradient-to-bl from-yellow-500/15 to-transparent w-full h-full pointer-events-none" />
 
-                                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 relative z-10">
+                                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 relative z-10">
                                         <div className="text-center">
-                                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">1 Месяц</div>
-                                            <div className="text-white/40 font-bold text-lg line-through decoration-red-500/40 decoration-2">4,000 ₽</div>
+                                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">1 мес</div>
+                                            <div className="text-white/40 font-bold text-base line-through decoration-red-500/40 decoration-2">4,000 ₽</div>
                                         </div>
 
-                                        <div className="text-gray-600 text-xl font-light">👉</div>
+                                        <div className="text-gray-600 text-lg">→</div>
 
                                         <div className="text-center relative">
-                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-2 py-[1px] rounded-[4px] text-[9px] uppercase tracking-widest font-extrabold shadow-sm whitespace-nowrap">
-                                                ХИТ (-18%)
+                                            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-2 py-[1px] rounded text-[9px] uppercase tracking-widest font-extrabold whitespace-nowrap">
+                                                -18%
                                             </div>
-                                            <div className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest mb-1 mt-1">3 Месяца</div>
-                                            <div className="text-white font-bold text-xl sm:text-2xl drop-shadow-[0_0_10px_rgba(245,166,35,0.4)]">9,900 ₽</div>
+                                            <div className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest mb-1 mt-1">3 мес</div>
+                                            <div className="text-white font-bold text-lg drop-shadow-[0_0_8px_rgba(245,166,35,0.3)]">9,900 ₽</div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Список преимуществ */}
-                                <div className="space-y-3 mb-8 text-left px-1">
-                                    {[
-                                        '90 дней полного доступа к клубу',
-                                        'Все закрытые стримы и аналитика',
-                                        'On-chain данные по движениям китов',
-                                        <span key="save">Выгода: <strong className="text-green-400">2,100 ₽</strong></span>,
-                                    ].map((feat, i) => (
-                                        <div key={i} className="flex items-start gap-3">
-                                            <div className="mt-[3px] flex-shrink-0 w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-[0_0_10px_rgba(245,166,35,0.3)]">
-                                                <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                {/* Features list */}
+                                <div className="space-y-2.5 mb-6">
+                                    {features.map((feat, i) => (
+                                        <div key={i} className="flex items-center gap-2.5">
+                                            <div className="flex-shrink-0 w-3.5 h-3.5 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
+                                                <svg className="w-2 h-2 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                             </div>
-                                            <span className="text-sm text-gray-200 font-medium leading-tight">{feat}</span>
+                                            <span className="text-[13px] text-gray-300">{feat}</span>
                                         </div>
                                     ))}
+                                    {/* Savings highlight */}
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="flex-shrink-0 w-3.5 h-3.5 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                                            <svg className="w-2 h-2 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                        </div>
+                                        <span className="text-[13px] text-green-400 font-medium">Выгода 2,100 ₽</span>
+                                    </div>
                                 </div>
 
-                                {/* Spacer */}
-                                <div className="flex-grow" />
+                                {/* CTA */}
+                                <motion.button
+                                    onClick={onAccept}
+                                    className="w-full py-3.5 rounded-xl text-sm font-bold text-black relative overflow-hidden group"
+                                    style={{ background: 'linear-gradient(135deg, #FFD700 0%, #F5A623 100%)' }}
+                                    whileHover={{ scale: 1.02, boxShadow: '0 0 25px rgba(245,166,35,0.25)' }}
+                                    whileTap={{ scale: 0.98 }}
+                                >
+                                    <div className="absolute inset-0 bg-white/25 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    ЗАБРАТЬ 3 МЕСЯЦА СО СКИДКОЙ
+                                </motion.button>
 
-                                {/* Кнопки */}
-                                <div className="space-y-3">
-                                    <motion.button
-                                        onClick={onAccept}
-                                        className="w-full py-4 rounded-xl text-sm md:text-base font-bold transition-all text-center block text-black relative z-20 overflow-hidden group shadow-[0_0_20px_rgba(245,166,35,0.15)]"
-                                        style={{ background: 'linear-gradient(135deg, #FFD700 0%, #F5A623 100%)' }}
-                                        whileHover={{ scale: 1.02, boxShadow: `0 0 30px rgba(245,166,35,0.3)` }}
-                                        whileTap={{ scale: 0.98 }}
-                                    >
-                                        <div className="absolute inset-0 bg-white/30 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        ЗАБРАТЬ 3 МЕСЯЦА СО СКИДКОЙ
-                                    </motion.button>
-
-                                    <button
-                                        onClick={onDecline}
-                                        className="w-full py-2.5 text-[13px] text-gray-500 font-medium hover:text-white transition-colors"
-                                    >
-                                        Нет, спасибо. Оставлю 1 месяц
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={onDecline}
+                                    className="w-full py-2 mt-2 text-[12px] text-gray-600 hover:text-gray-400 transition-colors"
+                                >
+                                    Нет, оставлю 1 месяц
+                                </button>
 
                             </div>
                         </div>
