@@ -1,15 +1,14 @@
 import { Home, User, Shield, Crown } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-
-const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
+import { isAdmin } from '../../config/admins'
 
 export function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const { telegramUser } = useAuth()
 
-  const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
+  const userIsAdmin = isAdmin(telegramUser?.id)
 
   const baseNavItems = [
     { icon: Home, label: 'Home', path: '/' },
@@ -17,7 +16,7 @@ export function Navbar() {
     { icon: User, label: 'Profile', path: '/profile' },
   ]
 
-  const navItems = isAdmin
+  const navItems = userIsAdmin
     ? [...baseNavItems, { icon: Shield, label: 'Admin', path: '/admin' }]
     : baseNavItems
 

@@ -90,6 +90,7 @@ export function VaultPage() {
             tg.BackButton.onClick(goBack)
         }
         return () => {
+            tg?.BackButton?.offClick(goBack)
             tg?.BackButton?.hide()
         }
     }, [goBack])
@@ -240,9 +241,9 @@ export function VaultPage() {
                                 <div className="flex items-center gap-2">
                                     <img src="/icons/arcoin.png" alt="" className="w-5 h-5" />
                                     <span className={`font-medium ${item.reward_rarity === 'epic' ? 'text-purple-400' :
-                                            item.reward_rarity === 'legendary' ? 'text-yellow-400' :
-                                                item.reward_rarity === 'rare' ? 'text-blue-400' :
-                                                    'text-white'
+                                        item.reward_rarity === 'legendary' ? 'text-yellow-400' :
+                                            item.reward_rarity === 'rare' ? 'text-blue-400' :
+                                                'text-white'
                                         }`}>
                                         +{item.final_amount} AR
                                     </span>

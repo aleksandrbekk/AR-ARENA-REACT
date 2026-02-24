@@ -5,24 +5,22 @@ import { SideButtons } from '../components/SideButtons'
 import { Particles } from '../components/Particles'
 import { BrowserFallback } from '../components/BrowserFallback'
 import { useAuth } from '../hooks/useAuth'
+import { isAdmin } from '../config/admins'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-// Админы которые видят полное приложение
-const ADMIN_IDS = [190202791, 144828618, 288542643, 288475216]
 
 export function Home() {
   const { telegramUser, gameState, isLoading, error } = useAuth()
   const navigate = useNavigate()
 
   // Редирект не-админов на страницу тарифов (приложение в разработке)
-  const isAdmin = telegramUser?.id ? ADMIN_IDS.includes(telegramUser.id) : false
+  const userIsAdmin = isAdmin(telegramUser?.id)
 
   useEffect(() => {
-    if (!isLoading && telegramUser && !isAdmin) {
+    if (!isLoading && telegramUser && !userIsAdmin) {
       navigate('/pricing', { replace: true })
     }
-  }, [isLoading, telegramUser, isAdmin, navigate])
+  }, [isLoading, telegramUser, userIsAdmin, navigate])
 
   // SECURITY FIX: Removed debug console.log statements with user data
 
