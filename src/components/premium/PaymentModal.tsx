@@ -123,6 +123,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 return
             }
 
+            // Вычисляем сумму для Lava. Если не передать amount, Lava возьмет базовую цену тарифа.
+            let invoiceAmount: number | undefined = undefined;
+            if (currency.id === 'RUB') {
+                invoiceAmount = tariff.price;
+            } else if (currency.id === 'USD') {
+                invoiceAmount = TARIFF_USD_PRICES[tariffKey] || 50;
+            } else if (currency.id === 'EUR') {
+                invoiceAmount = Math.round((TARIFF_USD_PRICES[tariffKey] || 50) * 0.92);
+            }
+
             // Создаём invoice через API с выбранной валютой
             const response = await fetch('/api/lava-create-invoice', {
                 method: 'POST',
@@ -132,6 +142,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     telegramUsername: tgUsername || undefined,
                     email: `${telegramId || tgUsername}@premium.ararena.pro`,
                     currency: currency.id,
+                    amount: invoiceAmount,
                     offerId: PREMIUM_OFFER_ID,
                     periodicity: periodicity,
                     streamUtmSource: streamUtmSource || undefined
