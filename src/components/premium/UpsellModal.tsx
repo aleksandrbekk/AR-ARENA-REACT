@@ -81,20 +81,20 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                             {/* ── Content ── */}
                             <div className="relative z-[2] px-5 pt-7 pb-5 flex flex-col">
 
-                                {/* Header row: title + timer */}
+                                {/* Header: title + timer centered */}
                                 <div className="flex items-center justify-between mb-5">
                                     <h3
-                                        className="text-lg font-bold tracking-wider uppercase"
+                                        className="text-[15px] sm:text-lg font-bold tracking-wider uppercase"
                                         style={{
                                             color: auroraColors[0],
                                             textShadow: `0 0 16px ${auroraColors[0]}60`
                                         }}
                                     >
-                                        Выгодное предложение
+                                        Ограниченное предложение
                                     </h3>
-                                    <div className="flex items-center gap-1.5 text-yellow-400 font-mono text-sm font-bold bg-yellow-500/10 px-2.5 py-1 rounded-lg border border-yellow-500/20 flex-shrink-0">
-                                        <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        {mm}:{ss}
+                                    <div className="flex items-center gap-2 bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/25 flex-shrink-0">
+                                        <svg className="w-4 h-4 text-yellow-400 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <span className="text-yellow-400 font-mono text-base font-bold tracking-wider">{mm}:{ss}</span>
                                     </div>
                                 </div>
 
