@@ -97,7 +97,8 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                                 </div>
 
                                 <p className="text-gray-300 text-sm mb-6 max-w-[95%] mx-auto leading-relaxed">
-                                    За месяц качественные знания усвоить сложно. Увеличьте период подписки до <strong className="text-white">3 месяцев</strong> и прокачайте депозит с нами!
+                                    <strong className="text-white block mb-1 text-base">Не совершайте ошибку новичков.</strong>
+                                    Одного месяца мало, чтобы собрать стабильный профит. Забирайте сразу <strong className="text-yellow-400">3 месяца (GOLD)</strong> со скидкой и торгуйте в плюс вместе с нами!
                                 </p>
 
                                 {/* Блок сравнения */}
@@ -125,10 +126,10 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                                 {/* Список преимуществ */}
                                 <div className="space-y-3 mb-8 text-left px-1">
                                     {[
-                                        'Время погрузиться в стратегию без спешки',
-                                        'Доступ ко всем онлайн трансляциям',
-                                        'Ончейн-аналитика китов в реальном времени',
-                                        <span key="save">Экономия <strong className="text-green-400">2,100 ₽</strong> на подписке</span>,
+                                        'Никакой спешки: торгуй уверенно 90 дней',
+                                        'Полный доступ ко всем закрытым стримам',
+                                        'On-chain аналитика действий крупных китов',
+                                        <span key="save">Твоя реальная выгода: <strong className="text-green-400">2,100 ₽</strong></span>,
                                     ].map((feat, i) => (
                                         <div key={i} className="flex items-start gap-3">
                                             <div className="mt-[3px] flex-shrink-0 w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-[0_0_10px_rgba(245,166,35,0.3)]">
