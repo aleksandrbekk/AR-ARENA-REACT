@@ -14,6 +14,12 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
     onAccept,
     onDecline
 }) => {
+    // Настройки для GOLD-авроры - берем из PricingPage
+    const auroraColors = ['#F5A623', '#E69500']
+    const auroraOpacity = 0.8
+    const auroraBlur = 20
+    const auroraSpeed = 8
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -26,93 +32,129 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
                 >
                     {/* Backdrop */}
                     <div
-                        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                        className="absolute inset-0 bg-black/80 backdrop-blur-md"
                         onClick={onClose}
                     />
 
-                    {/* Modal Content */}
+                    {/* Modal Wrapper - matching PricingCard layout exactly */}
                     <motion.div
-                        initial={{ scale: 0.95, y: 20 }}
-                        animate={{ scale: 1, y: 0 }}
-                        exit={{ scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-md bg-zinc-900/90 backdrop-blur-xl border border-yellow-500/30 rounded-2xl overflow-hidden shadow-2xl p-6 md:p-8"
+                        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                        className="relative w-full max-w-sm sm:max-w-md h-auto"
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                            boxShadow: '0 0 40px rgba(245, 166, 35, 0.1)'
-                        }}
                     >
-                        {/* Анимация лучей на фоне */}
-                        <div
-                            className="absolute inset-0 opacity-20 pointer-events-none"
-                            style={{
-                                background: 'radial-gradient(circle at 50% 0%, rgba(245, 166, 35, 0.5) 0%, transparent 70%)'
-                            }}
-                        />
-
-                        <div className="relative z-10 text-center">
-                            {/* Иконка подарка или короны */}
-                            <div className="mx-auto w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6">
-                                <span className="text-3xl">🎁</span>
-                            </div>
-
-                            <h3 className="text-2xl font-bold tracking-wide mb-3"
-                                style={{
-                                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                }}
+                        {/* Иконка (анимация левитации) */}
+                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-30">
+                            <motion.div
+                                animate={{ y: [0, -8, 0] }}
+                                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                                className="w-24 h-24 bg-zinc-900 border border-yellow-500/30 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(245,166,35,0.4)] overflow-hidden"
                             >
-                                Подождите!
-                            </h3>
+                                <img src="/icons/skins/bitcoin.png" alt="Gold" className="w-[120%] h-[120%] object-contain" onError={(e) => { e.currentTarget.src = '/cards/gold.png' }} />
+                            </motion.div>
+                        </div>
 
-                            <h4 className="text-lg font-semibold text-white mb-4">
-                                Специальное предложение
-                            </h4>
+                        {/* Aurora glow container identical to PricingCard */}
+                        <div
+                            className="relative rounded-[20px] overflow-hidden shadow-2xl mt-8"
+                            style={{ background: '#08080a' }}
+                        >
+                            <div
+                                className="absolute inset-[-2px] rounded-[20px]"
+                                style={{
+                                    background: `conic-gradient(from 0deg, transparent 0deg, ${auroraColors[0]} 60deg, ${auroraColors[1]} 120deg, transparent 180deg, ${auroraColors[0]} 240deg, ${auroraColors[1]} 300deg, transparent 360deg)`,
+                                    filter: `blur(${auroraBlur}px)`,
+                                    opacity: auroraOpacity,
+                                    animation: `aurora-rotate-fast ${auroraSpeed}s linear infinite`,
+                                    zIndex: 0
+                                }}
+                            />
+                            <div
+                                className="absolute inset-[1px] rounded-[19px]"
+                                style={{ background: '#08080a', zIndex: 1 }}
+                            />
 
-                            <div className="bg-black/40 rounded-xl p-4 mb-6 border border-white/5">
-                                <p className="text-gray-300 text-sm md:text-base leading-relaxed mb-4">
-                                    Вместо 1 месяца возьмите сразу <strong className="text-yellow-400">3 месяца (GOLD)</strong> со скидкой!
-                                    Полный доступ ко всем событиям и максимальный профит.
+                            {/* Content Layer */}
+                            <div className="relative z-[2] px-5 sm:px-6 pt-12 pb-6 text-center h-full flex flex-col">
+                                <h3
+                                    className="text-2xl font-bold tracking-wider uppercase mb-2"
+                                    style={{
+                                        color: auroraColors[0],
+                                        textShadow: `0 0 20px ${auroraColors[0]}80, 0 0 40px ${auroraColors[0]}40`
+                                    }}
+                                >
+                                    СПЕЦПРЕДЛОЖЕНИЕ
+                                </h3>
+
+                                <p className="text-gray-300 text-sm mb-6 max-w-[95%] mx-auto leading-relaxed">
+                                    За месяц качественные знания усвоить сложно. Увеличьте период подписки до <strong className="text-white">3 месяцев</strong> и прокачайте депозит с нами!
                                 </p>
 
-                                <div className="flex flex-col items-center justify-center gap-1">
-                                    <div className="text-gray-500 text-sm line-through decoration-red-500/50 decoration-2">
-                                        12,000 ₽
-                                    </div>
-                                    <div className="text-3xl font-bold text-white flex items-baseline gap-2">
-                                        9,810 ₽
-                                        <span className="text-sm text-yellow-500 font-medium bg-yellow-500/10 px-2 py-0.5 rounded">
-                                            -18%
-                                        </span>
+                                {/* Блок сравнения */}
+                                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 sm:p-5 mb-6 relative overflow-hidden text-left shadow-inner">
+                                    <div className="absolute top-0 right-0 bg-gradient-to-bl from-yellow-500/20 to-transparent w-full h-full opacity-50 pointer-events-none" />
+
+                                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 relative z-10">
+                                        <div className="text-center">
+                                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">1 Месяц</div>
+                                            <div className="text-white/40 font-bold text-lg line-through decoration-red-500/40 decoration-2">4,000 ₽</div>
+                                        </div>
+
+                                        <div className="text-gray-600 text-xl font-light">👉</div>
+
+                                        <div className="text-center relative">
+                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-2 py-[1px] rounded-[4px] text-[9px] uppercase tracking-widest font-extrabold shadow-sm whitespace-nowrap">
+                                                ХИТ (-18%)
+                                            </div>
+                                            <div className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest mb-1 mt-1">3 Месяца</div>
+                                            <div className="text-white font-bold text-xl sm:text-2xl drop-shadow-[0_0_10px_rgba(245,166,35,0.4)]">9,810 ₽</div>
+                                        </div>
                                     </div>
                                 </div>
+
+                                {/* Список преимуществ */}
+                                <div className="space-y-3 mb-8 text-left px-1">
+                                    {[
+                                        'Время погрузиться в стратегию без спешки',
+                                        'Доступ ко всем онлайн трансляциям',
+                                        'Ончейн-аналитика китов в реальном времени',
+                                        <span key="save">Экономия <strong className="text-green-400">2,190 ₽</strong> на подписке</span>,
+                                    ].map((feat, i) => (
+                                        <div key={i} className="flex items-start gap-3">
+                                            <div className="mt-[3px] flex-shrink-0 w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-[0_0_10px_rgba(245,166,35,0.3)]">
+                                                <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                            </div>
+                                            <span className="text-sm text-gray-200 font-medium leading-tight">{feat}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Spacer */}
+                                <div className="flex-grow" />
+
+                                {/* Кнопки */}
+                                <div className="space-y-3">
+                                    <motion.button
+                                        onClick={onAccept}
+                                        className="w-full py-4 rounded-xl text-sm md:text-base font-bold transition-all text-center block text-black relative z-20 overflow-hidden group shadow-[0_0_20px_rgba(245,166,35,0.15)]"
+                                        style={{ background: 'linear-gradient(135deg, #FFD700 0%, #F5A623 100%)' }}
+                                        whileHover={{ scale: 1.02, boxShadow: `0 0 30px rgba(245,166,35,0.3)` }}
+                                        whileTap={{ scale: 0.98 }}
+                                    >
+                                        <div className="absolute inset-0 bg-white/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        ЗАБРАТЬ 3 МЕСЯЦА СО СКИДКОЙ
+                                    </motion.button>
+
+                                    <button
+                                        onClick={onDecline}
+                                        className="w-full py-2.5 text-[13px] text-gray-500 font-medium hover:text-white transition-colors"
+                                    >
+                                        Нет, спасибо. Оставлю 1 месяц
+                                    </button>
+                                </div>
+
                             </div>
-
-                            {/* Кнопки */}
-                            <div className="space-y-3">
-                                {/* Главная кнопка Action */}
-                                <motion.button
-                                    onClick={onAccept}
-                                    className="w-full py-4 rounded-xl text-black font-bold text-base transition-all relative overflow-hidden group"
-                                    style={{
-                                        background: 'linear-gradient(to right, #FFD700, #FFA500)'
-                                    }}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                >
-                                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    Забрать 3 месяца со скидкой
-                                </motion.button>
-
-                                {/* Второстепенная кнопка */}
-                                <button
-                                    onClick={onDecline}
-                                    className="w-full py-3 text-sm text-gray-500 font-medium hover:text-white transition-colors"
-                                >
-                                    Остаться на 1 месяце (4,000 ₽)
-                                </button>
-                            </div>
-
                         </div>
                     </motion.div>
                 </motion.div>
