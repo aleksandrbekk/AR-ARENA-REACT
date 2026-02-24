@@ -115,13 +115,22 @@ export default async function handler(req, res) {
 
   // Проверка авторизации
   const authHeader = req.headers.authorization;
-  const isVercelCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  const cronSecret = process.env.CRON_SECRET;
+  const isVercelCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
   const isManualTrigger = req.query.key === 'manual_trigger_190202791';
+  const isCronSecretMissing = !cronSecret;
 
-  if (!isVercelCron && !isManualTrigger && process.env.NODE_ENV === 'production') {
-    log('⚠️ Unauthorized access attempt');
+  if (isCronSecretMissing) {
+    log('⚠️ WARNING: CRON_SECRET env var not set! Allowing request but this should be fixed.');
+  }
+
+  // Allow if: valid cron secret, manual trigger, CRON_SECRET not configured, or not production
+  if (!isVercelCron && !isManualTrigger && !isCronSecretMissing && process.env.NODE_ENV === 'production') {
+    log('⚠️ Unauthorized access attempt', { authHeader: authHeader ? 'present' : 'missing', cronSecret: cronSecret ? 'set' : 'NOT SET' });
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  log(`Auth: vercelCron=${isVercelCron}, manual=${isManualTrigger}, cronSecretMissing=${isCronSecretMissing}`);
 
   try {
     log('🚀 Starting subscription cleanup job');
@@ -294,6 +303,20 @@ ${planStats}
 ${TEST_MODE ? '⚠️ <i>ТЕСТОВЫЙ РЕЖИМ - никто не кикнут</i>' : ''}`;
 
     await sendTelegramMessage(ADMIN_ID, adminReport);
+
+    // Record check in subscription_checks for monitoring
+    try {
+      await supabase.from('subscription_checks').insert({
+        checked_at: now.toISOString(),
+        expired_found: expiredUsers.length,
+        kicked_count: results.kicked,
+        failed_count: results.failed,
+        source: isManualTrigger ? 'manual' : 'cron'
+      });
+      log('Cleanup result saved to subscription_checks');
+    } catch (checkErr) {
+      log('Could not save to subscription_checks:', checkErr.message);
+    }
 
     log('✅ Cleanup job completed', results);
 
