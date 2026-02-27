@@ -134,14 +134,19 @@ async function saveIncomingMessage(conversationId, telegramId, message) {
         is_command: isCommand,
         command_name: commandName
       }),
-      supabase.from('chat_conversations').update({
-        last_message_at: new Date().toISOString(),
-        last_message_text: text || '[media]',
-        last_message_from: 'user',
-        unread_count: supabase.sql`unread_count + 1`,
-        is_read: false,
-        updated_at: new Date().toISOString()
-      }).eq('id', conversationId)
+      // Increment unread_count atomically: read current value, then update
+      (async () => {
+        const { data: conv } = await supabase.from('chat_conversations')
+          .select('unread_count').eq('id', conversationId).single();
+        await supabase.from('chat_conversations').update({
+          last_message_at: new Date().toISOString(),
+          last_message_text: text || '[media]',
+          last_message_from: 'user',
+          unread_count: (conv?.unread_count || 0) + 1,
+          is_read: false,
+          updated_at: new Date().toISOString()
+        }).eq('id', conversationId);
+      })()
     ]);
 
   } catch (err) {
@@ -300,9 +305,15 @@ async function trackUtmClick(slug) {
     const { error } = await supabase.rpc('increment_utm_clicks', { p_slug: slug });
 
     if (error) {
+      // Fallback: read current clicks count and increment
+      const { data: linkData } = await supabase
+        .from('utm_links')
+        .select('clicks')
+        .eq('slug', slug)
+        .single();
       await supabase
         .from('utm_links')
-        .update({ clicks: supabase.sql`clicks + 1` })
+        .update({ clicks: (linkData?.clicks || 0) + 1 })
         .eq('slug', slug);
     }
 

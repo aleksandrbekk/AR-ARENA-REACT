@@ -229,11 +229,20 @@ export default async function handler(req, res) {
           created_at: new Date().toISOString()
         });
       } catch (e) {}
-      
-      return res.status(400).json({ 
-        error: 'Missing telegram_id', 
+
+      // Notify admin about orphaned payment
+      try {
+        const orphanAlert = `🚨 <b>ПОТЕРЯННЫЙ ПЛАТЁЖ (0xProcessing)!</b>\n\n💰 Сумма: <b>$${amountUSD}</b>\n🪙 Валюта: ${Currency || 'CRYPTO'}\n👤 ClientId: <code>${ClientId}</code>\n📋 PaymentId: <code>${PaymentId || 'N/A'}</code>\n\n⚠️ Невозможно определить пользователя!\nНужно вручную привязать в CRM.`;
+        await sendToAllAdmins(orphanAlert);
+      } catch (e) {}
+
+      // Return 200 to prevent provider retries, but flag for admin review
+      return res.status(200).json({
+        success: false,
+        error: 'Missing telegram_id',
         client_id: ClientId,
-        message: 'Cannot activate subscription without telegram_id. User must start bot first.'
+        needs_manual_review: true,
+        message: 'Payment received but cannot identify user. Admin notified.'
       });
     }
 

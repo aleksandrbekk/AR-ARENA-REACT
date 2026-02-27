@@ -246,7 +246,7 @@ export default async function handler(req, res) {
       }
 
       // Обновляем статус в базе
-      const newTags = user.tags || [];
+      const newTags = [...(user.tags || [])];
       if (!newTags.includes('expired')) newTags.push('expired');
       if (!newTags.includes('kicked')) newTags.push('kicked');
 
