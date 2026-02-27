@@ -157,6 +157,25 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Subscription expired', message: 'Подписка истекла. Продлите перед отправкой ссылок.' });
     }
 
+    // Разбанить пользователя перед созданием ссылок
+    // (на случай если cleanup забанил и unban не сработал)
+    const unbanToken = KIKER_BOT_TOKEN || BOT_TOKEN;
+    for (const chatId of [CHANNEL_ID, CHAT_ID]) {
+      try {
+        const unbanRes = await fetch(`https://api.telegram.org/bot${unbanToken}/unbanChatMember`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, user_id: telegram_id, only_if_banned: true })
+        });
+        const unbanData = await unbanRes.json();
+        if (unbanData.ok) {
+          console.log(`[AdminInvite] Unbanned ${telegram_id} from ${chatId} before invite`);
+        }
+      } catch (e) {
+        console.log(`[AdminInvite] Unban attempt for ${telegram_id} in ${chatId}:`, e.message);
+      }
+    }
+
     // Генерируем ссылки
     const channelLink = await createInviteLink(CHANNEL_ID);
     const chatLink = await createInviteLink(CHAT_ID);

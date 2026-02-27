@@ -46,6 +46,7 @@ function log(message, data = null) {
 }
 
 // Кикнуть пользователя из чата/канала
+// Используем ban → задержка → unban (Telegram API не имеет "мягкого кика")
 async function kickUser(telegramId, chatId) {
   try {
     const response = await fetch(
@@ -64,19 +65,38 @@ async function kickUser(telegramId, chatId) {
     const result = await response.json();
 
     if (result.ok) {
-      // Сразу разбаним чтобы мог вернуться после оплаты
-      await fetch(
-        `https://api.telegram.org/bot${KIKER_BOT_TOKEN}/unbanChatMember`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatId,
-            user_id: telegramId,
-            only_if_banned: true
-          })
+      // Задержка перед unban — Telegram может не успеть обработать ban
+      await new Promise(r => setTimeout(r, 500));
+
+      // Разбаниваем чтобы мог вернуться после оплаты (с проверкой + ретрай)
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const unbanRes = await fetch(
+            `https://api.telegram.org/bot${KIKER_BOT_TOKEN}/unbanChatMember`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: chatId,
+                user_id: telegramId,
+                only_if_banned: true
+              })
+            }
+          );
+          const unbanResult = await unbanRes.json();
+          if (unbanResult.ok) {
+            log(`✅ Unban ${telegramId} from ${chatId} successful (attempt ${attempt})`);
+            break;
+          } else {
+            log(`⚠️ Unban ${telegramId} from ${chatId} failed (attempt ${attempt}): ${unbanResult.description}`);
+            if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
+          }
+        } catch (unbanErr) {
+          log(`⚠️ Unban ${telegramId} error (attempt ${attempt}): ${unbanErr.message}`);
+          if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
         }
-      );
+      }
+
       return { success: true };
     } else {
       return { success: false, error: result.description };

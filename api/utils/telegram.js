@@ -183,6 +183,21 @@ export async function createInviteLinks(telegramId) {
   let channelLink = null;
   let chatLink = null;
 
+  // Разбанить пользователя перед созданием ссылок
+  // (подстраховка если cleanup забанил и unban не сработал)
+  const unbanToken = KIKER_BOT_TOKEN || BOT_TOKEN;
+  if (telegramId) {
+    for (const chatId of [CHANNEL_ID, CHAT_ID]) {
+      try {
+        await fetch(`https://api.telegram.org/bot${unbanToken}/unbanChatMember`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, user_id: parseInt(telegramId), only_if_banned: true })
+        });
+      } catch (e) { /* ignore unban errors */ }
+    }
+  }
+
   try {
     // Try via Edge Function first
     const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-channel`, {
