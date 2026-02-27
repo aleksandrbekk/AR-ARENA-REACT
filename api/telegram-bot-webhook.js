@@ -32,6 +32,7 @@ const ALLOWED_ORIGINS = [
   'https://ar-arena.games',
   'https://www.ar-arena.games',
   'https://ar-arena-react.vercel.app',
+  'https://ararena.pro',
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
 ].filter(Boolean);
 
@@ -538,9 +539,13 @@ async function handleLinks(chatId, telegramId, conversationId) {
   // Generate fresh invite links via admin-send-invite API
   try {
     const apiUrl = 'https://ar-arena-react.vercel.app/api/admin-send-invite';
+    const inviteCronSecret = process.env.CRON_SECRET;
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(inviteCronSecret ? { 'Authorization': `Bearer ${inviteCronSecret}` } : {})
+      },
       body: JSON.stringify({
         telegram_id: telegramId,
         send_to_user: false  // We'll send manually with proper formatting
@@ -705,11 +710,13 @@ async function handleCancelSubscriptionYes(chatId, telegramId, callbackQueryId) 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 секунд
 
+    const cronSecret = process.env.CRON_SECRET;
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'TelegramBot/1.0'
+        'User-Agent': 'TelegramBot/1.0',
+        ...(cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {})
       },
       body: JSON.stringify({ telegram_id: telegramId }),
       signal: controller.signal

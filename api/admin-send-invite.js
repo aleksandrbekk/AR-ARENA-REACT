@@ -7,9 +7,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const KIKER_BOT_TOKEN = process.env.KIKER_BOT_TOKEN;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 const CHANNEL_ID = '-1001634734020';
 const CHAT_ID = '-1001828659569';
+
+// Админы, которым разрешён доступ
+const ADMIN_IDS = [190202791, 288542643];
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -18,6 +22,7 @@ const ALLOWED_ORIGINS = [
   'https://ar-arena.games',
   'https://www.ar-arena.games',
   'https://ar-arena-react.vercel.app',
+  'https://ararena.pro',
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
 ].filter(Boolean);
 
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Telegram-Id, X-Admin-Password');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -93,6 +98,41 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // ============================================
+  // SECURITY: Проверка авторизации
+  // Разрешён вызов от: админов (по telegram_id/password) или внутренних сервисов (по CRON_SECRET)
+  // ============================================
+  const authTelegramId = req.headers['x-telegram-id'] || req.body?.telegramId;
+  const authPassword = req.headers['x-admin-password'] || req.body?.password;
+  const authHeader = req.headers['authorization'];
+  const cronSecret = process.env.CRON_SECRET;
+
+  let isAuthorized = false;
+
+  // 1. Проверка по Telegram ID (админы)
+  if (authTelegramId && ADMIN_IDS.includes(Number(authTelegramId))) {
+    isAuthorized = true;
+  }
+
+  // 2. Проверка по паролю
+  if (!isAuthorized && authPassword && ADMIN_PASSWORD && authPassword === ADMIN_PASSWORD) {
+    isAuthorized = true;
+  }
+
+  // 3. Проверка по Bearer token (внутренние сервисы)
+  if (!isAuthorized && cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    isAuthorized = true;
+  }
+
+  if (!isAuthorized) {
+    console.error('[AdminInvite] ❌ Unauthorized attempt', {
+      telegramId: authTelegramId,
+      hasPassword: !!authPassword,
+      ip: req.headers['x-forwarded-for'] || req.connection?.remoteAddress
+    });
+    return res.status(403).json({ error: 'Not authorized. Admin access required.' });
+  }
+
   const { telegram_id, send_to_user = true } = req.body;
 
   if (!telegram_id) {
@@ -100,15 +140,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Проверяем что пользователь существует в premium_clients
+    // Проверяем что пользователь существует в premium_clients и подписка активна
     const { data: user, error: fetchError } = await supabase
       .from('premium_clients')
-      .select('id, telegram_id, username, first_name')
+      .select('id, telegram_id, username, first_name, expires_at')
       .eq('telegram_id', telegram_id)
       .single();
 
     if (fetchError || !user) {
       return res.status(404).json({ error: 'Premium client not found' });
+    }
+
+    // Проверка активности подписки
+    if (user.expires_at && new Date(user.expires_at) < new Date()) {
+      console.log(`[AdminInvite] Subscription expired for ${telegram_id}, expires_at: ${user.expires_at}`);
+      return res.status(400).json({ error: 'Subscription expired', message: 'Подписка истекла. Продлите перед отправкой ссылок.' });
     }
 
     // Генерируем ссылки

@@ -182,7 +182,7 @@ export default async function handler(req, res) {
 
       const success = await sendTelegramMessage(telegramId, message, replyMarkup);
 
-      if (success?.ok) {
+      if (success) {
         log(`✅ Reminder sent to ${telegramId} (${user.username || 'no username'})`);
         results.sent++;
         results.users.push({
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
           text: message,
           source: 'subscription-reminder',
           success: false,
-          error: success?.description || success?.error || 'Failed to send message',
+          error: 'Failed to send message',
           metadata: {
             username: user.username,
             plan: user.plan,

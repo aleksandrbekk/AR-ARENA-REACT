@@ -16,11 +16,16 @@ const LAVA_API_KEY = process.env.LAVA_API_KEY;
 // Supabase клиент
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+// Админы и пароль для авторизации
+const ADMIN_IDS = [190202791, 288542643];
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
   'https://ar-arena.games',
   'https://www.ar-arena.games',
   'https://ar-arena-react.vercel.app',
+  'https://ararena.pro',
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
 ].filter(Boolean);
 
@@ -65,9 +70,45 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // ============================================
+    // SECURITY: Проверка авторизации
+    // Разрешено: админы, внутренние сервисы (Bearer CRON_SECRET), или сам пользователь (через бот)
+    // ============================================
+    const authTelegramId = req.headers['x-telegram-id'] || req.body?.authTelegramId;
+    const authPassword = req.headers['x-admin-password'] || req.body?.password;
+    const authHeader = req.headers['authorization'];
+    const cronSecret = process.env.CRON_SECRET;
+
+    let isAdmin = false;
+    let isInternalCall = false;
+
+    // Проверка по Telegram ID (админы)
+    if (authTelegramId && ADMIN_IDS.includes(Number(authTelegramId))) {
+      isAdmin = true;
+    }
+
+    // Проверка по паролю
+    if (!isAdmin && authPassword && ADMIN_PASSWORD && authPassword === ADMIN_PASSWORD) {
+      isAdmin = true;
+    }
+
+    // Проверка по Bearer token (внутренние сервисы, например бот)
+    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+      isInternalCall = true;
+    }
+
     log('[CANCEL] Step 3: Method is POST');
     const { telegram_id } = req.body || {};
     log('[CANCEL] Step 4: Extracted telegram_id:', telegram_id);
+
+    // Если не админ и не внутренний вызов — пользователь может отменить только СВОЮ подписку
+    if (!isAdmin && !isInternalCall) {
+      // Проверяем что telegram_id вызывающего совпадает с отменяемым
+      if (!authTelegramId || String(authTelegramId) !== String(telegram_id)) {
+        log('[CANCEL] ❌ Unauthorized cancel attempt', { authTelegramId, target: telegram_id });
+        return res.status(403).json({ error: 'Not authorized. You can only cancel your own subscription.' });
+      }
+    }
 
     if (!telegram_id) {
       log('[CANCEL] Missing telegram_id');

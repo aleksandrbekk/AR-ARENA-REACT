@@ -111,7 +111,8 @@ export function PremiumTab({
 
         if (planFilter !== 'all' && client.plan !== planFilter) return false
 
-        if (monthFilter !== 'all' && client.last_payment_at) {
+        if (monthFilter !== 'all') {
+          if (!client.last_payment_at) return false
           const paymentDate = new Date(client.last_payment_at)
           const paymentMonth = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
           if (paymentMonth !== monthFilter) return false
@@ -204,7 +205,7 @@ export function PremiumTab({
       setGeneratingInvite(true)
       const res = await fetch('/api/admin-send-invite', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ telegram_id: telegramId, send_to_user: sendToUser })
       })
       const data = await res.json()
@@ -370,6 +371,13 @@ export function PremiumTab({
       // Step 4: If input is username but not found — error
       if (!userData) {
         showToast({ variant: 'error', title: 'Пользователь не найден. Попробуйте ввести числовой Telegram ID.' })
+        setAddingClient(false)
+        return
+      }
+
+      // Validate custom period has date before proceeding
+      if (newClientPeriod === 'custom' && !newClientCustomDate) {
+        showToast({ variant: 'error', title: 'Выберите дату для кастомного периода' })
         setAddingClient(false)
         return
       }

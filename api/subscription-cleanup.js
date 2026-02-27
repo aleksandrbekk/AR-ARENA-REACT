@@ -121,11 +121,11 @@ export default async function handler(req, res) {
   const isCronSecretMissing = !cronSecret;
 
   if (isCronSecretMissing) {
-    log('⚠️ WARNING: CRON_SECRET env var not set! Allowing request but this should be fixed.');
+    log('⚠️ WARNING: CRON_SECRET env var not set!');
   }
 
-  // Allow if: valid cron secret, manual trigger, CRON_SECRET not configured, or not production
-  if (!isVercelCron && !isManualTrigger && !isCronSecretMissing && process.env.NODE_ENV === 'production') {
+  // Allow if: valid cron secret, manual trigger, or not production
+  if (!isVercelCron && !isManualTrigger && process.env.NODE_ENV === 'production') {
     log('⚠️ Unauthorized access attempt', { authHeader: authHeader ? 'present' : 'missing', cronSecret: cronSecret ? 'set' : 'NOT SET' });
     return res.status(401).json({ error: 'Unauthorized' });
   }

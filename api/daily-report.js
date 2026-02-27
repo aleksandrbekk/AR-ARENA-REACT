@@ -49,7 +49,7 @@ export default async function handler(req, res) {
   const isManualTrigger = req.query.key === 'manual_trigger_190202791';
   const isCronSecretMissing = !cronSecret;
 
-  if (!isVercelCron && !isManualTrigger && !isCronSecretMissing && process.env.NODE_ENV === 'production') {
+  if (!isVercelCron && !isManualTrigger && process.env.NODE_ENV === 'production') {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -57,9 +57,14 @@ export default async function handler(req, res) {
     log('📊 Generating daily report...');
 
     const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-    const todayISO = todayStart.toISOString();
+    // MSK = UTC+3: today in Moscow starts at 21:00 UTC previous day
+    const mskOffset = 3 * 60 * 60 * 1000;
+    const nowMSK = new Date(now.getTime() + mskOffset);
+    const todayStart = new Date(nowMSK);
+    todayStart.setUTCHours(0, 0, 0, 0);
+    // Convert back to UTC for DB queries
+    const todayStartUTC = new Date(todayStart.getTime() - mskOffset);
+    const todayISO = todayStartUTC.toISOString();
 
     // ============================================
     // 1. Активные подписки (всего)

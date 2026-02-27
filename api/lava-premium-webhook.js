@@ -26,6 +26,7 @@ const ALLOWED_ORIGINS = [
   'https://ar-arena.games',
   'https://www.ar-arena.games',
   'https://ar-arena-react.vercel.app',
+  'https://ararena.pro',
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
 ].filter(Boolean);
 
@@ -188,8 +189,10 @@ export default async function handler(req, res) {
 
     if (authHeader?.startsWith('Basic ')) {
       const base64 = authHeader.replace('Basic ', '').trim();
-      const [login] = Buffer.from(base64, 'base64').toString('utf8').split(':');
-      if (login === BASIC_AUTH_LOGIN) {
+      const decoded = Buffer.from(base64, 'base64').toString('utf8');
+      const [login, password] = decoded.split(':');
+      const BASIC_AUTH_PASSWORD = process.env.LAVA_WEBHOOK_PASSWORD;
+      if (login === BASIC_AUTH_LOGIN && (!BASIC_AUTH_PASSWORD || password === BASIC_AUTH_PASSWORD)) {
         isAuthorized = true;
         log('Basic Auth verified');
       }
@@ -375,32 +378,7 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // 7. RECORD PAYMENT HISTORY
-    // ============================================
-    const paymentHistoryId = contractId || `lava_${Date.now()}_${telegramId || extractedUsername}`;
-    const paymentData = {
-      telegram_id: telegramIdInt || null,
-      amount: netAmount,  // NET amount (after 8% Lava commission) for accurate payout reports
-      currency,
-      source: 'lava.top',
-      contract_id: paymentHistoryId,
-      plan: period.tariff,
-      days_added: period.days,
-      status: 'success',
-      created_at: new Date().toISOString()
-    };
-
-    const { error: paymentError } = await supabase.from('payment_history').insert(paymentData);
-
-    if (paymentError) {
-      log('CRITICAL: Failed to record payment:', paymentError);
-      return res.status(500).json({ error: 'Failed to record payment' });
-    }
-
-    log('Payment history recorded');
-
-    // ============================================
-    // 8. UPSERT PREMIUM_CLIENTS
+    // 7. PRE-CHECK: Find existing client & check cancelled status BEFORE recording payment
     // ============================================
     const now = new Date();
     const expiresAt = new Date(now.getTime() + period.days * 24 * 60 * 60 * 1000);
@@ -418,11 +396,8 @@ export default async function handler(req, res) {
     const usdRate = CURRENCY_TO_USD[currency] || CURRENCY_TO_USD['RUB'];
     const netAmountUsd = netAmount * usdRate;
 
-    // ============================================
-    // 8.1 CHECK FOR CANCELLED SUBSCRIPTION
-    // If subscription was cancelled but Lava still charges,
-    // block renewal, try to re-cancel, and notify admin
-    // ============================================
+    // CHECK FOR CANCELLED SUBSCRIPTION BEFORE recording payment
+    // If subscription was cancelled but Lava still charges — block, re-cancel, notify
     if (existingClient) {
       const clientTags = existingClient.tags || [];
       if (clientTags.includes('subscription_cancelled')) {
@@ -433,7 +408,7 @@ export default async function handler(req, res) {
           currency
         });
 
-        // Record payment with special status for refund tracking
+        // Record SINGLE payment with refund status (no double insert)
         try {
           await supabase.from('payment_history').insert({
             telegram_id: telegramIdInt,
@@ -451,7 +426,7 @@ export default async function handler(req, res) {
         }
 
         // Try to re-cancel subscription via Lava API
-        const cancelContractId = contractId || existingClient.contract_id;
+        const cancelContractId = subscriptionContractId || existingClient.contract_id;
         if (cancelContractId && LAVA_API_KEY) {
           try {
             const email = `${telegramIdInt}@premium.ararena.pro`;
@@ -491,6 +466,35 @@ export default async function handler(req, res) {
         });
       }
     }
+
+    // ============================================
+    // 7.1 RECORD PAYMENT HISTORY (only for valid payments)
+    // ============================================
+    const paymentHistoryId = contractId || `lava_${Date.now()}_${telegramId || extractedUsername}`;
+    const paymentData = {
+      telegram_id: telegramIdInt || null,
+      amount: netAmount,  // NET amount (after 8% Lava commission) for accurate payout reports
+      currency,
+      source: 'lava.top',
+      contract_id: paymentHistoryId,
+      plan: period.tariff,
+      days_added: period.days,
+      status: 'success',
+      created_at: new Date().toISOString()
+    };
+
+    const { error: paymentError } = await supabase.from('payment_history').insert(paymentData);
+
+    if (paymentError) {
+      log('CRITICAL: Failed to record payment:', paymentError);
+      return res.status(500).json({ error: 'Failed to record payment' });
+    }
+
+    log('Payment history recorded');
+
+    // ============================================
+    // 8. UPSERT PREMIUM_CLIENTS
+    // ============================================
 
     if (existingClient) {
       const currentExpires = new Date(existingClient.expires_at);

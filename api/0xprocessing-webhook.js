@@ -29,6 +29,7 @@ const ALLOWED_ORIGINS = [
   'https://ar-arena.games',
   'https://www.ar-arena.games',
   'https://ar-arena-react.vercel.app',
+  'https://ararena.pro',
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
 ].filter(Boolean);
 
@@ -128,7 +129,8 @@ export default async function handler(req, res) {
         }
         log('SECURITY: Signature verified');
       } else {
-        log('SECURITY WARNING: No signature header received');
+        log('SECURITY REJECTED: No signature header received but WEBHOOK_SECRET is configured');
+        return res.status(401).json({ error: 'Missing signature header' });
       }
     }
 
