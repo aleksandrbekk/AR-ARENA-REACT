@@ -215,7 +215,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid payload' });
     }
 
-    const { eventType, contractId, status } = payload;
+    const { eventType, contractId, parentContractId, status } = payload;
+    // For cancellation, parentContractId is the original subscription ID
+    // contractId changes with each recurring payment, parentContractId stays the same
+    const subscriptionContractId = parentContractId || contractId;
     const currency = getCurrencyFromPayload(payload);
     const grossAmount = getGrossAmount(payload);
     const netAmount = getNetAmount(payload);
@@ -505,7 +508,7 @@ export default async function handler(req, res) {
         last_payment_at: now.toISOString(),
         last_payment_method: 'lava.top',
         source: 'lava.top',
-        ...(contractId && { contract_id: contractId }),
+        ...(subscriptionContractId && { contract_id: subscriptionContractId }),
         updated_at: now.toISOString()
       }).eq('id', existingClient.id);
 
@@ -529,7 +532,7 @@ export default async function handler(req, res) {
         payments_count: 1,
         last_payment_at: now.toISOString(),
         last_payment_method: 'lava.top',
-        contract_id: contractId || null,
+        contract_id: subscriptionContractId || null,
         created_at: now.toISOString(),
         updated_at: now.toISOString()
       });

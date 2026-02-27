@@ -586,10 +586,78 @@ function getDaysWord(days) {
 }
 
 // ============================================
+// /cancel — Отменить подписку (прямая команда)
+// ============================================
+async function handleCancel(chatId, telegramId, conversationId) {
+  const subscription = await checkSubscription(telegramId);
+
+  if (!subscription) {
+    const text = `❌ <b>У тебя нет активной подписки</b>\n\nОтменять нечего. Если хочешь оформить подписку:`;
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '🎴 Выбрать тариф', web_app: { url: PRICING_URL } }]
+      ]
+    };
+    await sendMessage(chatId, text, keyboard);
+    saveOutgoingMessage(conversationId, telegramId, text);
+    return;
+  }
+
+  const tags = subscription.tags || [];
+  const isAlreadyCancelled = tags.includes('subscription_cancelled');
+
+  if (isAlreadyCancelled) {
+    const expiresDate = formatDate(subscription.expires_at);
+    const text = `ℹ️ <b>Подписка уже отменена</b>\n\nВаш доступ сохранится до <b>${expiresDate}</b>.\nПосле этого автосписание прекратится.\n\nЕсли передумаете — всегда можно продлить:`;
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '📋 Продлить подписку', web_app: { url: PRICING_URL } }]
+      ]
+    };
+    await sendMessage(chatId, text, keyboard);
+    saveOutgoingMessage(conversationId, telegramId, text);
+    return;
+  }
+
+  if (subscription.source !== 'lava.top' || !subscription.contract_id) {
+    const text = `ℹ️ <b>Автоматическая отмена недоступна</b>\n\nВаша подписка оформлена не через автоплатёж.\nДля отмены обратитесь в поддержку: @Andrey_cryptoinvestor`;
+    await sendMessage(chatId, text);
+    saveOutgoingMessage(conversationId, telegramId, text);
+    return;
+  }
+
+  // Показываем подтверждение с кнопками
+  const tariffName = getTariffName(subscription.plan);
+  const expiresDate = formatDate(subscription.expires_at);
+
+  const text = `⚠️ <b>Отмена подписки</b>
+
+📋 Тариф: <b>${tariffName}</b>
+📅 Действует до: <b>${expiresDate}</b>
+
+При отмене:
+• Автосписание будет остановлено
+• Доступ сохранится до <b>${expiresDate}</b>
+• После этой даты доступ к каналу и чату прекратится
+
+Вы уверены?`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: '✅ Да, отменить подписку', callback_data: `cancel_subscription_yes_${telegramId}` }],
+      [{ text: '❌ Нет, оставить', callback_data: 'cancel_subscription_no' }]
+    ]
+  };
+
+  await sendMessage(chatId, text, keyboard);
+  saveOutgoingMessage(conversationId, telegramId, text);
+}
+
+// ============================================
 // SUBSCRIPTION CANCELLATION HANDLERS
 // ============================================
 
-// Показать подтверждение отмены подписки
+// Показать подтверждение отмены подписки (из callback кнопки в /status)
 async function handleCancelSubscriptionConfirm(chatId, telegramId, callbackQueryId) {
   log(`[CANCEL] Showing confirmation to ${telegramId}`);
 
@@ -995,6 +1063,12 @@ export default async function handler(req, res) {
     if (text === '/links' || text === '/ссылки' || text === '/access') {
       log(`🔗 /links from ${telegramId}`);
       await handleLinks(chatId, telegramId, conversationId);
+    }
+
+    // /cancel — отменить подписку
+    if (text === '/cancel' || text === '/отменить' || text === '/отмена' || text === '/отписаться') {
+      log(`❌ /cancel from ${telegramId}`);
+      await handleCancel(chatId, telegramId, conversationId);
     }
 
     // ============================================

@@ -117,32 +117,73 @@ export default async function handler(req, res) {
     }
 
     // 3. ОТМЕНИТЬ ПОДПИСКУ ЧЕРЕЗ LAVA API
-    // Правильный endpoint: DELETE /api/v1/subscriptions с query params
-    // Документация: https://gate.lava.top/docs
+    // ВАЖНО: Для отмены нужен parentContractId (ID оригинальной подписки),
+    // а не contractId текущего платежа (он меняется каждый раз)
     log('[CANCEL] Calling Lava API:', { contract_id: client.contract_id });
 
     const email = `${telegramIdInt}@premium.ararena.pro`;
 
-    // Формируем URL с query параметрами (согласно Lava API v1)
-    const cancelUrl = new URL('https://gate.lava.top/api/v1/subscriptions');
-    cancelUrl.searchParams.set('contractId', client.contract_id);
-    cancelUrl.searchParams.set('email', email);
+    // Попытка отмены через Lava API с fallback
+    async function tryCancel(contractIdToCancel) {
+      const cancelUrl = new URL('https://gate.lava.top/api/v1/subscriptions');
+      cancelUrl.searchParams.set('contractId', contractIdToCancel);
+      cancelUrl.searchParams.set('email', email);
 
-    try {
       const lavaResponse = await fetch(cancelUrl.toString(), {
         method: 'DELETE',
-        headers: {
-          'X-Api-Key': LAVA_API_KEY
-        }
+        headers: { 'X-Api-Key': LAVA_API_KEY }
       });
 
-      log('[CANCEL] Lava API response status:', lavaResponse.status);
+      return lavaResponse;
+    }
+
+    try {
+      // Попытка 1: Используем contract_id из базы
+      let lavaResponse = await tryCancel(client.contract_id);
+      log('[CANCEL] Lava API response status (attempt 1):', lavaResponse.status);
+
+      // Если 404 — contract_id в базе может быть от конкретного платежа, а не от подписки
+      // Ищем parentContractId в webhook_logs
+      if (lavaResponse.status === 404) {
+        log('[CANCEL] Contract not found, searching for parentContractId in webhook_logs...');
+
+        const { data: webhookLog } = await supabase
+          .from('webhook_logs')
+          .select('payload')
+          .like('payload', `%${client.contract_id}%`)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (webhookLog?.payload) {
+          try {
+            const payload = typeof webhookLog.payload === 'string'
+              ? JSON.parse(webhookLog.payload) : webhookLog.payload;
+            const parentId = payload.parentContractId;
+
+            if (parentId && parentId !== client.contract_id) {
+              log('[CANCEL] Found parentContractId:', parentId);
+              lavaResponse = await tryCancel(parentId);
+              log('[CANCEL] Lava API response status (attempt 2 with parentContractId):', lavaResponse.status);
+
+              // Update contract_id in DB to parentContractId for future use
+              if (lavaResponse.status === 204) {
+                await supabase.from('premium_clients')
+                  .update({ contract_id: parentId })
+                  .eq('id', client.id);
+                log('[CANCEL] Updated contract_id to parentContractId in DB');
+              }
+            }
+          } catch (parseErr) {
+            log('[CANCEL] Failed to parse webhook payload:', parseErr.message);
+          }
+        }
+      }
 
       // Успешная отмена возвращает 204 No Content
       if (lavaResponse.status === 204) {
         log('[CANCEL] Subscription successfully cancelled via Lava API');
       } else if (!lavaResponse.ok) {
-        // Попробуем получить тело ошибки
         const responseText = await lavaResponse.text();
         let lavaResult;
 
@@ -157,15 +198,15 @@ export default async function handler(req, res) {
         const errorMessage = String(lavaResult?.error || lavaResult?.message || '').toLowerCase();
         const alreadyCancelled = errorMessage.includes('already cancelled') ||
           errorMessage.includes('already canceled') ||
-          errorMessage.includes('not found') ||
           errorMessage.includes('subscription not active') ||
           errorMessage.includes('cancelled');
 
+        // "not found" после обеих попыток — серьёзная ошибка
         if (!alreadyCancelled) {
           log('[CANCEL] Lava API error:', { status: lavaResponse.status, error: lavaResult });
           return res.status(500).json({
             error: 'Lava API error',
-            message: 'Не удалось отменить подписку через Lava.top. Попробуйте позже или обратитесь в поддержку.',
+            message: 'Не удалось отменить подписку через Lava.top. Попробуйте позже или обратитесь в поддержку @Andrey_cryptoinvestor',
             details: lavaResult?.error || lavaResult?.message
           });
         }
