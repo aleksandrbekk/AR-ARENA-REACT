@@ -10,8 +10,11 @@
 export const PREMIUM_CHANNEL_ID = process.env.PREMIUM_CHANNEL_ID || '-1001634734020';
 export const PREMIUM_CHAT_ID = process.env.PREMIUM_CHAT_ID || '-1001828659569';
 
-// Администратор для уведомлений
+// Администратор для уведомлений (основной)
 export const ADMIN_TELEGRAM_ID = process.env.ADMIN_TELEGRAM_ID || '190202791';
+
+// Все админы для уведомлений о платежах, кикнутых, подписках
+export const NOTIFICATION_ADMIN_IDS = ['190202791', '288542643'];
 
 // ============================================
 // ALLOWED ORIGINS (CORS)

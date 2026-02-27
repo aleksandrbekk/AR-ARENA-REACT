@@ -21,30 +21,40 @@ const ALLOWED_ORIGINS = [
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
 ].filter(Boolean);
 
-// Создать инвайт-ссылку
+// Создать инвайт-ссылку (с fallback между токенами)
 async function createInviteLink(chatId) {
-  try {
-    const token = KIKER_BOT_TOKEN || BOT_TOKEN;
+  const tokens = [
+    { token: KIKER_BOT_TOKEN, name: 'KIKER_BOT' },
+    { token: BOT_TOKEN, name: 'MAIN_BOT' }
+  ].filter(t => t.token);
 
-    const res = await fetch(`https://api.telegram.org/bot${token}/createChatInviteLink`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        member_limit: 1
-      })
-    });
+  for (const { token, name } of tokens) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/createChatInviteLink`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          member_limit: 1
+        })
+      });
 
-    const data = await res.json();
-    if (data.ok) {
-      return data.result.invite_link;
+      const data = await res.json();
+      if (data.ok) {
+        console.log(`[AdminInvite] Invite link created via ${name} for chat ${chatId}`);
+        return data.result.invite_link;
+      }
+      console.log(`[AdminInvite] ${name} failed for chat ${chatId}:`, {
+        error_code: data.error_code,
+        description: data.description
+      });
+    } catch (err) {
+      console.error(`[AdminInvite] ${name} error for chat ${chatId}:`, err.message);
     }
-    console.log('Create invite error:', data);
-    return null;
-  } catch (err) {
-    console.error('Create invite error:', err);
-    return null;
   }
+
+  console.error(`[AdminInvite] CRITICAL: All tokens failed for chat ${chatId}`);
+  return null;
 }
 
 // Отправить сообщение
@@ -106,8 +116,14 @@ export default async function handler(req, res) {
     const chatLink = await createInviteLink(CHAT_ID);
 
     if (!channelLink || !chatLink) {
+      const errorDetails = [];
+      if (!channelLink) errorDetails.push(`Канал (${CHANNEL_ID}): бот не имеет права "Invite users via link"`);
+      if (!chatLink) errorDetails.push(`Чат (${CHAT_ID}): бот не имеет права "Invite users via link"`);
+
       return res.status(500).json({
         error: 'Failed to create invite links',
+        details: errorDetails.join('; '),
+        hint: 'Проверьте что KIKER_BOT или основной бот имеет права "Invite users via link" в канале и чате',
         channelLink,
         chatLink
       });

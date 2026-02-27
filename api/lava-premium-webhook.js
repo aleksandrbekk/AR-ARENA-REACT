@@ -3,7 +3,7 @@
 // Refactored: 2026-01-24
 
 import { supabase } from './utils/supabase.js';
-import { sendTelegramPhoto, sendTelegramMessage, createInviteLinks } from './utils/telegram.js';
+import { sendTelegramPhoto, sendTelegramMessage, createInviteLinks, sendToAllAdmins } from './utils/telegram.js';
 import { TARIFF_CARD_IMAGES, CURRENCY_TO_USD, MIN_AMOUNTS } from './utils/tariffs.js';
 import {
   getPeriodByPeriodicityOrAmount,
@@ -245,16 +245,48 @@ export default async function handler(req, res) {
     // ============================================
     const { telegramId, username: extractedUsername } = await extractTelegramIdOrUsername(payload);
 
-    if (!telegramId && !extractedUsername) {
-      return res.status(400).json({ error: 'Missing telegram_id or username' });
-    }
-
     let telegramIdInt = telegramId ? parseInt(telegramId) : null;
 
     // Try to find telegram_id by username if missing
     if (!telegramIdInt && extractedUsername) {
       const found = await findTelegramIdByUsername(extractedUsername);
       if (found?.telegramId) telegramIdInt = found.telegramId;
+    }
+
+    // ============================================
+    // 3.1 FALLBACK: Find telegram_id by contract_id
+    // If this is a recurring payment, contract_id stays the same
+    // ============================================
+    if (!telegramIdInt && contractId) {
+      log('Telegram ID not found in UTM/email, trying contract_id fallback...');
+
+      // Check payment_history for previous payments with same contract_id
+      const { data: prevPayment } = await supabase
+        .from('payment_history')
+        .select('telegram_id')
+        .eq('contract_id', contractId)
+        .not('telegram_id', 'is', null)
+        .limit(1)
+        .single();
+
+      if (prevPayment?.telegram_id) {
+        telegramIdInt = parseInt(prevPayment.telegram_id);
+        log(`Found telegram_id ${telegramIdInt} via payment_history contract_id`);
+      }
+
+      // Also check premium_clients
+      if (!telegramIdInt) {
+        const { data: prevClient } = await supabase
+          .from('premium_clients')
+          .select('telegram_id')
+          .eq('contract_id', contractId)
+          .single();
+
+        if (prevClient?.telegram_id) {
+          telegramIdInt = prevClient.telegram_id;
+          log(`Found telegram_id ${telegramIdInt} via premium_clients contract_id`);
+        }
+      }
     }
 
     log(`Telegram ID: ${telegramIdInt || 'N/A'}, Username: ${extractedUsername || 'N/A'}`);
@@ -291,27 +323,51 @@ export default async function handler(req, res) {
 
     // ============================================
     // 6.1 CRITICAL: telegram_id REQUIRED for premium_clients
+    // If still not found — save as orphaned payment and notify admin
     // ============================================
     if (!telegramIdInt) {
       log('CRITICAL: No valid telegram_id! Cannot activate subscription.');
-      log(`extractedUsername: ${extractedUsername}, payload keys: ${Object.keys(payload).join(', ')}`);
-      
-      // Log for debugging
+      log(`extractedUsername: ${extractedUsername}, contractId: ${contractId}, payload keys: ${Object.keys(payload).join(', ')}`);
+
+      // Save orphaned payment for manual review
       try {
         await supabase.from('webhook_logs').insert({
           source: 'lava.top',
-          event_type: 'ERROR_NO_TELEGRAM_ID',
-          payload: JSON.stringify({ payload, error: 'No telegram_id resolved', username: extractedUsername }),
-          status: 'error',
-          error_message: 'No telegram_id resolved - user must start bot first',
+          event_type: 'ORPHANED_PAYMENT',
+          payload: JSON.stringify(payload),
+          status: 'needs_review',
+          error_message: `Платёж ${grossAmount} ${currency} не привязан к пользователю. ContractId: ${contractId || 'N/A'}. Username: ${extractedUsername || 'N/A'}`,
           created_at: new Date().toISOString()
         });
       } catch (e) {}
-      
-      return res.status(400).json({ 
-        error: 'Missing telegram_id', 
+
+      // Record payment for accounting even without user
+      try {
+        await supabase.from('payment_history').insert({
+          telegram_id: null,
+          amount: netAmount,
+          currency,
+          source: 'lava.top',
+          contract_id: contractId || `orphaned_${Date.now()}`,
+          plan: period.tariff,
+          days_added: 0,
+          status: 'orphaned_no_user',
+          created_at: new Date().toISOString()
+        });
+      } catch (e) {}
+
+      // IMMEDIATELY notify admin
+      const orphanAlert = `🚨 <b>ПОТЕРЯННЫЙ ПЛАТЁЖ!</b>\n\n💰 Сумма: <b>${grossAmount} ${currency}</b>\n📋 Contract: <code>${contractId || 'N/A'}</code>\n👤 Username: ${extractedUsername || 'не определён'}\n\n⚠️ Платёж получен, но невозможно определить пользователя!\nНужно вручную найти и привязать в CRM.`;
+      await sendToAllAdmins(orphanAlert);
+
+      // Return 200 to prevent Lava retries, but flag for review
+      return res.status(200).json({
+        success: false,
+        error: 'Missing telegram_id',
         username: extractedUsername,
-        message: 'Cannot activate subscription without telegram_id. User must start bot first.'
+        contract_id: contractId,
+        needs_manual_review: true,
+        message: 'Payment received but cannot identify user. Admin notified.'
       });
     }
 
@@ -358,6 +414,80 @@ export default async function handler(req, res) {
     let isNewClient = false;
     const usdRate = CURRENCY_TO_USD[currency] || CURRENCY_TO_USD['RUB'];
     const netAmountUsd = netAmount * usdRate;
+
+    // ============================================
+    // 8.1 CHECK FOR CANCELLED SUBSCRIPTION
+    // If subscription was cancelled but Lava still charges,
+    // block renewal, try to re-cancel, and notify admin
+    // ============================================
+    if (existingClient) {
+      const clientTags = existingClient.tags || [];
+      if (clientTags.includes('subscription_cancelled')) {
+        log('⚠️ CANCELLED SUBSCRIPTION RENEWAL DETECTED!', {
+          telegram_id: telegramIdInt,
+          contract_id: contractId || existingClient.contract_id,
+          amount: grossAmount,
+          currency
+        });
+
+        // Record payment with special status for refund tracking
+        try {
+          await supabase.from('payment_history').insert({
+            telegram_id: telegramIdInt,
+            amount: netAmount,
+            currency,
+            source: 'lava.top',
+            contract_id: contractId || `cancelled_${Date.now()}`,
+            plan: period.tariff,
+            days_added: 0,  // NOT extending!
+            status: 'cancelled_refund_needed',
+            created_at: new Date().toISOString()
+          });
+        } catch (e) {
+          log('Failed to record cancelled payment:', e.message);
+        }
+
+        // Try to re-cancel subscription via Lava API
+        const cancelContractId = contractId || existingClient.contract_id;
+        if (cancelContractId && LAVA_API_KEY) {
+          try {
+            const email = `${telegramIdInt}@premium.ararena.pro`;
+            const cancelUrl = new URL('https://gate.lava.top/api/v1/subscriptions');
+            cancelUrl.searchParams.set('contractId', cancelContractId);
+            cancelUrl.searchParams.set('email', email);
+
+            const cancelResponse = await fetch(cancelUrl.toString(), {
+              method: 'DELETE',
+              headers: { 'X-Api-Key': LAVA_API_KEY }
+            });
+            log('Re-cancel attempt result:', cancelResponse.status);
+          } catch (cancelErr) {
+            log('Re-cancel API error:', cancelErr.message);
+          }
+        }
+
+        // Notify admin IMMEDIATELY
+        const alertMessage = `🚨 <b>ПОВТОРНОЕ СПИСАНИЕ С ОТМЕНЁННОЙ ПОДПИСКИ!</b>\n\n👤 ID: <code>${telegramIdInt}</code>\n💰 Сумма: <b>${grossAmount} ${currency}</b>\n📋 Contract: <code>${cancelContractId || 'N/A'}</code>\n\n⚠️ Подписка была отменена, но Lava продолжает списывать!\n💳 Необходим возврат средств через Lava Dashboard.`;
+        await sendToAllAdmins(alertMessage);
+
+        // Update webhook log
+        if (webhookLogId) {
+          await supabase.from('webhook_logs').update({
+            status: 'blocked_cancelled',
+            error_message: 'Payment blocked: subscription was cancelled'
+          }).eq('id', webhookLogId);
+        }
+
+        return res.status(200).json({
+          success: false,
+          message: 'Subscription was cancelled. Payment blocked. Admin notified.',
+          refund_needed: true,
+          telegram_id: telegramIdInt,
+          amount: grossAmount,
+          currency
+        });
+      }
+    }
 
     if (existingClient) {
       const currentExpires = new Date(existingClient.expires_at);
@@ -462,7 +592,7 @@ export default async function handler(req, res) {
     // ============================================
     const adminMessage = `💰 <b>Новый платёж Lava.top!</b>\n\n👤 ID: <code>${finalTelegramId || 'N/A'}</code>\n📋 Тариф: <b>${period.name}</b>\n💵 Сумма: <b>${grossAmount} ${currency}</b>\n💲 В USD: <b>$${(grossAmount * usdRate).toFixed(2)}</b>\n📅 Дней: ${period.days}\n🆕 Новый: ${isNewClient ? 'Да' : 'Нет (продление)'}`;
 
-    await sendTelegramMessage(ADMIN_ID, adminMessage);
+    await sendToAllAdmins(adminMessage);
     await logSystemMessage({
       telegram_id: ADMIN_ID,
       message_type: 'admin_notification',

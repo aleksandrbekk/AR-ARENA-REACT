@@ -4,7 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logSystemMessage } from './utils/log-system-message.js';
-import { ADMIN_TELEGRAM_ID } from './utils/config.js';
+import { ADMIN_TELEGRAM_ID, NOTIFICATION_ADMIN_IDS } from './utils/config.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -244,7 +244,9 @@ export default async function handler(req, res) {
 
 ${TEST_MODE ? '⚠️ <i>ТЕСТОВЫЙ РЕЖИМ - сообщения только админу</i>' : ''}`;
 
-    await sendTelegramMessage(ADMIN_ID, adminReport);
+    for (const adminId of (NOTIFICATION_ADMIN_IDS || [ADMIN_ID])) {
+      await sendTelegramMessage(adminId, adminReport);
+    }
 
     log('✅ Reminder job completed', results);
 
@@ -258,7 +260,9 @@ ${TEST_MODE ? '⚠️ <i>ТЕСТОВЫЙ РЕЖИМ - сообщения тол
     log('❌ Reminder job error', { error: error.message, stack: error.stack });
 
     // Уведомляем админа об ошибке
-    await sendTelegramMessage(ADMIN_ID, `❌ Ошибка в Reminder Job:\n${error.message}`);
+    for (const adminId of (NOTIFICATION_ADMIN_IDS || [ADMIN_ID])) {
+      await sendTelegramMessage(adminId, `❌ Ошибка в Reminder Job:\n${error.message}`);
+    }
 
     return res.status(500).json({
       error: 'Internal server error',

@@ -331,20 +331,50 @@ export function PremiumTab({
     try {
       const input = newClientId.trim().replace('@', '')
       const telegramId = parseInt(input, 10)
+      const isNumericId = !isNaN(telegramId) && String(telegramId) === input
 
-      const query = isNaN(telegramId)
-        ? supabase.from('bot_users').select('*').ilike('username', input).single()
-        : supabase.from('bot_users').select('*').eq('telegram_id', telegramId).single()
+      // Step 1: Try to find in bot_users
+      const query = isNumericId
+        ? supabase.from('bot_users').select('*').eq('telegram_id', telegramId).single()
+        : supabase.from('bot_users').select('*').ilike('username', input).single()
 
-      const { data: botUser, error: botError } = await query
+      const { data: botUser } = await query
 
-      if (botError || !botUser) {
-        showToast({ variant: 'error', title: 'Пользователь не найден в боте' })
+      // Step 2: If not in bot_users and input is numeric, try users table
+      let userData = botUser
+      if (!userData && isNumericId) {
+        const { data: userRecord } = await supabase
+          .from('users')
+          .select('telegram_id, username, first_name')
+          .eq('telegram_id', telegramId)
+          .single()
+
+        if (userRecord) {
+          userData = userRecord
+        }
+      }
+
+      // Step 3: If still not found and input is numeric — allow creating by telegram_id only
+      if (!userData && isNumericId) {
+        if (!confirm(`Пользователь ${telegramId} не найден в боте и базе. Создать запись только по Telegram ID? Ссылки-приглашения будут отправлены автоматически.`)) {
+          setAddingClient(false)
+          return
+        }
+        userData = {
+          telegram_id: telegramId,
+          username: null,
+          first_name: null
+        }
+      }
+
+      // Step 4: If input is username but not found — error
+      if (!userData) {
+        showToast({ variant: 'error', title: 'Пользователь не найден. Попробуйте ввести числовой Telegram ID.' })
         setAddingClient(false)
         return
       }
 
-      const exists = premiumClients.find(c => c.telegram_id === botUser.telegram_id)
+      const exists = premiumClients.find(c => c.telegram_id === userData.telegram_id)
       if (exists) {
         showToast({ variant: 'error', title: 'Клиент уже существует' })
         setAddingClient(false)
@@ -364,10 +394,10 @@ export function PremiumTab({
       const { error } = await supabase
         .from('premium_clients')
         .insert({
-          telegram_id: botUser.telegram_id,
-          username: botUser.username,
-          first_name: botUser.first_name,
-          plan: newClientPeriod === '30' ? 'classic' : newClientPeriod === '90' ? 'gold' : 'platinum',
+          telegram_id: userData.telegram_id,
+          username: userData.username || null,
+          first_name: userData.first_name || null,
+          plan: newClientPeriod === '30' ? 'classic' : newClientPeriod === '90' ? 'gold' : newClientPeriod === '180' ? 'platinum' : 'private',
           started_at: new Date().toISOString(),
           expires_at: expiresAt.toISOString(),
           total_paid_usd: newClientCurrency === 'USDT' ? amount : 0,
@@ -387,6 +417,15 @@ export function PremiumTab({
       if (error) throw error
 
       showToast({ variant: 'success', title: 'Клиент добавлен' })
+
+      // Auto-send invite links after adding
+      try {
+        await generateInviteLinks(userData.telegram_id, true)
+      } catch (inviteErr) {
+        console.error('Failed to send invite links:', inviteErr)
+        showToast({ variant: 'error', title: 'Клиент добавлен, но ссылки не отправлены. Отправьте вручную.' })
+      }
+
       setShowAddModal(false)
       resetAddForm()
       onDataChange()

@@ -4,7 +4,7 @@
 
 import crypto from 'crypto';
 import { supabase } from './utils/supabase.js';
-import { sendTelegramPhoto, sendTelegramMessage, createInviteLinks } from './utils/telegram.js';
+import { sendTelegramPhoto, sendTelegramMessage, createInviteLinks, sendToAllAdmins } from './utils/telegram.js';
 import { TARIFF_CARD_IMAGES } from './utils/tariffs.js';
 import {
   getPeriodByAmountUSD,
@@ -398,7 +398,7 @@ export default async function handler(req, res) {
     // ============================================
     const adminMessage = `💰 <b>Новый платёж 0xProcessing (крипта)!</b>\n\n👤 ID: <code>${finalTelegramId || 'N/A'}</code>\n📋 Тариф: <b>${period.name}</b>\n💵 Сумма: <b>$${amountUSD}</b>\n🪙 Валюта: ${Currency || 'CRYPTO'}\n📅 Дней: ${period.days}\n🆕 Новый: ${isNewClient ? 'Да' : 'Нет (продление)'}`;
 
-    await sendTelegramMessage(ADMIN_ID, adminMessage);
+    await sendToAllAdmins(adminMessage);
     await logSystemMessage({
       telegram_id: ADMIN_ID,
       message_type: 'admin_notification',

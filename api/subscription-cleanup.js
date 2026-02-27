@@ -4,7 +4,7 @@
 // 2025-12-29
 
 import { createClient } from '@supabase/supabase-js';
-import { PREMIUM_CHANNEL_ID, PREMIUM_CHAT_ID, ADMIN_TELEGRAM_ID } from './utils/config.js';
+import { PREMIUM_CHANNEL_ID, PREMIUM_CHAT_ID, ADMIN_TELEGRAM_ID, NOTIFICATION_ADMIN_IDS } from './utils/config.js';
 
 // ============================================
 // КОНФИГУРАЦИЯ
@@ -141,9 +141,9 @@ export default async function handler(req, res) {
     // 1. НАЙТИ ПРОСРОЧЕННЫЕ ПОДПИСКИ
     // ============================================
 
-    const { data: expiredUsers, error: queryError } = await supabase
+    const { data: expiredUsersRaw, error: queryError } = await supabase
       .from('premium_clients')
-      .select('id, telegram_id, username, plan, expires_at, source, in_channel, in_chat, tags')
+      .select('id, telegram_id, username, plan, expires_at, source, in_channel, in_chat, tags, last_payment_at')
       .lt('expires_at', now.toISOString())  // expires_at < now
       .not('telegram_id', 'is', null)
       .or('in_channel.eq.true,in_chat.eq.true');  // Ещё в канале или чате
@@ -153,13 +153,39 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Database error', details: queryError.message });
     }
 
-    log(`📊 Found ${expiredUsers?.length || 0} expired subscriptions`);
+    // ============================================
+    // 1.1 GRACE PERIOD: Skip users with recent payments (48h)
+    // Prevents race condition between cleanup cron and webhook
+    // ============================================
+    const GRACE_PERIOD_HOURS = 48;
+    const graceCutoff = new Date(now.getTime() - GRACE_PERIOD_HOURS * 60 * 60 * 1000);
+    const skippedGrace = [];
 
-    if (!expiredUsers || expiredUsers.length === 0) {
-      log('✅ No expired subscriptions to process');
+    const expiredUsers = (expiredUsersRaw || []).filter(user => {
+      if (user.last_payment_at) {
+        const lastPayment = new Date(user.last_payment_at);
+        if (lastPayment > graceCutoff) {
+          log(`⏸️ Grace period: skipping ${user.telegram_id} (${user.username || 'no username'}) - last payment ${user.last_payment_at}`);
+          skippedGrace.push({
+            telegram_id: user.telegram_id,
+            username: user.username,
+            last_payment_at: user.last_payment_at,
+            expires_at: user.expires_at
+          });
+          return false;
+        }
+      }
+      return true;
+    });
+
+    log(`📊 Found ${expiredUsersRaw?.length || 0} expired subscriptions, ${skippedGrace.length} skipped (grace period), ${expiredUsers.length} to process`);
+
+    if (expiredUsers.length === 0) {
+      log('✅ No expired subscriptions to process (after grace period filter)');
       return res.status(200).json({
         message: 'No cleanup needed',
-        expiredFound: 0
+        expiredFound: expiredUsersRaw?.length || 0,
+        skippedGracePeriod: skippedGrace.length
       });
     }
 
@@ -291,9 +317,13 @@ export default async function handler(req, res) {
       .map(([plan, count]) => `  • ${plan}: ${count}`)
       .join('\n');
 
+    const graceInfo = skippedGrace.length > 0
+      ? `\n⏸️ Grace period (48ч): ${skippedGrace.length} пропущено`
+      : '';
+
     const adminReport = `🧹 <b>Отчёт о очистке подписок</b>
 
-📊 Найдено просроченных: ${expiredUsers.length}
+📊 Найдено просроченных: ${(expiredUsersRaw?.length || 0)}${graceInfo}
 ${TEST_MODE ? '⏭️ Пропущено (тест): ' + results.skipped : '🚪 Кикнуто: ' + results.kicked}
 ❌ Ошибок: ${results.failed}
 
@@ -302,7 +332,10 @@ ${planStats}
 
 ${TEST_MODE ? '⚠️ <i>ТЕСТОВЫЙ РЕЖИМ - никто не кикнут</i>' : ''}`;
 
-    await sendTelegramMessage(ADMIN_ID, adminReport);
+    // Send report to all notification admins
+    for (const adminId of (NOTIFICATION_ADMIN_IDS || [ADMIN_ID])) {
+      await sendTelegramMessage(adminId, adminReport);
+    }
 
     // Record check in subscription_checks for monitoring
     try {
@@ -329,7 +362,9 @@ ${TEST_MODE ? '⚠️ <i>ТЕСТОВЫЙ РЕЖИМ - никто не кикн�
   } catch (error) {
     log('❌ Cleanup job error', { error: error.message, stack: error.stack });
 
-    await sendTelegramMessage(ADMIN_ID, `❌ Ошибка в Cleanup Job:\n${error.message}`);
+    for (const adminId of (NOTIFICATION_ADMIN_IDS || [ADMIN_ID])) {
+      await sendTelegramMessage(adminId, `❌ Ошибка в Cleanup Job:\n${error.message}`);
+    }
 
     return res.status(500).json({
       error: 'Internal server error',

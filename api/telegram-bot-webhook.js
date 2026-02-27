@@ -486,6 +486,89 @@ ${tariffEmoji[subscription.plan] || '💳'} Тариф: <b>${tariffName}</b>
   }
 }
 
+// ============================================
+// /links — Получить свежие ссылки для доступа
+// ============================================
+async function handleLinks(chatId, telegramId, conversationId) {
+  const subscription = await checkSubscription(telegramId);
+
+  if (!subscription) {
+    const text = `❌ <b>У тебя нет активной подписки</b>\n\nЧтобы получить доступ к каналу и чату, оформи подписку:`;
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '🎴 Выбрать тариф', web_app: { url: PRICING_URL } }]
+      ]
+    };
+    await sendMessage(chatId, text, keyboard);
+    saveOutgoingMessage(conversationId, telegramId, text);
+    return;
+  }
+
+  // Anti-spam: check last link request (5 min cooldown)
+  try {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentLog } = await supabase
+      .from('webhook_logs')
+      .select('id')
+      .eq('source', 'bot_links_command')
+      .eq('event_type', String(telegramId))
+      .gt('created_at', fiveMinAgo)
+      .limit(1)
+      .single();
+
+    if (recentLog) {
+      await sendMessage(chatId, '⏳ Подождите 5 минут перед повторным запросом ссылок.');
+      return;
+    }
+  } catch (e) {
+    // No recent request found — proceed
+  }
+
+  // Log the request
+  try {
+    await supabase.from('webhook_logs').insert({
+      source: 'bot_links_command',
+      event_type: String(telegramId),
+      payload: JSON.stringify({ command: '/links', telegram_id: telegramId }),
+      status: 'processing',
+      created_at: new Date().toISOString()
+    });
+  } catch (e) {}
+
+  // Generate fresh invite links via admin-send-invite API
+  try {
+    const apiUrl = 'https://ar-arena-react.vercel.app/api/admin-send-invite';
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id: telegramId,
+        send_to_user: false  // We'll send manually with proper formatting
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success && (result.channelLink || result.chatLink)) {
+      const buttons = [];
+      if (result.channelLink) buttons.push([{ text: '📢 Канал Premium', url: result.channelLink }]);
+      if (result.chatLink) buttons.push([{ text: '💬 Чат Premium', url: result.chatLink }]);
+
+      const text = `🔗 <b>Свежие ссылки для доступа</b>\n\nНажми на кнопки ниже для входа в канал и чат.\n⚠️ Ссылки одноразовые — используй каждую только один раз.`;
+      const keyboard = { inline_keyboard: buttons };
+
+      await sendMessage(chatId, text, keyboard);
+      saveOutgoingMessage(conversationId, telegramId, text);
+    } else {
+      await sendMessage(chatId, '⚠️ Не удалось сгенерировать ссылки. Обратитесь в поддержку: @Andrey_cryptoinvestor');
+      log('Failed to generate links via API:', result);
+    }
+  } catch (error) {
+    log('handleLinks error:', { error: error.message });
+    await sendMessage(chatId, '⚠️ Ошибка при генерации ссылок. Попробуйте позже или обратитесь в поддержку: @Andrey_cryptoinvestor');
+  }
+}
+
 function getDaysWord(days) {
   const lastTwo = days % 100;
   const lastOne = days % 10;
@@ -906,6 +989,12 @@ export default async function handler(req, res) {
     if (text === '/status' || text === '/подписка' || text === '/sub' || text === '/subscription') {
       log(`👤 /status from ${telegramId}`);
       await handleStatus(chatId, telegramId, conversationId);
+    }
+
+    // /links — получить свежие ссылки для доступа к каналу/чату
+    if (text === '/links' || text === '/ссылки' || text === '/access') {
+      log(`🔗 /links from ${telegramId}`);
+      await handleLinks(chatId, telegramId, conversationId);
     }
 
     // ============================================
