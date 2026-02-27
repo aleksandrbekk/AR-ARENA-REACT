@@ -1,5 +1,17 @@
+import { useEffect } from 'react'
 import type { PremiumClient, PaymentRecord, Giveaway, TicketTarget } from './types'
 import { getDaysRemaining, formatFullDate, formatAmount, getPremiumInitial } from './helpers'
+
+// Хук для закрытия модалки по Escape
+function useEscapeKey(onClose: () => void) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose])
+}
 
 // ============ CLIENT MODAL ============
 interface ClientModalProps {
@@ -25,6 +37,7 @@ export function ClientModal({
   onCancelSubscription,
   onDelete
 }: ClientModalProps) {
+  useEscapeKey(onClose)
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end justify-center z-50">
       <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8 max-h-[85vh] overflow-y-auto">
@@ -166,6 +179,7 @@ export function AddClientModal({
   onSubmit,
   onClose
 }: AddClientModalProps) {
+  useEscapeKey(onClose)
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end justify-center z-50">
       <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8 max-h-[85vh] overflow-y-auto">
@@ -293,6 +307,7 @@ export function EditDateModal({
   onSubmit,
   onClose
 }: EditDateModalProps) {
+  useEscapeKey(onClose)
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
       <div className="bg-zinc-900 rounded-2xl w-full max-w-sm p-6 border border-white/10">
@@ -339,6 +354,7 @@ export function PaymentsModal({
   onPeriodChange,
   onClose
 }: PaymentsModalProps) {
+  useEscapeKey(onClose)
   // Определяем границы периодов (используем UTC для корректного сравнения с БД)
   const now = new Date()
   const currentDay = now.getUTCDate()
@@ -510,6 +526,7 @@ export function TicketModal({
   onSubmit,
   onClose
 }: TicketModalProps) {
+  useEscapeKey(onClose)
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end justify-center z-[60]">
       <div className="bg-zinc-900 rounded-t-3xl w-full max-w-lg p-6 pb-8">

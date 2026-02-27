@@ -1,5 +1,5 @@
 import type { PremiumStats as Stats } from './types'
-import { currentMonth, formatMonthLabel } from './helpers'
+import { getCurrentMonth, formatMonthLabel } from './helpers'
 
 // ============ PROPS ============
 interface PremiumStatsProps {
@@ -18,6 +18,7 @@ export function PremiumStats({
   onMonthChange,
   onShowPayments
 }: PremiumStatsProps) {
+  const thisMonth = getCurrentMonth()
   return (
     <div className="bg-zinc-900 rounded-2xl p-4">
       <div className="flex items-center justify-between mb-4">
@@ -35,8 +36,8 @@ export function PremiumStats({
             className="bg-zinc-800 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none"
           >
             <option value="all">Всё время</option>
-            <option value={currentMonth}>Этот месяц</option>
-            {availableMonths.filter(m => m !== currentMonth).slice(0, 5).map(m => (
+            <option value={thisMonth}>Этот месяц</option>
+            {availableMonths.filter(m => m !== thisMonth).slice(0, 5).map(m => (
               <option key={m} value={m}>{formatMonthLabel(m)}</option>
             ))}
           </select>

@@ -19,11 +19,11 @@ export const formatFullDate = (dateStr: string) => {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-// Текущий месяц в формате YYYY-MM
-export const currentMonth = (() => {
+// Текущий месяц в формате YYYY-MM (функция, чтобы всегда возвращать актуальный месяц)
+export const getCurrentMonth = () => {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-})()
+}
 
 // Названия месяцев
 export const monthNames: Record<string, string> = {

@@ -40,7 +40,7 @@ export function ClientList({
 
       {/* Список клиентов */}
       <div className="space-y-3">
-        {clients.slice(0, 100).map((client) => {
+        {clients.map((client) => {
           const days = getDaysRemaining(client.expires_at)
           const isExpired = days <= 0
 
@@ -101,11 +101,6 @@ export function ClientList({
         })}
         {clients.length === 0 && (
           <div className="bg-zinc-900 rounded-2xl py-12 text-center text-white/30">Ничего не найдено</div>
-        )}
-        {clients.length > 100 && (
-          <div className="text-center text-white/30 text-sm py-2">
-            Показаны первые 100 из {clients.length}
-          </div>
         )}
       </div>
     </>

@@ -8,7 +8,7 @@
  * - Модалки: добавление, редактирование даты, выдача билета
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import type {
   PremiumClient,
@@ -19,7 +19,7 @@ import type {
   Giveaway,
   TicketTarget
 } from './types'
-import { getDaysRemaining, currentMonth } from './helpers'
+import { getDaysRemaining, getCurrentMonth } from './helpers'
 import { PremiumStats } from './PremiumStats'
 import { PremiumFilters } from './PremiumFilters'
 import { ClientList } from './ClientList'
@@ -45,7 +45,7 @@ export function PremiumTab({
   const [planFilter, setPlanFilter] = useState<string>('all')
   const [monthFilter, setMonthFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<SortByOption>('last_payment')
-  const [statsMonth, setStatsMonth] = useState<string>(currentMonth)
+  const [statsMonth, setStatsMonth] = useState<string>(getCurrentMonth())
 
   // ============ STATE: ВЫБРАННЫЙ КЛИЕНТ ============
   const [selectedClient, setSelectedClient] = useState<PremiumClient | null>(null)
@@ -79,6 +79,20 @@ export function PremiumTab({
   // ============ STATE: ВЫПЛАТЫ ============
   const [showPaymentsModal, setShowPaymentsModal] = useState(false)
   const [selectedPaymentPeriod, setSelectedPaymentPeriod] = useState<'5-22' | '23-4'>('5-22')
+
+  // ============ SYNC selectedClient with premiumClients ============
+  useEffect(() => {
+    if (selectedClient) {
+      const updated = premiumClients.find(c => c.id === selectedClient.id)
+      if (updated) {
+        setSelectedClient(updated)
+      } else {
+        // Клиент удалён — закрыть модалку
+        setSelectedClient(null)
+        setShowClientModal(false)
+      }
+    }
+  }, [premiumClients])
 
   // ============ COMPUTED VALUES ============
   const activePremiumCount = premiumClients.filter(c => getDaysRemaining(c.expires_at) > 0).length
