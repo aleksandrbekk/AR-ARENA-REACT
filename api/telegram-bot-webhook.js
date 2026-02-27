@@ -729,7 +729,7 @@ async function handleCancelSubscriptionYes(chatId, telegramId, callbackQueryId) 
         'User-Agent': 'TelegramBot/1.0',
         ...(cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {})
       },
-      body: JSON.stringify({ telegram_id: telegramId }),
+      body: JSON.stringify({ telegram_id: telegramId, authTelegramId: telegramId }),
       signal: controller.signal
     });
 
