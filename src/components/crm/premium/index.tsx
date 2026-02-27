@@ -375,8 +375,69 @@ export function PremiumTab({
       }
 
       const exists = premiumClients.find(c => c.telegram_id === userData.telegram_id)
+
       if (exists) {
-        showToast({ variant: 'error', title: 'Клиент уже существует' })
+        // Client already exists — extend subscription instead of error
+        const days = newClientPeriod === 'custom' ? 0 : parseInt(newClientPeriod, 10)
+
+        if (newClientPeriod === 'custom' && newClientCustomDate) {
+          // Custom date — set exact expiration
+          const newExpires = new Date(newClientCustomDate)
+          newExpires.setHours(23, 59, 59, 999)
+
+          if (!confirm(`Клиент уже существует (истекает ${new Date(exists.expires_at).toLocaleDateString('ru-RU')}). Установить новую дату окончания: ${newExpires.toLocaleDateString('ru-RU')}?`)) {
+            setAddingClient(false)
+            return
+          }
+
+          const { error: updateErr } = await supabase
+            .from('premium_clients')
+            .update({ expires_at: newExpires.toISOString() })
+            .eq('id', exists.id)
+
+          if (updateErr) throw updateErr
+
+          showToast({ variant: 'success', title: `Дата обновлена до ${newExpires.toLocaleDateString('ru-RU')}` })
+          await sendMessage(exists.telegram_id, `📅 Дата окончания подписки обновлена: ${newExpires.toLocaleDateString('ru-RU')}`)
+        } else {
+          // Period — add days to existing expiration
+          const currentExpires = new Date(exists.expires_at)
+          const now = new Date()
+          const baseDate = currentExpires > now ? currentExpires : now
+          const newExpires = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000)
+          newExpires.setHours(23, 59, 59, 999)
+
+          if (!confirm(`Клиент уже существует (истекает ${currentExpires.toLocaleDateString('ru-RU')}). Продлить на ${days} дней до ${newExpires.toLocaleDateString('ru-RU')}?`)) {
+            setAddingClient(false)
+            return
+          }
+
+          const { error: updateErr } = await supabase
+            .from('premium_clients')
+            .update({
+              expires_at: newExpires.toISOString(),
+              plan: newClientPeriod === '30' ? 'classic' : newClientPeriod === '90' ? 'gold' : newClientPeriod === '180' ? 'platinum' : 'private'
+            })
+            .eq('id', exists.id)
+
+          if (updateErr) throw updateErr
+
+          showToast({ variant: 'success', title: `+${days} дней добавлено` })
+          await sendMessage(exists.telegram_id, `🎁 Вам начислено ${days} бонусных дней подписки!\n\nНовая дата окончания: ${newExpires.toLocaleDateString('ru-RU')}`)
+        }
+
+        // Send invite links if client not in channel/chat
+        if (!exists.in_channel || !exists.in_chat) {
+          try {
+            await generateInviteLinks(exists.telegram_id, true)
+          } catch (inviteErr) {
+            console.error('Failed to send invite links:', inviteErr)
+          }
+        }
+
+        setShowAddModal(false)
+        resetAddForm()
+        onDataChange()
         setAddingClient(false)
         return
       }
