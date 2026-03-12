@@ -84,52 +84,23 @@ export function FullCrmPage() {
     try {
       setLoading(true)
 
-      // Вспомогательная функция для загрузки всех данных чанками
-      const fetchAllRows = async (tableName: string, selectQuery: string, orderBy = 'created_at', ascending = false) => {
-        let allData: any[] = []
-        let page = 0
-        const pageSize = 1000
-        let hasMore = true
+      // Загружаем ВСЕ CRM данные через серверный API (обходит RLS)
+      const response = await fetch('/api/crm-data', {
+        headers: getAuthHeaders()
+      })
 
-        while (hasMore) {
-          const { data, error } = await supabase
-            .from(tableName)
-            .select(selectQuery)
-            .order(orderBy, { ascending, nullsFirst: false })
-            .range(page * pageSize, (page + 1) * pageSize - 1)
-
-          if (error) {
-            console.error(`❌ Ошибка загрузки ${tableName}:`, error)
-            throw error
-          }
-
-          if (data) {
-            allData = [...allData, ...data]
-            hasMore = data.length === pageSize
-            page++
-          } else {
-            hasMore = false
-          }
-        }
-        return allData
+      if (!response.ok) {
+        throw new Error(`CRM data API error: ${response.status}`)
       }
 
-      // Загружаем пользователей приложения (всех)
-      const usersData = await fetchAllRows(
-        'users',
-        'id, telegram_id, username, first_name, last_name, avatar_url, created_at'
-      )
+      const result = await response.json()
 
-      // Загружаем Premium клиентов (всех)
-      // Сортируем локально позже, здесь важно просто получить всех
-      const premiumDataRaw = await fetchAllRows(
-        'premium_clients',
-        '*',
-        'last_payment_at', // Сортировка для чанков
-        false
-      )
+      if (!result.success) {
+        throw new Error(result.error || 'Unknown error')
+      }
 
-      const premiumClientsData = premiumDataRaw as PremiumClient[]
+      const premiumClientsData = result.premiumClients as PremiumClient[]
+      const usersData = result.users || []
 
       // Создаем мапу для быстрой проверки статуса
       const premiumMap = new Map()
@@ -138,7 +109,7 @@ export function FullCrmPage() {
       const now = new Date()
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-      const usersWithStatus: User[] = (usersData || []).map((user: any) => {
+      const usersWithStatus: User[] = usersData.map((user: any) => {
         const premiumExpires = premiumMap.get(user.telegram_id)
         let status: User['status'] = 'active'
 
@@ -164,55 +135,11 @@ export function FullCrmPage() {
       }))
 
       setPremiumClients(premiumWithAvatars)
-
-      // Загружаем пользователей бота (всех)
-      const botUsersData = await fetchAllRows(
-        'bot_users',
-        '*'
-      )
-
-      setBotUsers(botUsersData as BotUser[] || [])
-
-      // Загружаем историю платежей для точной статистики
-      console.log('📊 Загружаем payment_history...')
-      let paymentHistoryData: any[] = []
-
-      try {
-        paymentHistoryData = await fetchAllRows(
-          'payment_history',
-          '*',
-          'created_at',
-          false
-        )
-
-        console.log(`✅ Загружено ${paymentHistoryData?.length || 0} платежей из payment_history`)
-        if (paymentHistoryData?.length) {
-          console.log('Пример платежа:', paymentHistoryData[0])
-
-          // Подсчитаем общую сумму для отладки
-          const totalSum = paymentHistoryData.reduce((sum, p) => sum + (p.amount || 0), 0)
-          console.log('💰 Общая сумма всех платежей:', totalSum, 'USD')
-
-          // Группировка по валютам
-          const byCurrency = paymentHistoryData.reduce((acc, p) => {
-            const key = `${p.currency || 'UNKNOWN'}_${p.source || 'UNKNOWN'}`
-            acc[key] = (acc[key] || 0) + 1
-            return acc
-          }, {})
-          console.log('📈 Платежи по валютам:', byCurrency)
-        } else {
-          console.warn('⚠️ payment_history пустая! Проверьте RLS политики или данные в БД')
-        }
-      } catch (paymentError) {
-        console.error('❌ Ошибка загрузки payment_history:', paymentError)
-        // Не прерываем выполнение, используем пустой массив
-        paymentHistoryData = []
-      }
-
-      setPaymentHistory(paymentHistoryData as PaymentRecord[] || [])
+      setBotUsers(result.botUsers || [])
+      setPaymentHistory(result.paymentHistory as PaymentRecord[] || [])
 
     } catch (err) {
-      console.error('Error:', err)
+      console.error('CRM loadData error:', err)
       showToast({ variant: 'error', title: 'Ошибка загрузки данных' })
     } finally {
       setLoading(false)
