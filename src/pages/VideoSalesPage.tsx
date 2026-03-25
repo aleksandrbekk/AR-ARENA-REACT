@@ -63,7 +63,7 @@ const commonFeatures = [
     'SPOT-сделки без плечей',
     'Мгновенные оповещения о сделках',
     'Готовые инвестиционные портфели',
-    'Актуальный портфель 2025',
+    'Актуальный портфель 2026',
     'Долгосрочные стратегии',
     'Ончейн-аналитика — движения китов',
     '900+ обучающих материалов',
@@ -947,8 +947,8 @@ export function VideoSalesPage() {
                             </motion.div>
 
                             {/* Pricing Cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mb-12 items-start max-w-5xl mx-auto">
-                                {tariffs.map((tariff, index) => (
+                            <div className="grid grid-cols-1 gap-4 sm:gap-5 md:gap-6 mb-12 items-start max-w-md mx-auto">
+                                {tariffs.slice(0, 1).map((tariff, index) => (
                                     <PricingCard
                                         key={tariff.id}
                                         tariff={tariff}
