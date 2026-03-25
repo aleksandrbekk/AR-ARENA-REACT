@@ -553,13 +553,16 @@ export default async function handler(req, res) {
     if (finalTelegramId) {
       const { channelLink, chatLink } = await createInviteLinks(String(finalTelegramId));
 
+      const cancelInfo = `\n\n─────────────────\n📌 <b>Как отменить подписку:</b>\nОтправьте команду /cancel в этот бот — автосписание будет остановлено, а доступ сохранится до конца оплаченного периода.`;
+
       const welcomeText = isNewClient
-        ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\nВаша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n👇 Нажмите кнопки ниже для доступа:\n\n📞 Служба заботы: @Andrey_cryptoinvestor`
-        : `✅ <b>Подписка продлена!</b>\n\nДобавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n👇 Нажмите кнопки ниже для доступа:\n\n📞 Служба заботы: @Andrey_cryptoinvestor`;
+        ? `🎉 <b>Добро пожаловать в Premium AR Club!</b>\n\nВаша подписка <b>${period.name}</b> активирована на ${period.days} дней.\n\n👇 Нажмите кнопки ниже для доступа:\n\n📞 Служба заботы: @Andrey_cryptoinvestor${cancelInfo}`
+        : `✅ <b>Подписка продлена!</b>\n\nДобавлено <b>${period.days} дней</b> к вашей подписке ${period.name}.\n\n👇 Нажмите кнопки ниже для доступа:\n\n📞 Служба заботы: @Andrey_cryptoinvestor${cancelInfo}`;
 
       const buttons = [];
       if (channelLink) buttons.push([{ text: '📢 Канал Premium', url: channelLink }]);
       if (chatLink) buttons.push([{ text: '💬 Чат Premium', url: chatLink }]);
+      buttons.push([{ text: '❌ Отменить подписку', callback_data: 'cancel_subscription_confirm' }]);
       const replyMarkup = { inline_keyboard: buttons };
 
       const cardImageUrl = TARIFF_CARD_IMAGES[period.tariff] || TARIFF_CARD_IMAGES['classic'];
