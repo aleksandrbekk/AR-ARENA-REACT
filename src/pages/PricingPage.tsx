@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { PaymentModal } from '../components/premium/PaymentModal'
-import { UpsellModal } from '../components/premium/UpsellModal'
+
 import { supabase } from '../lib/supabase'
 
 // ============ СТИЛИ ДЛЯ AURORA ============
@@ -342,7 +342,6 @@ function PricingCard({ tariff, index, onBuy }: PricingCardProps) {
 export function PricingPage() {
   // Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  const [isUpsellModalOpen, setIsUpsellModalOpen] = useState(false)
   const [selectedTariffForPayment, setSelectedTariffForPayment] = useState<Tariff | null>(null)
 
   const navigate = useNavigate()
@@ -415,28 +414,6 @@ export function PricingPage() {
     setIsPaymentModalOpen(true)
   }
 
-  const handleAcceptUpsell = () => {
-    setIsUpsellModalOpen(false)
-    // Генерируем специальный promo-объект на базе GOLD
-    const baseGold = tariffs.find(t => t.id === 'gold')
-    if (baseGold) {
-      const goldPromoTariff: Tariff = {
-        ...baseGold,
-        id: 'gold_promo',
-        name: 'GOLD PROMO',
-        price: 9900,
-        oldPrice: 12000,
-        duration: '3 месяца (SALE)',
-      }
-      setSelectedTariffForPayment(goldPromoTariff)
-    }
-    setTimeout(() => setIsPaymentModalOpen(true), 200)
-  }
-
-  const handleDeclineUpsell = () => {
-    setIsUpsellModalOpen(false)
-    setTimeout(() => setIsPaymentModalOpen(true), 200)
-  }
 
   return (
     <>
@@ -520,12 +497,7 @@ export function PricingPage() {
           tariff={selectedTariffForPayment}
         />
 
-        <UpsellModal
-          isOpen={isUpsellModalOpen}
-          onClose={() => setIsUpsellModalOpen(false)}
-          onAccept={handleAcceptUpsell}
-          onDecline={handleDeclineUpsell}
-        />
+
       </div>
     </>
   )
