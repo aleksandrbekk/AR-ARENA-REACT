@@ -426,21 +426,38 @@ export default async function handler(req, res) {
         }
 
         // Try to re-cancel subscription via Lava API
-        const cancelContractId = subscriptionContractId || existingClient.contract_id;
-        if (cancelContractId && LAVA_API_KEY) {
-          try {
-            const email = `${telegramIdInt}@premium.ararena.pro`;
-            const cancelUrl = new URL('https://gate.lava.top/api/v1/subscriptions');
-            cancelUrl.searchParams.set('contractId', cancelContractId);
-            cancelUrl.searchParams.set('email', email);
+        // Пробуем ВСЕ известные contract ID — parentContractId, contractId, и сохранённые в БД
+        const cancelIdsToTry = new Set();
+        if (parentContractId) cancelIdsToTry.add(parentContractId);
+        if (contractId) cancelIdsToTry.add(contractId);
+        if (existingClient.parent_contract_id) cancelIdsToTry.add(existingClient.parent_contract_id);
+        if (existingClient.contract_id) cancelIdsToTry.add(existingClient.contract_id);
 
-            const cancelResponse = await fetch(cancelUrl.toString(), {
-              method: 'DELETE',
-              headers: { 'X-Api-Key': LAVA_API_KEY }
-            });
-            log('Re-cancel attempt result:', cancelResponse.status);
-          } catch (cancelErr) {
-            log('Re-cancel API error:', cancelErr.message);
+        if (cancelIdsToTry.size > 0 && LAVA_API_KEY) {
+          const email = `${telegramIdInt}@premium.ararena.pro`;
+          for (const cancelId of cancelIdsToTry) {
+            try {
+              const cancelUrl = new URL('https://gate.lava.top/api/v1/subscriptions');
+              cancelUrl.searchParams.set('contractId', cancelId);
+              cancelUrl.searchParams.set('email', email);
+
+              const cancelResponse = await fetch(cancelUrl.toString(), {
+                method: 'DELETE',
+                headers: { 'X-Api-Key': LAVA_API_KEY }
+              });
+              log(`Re-cancel attempt with ${cancelId}: ${cancelResponse.status}`);
+
+              if (cancelResponse.status === 204) {
+                log(`✅ Re-cancel succeeded with contractId: ${cancelId}`);
+                // Сохраняем рабочий ID для будущих отмен
+                await supabase.from('premium_clients')
+                  .update({ parent_contract_id: cancelId })
+                  .eq('id', existingClient.id);
+                break;
+              }
+            } catch (cancelErr) {
+              log(`Re-cancel API error for ${cancelId}:`, cancelErr.message);
+            }
           }
         }
 
@@ -513,6 +530,8 @@ export default async function handler(req, res) {
         last_payment_method: 'lava.top',
         source: 'lava.top',
         ...(subscriptionContractId && { contract_id: subscriptionContractId }),
+        // Сохраняем parentContractId отдельно — он нужен для отмены подписки
+        ...(parentContractId && { parent_contract_id: parentContractId }),
         updated_at: now.toISOString()
       }).eq('id', existingClient.id);
 
@@ -537,6 +556,7 @@ export default async function handler(req, res) {
         last_payment_at: now.toISOString(),
         last_payment_method: 'lava.top',
         contract_id: subscriptionContractId || null,
+        parent_contract_id: parentContractId || null,
         created_at: now.toISOString(),
         updated_at: now.toISOString()
       });

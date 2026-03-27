@@ -122,7 +122,7 @@ export default async function handler(req, res) {
     log('[CANCEL] Step 6: Querying database...');
     const { data: client, error: clientError } = await supabase
       .from('premium_clients')
-      .select('id, telegram_id, username, source, contract_id, tags, expires_at')
+      .select('id, telegram_id, username, source, contract_id, parent_contract_id, tags, expires_at')
       .eq('telegram_id', telegramIdInt)
       .single();
     log('[CANCEL] Step 7: Database query completed');
@@ -158,13 +158,13 @@ export default async function handler(req, res) {
     }
 
     // 3. ОТМЕНИТЬ ПОДПИСКУ ЧЕРЕЗ LAVA API
-    // ВАЖНО: Для отмены нужен parentContractId (ID оригинальной подписки),
-    // а не contractId текущего платежа (он меняется каждый раз)
-    log('[CANCEL] Calling Lava API:', { contract_id: client.contract_id });
+    // ВАЖНО: Для отмены нужен parentContractId (ID подписки в Lava),
+    // а не contractId конкретного платежа (он меняется каждый раз).
+    // Собираем ВСЕ возможные ID и пробуем каждый.
+    log('[CANCEL] Collecting all contract IDs for cancellation...');
 
     const email = `${telegramIdInt}@premium.ararena.pro`;
 
-    // Попытка отмены через Lava API с fallback
     async function tryCancel(contractIdToCancel) {
       const cancelUrl = new URL('https://gate.lava.top/api/v1/subscriptions');
       cancelUrl.searchParams.set('contractId', contractIdToCancel);
@@ -178,80 +178,134 @@ export default async function handler(req, res) {
       return lavaResponse;
     }
 
+    // Собираем все уникальные contract ID для попыток отмены
+    const contractIdsToTry = new Set();
+
+    // 1) parent_contract_id из БД (приоритет — это ID подписки)
+    if (client.parent_contract_id) {
+      contractIdsToTry.add(client.parent_contract_id);
+    }
+
+    // 2) contract_id из БД
+    if (client.contract_id) {
+      contractIdsToTry.add(client.contract_id);
+    }
+
+    // 3) Ищем parentContractId в webhook_logs (все уникальные)
     try {
-      // Попытка 1: Используем contract_id из базы
-      let lavaResponse = await tryCancel(client.contract_id);
-      log('[CANCEL] Lava API response status (attempt 1):', lavaResponse.status);
-
-      // Если 404 — contract_id в базе может быть от конкретного платежа, а не от подписки
-      // Ищем parentContractId в webhook_logs
-      if (lavaResponse.status === 404) {
-        log('[CANCEL] Contract not found, searching for parentContractId in webhook_logs...');
-
-        const { data: webhookLog } = await supabase
+      const searchId = client.parent_contract_id || client.contract_id;
+      if (searchId) {
+        const { data: webhookLogs } = await supabase
           .from('webhook_logs')
           .select('payload')
-          .like('payload', `%${client.contract_id}%`)
+          .or(`payload.ilike.%${searchId}%,payload.ilike.%${telegramIdInt}%`)
+          .eq('source', 'lava.top')
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(10);
 
-        if (webhookLog?.payload) {
-          try {
-            const payload = typeof webhookLog.payload === 'string'
-              ? JSON.parse(webhookLog.payload) : webhookLog.payload;
-            const parentId = payload.parentContractId;
-
-            if (parentId && parentId !== client.contract_id) {
-              log('[CANCEL] Found parentContractId:', parentId);
-              lavaResponse = await tryCancel(parentId);
-              log('[CANCEL] Lava API response status (attempt 2 with parentContractId):', lavaResponse.status);
-
-              // Update contract_id in DB to parentContractId for future use
-              if (lavaResponse.status === 204) {
-                await supabase.from('premium_clients')
-                  .update({ contract_id: parentId })
-                  .eq('id', client.id);
-                log('[CANCEL] Updated contract_id to parentContractId in DB');
-              }
+        if (webhookLogs?.length) {
+          for (const wl of webhookLogs) {
+            try {
+              const payload = typeof wl.payload === 'string' ? JSON.parse(wl.payload) : wl.payload;
+              if (payload.parentContractId) contractIdsToTry.add(payload.parentContractId);
+              if (payload.contractId) contractIdsToTry.add(payload.contractId);
+            } catch (parseErr) {
+              // skip unparseable
             }
-          } catch (parseErr) {
-            log('[CANCEL] Failed to parse webhook payload:', parseErr.message);
           }
         }
       }
+    } catch (searchErr) {
+      log('[CANCEL] webhook_logs search error (non-critical):', searchErr.message);
+    }
 
-      // Успешная отмена возвращает 204 No Content
-      if (lavaResponse.status === 204) {
-        log('[CANCEL] Subscription successfully cancelled via Lava API');
-      } else if (!lavaResponse.ok) {
+    // 4) Ищем contract_id в payment_history для этого пользователя
+    try {
+      const { data: payments } = await supabase
+        .from('payment_history')
+        .select('contract_id')
+        .eq('telegram_id', telegramIdInt)
+        .eq('source', 'lava.top')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (payments?.length) {
+        for (const p of payments) {
+          if (p.contract_id) contractIdsToTry.add(p.contract_id);
+        }
+      }
+    } catch (phErr) {
+      log('[CANCEL] payment_history search error (non-critical):', phErr.message);
+    }
+
+    log('[CANCEL] Contract IDs to try:', Array.from(contractIdsToTry));
+
+    try {
+      let cancelledSuccessfully = false;
+      let alreadyCancelledOnLava = false;
+      let successfulContractId = null;
+
+      for (const idToTry of contractIdsToTry) {
+        log(`[CANCEL] Trying cancellation with contractId: ${idToTry}`);
+        const lavaResponse = await tryCancel(idToTry);
+        log(`[CANCEL] Lava API response for ${idToTry}: ${lavaResponse.status}`);
+
+        if (lavaResponse.status === 204) {
+          cancelledSuccessfully = true;
+          successfulContractId = idToTry;
+          log(`[CANCEL] ✅ Successfully cancelled with contractId: ${idToTry}`);
+          break;
+        }
+
+        if (lavaResponse.status === 404) {
+          log(`[CANCEL] contractId ${idToTry} not found on Lava, trying next...`);
+          continue;
+        }
+
+        // Другие ошибки — проверяем текст
         const responseText = await lavaResponse.text();
         let lavaResult;
-
         try {
           lavaResult = JSON.parse(responseText);
         } catch (e) {
           lavaResult = { message: responseText || 'Unknown response' };
         }
 
-        log('[CANCEL] Lava API error response:', lavaResult);
-
         const errorMessage = String(lavaResult?.error || lavaResult?.message || '').toLowerCase();
-        const alreadyCancelled = errorMessage.includes('already cancelled') ||
-          errorMessage.includes('already canceled') ||
-          errorMessage.includes('subscription not active') ||
-          errorMessage.includes('cancelled');
-
-        // "not found" после обеих попыток — серьёзная ошибка
-        if (!alreadyCancelled) {
-          log('[CANCEL] Lava API error:', { status: lavaResponse.status, error: lavaResult });
-          return res.status(500).json({
-            error: 'Lava API error',
-            message: 'Не удалось отменить подписку через Lava.top. Попробуйте позже или обратитесь в поддержку @Andrey_cryptoinvestor',
-            details: lavaResult?.error || lavaResult?.message
-          });
+        if (errorMessage.includes('already cancelled') ||
+            errorMessage.includes('already canceled') ||
+            errorMessage.includes('subscription not active') ||
+            errorMessage.includes('cancelled')) {
+          alreadyCancelledOnLava = true;
+          log(`[CANCEL] Subscription already cancelled on Lava (contractId: ${idToTry})`);
+          break;
         }
-        log('[CANCEL] Subscription already cancelled on Lava side, continuing...');
+
+        log(`[CANCEL] Unexpected Lava response for ${idToTry}:`, lavaResult);
+      }
+
+      if (cancelledSuccessfully) {
+        log('[CANCEL] Subscription successfully cancelled via Lava API');
+        // Сохраняем parent_contract_id для будущих операций
+        if (successfulContractId) {
+          await supabase.from('premium_clients')
+            .update({ parent_contract_id: successfulContractId })
+            .eq('id', client.id);
+        }
+      } else if (alreadyCancelledOnLava) {
+        log('[CANCEL] Subscription already cancelled on Lava side, continuing to update DB...');
+      } else if (contractIdsToTry.size === 0) {
+        log('[CANCEL] No contract IDs found to try!');
+        return res.status(500).json({
+          error: 'No contract ID',
+          message: 'Не найден ID подписки для отмены. Обратитесь в поддержку @Andrey_cryptoinvestor'
+        });
+      } else {
+        log('[CANCEL] All contract IDs failed');
+        return res.status(500).json({
+          error: 'Lava API error',
+          message: 'Не удалось отменить подписку через Lava.top. Попробуйте позже или обратитесь в поддержку @Andrey_cryptoinvestor'
+        });
       }
 
     } catch (lavaError) {
