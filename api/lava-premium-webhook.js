@@ -398,9 +398,15 @@ export default async function handler(req, res) {
 
     // CHECK FOR CANCELLED SUBSCRIPTION BEFORE recording payment
     // If subscription was cancelled but Lava still charges — block, re-cancel, notify
+    // ВАЖНО: Различаем НОВУЮ подписку (payment.success с новым contractId) vs
+    // повторное списание со старой отменённой (subscription.recurring.payment.success)
     if (existingClient) {
       const clientTags = existingClient.tags || [];
-      if (clientTags.includes('subscription_cancelled')) {
+      const isRecurringEvent = eventType === 'subscription.recurring.payment.success';
+      const oldContractIds = [existingClient.contract_id, existingClient.parent_contract_id].filter(Boolean);
+      const isNewSubscription = !isRecurringEvent && parentContractId && !oldContractIds.includes(parentContractId);
+
+      if (clientTags.includes('subscription_cancelled') && !isNewSubscription) {
         log('⚠️ CANCELLED SUBSCRIPTION RENEWAL DETECTED!', {
           telegram_id: telegramIdInt,
           contract_id: contractId || existingClient.contract_id,
@@ -462,7 +468,8 @@ export default async function handler(req, res) {
         }
 
         // Notify admin IMMEDIATELY
-        const alertMessage = `🚨 <b>ПОВТОРНОЕ СПИСАНИЕ С ОТМЕНЁННОЙ ПОДПИСКИ!</b>\n\n👤 ID: <code>${telegramIdInt}</code>\n💰 Сумма: <b>${grossAmount} ${currency}</b>\n📋 Contract: <code>${cancelContractId || 'N/A'}</code>\n\n⚠️ Подписка была отменена, но Lava продолжает списывать!\n💳 Необходим возврат средств через Lava Dashboard.`;
+        const alertContractId = parentContractId || contractId || existingClient.parent_contract_id || existingClient.contract_id || 'N/A';
+        const alertMessage = `🚨 <b>ПОВТОРНОЕ СПИСАНИЕ С ОТМЕНЁННОЙ ПОДПИСКИ!</b>\n\n👤 ID: <code>${telegramIdInt}</code>\n💰 Сумма: <b>${grossAmount} ${currency}</b>\n📋 Contract: <code>${alertContractId}</code>\n\n⚠️ Подписка была отменена, но Lava продолжает списывать!\n💳 Необходим возврат средств через Lava Dashboard.`;
         await sendToAllAdmins(alertMessage);
 
         // Update webhook log
@@ -481,6 +488,21 @@ export default async function handler(req, res) {
           amount: grossAmount,
           currency
         });
+      }
+
+      // Если это НОВАЯ подписка после отмены — снимаем тег cancelled
+      if (clientTags.includes('subscription_cancelled') && isNewSubscription) {
+        log('🔄 New subscription after cancellation detected, removing cancelled tag', {
+          telegram_id: telegramIdInt,
+          old_contract: existingClient.contract_id,
+          new_parent_contract: parentContractId
+        });
+        const cleanedTags = clientTags.filter(t => t !== 'subscription_cancelled');
+        await supabase.from('premium_clients')
+          .update({ tags: cleanedTags })
+          .eq('id', existingClient.id);
+        // Обновляем existingClient для корректной работы далее
+        existingClient.tags = cleanedTags;
       }
     }
 

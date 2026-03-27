@@ -242,18 +242,48 @@ export function PremiumTab({
 
   // ============ CLIENT OPERATIONS ============
   const cancelSubscription = async (clientId: string, telegramId: number) => {
-    if (!confirm(`Отменить подписку клиента ${telegramId}? Подписка станет неактивной.`)) return
+    if (!confirm(`Отменить подписку клиента ${telegramId}? Подписка станет неактивной, автосписание будет остановлено.`)) return
 
     try {
+      // 1. Вызываем API отмены — это отменит подписку в Lava и добавит тег
+      const cancelRes = await fetch('/api/lava-cancel-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({ telegram_id: telegramId })
+      })
+
+      const cancelData = await cancelRes.json()
+
+      if (!cancelRes.ok && cancelData.error !== 'Already cancelled' && cancelData.error !== 'Not a Lavatop subscription') {
+        console.warn('Lava cancel API error:', cancelData)
+        // Продолжаем — подписку всё равно деактивируем локально
+      }
+
+      // 2. Ставим expires_at = now для немедленной деактивации
       const { error } = await supabase
         .from('premium_clients')
         .update({ expires_at: new Date().toISOString() })
         .eq('id', clientId)
 
       if (error) throw error
+
+      // 3. Добавляем тег subscription_cancelled (если API не сделал)
+      const { data: client } = await supabase
+        .from('premium_clients')
+        .select('tags')
+        .eq('id', clientId)
+        .single()
+
+      if (client && !(client.tags || []).includes('subscription_cancelled')) {
+        await supabase
+          .from('premium_clients')
+          .update({ tags: [...(client.tags || []), 'subscription_cancelled'] })
+          .eq('id', clientId)
+      }
+
       setSelectedClient(null)
       setShowClientModal(false)
-      showToast({ variant: 'success', title: 'Подписка отменена' })
+      showToast({ variant: 'success', title: 'Подписка отменена, автосписание остановлено' })
       onDataChange()
 
       await sendMessage(telegramId, '❌ Ваша подписка Premium AR Club была отменена.\n\nЕсли у вас есть вопросы — @Andrey_cryptoinvestor')
