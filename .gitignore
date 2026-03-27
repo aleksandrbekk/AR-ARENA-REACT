@@ -50,6 +50,7 @@ playwright-report/
 *.tar.gz
 *.mov
 *.mp4
+supabase/.temp/
 grep_output.txt
 state_update_msg.txt
 
