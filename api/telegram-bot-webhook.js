@@ -236,7 +236,7 @@ async function checkSubscription(telegramId) {
   try {
     const { data, error } = await supabase
       .from('premium_clients')
-      .select('plan, expires_at, source, contract_id, tags')
+      .select('plan, expires_at, source, contract_id, parent_contract_id, tags')
       .eq('telegram_id', telegramId)
       .gt('expires_at', new Date().toISOString())
       .single();
@@ -463,9 +463,9 @@ ${tariffEmoji[subscription.plan] || '💳'} Тариф: <b>${tariffName}</b>
       [{ text: '📋 Продлить / Повысить', web_app: { url: PRICING_URL } }]
     ];
 
-    // Добавляем кнопку отмены только для lava.top подписок с contract_id, которые ещё не отменены
+    // Добавляем кнопку отмены только для lava.top подписок с contract_id или parent_contract_id
     const canCancel = subscription.source === 'lava.top' &&
-      subscription.contract_id &&
+      (subscription.contract_id || subscription.parent_contract_id) &&
       !isAlreadyCancelled;
 
     if (canCancel) {
@@ -635,7 +635,7 @@ async function handleCancel(chatId, telegramId, conversationId) {
     return;
   }
 
-  if (subscription.source !== 'lava.top' || !subscription.contract_id) {
+  if (subscription.source !== 'lava.top' || (!subscription.contract_id && !subscription.parent_contract_id)) {
     const text = `ℹ️ <b>Автоматическая отмена недоступна</b>\n\nВаша подписка оформлена не через автоплатёж.\nДля отмены обратитесь в поддержку: @Andrey_cryptoinvestor`;
     await sendMessage(chatId, text);
     saveOutgoingMessage(conversationId, telegramId, text);
